@@ -16,13 +16,11 @@ sub get_header_info {
 }
 
 sub feature_types {
-    return ['Motif', 'Transcript', 'RegulatoryFeature'];
+    return ['Motif'];
 }
 
 sub run {
     my ($self, $mfva) = @_;
-
-    return undef unless $mfva->isa('Bio::EnsEMBL::Variation::MotifFeatureVariationAllele');
 
     my $vf = $mfva->motif_feature_variation->variation_feature;
     my $mf = $mfva->motif_feature;
