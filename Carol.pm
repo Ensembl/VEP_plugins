@@ -34,8 +34,8 @@
  http://www.sanger.ac.uk/resources/software/carol/
 
  I believe that both versions implement the same algorithm, but if there are any
- discrepancies the results from the R version should be treated as the reference
- implementation. Bug reports are welcome.
+ discrepancies the R version should be treated as the reference implementation. 
+ Bug reports are welcome.
 
  References:
 

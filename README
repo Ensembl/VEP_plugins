@@ -1,7 +1,7 @@
 This repository contains several perl plugin modules for the Ensembl
 variant effect predictor. Please refer to the documentation at the 
-top of each file for details of the functionality implemented by each
-module, and on how to use each plugin.
+top of each file for details of what each plugin does and how to run 
+it.
 
 All software is Copyright (c) 2011, Graham Ritchie. All rights 
 reserved.
