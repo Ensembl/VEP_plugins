@@ -1,3 +1,37 @@
+=head1 LICENSE
+
+ Copyright (c) 2011, Graham Ritchie. All rights reserved.
+
+ This software is distributed under the terms of the Apache 
+ License, Version 2.0. For details, please see:
+    
+    http://www.apache.org/licenses/LICENSE-2.0
+
+=head1 CONTACT
+ 
+ Graham Ritchie <gritchie@gmail.com>
+
+=cut
+
+=head1 NAME
+
+ Blosum62
+
+=head1 SYNOPSIS
+
+ mv Blosum62.pm ~/.vep/Plugins
+ perl variant_effect_predictor.pl -i variations.vcf --plugin Blosum62
+
+=head1 DESCRIPTION
+
+ This is a plugin for the Ensembl variant effect predictor (VEP) that
+ looks up the BLOSUM 62 substitution matrix score for the reference
+ and alternative amino acids predicted for a missense mutation. It adds
+ one new entry to the VEP's Extra column, BLOSUM62 which is the 
+ associated score. 
+
+=cut
+
 package Blosum62;
 
 use strict;

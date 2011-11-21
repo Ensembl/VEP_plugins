@@ -1,3 +1,65 @@
+=head1 LICENSE
+
+ Copyright (c) 2011, Graham Ritchie. All rights reserved.
+
+ This software is distributed under the terms of the Apache 
+ License, Version 2.0. For details, please see:
+    
+    http://www.apache.org/licenses/LICENSE-2.0
+
+=head1 CONTACT
+ 
+ Graham Ritchie <gritchie@gmail.com>
+
+=cut
+
+=head1 NAME
+
+ Carol
+
+=head1 SYNOPSIS
+
+ mv Carol.pm ~/.vep/Plugins
+ perl variant_effect_predictor.pl -i variations.vcf --plugin Carol
+
+=head1 DESCRIPTION
+
+ This is a plugin for the Ensembl variant effect predictor (VEP) that calculates
+ the Combined Annotation scoRing toOL (CAROL) score (1) for a missense mutation 
+ based on the pre-calculated SIFT (2) and PolyPhen-2 (3) scores from the Ensembl 
+ API (4). It adds one new entry class to the VEP's Extra column, CAROL which is
+ the calculated CAROL score. Note that this module is a perl reimplementation of 
+ the original R script, available at:
+
+ http://www.sanger.ac.uk/resources/software/carol/
+
+ I believe that both versions implement the same algorithm, but if there are any
+ discrepancies the results from the R version should be treated as the reference
+ implementation. Bug reports are welcome.
+
+ References:
+
+ (1) Lopes MC, Joyce C, Ritchie GRS, John SL, Cunningham F, Asimit J, Zeggini E. 
+     A combined functional annotation score for non-synonymous variants
+     Human Heredity (in press)
+
+ (2) Kumar P, Henikoff S, Ng PC.
+     Predicting the effects of coding non-synonymous variants on protein function using the SIFT algorithm
+     Nature Protocols 4(8):1073-1081 (2009)
+     doi:10.1038/nprot.2009.86
+ 
+ (3) Adzhubei IA, Schmidt S, Peshkin L, Ramensky VE, Gerasimova A, Bork P, Kondrashov AS, Sunyaev SR. 
+     A method and server for predicting damaging missense mutations
+     Nature Methods 7(4):248-249 (2010)
+     doi:10.1038/nmeth0410-248
+ 
+ (4) Flicek P, et al.
+     Ensembl 2012
+     Nucleic Acids Research (2011)
+     doi: 10.1093/nar/gkr991
+
+=cut
+
 package Carol;
 
 use strict;
