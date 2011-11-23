@@ -1,3 +1,43 @@
+=head1 LICENSE
+                                                                                                                     
+ Copyright (c) 1999-2011 The European Bioinformatics Institute and                                                   
+ Genome Research Limited.  All rights reserved.                                                                      
+                                                                                                                     
+ This software is distributed under a modified Apache license.                                                       
+ For license details, please see
+
+   http://www.ensembl.org/info/about/code_licence.html                                                               
+                                                                                                                     
+=head1 CONTACT                                                                                                       
+
+ Will McLaren <wm2@ebi.ac.uk>
+    
+=cut
+
+=head1 NAME
+
+ Blosum62
+
+=head1 SYNOPSIS
+
+ mv Downstream.pm ~/.vep/Plugins
+ perl variant_effect_predictor.pl -i variations.vcf --plugin Downstream
+
+=head1 DESCRIPTION
+
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
+ predicts the downstream effects of a frameshift variant on the protein
+ sequence of a transcript. It provides the predicted downstream protein
+ sequence (including any amino acids overlapped by the variant itself),
+ and the change in length relative to the reference protein.
+ 
+ Note that changes in splicing are not predicted - only the existing
+ translateable (i.e. spliced) sequence is used as a source of
+ translation. Any variants with a splice site consequence type are
+ ignored.
+
+=cut
+
 package Downstream;
 
 use strict;
