@@ -1,18 +1,18 @@
 =head1 LICENSE
+                                                                                                                     
+ Copyright (c) 1999-2011 The European Bioinformatics Institute and                                                   
+ Genome Research Limited.  All rights reserved.                                                                      
+                                                                                                                     
+ This software is distributed under a modified Apache license.                                                       
+ For license details, please see
 
- Copyright (c) 2011, Graham Ritchie. All rights reserved.
+   http://www.ensembl.org/info/about/code_licence.html                                                               
+                                                                                                                     
+=head1 CONTACT                                                                                                       
 
- This software is distributed under the terms of the Apache 
- License, Version 2.0. For details, please see:
+ Graham Ritchie <grsr@ebi.ac.uk>
     
-    http://www.apache.org/licenses/LICENSE-2.0
-
-=head1 CONTACT
- 
- Graham Ritchie <gritchie@gmail.com>
-
 =cut
-
 
 =head1 NAME
 
