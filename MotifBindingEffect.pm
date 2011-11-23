@@ -1,16 +1,17 @@
 =head1 LICENSE
+                                                                                                                     
+ Copyright (c) 1999-2011 The European Bioinformatics Institute and                                                   
+ Genome Research Limited.  All rights reserved.                                                                      
+                                                                                                                     
+ This software is distributed under a modified Apache license.                                                       
+ For license details, please see
 
- Copyright (c) 2011, Graham Ritchie. All rights reserved.
+   http://www.ensembl.org/info/about/code_licence.html                                                               
+                                                                                                                     
+=head1 CONTACT                                                                                                       
 
- This software is distributed under the terms of the Apache 
- License, Version 2.0. For details, please see:
+ Graham Ritchie <grsr@ebi.ac.uk>
     
-    http://www.apache.org/licenses/LICENSE-2.0
-
-=head1 CONTACT
- 
- Graham Ritchie <gritchie@gmail.com>
-
 =cut
 
 =head1 NAME
@@ -24,13 +25,13 @@
 
 =head1 DESCRIPTION
 
- This is a plugin for the Ensembl variant effect predictor (VEP) that calculates
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that calculates
  the difference in binding affinity for the reference and variant sequences for
  a variant that overlaps a MotifFeature, Ensembl's representation of a TF binding
  motif mapped to a particular genomic location. It adds two new entry classes to 
- the VEP's Extra column, BINDING_SCORE_DELTA which is the change in binding
- affinity, and MOTIF_POSITION which gives the relative position of the variant
- in the aligned motif.
+ the VEP's Extra column, BINDING_SCORE_DELTA which is the change in relative 
+ binding affinity, and MOTIF_POSITION which gives the relative position of the 
+ variant in the motif.
 
 =cut
 
