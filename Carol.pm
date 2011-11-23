@@ -1,16 +1,17 @@
 =head1 LICENSE
+                                                                                                                     
+ Copyright (c) 1999-2011 The European Bioinformatics Institute and                                                   
+ Genome Research Limited.  All rights reserved.                                                                      
+                                                                                                                     
+ This software is distributed under a modified Apache license.                                                       
+ For license details, please see
 
- Copyright (c) 2011, Graham Ritchie. All rights reserved.
+   http://www.ensembl.org/info/about/code_licence.html                                                               
+                                                                                                                     
+=head1 CONTACT                                                                                                       
 
- This software is distributed under the terms of the Apache 
- License, Version 2.0. For details, please see:
+ Graham Ritchie <grsr@ebi.ac.uk>
     
-    http://www.apache.org/licenses/LICENSE-2.0
-
-=head1 CONTACT
- 
- Graham Ritchie <gritchie@gmail.com>
-
 =cut
 
 =head1 NAME
@@ -24,7 +25,7 @@
 
 =head1 DESCRIPTION
 
- This is a plugin for the Ensembl variant effect predictor (VEP) that calculates
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that calculates
  the Combined Annotation scoRing toOL (CAROL) score (1) for a missense mutation 
  based on the pre-calculated SIFT (2) and PolyPhen-2 (3) scores from the Ensembl 
  API (4). It adds one new entry class to the VEP's Extra column, CAROL which is

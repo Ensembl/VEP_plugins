@@ -13,6 +13,7 @@
 
 =cut
 
+
 =head1 NAME
 
  Blosum62
@@ -24,7 +25,7 @@
 
 =head1 DESCRIPTION
 
- This is a plugin for the Ensembl variant effect predictor (VEP) that
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  looks up the BLOSUM 62 substitution matrix score for the reference
  and alternative amino acids predicted for a missense mutation. It adds
  one new entry to the VEP's Extra column, BLOSUM62 which is the 
