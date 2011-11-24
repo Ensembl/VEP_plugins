@@ -55,6 +55,10 @@ sub feature_types {
     return ['Transcript'];
 }
 
+sub variant_feature_types {
+    return ['Variation'];
+}
+
 sub get_header_info {
     return {
         DownstreamProtein   => "Predicted downstream translation for frameshift mutations",
