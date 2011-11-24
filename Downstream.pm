@@ -16,7 +16,7 @@
 
 =head1 NAME
 
- Blosum62
+ Donwstream
 
 =head1 SYNOPSIS
 
