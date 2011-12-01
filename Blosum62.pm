@@ -38,8 +38,6 @@ package Blosum62;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my @BLOSUM_62 = qw(

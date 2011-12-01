@@ -68,8 +68,6 @@ use warnings;
 
 use Math::CDF qw(pnorm qnorm);
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my $CAROL_CUTOFF = 0.98;
@@ -103,7 +101,7 @@ sub run {
 
         $carol_score = sprintf "%.3f", $carol_score;
 
-        my $result = "$carol_pred ($carol_score)";
+        my $result = "$carol_pred($carol_score)";
 
         if (@{ $self->params } > 0) {
             $result = $carol_pred if ($self->params->[0] =~ /^p/i);
