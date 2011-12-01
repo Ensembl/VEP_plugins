@@ -93,10 +93,6 @@ sub feature_types {
     return ['Transcript'];
 }
 
-sub variant_feature_types {
-    return ['Variation'];
-}
-
 sub get_header_info {
     return {
         BLOSUM62 => "BLOSUM62 substitution score for the reference and alternative amino acids",
