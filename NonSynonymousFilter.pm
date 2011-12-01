@@ -41,11 +41,13 @@ sub feature_types {
 }
 
 sub include_line {
-    my ($self, $vfoa) = @_;
+    my ($self, $tva) = @_;
 
-    return 0 unless $vfoa->can('pep_allele_string');
+    # just check if there are alternative amino acids in the 
+    # pep_allele_string, this means we'll catch stop gained
+    # or lost as well
 
-    if (my $pep_alleles = $vfoa->pep_allele_string) {
+    if (my $pep_alleles = $tva->pep_allele_string) {
         return $pep_alleles =~ /\//;
     }
 
