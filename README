@@ -5,6 +5,11 @@ run it, though for most you will just need to put the module in your
 ~/.vep/Plugins directory (or elsewhere on your $PERL5LIB) and then
 run the VEP with the argument --plugin <module name>.
 
+More documentation on VEP plugins, and on the VEP itself, can be 
+found on the Ensembl website:
+
+http://www.ensembl.org/info/docs/variation/vep/vep_script.html
+
 All software is Copyright (c) 1999-2011 The European Bioinformatics 
 Institute and Genome Research Limited.  All rights reserved.                                                                      
 This software is distributed under a modified Apache license.                                                       
