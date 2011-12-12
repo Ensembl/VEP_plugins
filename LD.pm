@@ -26,7 +26,7 @@
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- finds variants in high LD with any overlapping existing variants from
+ finds variants in LD with any overlapping existing variants from
  the Ensembl variation databases. You can configure the population used
  to calculate the r2 value, and the r2 cutoff used by passing arguments
  to the plugin via the VEP command line (separated by commas). This plugin
