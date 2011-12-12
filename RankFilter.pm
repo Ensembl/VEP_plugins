@@ -71,13 +71,13 @@ sub new {
     }
     elsif (my $oc = $OVERLAP_CONSEQUENCES{$term}) {
         
-        # otherwise we look up the rank from provided
+        # otherwise we look up the rank from the provided
         # SO consequence term
 
         $rank = $oc->rank;
     }
     else {
-        die "Unable to find rank for consequence term: '$term'";
+        die "Unable to find rank for consequence term: '$term'\n";
     }
 
     $self->{rank} = $rank;
