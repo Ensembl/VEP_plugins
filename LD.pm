@@ -26,17 +26,18 @@
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- finds variants in LD with any overlapping existing variants from
- the Ensembl variation databases. You can configure the population used
- to calculate the r2 value, and the r2 cutoff used by passing arguments
- to the plugin via the VEP command line (separated by commas). This plugin
- adds a single new entry to the Extra column with a comma-separated list
- of linked variant IDs and the associated r2 values, e.g.:
+ finds variants in linkage disequilibrium with any overlapping existing 
+ variants from the Ensembl variation databases. You can configure the 
+ population used to calculate the r2 value, and the r2 cutoff used by 
+ passing arguments to the plugin via the VEP command line (separated 
+ by commas). This plugin adds a single new entry to the Extra column 
+ with a comma-separated list of linked variant IDs and the associated 
+ r2 values, e.g.:
 
   LinkedVariants=rs123:0.879,rs234:0.943
 
  If no arguments are supplied, the default population used is the CEU
- sample (60 unrelated individuals) from 1000 Genomes Project pilot 1 low 
+ sample (60 unrelated individuals) from the 1000 Genomes Project pilot 1 low 
  coverage study, and the default r2 cutoff used is 0.8.
 
  WARNING: Calculating LD is a relatively slow procedure, so this will 
@@ -68,7 +69,7 @@ sub feature_types {
 
 sub get_header_info {
     return {
-        LinkedVariants => "Variants in high LD with overlapping existing variants",
+        LinkedVariants => "Variants in LD with overlapping existing variants",
     };
 }
 
