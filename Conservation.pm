@@ -57,8 +57,12 @@ sub feature_types {
 }
 
 sub get_header_info {
+
+    my $self = shift;
+    
     return {
-        Conservation => "The conservation score for this site",
+        Conservation => "The conservation score for this site (method_link_type=\"".
+            $self->{method_link_type}."\", species_set=\"".$self->{species_set}."\")",
     };
 }
 
@@ -69,14 +73,14 @@ sub new {
 
     my $reg = 'Bio::EnsEMBL::Registry';
 
-    my $score_method = $self->params->[0] || 'GERP_CONSERVATION_SCORE';
-    my $species_set  = $self->params->[1] || 'mammals';
+    $self->{method_link_type} = $self->params->[0] || 'GERP_CONSERVATION_SCORE';
+    $self->{species_set}  = $self->params->[1] || 'mammals';
 
     my $mlss_adap = $reg->get_adaptor('Multi', 'compara', 'MethodLinkSpeciesSet')
         or die "Failed to connect to compara database\n";
 
-    $self->{mlss} = $mlss_adap->fetch_by_method_link_type_species_set_name($score_method, $species_set)
-        or die "Failed to fetch MLSS for $score_method and $species_set\n";
+    $self->{mlss} = $mlss_adap->fetch_by_method_link_type_species_set_name($self->{method_link_type}, $self->{species_set})
+        or die "Failed to fetch MLSS for ".$self->{method_link_type}." and ".$self->{species_set}."\n";
 
     $self->{cs_adap} = $reg->get_adaptor('Multi', 'compara', 'ConservationScore')
         or die "Failed to fetch conservation adaptor\n";

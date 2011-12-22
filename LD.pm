@@ -68,8 +68,13 @@ sub feature_types {
 }
 
 sub get_header_info {
+
+    my $self = shift;
+    
     return {
-        LinkedVariants => "Variants in LD with overlapping existing variants",
+        LinkedVariants => "Variants in LD (r2 >= ".$self->{r2_cutoff}.
+            ") with overlapping existing variants from the ".
+            $self->{pop}->name." population",
     };
 }
 
