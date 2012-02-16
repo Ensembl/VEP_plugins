@@ -28,6 +28,8 @@
 
 =head1 BUGS AND LIMITATIONS
 
+=over
+
 =item * RefSeq transcripts limited to those in the OtherFeatures database. 
 
 Archived RefSeq transcripts are not available.
@@ -53,12 +55,16 @@ relaxed to exclude only regions of mismatch.  Currently, this implies that
 HGVS tags are not constructued when the RefSeq differs from the reference
 geneome.
 
+=back
 
 =head1 CONTACT
 
  Reece Hart <reecehart@gmail.com>
 
 =head1 LICENSE
+
+ This code and all rights to it are hereby donated to EnsEMBL project by
+ Reece Hart and Locus Development.
 
  Copyright (c) 1999-2011 The European Bioinformatics Institute and
  Genome Research Limited.  All rights reserved.
