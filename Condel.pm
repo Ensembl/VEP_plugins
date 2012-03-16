@@ -42,6 +42,11 @@
  is recommended to avoid false positive predictions from Condel in some 
  circumstances.
 
+ An example Condel configuration file and a set of distribution files can be found 
+ in the config/Condel directory in this repository. You should edit the 
+ config/Condel/config/condel_SP.conf file and set the 'condel.dir' parameter to
+ the full path to the location of the config/Condel directory on your system.
+
  References:
 
  (1) Gonzalez-Perez A, Lopez-Bigas N. 
