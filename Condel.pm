@@ -21,7 +21,7 @@
 =head1 SYNOPSIS
 
  mv Condel.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Condel,/path/to/condel_config,b
+ perl variant_effect_predictor.pl -i variations.vcf --plugin Condel,/path/to/config/Condel/config,b
 
 =head1 DESCRIPTION
 
