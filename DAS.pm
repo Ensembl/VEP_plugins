@@ -29,6 +29,14 @@
  the assemblies match, and doesn't do any smart fetching of chunks of features (i.e. the plugin
  will query the DAS server once for every variant in the input file).
 
+ You can run multiple instances of this plugin at the same time so you can query multiple DAS
+ servers and sources. If you are querying multiple sources from the same server it is 
+ convenient to store the server name in an environment variable to avoid specifying it
+ multiple times, e.g.:
+
+ export DAS="http://somewhere/das"
+ perl variant_effect_predictor.pl -i variations.vcf --plugin DAS,$DAS,source1 --plugin DAS,$DAS,source2
+
  Requires the Bio::Das::Lite module from CPAN.
 
 =cut
