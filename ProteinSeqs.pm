@@ -26,7 +26,7 @@
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- prints out the protein sequences (both reference and mutated) of any
+ prints out the reference and mutated protein sequences of any
  proteins found with non-synonymous mutations in the input file. 
 
  You should supply the name of file where you want to store the
@@ -63,7 +63,7 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
-    # use some defaul file names if none are supplied
+    # use some default file names if none are supplied
 
     my $ref_file = $self->params->[0] || 'reference.fa';
     my $mut_file = $self->params->[1] || 'mutated.fa';
@@ -77,7 +77,7 @@ sub new {
 sub run {
     my ($self, $tva) = @_;
 
-    # check if we have a mutant amino acid
+    # check if we have a mutant amino acid, if not there isn't much we can do!
 
     if (my $mut_aa = $tva->peptide) {
         
