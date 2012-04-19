@@ -16,7 +16,7 @@
 
 =head1 NAME
 
- Blosum62
+ ProteinSeqs
 
 =head1 SYNOPSIS
 
