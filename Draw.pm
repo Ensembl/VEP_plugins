@@ -99,8 +99,8 @@ sub run {
     my $main_tr = $tva->feature;
     my $vf = $tva->base_variation_feature;
     
-    return if defined($self->{transcript}) && $main_tr->stable_id ne $self->{transcript};
-    return if defined($self->{variant}) && $vf->variation_name ne $self->{variant};
+    return {} if defined($self->{transcript}) && $main_tr->stable_id ne $self->{transcript};
+    return {} if defined($self->{variant}) && $vf->variation_name ne $self->{variant};
     
     # if we're showing a gene fusion, get 
     my $second_tr = $tva->{_fusion_transcripts}->[0] if grep {$_->SO_term =~ /gene_fusion/} @{$tva->get_all_OverlapConsequences};
