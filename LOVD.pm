@@ -100,11 +100,11 @@ sub run {
                 };
             }
             
-            $self->{lovd_cache}->{locus} = $data;
+            $self->{lovd_cache}->{$locus} = $data;
         }
     }
     else {
-        $data = $self->{lovd_cache}->{locus};
+        $data = $self->{lovd_cache}->{$locus};
     }
     
     return {} unless scalar keys %$data;
