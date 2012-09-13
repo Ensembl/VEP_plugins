@@ -160,14 +160,20 @@ sub run {
             # we use the simple average of the diff_scores as the overall score
             
             pop @$scores if $true_snp; # get rid of our spurious second score for SNPs
-
-            my $tot_score = 0;
-
-            $tot_score += $_->diff_score for @$scores;
-
-            $tot_score /= @$scores;
             
-            $bvf->{_conservation_score} = sprintf "%.3f", $tot_score;
+            if (@$scores > 0) {
+
+                my $tot_score = 0;
+    
+                $tot_score += $_->diff_score for @$scores;
+    
+                $tot_score /= @$scores;
+                
+                $bvf->{_conservation_score} = sprintf "%.3f", $tot_score;
+            }
+            else {
+                $bvf->{_conservation_score} = undef;
+            }
         }
         else {
             $bvf->{_conservation_score} = undef;
