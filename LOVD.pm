@@ -61,6 +61,8 @@ sub get_header_info {
 sub run {
     my ($self, $tva) = @_;
     
+    $self->{has_cache} = 1;
+    
     # only works on human
     die("ERROR: LOVD plugin works only on human data") unless $self->{config}->{species} =~ /human|homo/i;
     
