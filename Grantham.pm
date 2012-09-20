@@ -14,7 +14,7 @@ Based on plugin of Blosom62.pm done my Graham Ritchie <grsr@ebi.ac.uk> at EBI
 
 =head1 SYNOPSIS
 
- mv OGT_Grantham.pm ~/.vep/Plugins
+ mv Grantham.pm ~/.vep/Plugins
  perl variant_effect_predictor.pl -i variations.vcf --plugin OGT_Grantham
 
 =head1 DESCRIPTION
