@@ -1,0 +1,142 @@
+=head1 LICENSE
+
+ Copyright (c) 1999-2013 The European Bioinformatics Institute and                                                   
+ Genome Research Limited.  All rights reserved.                                                                      
+
+ This software is distributed under a modified Apache license.                                                       
+ For license details, please see
+
+   http://www.ensembl.org/info/about/code_licence.html                                                               
+
+=head1 CONTACT                                                                                                       
+
+ Will McLaren <wm2@ebi.ac.uk>
+    
+=cut
+
+=head1 NAME
+
+ FATHMM
+
+=head1 SYNOPSIS
+
+ mv FATHMM.pm ~/.vep/Plugins
+ perl variant_effect_predictor.pl -i variations.vcf --plugin FATHMM,"python /path/to/fathmm/fathmm.py"
+
+=head1 DESCRIPTION
+
+ A VEP plugin that gets FATHMM scores and predictions for missense variants.
+ 
+ You will need the fathmm.py script and its dependencies (Python, Python
+ MySQLdb). You should create a "config.ini" file in the same directory as the
+ fathmm.py script with the database connection options. More information about
+ how to set up FATHMM can be found on the FATHMM website at
+ https://github.com/HAShihab/fathmm.
+ 
+ A typical installation could consist of:
+ 
+ > wget https://raw.github.com/HAShihab/fathmm/master/cgi-bin/fathmm.py
+ > wget ftp://supfam2.cs.bris.ac.uk/FATHMM/database/fathmm.v2.1.SQL
+ > mysql -h[host] -P[port] -u[user] -p[pass] -e"CREATE DATABASE fathmm"
+ > mysql -h[host] -P[port] -u[user] -p[pass] -Dfathmm < fathmm.v2.1.SQL
+ > echo "[DATABASE]\nHOST = [host]\nPORT = [port]\nUSER = [user]\nPASSWD = [pass]\nDB = fathmm\n" > config.ini
+
+=cut
+
+package FATHMM;
+
+use strict;
+use warnings;
+
+use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+
+sub new {
+  my $class = shift;
+  
+  my $self = $class->SUPER::new(@_);
+  
+  # get command
+  my $command = $self->params->[0];
+  
+  die 'ERROR: No FATHMM command specified. Specify path to FATHMM with e.g. --plugin FATHMM,"python /path/to/fathmm/fathmm.py"\n' unless defined($command);
+  
+  die 'ERROR: Your FATHMM command does not look correct; it should looks something like "python /path/to/fathmm/fathmm.py"\n' unless $command =~ /python.+fathmm\.py/;
+  
+  $self->{command} = $command;
+  
+  die 'ERROR: Temporary directory '.$self->{config}->{tmpdir}.' not found - specify an existing directory with --tmpdir [dir]\n' unless -d $self->{config}->{tmpdir};
+  
+  return $self;
+}
+
+sub version {
+  return 71;
+}
+
+sub feature_types {
+  return ['Transcript'];
+}
+
+sub get_header_info {
+  return {
+    FATHMM => "FATHMM prediction (score)",
+  };
+}
+
+sub run {
+  my ($self, $tva) = @_;
+  
+  # only for missense variants
+  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  
+  # configure command
+  my $command      = $self->{command};
+  $command        =~ m/(\s.+)\/.+/;
+  my $command_dir  = $1;
+  
+  # configure tmp dir and in/out files for FATHMM
+  my $tmp_dir      = $self->{config}->{tmpdir};
+  my $tmp_in_file  = $tmp_dir."/fathmm_$$\.in";
+  my $tmp_out_file = $tmp_dir."/fatmm_$$\.out";
+  
+  # get required input data from TVA
+  my $protein   = $tva->transcript->{_protein} || $tva->transcript->translation->stable_id;
+  my $aa_change = $tva->pep_allele_string;
+  my $aa_pos    = $tva->transcript_variation->translation_start;
+  $aa_change   =~ s/\//$aa_pos/;
+  
+  # check we have valid strings
+  return {} unless $protein && $aa_change =~ /^[A-Z]\d+[A-Z]$/;
+  
+  # write input file
+  open IN, ">$tmp_in_file" or die "ERROR: Could not write to file $tmp_in_file\n";
+  print IN "$protein $aa_change\n";
+  close IN;
+  
+  # run command
+  my $fathmm_err = `cd $command_dir; $command -i $tmp_in_file -o $tmp_out_file`;
+  
+  # read output file
+  open OUT, $tmp_out_file or die "ERROR: Could not read from file $tmp_out_file\n";
+  
+  my ($pred, $score);
+  while(<OUT>) {
+    next if /^\#/;
+    chomp;
+    my @data = split;
+    ($pred, $score) = ($data[4], $data[5]);
+  }
+  close OUT;
+  
+  # delete temporary files
+  unlink($tmp_in_file, $tmp_out_file);
+  
+  return $pred && $score ? {
+    FATHMM => "$pred($score)",
+  } : {};
+}
+
+1;
+
