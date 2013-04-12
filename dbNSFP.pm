@@ -160,38 +160,58 @@ sub run {
   
   # get transcript stable ID
   my $tr_id = $tva->transcript->stable_id;
-  
-  open TABIX, sprintf("tabix %s %s:%i-%i |", $self->{file}, $vf->{chr}, $vf->{start}, $vf->{end});
-  
-  my %data;
-  
-  while(<TABIX>) {
-    chomp;
-    my @split = split /\t/;
     
-    # parse data into hash of col names and values
-    %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
+  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $vf->{start}, $vf->{end});
+  
+  my @dbnsfp_data;
+  
+  # cached?
+  if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
+    @dbnsfp_data = @{$self->{cache}->{$pos_string}};
+  }
+  
+  # read from file
+  else {
+    open TABIX, sprintf("tabix %s %s |", $self->{file}, $pos_string);
     
+    while(<TABIX>) {
+      chomp;
+      my @split = split /\t/;
+      
+      # parse data into hash of col names and values
+      my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
+      
+      push @dbnsfp_data, \%data;
+    }
+    
+    close TABIX;
+  }
+  
+  # overwrite cache
+  $self->{cache} = {$pos_string => \@dbnsfp_data};
+  
+  my $data;
+  
+  foreach my $tmp_data(@dbnsfp_data) {
     # compare allele and transcript
     next unless
-      defined($data{alt}) &&
-      $data{alt} eq $allele &&
-      defined($data{Ensembl_transcriptid}) &&
-      $data{Ensembl_transcriptid} =~ /$tr_id($|;)/;
+      defined($tmp_data->{alt}) &&
+      $tmp_data->{alt} eq $allele &&
+      defined($tmp_data->{Ensembl_transcriptid}) &&
+      $tmp_data->{Ensembl_transcriptid} =~ /$tr_id($|;)/;
     
+    $data = $tmp_data;
     last;
   }
   
-  close TABIX;
-  
-  return {} unless scalar keys %data;
+  return {} unless scalar keys %$data;
   
   # get required data
   my %return =
-    map {$_ => $data{$_}}
-    grep {$data{$_} ne '.'}              # ignore missing data
+    map {$_ => $data->{$_}}
+    grep {$data->{$_} ne '.'}              # ignore missing data
     grep {defined($self->{cols}->{$_})}  # only include selected cols
-    keys %data;
+    keys %$data;
   
   return \%return;
 }
