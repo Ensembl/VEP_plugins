@@ -1,6 +1,6 @@
 =head1 LICENSE
                                                                                                                      
- Copyright (c) 1999-2011 The European Bioinformatics Institute and                                                   
+ Copyright (c) 1999-2013 The European Bioinformatics Institute and                                                   
  Genome Research Limited.  All rights reserved.                                                                      
                                                                                                                      
  This software is distributed under a modified Apache license.                                                       
@@ -102,9 +102,9 @@ sub run {
 
         my $true_snp = 0;
 
-        if ($bvf->seq_region_end >= $bvf->seq_region_start) {
+        if ($bvf->{end} >= $bvf->{start}) {
 
-            if ($bvf->seq_region_start == $bvf->seq_region_end) {
+            if ($bvf->{start} == $bvf->{end}) {
 
                 # work around a bug in the compara API that means you can't fetch 
                 # conservation scores for 1bp slices by creating a 2bp slice for
@@ -116,9 +116,9 @@ sub run {
                     -seq_region_name   => $s->seq_region_name,
                     -seq_region_length => $s->seq_region_length,
                     -coord_system      => $s->coord_system,
-                    -start             => $bvf->seq_region_start,
-                    -end               => $bvf->seq_region_end + 1,
-                    -strand            => $bvf->seq_region_strand,
+                    -start             => $bvf->{start},
+                    -end               => $bvf->{end} + 1,
+                    -strand            => $bvf->{strand},
                     -adaptor           => $s->adaptor
                 );
                 
@@ -142,9 +142,9 @@ sub run {
                 -seq_region_name   => $s->seq_region_name,
                 -seq_region_length => $s->seq_region_length,
                 -coord_system      => $s->coord_system,
-                -start             => $bvf->seq_region_end,
-                -end               => $bvf->seq_region_start,
-                -strand            => $bvf->seq_region_strand,
+                -start             => $bvf->{end},
+                -end               => $bvf->{start},
+                -strand            => $bvf->{strand},
                 -adaptor           => $s->adaptor
             );
         }
