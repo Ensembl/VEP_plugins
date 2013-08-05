@@ -116,7 +116,7 @@ sub run {
   close IN;
   
   # run command
-  my $fathmm_err = `cd $command_dir; $command -i $tmp_in_file -o $tmp_out_file`;
+  my $fathmm_err = `cd $command_dir; $command $tmp_in_file $tmp_out_file;`;
   
   # read output file
   open OUT, $tmp_out_file or die "ERROR: Could not read from file $tmp_out_file\n";
