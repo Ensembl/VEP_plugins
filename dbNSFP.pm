@@ -176,6 +176,7 @@ sub run {
     
     while(<TABIX>) {
       chomp;
+      s/\r$//g;
       my @split = split /\t/;
       
       # parse data into hash of col names and values
