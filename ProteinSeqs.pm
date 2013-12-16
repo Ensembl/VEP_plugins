@@ -133,4 +133,26 @@ sub print_fasta {
     print $fh ">$id\n$peptide\n";
 }
 
+sub STORABLE_freeze {
+    my ($self, $cloning) = @_;
+    return if $cloning;
+    
+    close $self->{ref_file};
+    close $self->{mut_file};
+    
+    delete $self->{ref_file};
+    delete $self->{ref_file};
+}
+
+sub STORABLE_thaw {
+    my ($self, $cloning) = @_;
+    return if $cloning;
+
+    my $ref_file = $self->params->[0] || 'reference.fa';
+    my $mut_file = $self->params->[1] || 'mutated.fa';
+
+    open $self->{ref_file}, ">>$ref_file" or die "Failed to open $ref_file";
+    open $self->{mut_file}, ">>$mut_file" or die "Failed to open $mut_file";
+}
+
 1;
