@@ -58,6 +58,7 @@ sub new {
     
     # initialize cache
     $self->{cache} = {};
+    $self->{has_cache} = 1;
     
     # force various options
     $self->{config}->{prefetch} = 1;

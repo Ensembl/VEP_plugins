@@ -1,6 +1,6 @@
 =head1 LICENSE
 
- Copyright (c) 1999-2012 The European Bioinformatics Institute and                                                   
+ Copyright (c) 1999-2013 The European Bioinformatics Institute and                                                   
  Genome Research Limited.  All rights reserved.                                                                      
 
  This software is distributed under a modified Apache license.                                                       
@@ -350,7 +350,9 @@ sub run {
         $colours{$var_colour}
     );
     
-    my $file = $self->{prefix}."_".$main_tr->stable_id."_".(defined($second_tr) ? $second_tr->stable_id."_" : "").$vf->variation_name."\.png";
+    my $vname = $vf->variation_name;
+    $vname =~ s/\//\_/g;
+    my $file = $self->{prefix}."_".$main_tr->stable_id."_".(defined($second_tr) ? $second_tr->stable_id."_" : "").$vname."\.png";
     
     # check we're allowed to write to it
     if(!defined($self->{config}->{force_overwrite}) && -e $file) {
