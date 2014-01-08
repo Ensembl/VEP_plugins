@@ -28,7 +28,8 @@
  A VEP plugin that retrieves data for missense variants from a tabix-indexed
  dbNSFP file.
  
- dbNSFP publication: http://www.ncbi.nlm.nih.gov/pubmed/21520341
+ Please cite the dbNSFP publication alongside the VEP if you use this resource:
+ http://www.ncbi.nlm.nih.gov/pubmed/21520341
  
  The tabix utility must be installed in your path to use this plugin. The dbNSFP
  data file can be downloaded from
