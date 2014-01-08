@@ -8,7 +8,7 @@ run the VEP with the argument --plugin <module name>.
 More documentation on VEP plugins, and on the VEP itself, can be 
 found on the Ensembl website:
 
-http://www.ensembl.org/info/docs/variation/vep/vep_script.html
+http://www.ensembl.org/info/docs/tools/vep/script/index.html
 
 All software is Copyright (c) 1999-2013 The European Bioinformatics 
 Institute and Genome Research Limited.  All rights reserved.                                                                      
