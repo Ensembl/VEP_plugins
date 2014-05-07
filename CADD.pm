@@ -95,16 +95,23 @@ sub run {
   
   my $vf = $tva->variation_feature;
   
-  # only for SNVs
-  return {} unless $vf->{start} eq $vf->{end} && $vf->{allele_string} =~ /[ACGT](\/[ACGT])+/;
-  
   # get allele, reverse comp if needed
   my $allele = $tva->variation_feature_seq;
   reverse_comp(\$allele) if $vf->{strand} < 0;
   
-  return {} unless $allele =~ /^[ACGT]$/;
+  return {} unless $allele =~ /^[ACGT-]$/;
   
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $vf->{start}, $vf->{end});
+  # adjust coords to account for VCF-like storage of indels
+  my ($s, $e) = ($vf->{start} - 1, $vf->{end} + 1);
+  
+  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $s, $e);
+  
+  # clear cache if it looks like the coords are the same
+  # but allele type is different
+  delete $self->{cache} if
+    defined($self->{cache}->{$pos_string}) &&
+    scalar keys %{$self->{cache}->{$pos_string}} &&
+    !defined($self->{cache}->{$pos_string}->{$allele});
   
   my %cadd_data;
   
@@ -120,11 +127,23 @@ sub run {
     while(<TABIX>) {
       chomp;
       s/\r$//g;
-      my @split = split /\t/;
+      my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/;
       
-      $cadd_data{$split[3]} = {
-        CADD_RAW   => $split[4],
-        CADD_PHRED => $split[5]
+      # do VCF-like coord adjustment for mismatched subs
+      my $e = ($s + length($ref)) - 1;
+      if(length($alt) != length($ref)) {
+        $s++;
+        $ref = substr($ref, 1);
+        $alt = substr($alt, 1);
+        $ref ||= '-';
+        $alt ||= '-';
+      }
+      
+      next unless $s == $vf->{start} && $e == $vf->{end};
+      
+      $cadd_data{$alt} = {
+        CADD_RAW   => $raw,
+        CADD_PHRED => $phred
       };
     }
     
