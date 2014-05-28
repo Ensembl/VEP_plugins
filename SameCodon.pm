@@ -71,8 +71,6 @@ sub run {
     
     return {} unless defined($mapper);
     
-    $DB::single = 1;
-    
     my @coords = $mapper->pep2genomic($pep_start, $pep_end);
     
     return {} unless scalar @coords;
@@ -97,22 +95,25 @@ sub run {
             
             my $region = "$s\-$e";
             
-            my $vf_cache = load_dumped_variation_cache($config, $c, $region);
+            my $vf_cache = $self->{_cache}->{$c}->{$region} || load_dumped_variation_cache($config, $c, $region);
             
             foreach my $pos($slice_start..$slice_end) {
                 if(my $existing_vars = $vf_cache->{$c}->{$pos}) {
                     push @results,
-                        map {$_->[0]}
+                        map {$_->{variation_name}}
                         grep {
-                            $_->[0] ne $vf->variation_name &&
-                            $_->[1] <= $config->{failed} &&
-                            $_->[2] != $vf_start &&
-                            $_->[3] != $vf_end &&
-                            scalar $mapper->genomic2cds($_->[2], $_->[3], 1) >= 1
+                            $_->{variation_name} ne $vf->variation_name &&
+                            $_->{failed} <= $config->{failed} &&
+                            $_->{start} != $vf_start &&
+                            $_->{end} != $vf_end &&
+                            scalar $mapper->genomic2cds($_->{start}, $_->{end}, 1) >= 1
                         }
                         @$existing_vars;
                 }
             }
+            
+            $self->{_cache} = {};
+            $self->{_cache}->{$c}->{$region} = $vf_cache;
         }
         
         # using DB
