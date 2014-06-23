@@ -46,11 +46,15 @@ sub feature_types {
     return ['Transcript'];
 }
 
+sub variant_feature_types {
+    return ['BaseVariationFeature'];
+}
+
 sub run {
     my ($self, $tva) = @_;
 
     my $t = $tva->transcript;
-    my $vf = $tva->variation_feature;
+    my $vf = $tva->base_variation_feature;
 
     my $dist;
 
