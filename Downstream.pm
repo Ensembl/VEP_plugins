@@ -56,7 +56,7 @@ sub feature_types {
 }
 
 sub variant_feature_types {
-    return ['Variation'];
+    return ['VariationFeature'];
 }
 
 sub get_header_info {
