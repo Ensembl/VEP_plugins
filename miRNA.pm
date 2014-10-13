@@ -59,6 +59,9 @@ sub run {
   # obviously this only works for *RNA transcripts
   return {} unless $tr->biotype =~ /RNA/;
   
+  # and it only works if the TV falls in the cDNA
+  return {} unless $tv->cdna_start && $tv->cdna_end;
+  
   # get attribute if already cached
   my ($attrib) = @{$tr->get_all_Attributes('ncRNA')};
   
