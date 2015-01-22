@@ -86,7 +86,7 @@ sub new {
 }
 
 sub feature_types {
-    return ['Transcript'];
+    return ['Feature', 'Intergenic'];
 }
 
 sub include_line {
