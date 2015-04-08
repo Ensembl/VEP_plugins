@@ -21,18 +21,18 @@
 =head1 SYNOPSIS
 
  mv CADD.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin CADD,/path/to/CADD/whole_genome_SNVs.tsv.gz
+ perl variant_effect_predictor.pl -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves CADD scores for single nucleotide variants from a
- tabix-indexed CADD data file.
+ A VEP plugin that retrieves CADD scores for variants from one or more
+ tabix-indexed CADD data files.
  
  Please cite the CADD publication alongside the VEP if you use this resource:
  http://www.ncbi.nlm.nih.gov/pubmed/24487276
  
  The tabix utility must be installed in your path to use this plugin. The CADD
- data file can be downloaded from
+ data files can be downloaded from
  http://cadd.gs.washington.edu/download/
  
 =cut
@@ -57,23 +57,26 @@ sub new {
   die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
   
   # get CADD file
-  my $file = $self->params->[0];
+  my $files = $self->params;
   
-  # remote files?
-  if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
+  foreach my $file(@$files) {
+    
+    # remote files?
+    if($file =~ /tp\:\/\//) {
+      my $remote_test = `tabix -f $file 1:1-1 2>&1`;
+      if($remote_test && $remote_test !~ /get_local_version/) {
+        die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
+      }
+    }
+
+    # check files exist
+    else {
+      die "ERROR: CADD file $file not found\n" unless -e $file;
+      die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
     }
   }
-
-  # check files exist
-  else {
-    die "ERROR: CADD file $file not found\n" unless -e $file;
-    die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-  }
   
-  $self->{file} = $file;
+  $self->{files} = $files;
   
   return $self;
 }
@@ -120,34 +123,38 @@ sub run {
     %cadd_data = %{$self->{cache}->{$pos_string}};
   }
   
-  # read from file
+  # read from file(s)
   else {
-    open TABIX, sprintf("tabix -f %s %s |", $self->{file}, $pos_string);
+    foreach my $file(@{$self->{files}}) {
+      open TABIX, sprintf("tabix -f %s %s |", $file, $pos_string);
     
-    while(<TABIX>) {
-      chomp;
-      s/\r$//g;
-      my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/;
+      while(<TABIX>) {
+        chomp;
+        s/\r$//g;
+        my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/;
       
-      # do VCF-like coord adjustment for mismatched subs
-      my $e = ($s + length($ref)) - 1;
-      if(length($alt) != length($ref)) {
-        $s++;
-        $ref = substr($ref, 1);
-        $alt = substr($alt, 1);
-        $ref ||= '-';
-        $alt ||= '-';
+        # do VCF-like coord adjustment for mismatched subs
+        my $e = ($s + length($ref)) - 1;
+        if(length($alt) != length($ref)) {
+          $s++;
+          $ref = substr($ref, 1);
+          $alt = substr($alt, 1);
+          $ref ||= '-';
+          $alt ||= '-';
+        }
+      
+        next unless $s == $vf->{start} && $e == $vf->{end};
+      
+        $cadd_data{$alt} = {
+          CADD_RAW   => $raw,
+          CADD_PHRED => $phred
+        };
       }
-      
-      next unless $s == $vf->{start} && $e == $vf->{end};
-      
-      $cadd_data{$alt} = {
-        CADD_RAW   => $raw,
-        CADD_PHRED => $phred
-      };
-    }
     
-    close TABIX;
+      close TABIX;
+      
+      last if scalar keys %cadd_data;
+    }
   }
   
   # overwrite cache
