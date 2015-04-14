@@ -33,13 +33,13 @@
  
  The tabix utility must be installed in your path to use this plugin. The dbNSFP
  data file can be downloaded from
- http://dbnsfp.houstonbioinformatics.org/dbNSFPzip/.
+ https://sites.google.com/site/jpopgen/dbNSFP.
  
  The file must be processed and indexed by tabix before use by this plugin:
  
- > wget http://dbnsfp.houstonbioinformatics.org/dbNSFPzip/dbNSFP2.0.zip
- > unzip dbNSFP2.0.zip
- > cat dbNSFP2.0_variant.chr* | bgzip -c > dbNSFP.gz
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.0b2a.zip
+ > unzip dbNSFPv3.0b2a.zip
+ > cat dbNSFP*chr* | bgzip -c > dbNSFP.gz
  > tabix -s 1 -b 2 -e 2 dbNSFP.gz
  
  When running the plugin you must list at least one column to retrieve from the
