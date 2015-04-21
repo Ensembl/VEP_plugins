@@ -187,9 +187,9 @@ sub run {
     # compare allele and transcript
     next unless
       defined($tmp_data->{alt}) &&
-      $tmp_data->{alt} eq $allele &&
-      defined($tmp_data->{Ensembl_gene}) &&
-      $tmp_data->{Ensembl_gene} =~ /$g_id($|;)/;
+      $tmp_data->{alt} eq $allele; # &&
+#       defined($tmp_data->{Ensembl_gene}) &&
+#       $tmp_data->{Ensembl_gene} =~ /$g_id($|;)/;
     
     $data = $tmp_data;
     last;
