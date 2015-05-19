@@ -53,7 +53,7 @@ sub version {
 }
 
 sub feature_types {
-    return ['Transcript', 'RegulatoryFeature', 'MotifFeature'];
+    return ['Feature','Intergenic'];
 }
 
 sub get_header_info {
