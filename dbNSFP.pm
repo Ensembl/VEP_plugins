@@ -210,7 +210,7 @@ sub run {
   
   # get required data
   my %return =
-    map {$_ => $data->{$_}}
+    map {$_ => ($data->{$_} =~ s/[|]/;/gr) }
     grep {$data->{$_} ne '.'}              # ignore missing data
     grep {defined($self->{cols}->{$_})}  # only include selected cols
     keys %$data;
