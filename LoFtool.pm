@@ -16,7 +16,7 @@
 
 =head1 NAME
 
- UpDownDistance
+ LoFtool
 
 =head1 SYNOPSIS
 
