@@ -20,19 +20,31 @@
 
 =head1 SYNOPSIS
 
- mv LoFtool.pm ~/.vep/Plugins
- mv LoFtool_scores.txt ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool
+  mv LoFtool.pm ~/.vep/Plugins
+  mv LoFtool_scores.txt ~/.vep/Plugins
+  perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool
 
 =head1 DESCRIPTION
 
- Add LoFtool scores to the VEP output.
- The LoFtool_scores.txt file is found alongside the plugin in the
- VEP_plugins GitHub repo.
+  Add LoFtool scores to the VEP output.
 
- To use another scores file, add it as a parameter i.e.
+  LoFtool provides a rank of genic intolerance and consequent
+  susceptibility to disease based on the ratio of Loss-of-function (LoF)
+  to synonymous mutations for each gene in 60,706 individuals from ExAC,
+  adjusting for the gene de novo mutation rate and evolutionary protein
+  conservation. The lower the LoFtool gene score percentile the most
+  intolerant is the gene to functional variation. Manuscript in
+  preparation (please contact Dr. Joao Fadista - joao.fadista@med.lu.se).
+  The authors would like to thank the Exome Aggregation Consortium and
+  the groups that provided exome variant data for comparison. A full
+  list of contributing groups can be found at http://exac.broadinstitute.org/about.
 
- perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool,scores_file.txt
+  The LoFtool_scores.txt file is found alongside the plugin in the
+  VEP_plugins GitHub repo.
+
+  To use another scores file, add it as a parameter i.e.
+
+  perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool,scores_file.txt
 
 =cut
 
