@@ -16,7 +16,7 @@
 
 =head1 NAME
 
-  CSN
+  HGVSshift
 
 =head1 SYNOPSIS
 
