@@ -61,10 +61,10 @@ sub new {
   if(!defined($self->{config}->{fasta})) {
     
     # offline mode won't work without FASTA
-    die("ERROR: Cannot generate CSN without either a FASTA file (--fasta) or a database connection (--cache or --database)\n") if defined($self->{config}->{offline});
+    die("ERROR: Cannot generate CSN without either a FASTA file (--fasta) or a database connection (--cache or --database)\n") if defined($self->{config}->{offline}) and !defined($self->{config}->{quiet});
     
     # cache mode will work, but DB will be accessed
-    warn("WARNING: Database will be accessed using this plugin; use a FASTA file (--fasta) for optimal performance") if defined($self->{config}->{cache});
+    warn("WARNING: Database will be accessed using this plugin; use a FASTA file (--fasta) for optimal performance") if defined($self->{config}->{cache}) and !defined($self->{config}->{quiet});
   }
   
   no warnings 'once';
