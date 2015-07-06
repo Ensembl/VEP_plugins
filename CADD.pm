@@ -33,7 +33,7 @@
  
  The tabix utility must be installed in your path to use this plugin. The CADD
  data files can be downloaded from
- http://cadd.gs.washington.edu/download/
+ http://cadd.gs.washington.edu/download
  
 =cut
 
