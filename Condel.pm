@@ -29,9 +29,9 @@
  the Consensus Deleteriousness (Condel) score (1) for a missense mutation 
  based on the pre-calculated SIFT (2) and PolyPhen-2 (3) scores from the Ensembl 
  API (4). It adds one new entry class to the VEP's Extra column, Condel which is
- the calculated Condel score. Condel is developed by the Biomedical Genomics Group 
- of the Universitat Pompeu Fabra, at the Barcelona Biomedical Research Park 
- (bg.upf.edu/Condel). The code in this plugin is based on a script provided by this 
+ the calculated Condel score. This version of Condel was developed by the Biomedical Genomics Group 
+ of the Universitat Pompeu Fabra, at the Barcelona Biomedical Research Park and available at
+ (http://bg.upf.edu/condel) until April 2014. The code in this plugin is based on a script provided by this 
  group and slightly reformatted to fit into the Ensembl API.
 
  The plugin takes 3 command line arguments, the first is the path to a Condel 
