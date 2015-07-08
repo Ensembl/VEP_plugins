@@ -202,7 +202,32 @@ sub run {
       defined($tmp_data->{Ensembl_transcriptid}) &&
       $tmp_data->{Ensembl_transcriptid} =~ /$tr_id($|;)/;
     
-    $data = $tmp_data;
+    # make a clean copy as we're going to edit it
+    %$data = %$tmp_data;
+
+    # convert data with multiple transcript values
+    # if($data->{Ensembl_transcriptid} =~ m/\;/) {
+
+    #   # find the "index" of this transcript
+    #   my @tr_ids = split(';', $data->{Ensembl_transcriptid});
+    #   my $tr_index;
+
+    #   for my $i(0..$#tr_ids) {
+    #     $tr_index = $i;
+    #     last if $tr_ids[$tr_index] =~ /^$tr_id(\.\d+)?$/;
+    #   }
+
+    #   next unless defined($tr_index);
+
+    #   # now alter other fields
+    #   foreach my $key(keys %$data) {
+    #     if($data->{$key} =~ m/\;/) {
+    #       my @split = split(';', $data->{$key});
+    #       die("ERROR: Transcript index out of range") if $tr_index > $#split;
+    #       $data->{$key} = $split[$tr_index];
+    #     } 
+    #   }
+    # }
     last;
   }
   
@@ -211,6 +236,7 @@ sub run {
   # get required data
   my %return =
     map {$_ => $data->{$_}}
+    map {$data->{$_} =~ s/\;/\,/g; $_ }
     grep {$data->{$_} ne '.'}              # ignore missing data
     grep {defined($self->{cols}->{$_})}  # only include selected cols
     keys %$data;
