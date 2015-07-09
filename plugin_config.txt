@@ -159,6 +159,25 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # dbscSNV
+    {
+      "key" => "dbscSNV",
+      "label" => "dbscSNV",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "Retrieves data for splicing variants from a tabix-indexed dbscSNV file",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbscSNV.pm",
+      "requires_data" => 1,
+      "requires_install" => 1,
+      "params"  => [
+        #"/path/to/dbscSNV.txt.gz"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+    },
+    
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/CADD.pm
     # Requires tabix-indexed data file as first param
@@ -267,6 +286,22 @@ my $VEP_PLUGIN_CONFIG = {
       ],
     },
 
+    # LOFTEE
+    # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
+    {
+      "key" => "LoF",
+      "helptip" => "Identify LoF (loss-of-function) variation",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/konradjk/loftee/master/LoF.pm",
+      "requires_data" => 1,
+      "requires_install" => 1,
+      "params" => [
+        "@*"
+      ]
+    },
+
     # LoFtool
     # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
     {
@@ -372,8 +407,8 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
 
-    ## OTHER
-    ########
+    ## VARIANT DATA
+    ###############
 
     # ExAC
     {
@@ -382,6 +417,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ExAC.pm",
+      "section" => "Variant data",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -391,6 +427,103 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # LD
+    {
+      "key" => "LD",
+      "label" => "Linkage disequilibrium",
+      "helptip" => "Finds variants in linkage disequilibrium with any overlapping existing variants from the Ensembl variation databases",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/LD.pm",
+      "section" => "Variant data",
+      "params" => [
+        "@*"
+      ],
+      "form" => [
+        {
+          "name" => "population",
+          "label" => "Population",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "1000GENOMES:phase_3:ACB", "caption" => "African Caribbean in Barbados" },
+            { "value" => "1000GENOMES:phase_3:ASW", "caption" => "African Ancestry in Southwest US" },
+            { "value" => "1000GENOMES:phase_3:BEB", "caption" => "Bengali in Bangladesh" },
+            { "value" => "1000GENOMES:phase_3:CDX", "caption" => "Chinese Dai in Xishuangbanna, China" },
+            { "value" => "1000GENOMES:phase_3:CEU", "caption" => "Utah residents with Northern and Western European ancestry" },
+            { "value" => "1000GENOMES:phase_3:CHB", "caption" => "Han Chinese in Bejing, China" },
+            { "value" => "1000GENOMES:phase_3:CHS", "caption" => "Southern Han Chinese, China" },
+            { "value" => "1000GENOMES:phase_3:CLM", "caption" => "Colombian in Medellin, Colombia" },
+            { "value" => "1000GENOMES:phase_3:ESN", "caption" => "Esan in Nigeria" },
+            { "value" => "1000GENOMES:phase_3:FIN", "caption" => "Finnish in Finland" },
+            { "value" => "1000GENOMES:phase_3:GBR", "caption" => "British in England and Scotland" },
+            { "value" => "1000GENOMES:phase_3:GIH", "caption" => "Gujarati Indian in Houston, TX" },
+            { "value" => "1000GENOMES:phase_3:IBS", "caption" => "Iberian populations in Spain" },
+            { "value" => "1000GENOMES:phase_3:ITU", "caption" => "Indian Telugu in the UK" },
+            { "value" => "1000GENOMES:phase_3:JPT", "caption" => "Japanese in Tokyo, Japan" },
+            { "value" => "1000GENOMES:phase_3:KHV", "caption" => "Kinh in Ho Chi Minh City, Vietnam" },
+            { "value" => "1000GENOMES:phase_3:LWK", "caption" => "Luhya in Webuye, Kenya" },
+            { "value" => "1000GENOMES:phase_3:MAG", "caption" => "Mandinka in The Gambia" },
+            { "value" => "1000GENOMES:phase_3:MSL", "caption" => "Mende in Sierra Leone" },
+            { "value" => "1000GENOMES:phase_3:MXL", "caption" => "Mexican Ancestry in Los Angeles, California" },
+            { "value" => "1000GENOMES:phase_3:PEL", "caption" => "Peruvian in Lima, Peru" },
+            { "value" => "1000GENOMES:phase_3:PJL", "caption" => "Punjabi in Lahore, Pakistan" },
+            { "value" => "1000GENOMES:phase_3:PUR", "caption" => "Puerto Rican in Puerto Rico" },
+            { "value" => "1000GENOMES:phase_3:STU", "caption" => "Sri Lankan Tamil in the UK" },
+            { "value" => "1000GENOMES:phase_3:TSI", "caption" => "Toscani in Italy" },
+            { "value" => "1000GENOMES:phase_3:YRI", "caption" => "Yoruba in Ibadan, Nigeria" },
+          ],
+          "value" => "1000GENOMES:phase_3:CEU",
+        },
+        {
+          "name" => "threshold",
+          "label" => "r2 cutoff",
+          "type" => "string",
+          "value" => 0.8,
+        },
+      ]
+    },
+
+    # SameCodon
+    {
+      "key" => "SameCodon",
+      "label" => "Variants in same codon",
+      "helptip" => "Reports existing variants that fall in the same codon",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/SameCodon.pm",
+      "section" => "Variant data",
+    },
+
+
+    ## GENE/TRANSCRIPT DATA
+    #######################
+
+    # GO
+    {
+      "key" => "GO",
+      "label" => "Gene Ontology",
+      "helptip" => "Retrieves Gene Ontology terms associated with transcripts/translations via the Ensembl API",
+      "available" => 1,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GO.pm",
+      "section" => "Gene data",
+    },
+
+    # GXA
+    {
+      "key" => "GXA",
+      "label" => "Gene Expression Atlas",
+      "helptip" => "Reports data from the Gene Expression Atlas",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GXA.pm",
+      "section" => "Gene data",
+    },
+
+
+    ## OTHER
+    ########
+
     # miRNA
     {
       "key" => "miRNA",
@@ -399,7 +532,8 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/miRNA.pm",
-    },    
+    },
+    
 
     # UpDownDistance
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/UpDownDistance.pm
@@ -422,6 +556,36 @@ my $VEP_PLUGIN_CONFIG = {
           "value" => 5000
         }
       ]
+    },
+
+    # Downstream
+    {
+      "key" => "Downstream",
+      "label" => "Downstream",
+      "helptip" => "Predicts the downstream effects of a frameshift variant on the protein sequence of a transcript",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Downstream.pm",
+    },
+
+    # ProteinSeqs
+    {
+      "key" => "ProteinSeqs",
+      "label" => "Protein sequences",
+      "helptip" => "Prints out the reference and mutated protein sequences of any proteins found with non-synonymous mutations",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ProteinSeqs.pm",
+    },
+
+    # TSSDistance
+    {
+      "key" => "TSSDistance",
+      "label" => "TSS distance",
+      "helptip" => "Calculates the distance from the transcription start site for upstream variants   ",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/TSSDistance.pm",
     },
   ]
 };
