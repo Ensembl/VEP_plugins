@@ -17,6 +17,8 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Pathogenicity predictions",
       "helptip" => "dbNSFP provides pathogenicity predictions for missense variants from various algorithms",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbNSFP.pm",
+      "requires_data" => 1,
+      "requires_install" => 1,
       "params"  => [
         #"/path/to/dbNSFP3.0b1a.txt.gz",
         "@*"
@@ -170,6 +172,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Pathogenicity predictions",
       "helptip" => "Combined Annotation Dependent Depletion (CADD) is a tool for scoring the deleteriousness of single nucleotide variants and insertion/deletion variants in the human genome. CADD integrates multiple annotations into one metric by contrasting variants that survived natural selection with simulated mutations.",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/CADD.pm",
+      "requires_data" => 1,
       "species" => [
         "homo_sapiens"
       ],
@@ -190,6 +193,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Pathogenicity predictions",
       "helptip" => "Retrieves precomputed Genome Wide Annotation of VAriants (GWAVA) scores for any  variant that overlaps a known variant from the Ensembl variation database",
       "plugin_url" => "ftp://ftp.sanger.ac.uk/pub/resources/software/gwava/v1.0/VEP_plugin/Gwava.pm",
+      "requires_data" => 1,
       "species" => [
         "homo_sapiens"
       ],
@@ -222,6 +226,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Carol.pm",
+      "requires_install" => 1,
       "species" => [
         "homo_sapiens"
       ],
@@ -239,6 +244,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Condel.pm",
+      "requires_install" => 1,
       "species" => [
         "homo_sapiens"
       ],
@@ -270,6 +276,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/LoFtool.pm",
+      "requires_data" => 1,
       "species" => [
         "homo_sapiens"
       ],
@@ -375,6 +382,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ExAC.pm",
+      "requires_data" => 1,
       "species" => [
         "homo_sapiens"
       ],
