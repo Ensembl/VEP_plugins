@@ -1,0 +1,406 @@
+my $VEP_PLUGIN_CONFIG = {
+  "plugins" => [
+
+    ## PATHOGENICITY PREDICTIONS
+    ############################
+
+    # dbNSFP
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/dbNSFP.pm
+    # Requires tabix-indexed data file as first param
+    # Field names are listed below and rendered as a multi-selectable autocomplete text field
+    # Human, GRCh38 only
+    {
+      "key" => "dbNSFP",
+      "label" => "dbNSFP",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "dbNSFP provides pathogenicity predictions for missense variants from various algorithms",
+      "params"  => [
+        #"/path/to/dbNSFP3.0b1a.txt.gz",
+        "@*"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+      "form" => [
+        {
+          "name" => "dbNSFP_fields",
+          "label" => "Fields to include",
+          "helptip" => "A comma-separated list of fields to fetch from dbNSFP; start typing to see available fields",
+          "value" => "",
+          "type" => "string",
+          "class" => "autocomplete-multi",
+          "values" => [
+            "chr",
+            "pos(1-based)",
+            "ref",
+            "alt",
+            "aaref",
+            "aaalt",
+            "rs_dbSNP142",
+            "hg19_chr",
+            "hg19_pos(1-based)",
+            "hg18_chr",
+            "hg18_pos(1-based)",
+            "genename",
+            "cds_strand",
+            "refcodon",
+            "codonpos",
+            "codon_degeneracy",
+            "Ancestral_allele",
+            "AltaiNeandertal",
+            "Denisova",
+            "Ensembl_geneid",
+            "Ensembl_transcriptid",
+            "Ensembl_proteinid",
+            "aapos",
+            "SIFT_score",
+            "SIFT_converted_rankscore",
+            "SIFT_pred",
+            "Uniprot_acc_Polyphen2",
+            "Uniprot_id_Polyphen2",
+            "Uniprot_aapos_Polyphen2",
+            "Polyphen2_HDIV_score",
+            "Polyphen2_HDIV_rankscore",
+            "Polyphen2_HDIV_pred",
+            "Polyphen2_HVAR_score",
+            "Polyphen2_HVAR_rankscore",
+            "Polyphen2_HVAR_pred",
+            "LRT_score",
+            "LRT_converted_rankscore",
+            "LRT_pred",
+            "LRT_Omega",
+            "MutationTaster_score",
+            "MutationTaster_converted_rankscore",
+            "MutationTaster_pred",
+            "MutationTaster_model",
+            "MutationTaster_AAE",
+            "Uniprot_id_MutationAssessor",
+            "Uniprot_variant_MutationAssessor",
+            "MutationAssessor_score",
+            "MutationAssessor_rankscore",
+            "MutationAssessor_pred",
+            "FATHMM_score",
+            "FATHMM_converted_rankscore",
+            "FATHMM_pred",
+            "PROVEAN_score",
+            "PROVEAN_converted_rankscore",
+            "PROVEAN_pred",
+            "Transcript_id_VEST3",
+            "Transcript_var_VEST3",
+            "VEST3_score",
+            "VEST3_rankscore",
+            "CADD_raw",
+            "CADD_raw_rankscore",
+            "CADD_phred",
+            "MetaSVM_score",
+            "MetaSVM_rankscore",
+            "MetaSVM_pred",
+            "MetaLR_score",
+            "MetaLR_rankscore",
+            "MetaLR_pred",
+            "Reliability_index",
+            "GERP++_NR",
+            "GERP++_RS",
+            "GERP++_RS_rankscore",
+            "phyloP7way_vertebrate",
+            "phyloP7way_vertebrate_rankscore",
+            "phastCons7way_vertebrate",
+            "phastCons7way_vertebrate_rankscore",
+            "SiPhy_29way_pi",
+            "SiPhy_29way_logOdds",
+            "SiPhy_29way_logOdds_rankscore",
+            "1000Gp3_AC",
+            "1000Gp3_AF",
+            "1000Gp3_AFR_AC",
+            "1000Gp3_AFR_AF",
+            "1000Gp3_EUR_AC",
+            "1000Gp3_EUR_AF",
+            "1000Gp3_AMR_AC",
+            "1000Gp3_AMR_AF",
+            "1000Gp3_EAS_AC",
+            "1000Gp3_EAS_AF",
+            "1000Gp3_SAS_AC",
+            "1000Gp3_SAS_AF",
+            "TWINSUK_AC",
+            "TWINSUK_AF",
+            "ALSPAC_AC",
+            "ALSPAC_AF",
+            "ESP6500_AA_AC",
+            "ESP6500_AA_AF",
+            "ESP6500_EA_AC",
+            "ESP6500_EA_AF",
+            "ExAC_AC",
+            "ExAC_AF",
+            "ExAC_Adj_AC",
+            "ExAC_Adj_AF",
+            "ExAC_AFR_AC",
+            "ExAC_AFR_AF",
+            "ExAC_AMR_AC",
+            "ExAC_AMR_AF",
+            "ExAC_EAS_AC",
+            "ExAC_EAS_AF",
+            "ExAC_FIN_AC",
+            "ExAC_FIN_AF",
+            "ExAC_NFE_AC",
+            "ExAC_NFE_AF",
+            "ExAC_SAS_AC",
+            "ExAC_SAS_AF",
+            "clinvar_rs",
+            "clinvar_clnsig",
+            "clinvar_trait",
+            "Interpro_domain"
+          ],
+        },
+      ]
+    },
+
+    # CADD
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/CADD.pm
+    # Requires tabix-indexed data file as first param
+    # No other parameters so no form required
+    # data file currently only available for GRCh37
+    {
+      "key" => "CADD",
+      "label" => "CADD",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "Combined Annotation Dependent Depletion (CADD) is a tool for scoring the deleteriousness of single nucleotide variants and insertion/deletion variants in the human genome. CADD integrates multiple annotations into one metric by contrasting variants that survived natural selection with simulated mutations.",
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/whole_genome_SNVs.tsv.gz"
+      ]
+    },
+
+    # GWAVA
+    # https://www.sanger.ac.uk/sanger/StatGen_Gwava
+    # Requires tabix-indexed BED data file from ftp://ftp.sanger.ac.uk/pub/resources/software/gwava/v1.0/VEP_plugin/
+    # data file currently only available for GRCh37
+    {
+      "key" => "Gwava",
+      "label" => "GWAVA",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "Retrieves precomputed Genome Wide Annotation of VAriants (GWAVA) scores for any  variant that overlaps a known variant from the Ensembl variation database",
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        "@*",
+        # "/path/to/gwava_scores.bed.gz"
+      ],
+      "form" => [
+        {
+          "name" => "model",
+          "label" => "Model",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "region",    "caption" => "Region" },
+            { "value" => "tss",       "caption" => "TSS" },
+            { "value" => "unmatched", "caption" => "Unmatched" }
+          ],
+          "value" => "region",
+        },
+      ],
+    },
+
+    # Carol
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/Carol.pm
+    # Requires Math/CDF Perl module
+    {
+      "key" => "Carol",
+      "helptip" => "Calculates the Combined Annotation scoRing toOL (CAROL) score for a missense mutation based on the pre-calculated SIFT and PolyPhen scores",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "species" => [
+        "homo_sapiens"
+      ],
+    },
+
+    # Condel
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/Condel.pm
+    # Requires path to config directory as first param
+    # config directory is checked out as part of VEP_plugins repo, as /[path]/VEP_plugins/config/Condel/config
+    # Within that dir, edit condel_SP.conf so that condel.dir points to /[path]/VEP_plugins/config/Condel
+    {
+      "key" => "Condel",
+      "helptip" => "Calculates the Consensus Deleteriousness (Condel) score for a missense mutation based on the pre-calculated SIFT and PolyPhen scores",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/config/Condel/config",
+        "@*"
+      ],
+      "form" => [
+        {
+          "name" => "score_pred",
+          "label" => "Score/prediction",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "b", "caption" => "Prediction and score" },
+            { "value" => "p", "caption" => "Prediction only" },
+            { "value" => "s", "caption" => "Score only" }
+          ],
+          "value" => "b",
+        },
+      ],
+    },
+
+    # LoFtool
+    # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
+    {
+      "key" => "LoFtool",
+      "helptip" => "Provides a rank of genic intolerance and consequent susceptibility to disease based on the ratio of Loss-of-function (LoF) to synonymous mutations",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/LoFtool_scores.txt"
+      ]
+    },
+
+
+    ## CONSERVATION
+    ###############
+
+    # Blosum62
+    {
+      "key" => "Blosum62",
+      "label" => "BLOSUM62",
+      "helptip" => "BLOSUM62 amino acid conservation score",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Conservation",
+    },
+
+    # Conservation
+    # Use the following query to get valid species sets:
+    #
+    # SELECT group_concat(concat("_stt_", gd.name) SEPARATOR ' '), REPLACE(mlss.name, "Gerp Conservation Scores ", ""), sst.value
+    #   FROM method_link ml, 
+    #     method_link_species_set mlss, 
+    #     genome_db gd, species_set ss, species_set_tag sst
+    #   WHERE mlss.method_link_id = ml.method_link_id AND
+    #     mlss.species_set_id = ss.species_set_id AND 
+    #     ss.genome_db_id = gd.genome_db_id AND
+    #     ss.species_set_id = sst.species_set_id AND
+    #     (ml.class = "ConservationScore.conservation_score")
+    #   GROUP BY mlss.species_set_id
+    {
+      "key" => "Conservation",
+      "helptip" => "Retrieves a conservation score from the Ensembl Compara databases for variant positions",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Conservation",
+      "params" => [
+        "@*"
+      ],
+      "form" => [
+        {
+          "name" => "method_link_type",
+          "label" => "Method",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "GERP_CONSERVATION_SCORE", "caption" => "GERP"}
+          ]
+        },
+        {
+          "name" => "species_set",
+          "label" => "Species set",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "mammals",    "caption" => "39 eutherian mammals"   }, #"class" => "_stt_macaca_mulatta _stt_echinops_telfairi _stt_tupaia_belangeri _stt_erinaceus_europaeus _stt_sorex_araneus _stt_microcebus_murinus _stt_pongo_abelii _stt_equus_caballus _stt_ochotona_princeps _stt_cavia_porcellus _stt_choloepus_hoffmanni _stt_procavia_capensis _stt_tursiops_truncatus _stt_tarsius_syrichta _stt_dipodomys_ordii _stt_vicugna_pacos _stt_pteropus_vampyrus _stt_loxodonta_africana _stt_oryctolagus_cuniculus _stt_ailuropoda_melanoleuca _stt_nomascus_leucogenys _stt_callithrix_jacchus _stt_myotis_lucifugus _stt_bos_taurus _stt_gorilla_gorilla _stt_otolemur_garnettii _stt_pan_troglodytes _stt_ictidomys_tridecemlineatus _stt_sus_scrofa _stt_mus_musculus _stt_canis_familiaris _stt_mustela_putorius_furo _stt_felis_catus _stt_ovis_aries _stt_dasypus_novemcinctus _stt_homo_sapiens _stt_papio_anubis _stt_chlorocebus_sabaeus _stt_rattus_norvegicus" },
+            { "value" => "amniotes",   "caption" => "23 amniota vertebrates" }, #"class" => "_stt_macaca_mulatta _stt_ornithorhynchus_anatinus _stt_monodelphis_domestica _stt_pongo_abelii _stt_equus_caballus _stt_taeniopygia_guttata _stt_oryctolagus_cuniculus _stt_anolis_carolinensis _stt_meleagris_gallopavo _stt_callithrix_jacchus _stt_bos_taurus _stt_gorilla_gorilla _stt_pan_troglodytes _stt_sus_scrofa _stt_mus_musculus _stt_canis_familiaris _stt_felis_catus _stt_gallus_gallus _stt_ovis_aries _stt_homo_sapiens _stt_papio_anubis _stt_chlorocebus_sabaeus _stt_rattus_norvegicus" },
+            { "value" => "sauropsids", "caption" => "7 sauropsids"           }, #"class" => "_stt_taeniopygia_guttata _stt_anolis_carolinensis _stt_meleagris_gallopavo _stt_pelodiscus_sinensis _stt_gallus_gallus _stt_anas_platyrhynchos _stt_ficedula_albicollis" },
+            { "value" => "fish",       "caption" => "11 fish"                }, #"class" => "_stt_takifugu_rubripes _stt_gasterosteus_aculeatus _stt_oryzias_latipes _stt_tetraodon_nigroviridis _stt_gadus_morhua _stt_oreochromis_niloticus _stt_xiphophorus_maculatus _stt_astyanax_mexicanus _stt_lepisosteus_oculatus _stt_poecilia_formosa _stt_danio_rerio" },
+          ]
+        },
+      ]
+    },
+
+
+    ## VARIANT NOTATION
+    ###################
+
+    # CSN
+    {
+      "key" => "CSN",
+      "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Variant notation",
+    },
+
+    # HGVSshift
+    {
+      "key" => "HGVSshift",
+      "label" => "Unshifted HGVS",
+      "helptip" => "By default VEP 3' shifts HGVS notations in repetetive sequence; use this plugin to additionally report unshifted notations",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Variant notation",
+    },
+
+
+    ## OTHER
+    ########
+
+    # ExAC
+    {
+      "key" => "ExAC",
+      "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
+      "available" => 1,
+      "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/ExAC.r0.3.sites.vep.vcf.gz"
+      ]
+    },
+
+    # miRNA
+    {
+      "key" => "miRNA",
+      "label" => "miRNA structure",
+      "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
+      "available" => 1,
+      "enabled" => 0,
+    },    
+
+    # UpDownDistance
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/UpDownDistance.pm
+    # Sets the upstream/downstream search distance either side of transcripts
+    {
+      "key" => "UpDownDistance",
+      "label" => "Upstream/Downstream distance",
+      "available" => 1,
+      "enabled" => 0,
+      "helptip" => "Change the distance to transcript (in bp) for which VEP assigns upstream and downstream consequences",
+      "params" => [
+        "@*"
+      ],
+      "form" => [
+        {
+          "name" => "distance",
+          "label" => "Distance (bp)",
+          "type" => "string",
+          "value" => 5000
+        }
+      ]
+    },
+  ]
+};
