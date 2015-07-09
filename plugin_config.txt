@@ -12,7 +12,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "dbNSFP",
       "label" => "dbNSFP",
-      "available" => 1,
+      "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "dbNSFP provides pathogenicity predictions for missense variants from various algorithms",
@@ -259,7 +259,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "Condel",
       "helptip" => "Calculates the Consensus Deleteriousness (Condel) score for a missense mutation based on the pre-calculated SIFT and PolyPhen scores",
-      "available" => 1,
+      "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Condel.pm",
@@ -290,7 +290,7 @@ my $VEP_PLUGIN_CONFIG = {
     # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
     {
       "key" => "LoF",
-      "helptip" => "Identify LoF (loss-of-function) variation",
+      "helptip" => "LOFTEE identifies LoF (loss-of-function) variation",
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
@@ -307,7 +307,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "LoFtool",
       "helptip" => "Provides a rank of genic intolerance and consequent susceptibility to disease based on the ratio of Loss-of-function (LoF) to synonymous mutations",
-      "available" => 1,
+      "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/LoFtool.pm",
@@ -414,7 +414,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "ExAC",
       "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
-      "available" => 1,
+      "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ExAC.pm",
       "section" => "Variant data",
