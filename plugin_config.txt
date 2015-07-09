@@ -16,6 +16,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "dbNSFP provides pathogenicity predictions for missense variants from various algorithms",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbNSFP.pm",
       "params"  => [
         #"/path/to/dbNSFP3.0b1a.txt.gz",
         "@*"
@@ -168,6 +169,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "Combined Annotation Dependent Depletion (CADD) is a tool for scoring the deleteriousness of single nucleotide variants and insertion/deletion variants in the human genome. CADD integrates multiple annotations into one metric by contrasting variants that survived natural selection with simulated mutations.",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/CADD.pm",
       "species" => [
         "homo_sapiens"
       ],
@@ -187,6 +189,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "Retrieves precomputed Genome Wide Annotation of VAriants (GWAVA) scores for any  variant that overlaps a known variant from the Ensembl variation database",
+      "plugin_url" => "ftp://ftp.sanger.ac.uk/pub/resources/software/gwava/v1.0/VEP_plugin/Gwava.pm",
       "species" => [
         "homo_sapiens"
       ],
@@ -218,6 +221,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Carol.pm",
       "species" => [
         "homo_sapiens"
       ],
@@ -234,6 +238,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Condel.pm",
       "species" => [
         "homo_sapiens"
       ],
@@ -264,6 +269,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/LoFtool.pm",
       "species" => [
         "homo_sapiens"
       ],
@@ -284,6 +290,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "section" => "Conservation",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Blosum62.pm",
     },
 
     # Conservation
@@ -305,6 +312,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "section" => "Conservation",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Conservation.pm",
       "params" => [
         "@*"
       ],
@@ -342,6 +350,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "section" => "Variant notation",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/CSN.pm",
     },
 
     # HGVSshift
@@ -352,6 +361,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "section" => "Variant notation",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/HGVSshift.pm",
     },
 
 
@@ -364,6 +374,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
       "available" => 1,
       "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ExAC.pm",
       "species" => [
         "homo_sapiens"
       ],
@@ -379,6 +390,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
       "available" => 1,
       "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/miRNA.pm",
     },    
 
     # UpDownDistance
@@ -390,6 +402,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 1,
       "enabled" => 0,
       "helptip" => "Change the distance to transcript (in bp) for which VEP assigns upstream and downstream consequences",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/UpDownDistance.pm",
       "params" => [
         "@*"
       ],
