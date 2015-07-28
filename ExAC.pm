@@ -115,6 +115,9 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
+
+  # make sure headers have been loaded
+  $self->get_header_info();
   
   my $vf = $tva->variation_feature;
   
