@@ -95,7 +95,7 @@ sub get_header_info {
         $desc =~ s/Counts?/frequency/i;
         $pop ||= '';
         
-        my $field_name = 'ExAC'.$pop.'_AF';
+        my $field_name = 'ExAC_AF'.$pop;
         $headers{$field_name} = 'ExAC '.$desc;
         
         # store this header on self
@@ -118,7 +118,7 @@ sub run {
 
   # make sure headers have been loaded
   $self->get_header_info();
-  
+
   my $vf = $tva->variation_feature;
   
   # get allele, reverse comp if needed
