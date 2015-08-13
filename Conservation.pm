@@ -76,6 +76,17 @@ sub new {
     $self->{method_link_type} = $self->params->[0] || 'GERP_CONSERVATION_SCORE';
     $self->{species_set}  = $self->params->[1] || 'mammals';
 
+    # reconnect to DB without species param
+    my $config = $self->{config};
+    $reg->load_registry_from_db(
+        -host       => $config->{host},
+        -user       => $config->{user},
+        -pass       => $config->{password},
+        -port       => $config->{port},
+        -db_version => $config->{db_version},
+        -no_cache   => $config->{no_slice_cache},
+    );
+
     my $mlss_adap = $reg->get_adaptor('Multi', 'compara', 'MethodLinkSpeciesSet')
         or die "Failed to connect to compara database\n";
 
