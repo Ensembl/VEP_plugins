@@ -158,25 +158,6 @@ my $VEP_PLUGIN_CONFIG = {
         },
       ]
     },
-
-    # dbscSNV
-    {
-      "key" => "dbscSNV",
-      "label" => "dbscSNV",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Pathogenicity predictions",
-      "helptip" => "Retrieves data for splicing variants from a tabix-indexed dbscSNV file",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbscSNV.pm",
-      "requires_data" => 1,
-      "requires_install" => 1,
-      "params"  => [
-        #"/path/to/dbscSNV.txt.gz"
-      ],
-      "species" => [
-        "homo_sapiens"
-      ],
-    },
     
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/CADD.pm
@@ -320,6 +301,67 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    
+    ## SPLICING PREDICTIONS
+    #######################
+
+    # dbscSNV
+    {
+      "key" => "dbscSNV",
+      "label" => "dbscSNV",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "helptip" => "Retrieves data for splicing variants from a tabix-indexed dbscSNV file",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbscSNV.pm",
+      "requires_data" => 1,
+      "requires_install" => 1,
+      "params"  => [
+        #"/path/to/dbscSNV.txt.gz"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+    },
+
+    # GeneSplicer
+    {
+      "key" => "GeneSplicer",
+      "label" => "GeneSplicer",
+      "helptip" => "Detects splice sites in genomic DNA",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GeneSplicer.pm",
+      "requires_install" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/genesplicer/bin/linux/genesplicer",
+        #"/path/to/genesplicer/human",
+        "@*"
+      ]
+    },
+
+    # MaxEntScan
+    {
+      "key" => "MaxEntScan",
+      "label" => "MaxEntScan",
+      "helptip" => "Sequence motif and maximum entropy based splice site consensus predictions",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/MaxEntScan.pm",
+      "requires_install" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/maxentscan"
+      ]
+    },
+
 
     ## CONSERVATION
     ###############
@@ -382,8 +424,8 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
 
-    ## VARIANT NOTATION
-    ###################
+    ## IDENTIFIERS
+    ##############
 
     # CSN
     {
@@ -391,7 +433,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
       "available" => 1,
       "enabled" => 0,
-      "section" => "Variant notation",
+      "section" => "Identifiers",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/CSN.pm",
     },
 
@@ -402,22 +444,23 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "By default VEP 3' shifts HGVS notations in repetetive sequence; use this plugin to additionally report unshifted notations",
       "available" => 1,
       "enabled" => 0,
-      "section" => "Variant notation",
+      "section" => "Identifiers",
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/HGVSshift.pm",
     },
 
 
-    ## VARIANT DATA
-    ###############
+    ## FREQUENCY DATA
+    #################
 
     # ExAC
     {
       "key" => "ExAC",
+      "label" => "ExAC frequencies",
       "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ExAC.pm",
-      "section" => "Variant data",
+      "section" => "Frequency data",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -425,6 +468,54 @@ my $VEP_PLUGIN_CONFIG = {
       "params" => [
         # "/path/to/ExAC.r0.3.sites.vep.vcf.gz"
       ]
+    },
+
+
+    ## OTHER
+    ########
+
+    # miRNA
+    {
+      "key" => "miRNA",
+      "label" => "miRNA structure",
+      "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
+      "available" => 1,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/miRNA.pm",
+    },
+    
+
+    # UpDownDistance
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/UpDownDistance.pm
+    # Sets the upstream/downstream search distance either side of transcripts
+    {
+      "key" => "UpDownDistance",
+      "label" => "Upstream/Downstream distance",
+      "available" => 1,
+      "enabled" => 0,
+      "helptip" => "Change the distance to transcript (default is 5000bp) for which VEP assigns upstream and downstream consequences",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/UpDownDistance.pm",
+      "params" => [
+        "@*"
+      ],
+      "form" => [
+        {
+          "name" => "distance",
+          "label" => "Distance (bp)",
+          "type" => "string",
+          "value" => 5000
+        }
+      ]
+    },
+
+    # NearestGene
+    {
+      "key" => "NearestGene",
+      "label" => "Nearest gene",
+      "helptip" => "Finds the nearest gene to non-genic variants",
+      "available" => 1,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/NearestGene.pm",
     },
 
     # LD
@@ -494,10 +585,6 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Variant data",
     },
 
-
-    ## GENE/TRANSCRIPT DATA
-    #######################
-
     # GO
     {
       "key" => "GO",
@@ -518,44 +605,6 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GXA.pm",
       "section" => "Gene data",
-    },
-
-
-    ## OTHER
-    ########
-
-    # miRNA
-    {
-      "key" => "miRNA",
-      "label" => "miRNA structure",
-      "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
-      "available" => 1,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/miRNA.pm",
-    },
-    
-
-    # UpDownDistance
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/UpDownDistance.pm
-    # Sets the upstream/downstream search distance either side of transcripts
-    {
-      "key" => "UpDownDistance",
-      "label" => "Upstream/Downstream distance",
-      "available" => 1,
-      "enabled" => 0,
-      "helptip" => "Change the distance to transcript (in bp) for which VEP assigns upstream and downstream consequences",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/UpDownDistance.pm",
-      "params" => [
-        "@*"
-      ],
-      "form" => [
-        {
-          "name" => "distance",
-          "label" => "Distance (bp)",
-          "type" => "string",
-          "value" => 5000
-        }
-      ]
     },
 
     # Downstream
