@@ -82,7 +82,7 @@ sub new {
   
   # remote files?
   if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix $file 1:1-1 2>&1`;
+    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
     if($remote_test && $remote_test !~ /get_local_version/) {
       die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
     }
@@ -97,7 +97,7 @@ sub new {
   $self->{file} = $file;
   
   # get headers
-  open HEAD, "tabix -h $file 1:1-1 2>&1 | ";
+  open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
     next unless /^\#/;
     chomp;
@@ -173,8 +173,8 @@ sub run {
   
   # read from file
   else {
-    open TABIX, sprintf("tabix %s %s |", $self->{file}, $pos_string);
-    
+    open TABIX, sprintf("tabix -f %s %s |", $self->{file}, $pos_string);
+
     while(<TABIX>) {
       chomp;
       s/\r$//g;
