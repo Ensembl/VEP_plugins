@@ -287,7 +287,7 @@ my $VEP_PLUGIN_CONFIG = {
     # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
     {
       "key" => "LoFtool",
-      "helptip" => "Provides a rank of genic intolerance and consequent susceptibility to disease based on the ratio of Loss-of-function (LoF) to synonymous mutations",
+      "helptip" => "Provides a per-gene rank of genic intolerance and consequent susceptibility to disease based on the ratio of Loss-of-function (LoF) to synonymous mutations in ExAC data",
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
