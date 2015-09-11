@@ -55,6 +55,10 @@
  Note that transcript sequences referred to in dbNSFP may be out of sync with
  those in the latest release of Ensembl; this may lead to discrepancies with
  scores retrieved from other sources.
+
+ If the dbNSFP README file is found in the same directory as the data file,
+ column descriptions will be read from this and incorporated into the VEP output
+ file header.
  
 =cut
 
@@ -137,10 +141,68 @@ sub feature_types {
 
 sub get_header_info {
   my $self = shift;
+
+  if(!exists($self->{_header_info})) {
+
+    # look for readme
+    my $file_dir = $self->{file};
+
+    my %rm_descs;
+
+    # won't work for remote
+    if($file_dir !~ /tp\:\/\//) {
+
+      # get just dir
+      $file_dir =~ s/\/[^\/]+$/\//;
+
+      if(opendir DIR, $file_dir) {
+        my ($readme_file) = grep {/dbnsfp.*readme/i} readdir DIR;
+        closedir DIR;
+
+        if(open RM, $file_dir.$readme_file) {
+          my ($col, $reading);
+
+          # parse dbNSFP readme
+          # relevant lines look like:
+          #
+          # 1   column1_name: description blah blah
+          #     blah blah blah
+          # 2   column2_name: description blah blah
+          #     blah blah blah
+
+          while(<RM>) {
+            chomp;
+            s/\r$//g;
+
+            if(/^\d+\s/) {
+              $reading = 1;
+
+              m/^\d+\s+(.+?)\:\s+(.+)/;
+              $col = $1;
+
+              $rm_descs{$col} = '(from dbNSFP) '.$2;
+            }
+            elsif($reading && /\w/) {
+              s/^\s+//;
+              $rm_descs{$col} .= ' '.$_;
+            }
+            else {
+              $reading = 0;
+            }
+          }
+
+          close RM;
+
+          # remove multiple spaces
+          $rm_descs{$_} =~ s/\s+/ /g for keys %rm_descs;
+        }
+      }
+    }
+
+    $self->{_header_info} = {map {$_ => $rm_descs{$_} || ($_.' from dbNSFP file '.$self->{file})} keys %{$self->{cols}}};
+  }
   
-  my %tmp = map {$_ => $_.' from dbNSFP file '.$self->{file}} keys %{$self->{cols}};
-  
-  return \%tmp;
+  return $self->{_header_info};
 }
 
 sub run {
