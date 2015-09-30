@@ -77,29 +77,36 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
+    my $params = $self->params;
+
+    # REST API passes 1 as first param
+    shift @$params if $params->[0] && $params->[0] eq '1';
+
+    $self->{method_link_type} = $params->[0] || 'GERP_CONSERVATION_SCORE';
+    $self->{species_set}  = $params->[1] || 'mammals';
+
+    my $config = $self->{config};
     my $reg = 'Bio::EnsEMBL::Registry';
 
-    $self->{method_link_type} = $self->params->[0] || 'GERP_CONSERVATION_SCORE';
-    $self->{species_set}  = $self->params->[1] || 'mammals';
-
     # reconnect to DB without species param
-    my $config = $self->{config};
-    $reg->load_registry_from_db(
-        -host       => $config->{host},
-        -user       => $config->{user},
-        -pass       => $config->{password},
-        -port       => $config->{port},
-        -db_version => $config->{db_version},
-        -no_cache   => $config->{no_slice_cache},
-    );
+    if($config->{host}) {
+        $reg->load_registry_from_db(
+            -host       => $config->{host},
+            -user       => $config->{user},
+            -pass       => $config->{password},
+            -port       => $config->{port},
+            -db_version => $config->{db_version},
+            -no_cache   => $config->{no_slice_cache},
+        );
+    }
 
-    my $mlss_adap = $reg->get_adaptor('Multi', 'compara', 'MethodLinkSpeciesSet')
+    my $mlss_adap = $config->{mlssa} or $reg->get_adaptor('Multi', 'compara', 'MethodLinkSpeciesSet')
         or die "Failed to connect to compara database\n";
 
     $self->{mlss} = $mlss_adap->fetch_by_method_link_type_species_set_name($self->{method_link_type}, $self->{species_set})
         or die "Failed to fetch MLSS for ".$self->{method_link_type}." and ".$self->{species_set}."\n";
 
-    $self->{cs_adap} = $reg->get_adaptor('Multi', 'compara', 'ConservationScore')
+    $self->{cs_adap} = $config->{cosa} or $reg->get_adaptor('Multi', 'compara', 'ConservationScore')
         or die "Failed to fetch conservation adaptor\n";
 
     return $self;
