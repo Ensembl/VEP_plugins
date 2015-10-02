@@ -114,6 +114,9 @@ sub new {
   # defaults
   $self->{'_param_'.$_} = $DEFAULTS{$_} for keys %DEFAULTS;
 
+  # REST API passes 1 as first param
+  shift @$params if $params->[0] && $params->[0] eq '1';
+
   # set/override with user params
   foreach my $param(@$params) {
     my ($key, $val) = split('=', $param);
