@@ -73,7 +73,6 @@ sub new {
   foreach my $param(@$params) {
     my ($key, $val) = split('=', $param);
     die("ERROR: Failed to parse parameter $param\n") unless defined($key) && defined($val);
-    die("ERROR: Unknown parameter key $key\n") unless exists($CONFIG{$key});
     $CONFIG{$key} = $val;
   }
   
@@ -103,14 +102,12 @@ sub run {
   if(!exists($self->{_cache}) || !exists($self->{_cache}->{$loc_string})) {
     $self->{ga} ||= $self->{config}->{ga};
     die("ERROR: Could not get gene adaptor; this plugin does not work in --offline mode\n") unless $self->{ga};
+
+    my %opts = map {'-'.$_ => $CONFIG{$_}} keys %CONFIG;
+    $opts{-feature} = $vf;
     
     my @result = map {$_->[0]->stable_id} @{
-      $self->{ga}->fetch_all_by_outward_search(
-        -feature   => $vf,
-        -limit     => $CONFIG{limit},
-        -range     => $CONFIG{range},
-        -max_range => $CONFIG{max_range},
-      )
+      $self->{ga}->fetch_all_by_outward_search(%opts)
     };
     
     $self->{_cache}->{$loc_string} = scalar @result ? join(",", @result) : undef;
