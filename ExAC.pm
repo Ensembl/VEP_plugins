@@ -167,7 +167,7 @@ sub run {
       next unless $vcf_vf && $vcf_vf->isa('Bio::EnsEMBL::Variation::VariationFeature');
       
       # compare coords
-      next unless $vcf_vf->{start} == $vf->{end} && $vcf_vf->{start} == $vf->{end};
+      next unless $vcf_vf->{start} == $vf->{start} && $vcf_vf->{end} == $vf->{end};
       
       # get alleles, shift off reference
       my @vcf_alleles = split /\//, $vcf_vf->allele_string;
