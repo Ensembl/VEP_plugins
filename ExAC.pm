@@ -28,6 +28,11 @@ limitations under the License.
 
  mv ExAC.pm ~/.vep/Plugins
  perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN
+
+
 
 =head1 DESCRIPTION
 
@@ -36,7 +41,12 @@ limitations under the License.
  Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current to download the latest ExAC VCF.
  
  The tabix utility must be installed in your path to use this plugin.
- 
+
+ The plugin takes 3 command line arguments. Second and third arguments are not mandatory. If AC specified as second
+ argument Allele counts per population will be included in output. If AN specified as third argument Allele specific
+ chromosome counts will be included in output.
+
+
 =cut
 
 package ExAC;
@@ -61,7 +71,22 @@ sub new {
   
   # get ExAC file
   my $file = $self->params->[0];
-  
+
+  # get AC,AN options
+  if (exists($self->params->[1]) && $self->params->[1] eq 'AC'){
+    $self->{display_ac} = 1;
+  }
+  else {
+    $self->{display_ac} = 0;
+  }
+
+  if (exists($self->params->[2]) && $self->params->[2] eq 'AN'){
+    $self->{display_an} = 1;
+  }
+  else {
+    $self->{display_an} = 0;
+  }
+
   # remote files?
   if($file =~ /tp\:\/\//) {
     my $remote_test = `tabix -f $file 1:1-1 2>&1`;
@@ -103,7 +128,16 @@ sub get_header_info {
         
         my $field_name = 'ExAC_AF'.$pop;
         $headers{$field_name} = 'ExAC '.$desc;
-        
+
+        if ($self->{display_ac}){
+          $field_name = 'ExAC_AC'.$pop;
+          $headers{$field_name} = 'ExAC'.$pop.' Allele count';
+        }
+        if ($self->{display_an}){
+          $field_name = 'ExAC_AN'.$pop;
+          $headers{$field_name} = 'ExAC'.$pop.' Allele number';
+        }
+
         # store this header on self
         push @{$self->{headers}}, 'AC'.$pop;
       }
@@ -189,20 +223,47 @@ sub run {
           
           my $afh = $h;
           $afh =~ s/AC/AF/;
-          
+
+          # now sed header to get AN_Adj and get value
+          my $an_adj = '';
+          my $an_adj_h = $h;
+          $an_adj_h =~ s/AC/AN_Adj/;
+
+          # get AC from header
+          my $ach = $h;
+
           if(/$anh\=([0-9\,]+)/) {
             
             # grab AN
             my $an = $1;            
             next unless $an;
-            
+
+            #check if AN_adj not equal to zero and get value if so
+            if(/$an_adj_h\=([0-9\,]+)/){
+              if ($1 ne '0'){
+                $an = $1;
+              }
+            }
+
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
               $total_ac += $ac;
+              if ($self->{display_ac}){
+                $data->{$a}->{'ExAC_'.$ach} = $ac;
+              }
+              if ($self->{display_an}){
+                $data->{$a}->{'ExAC_'.$anh} = $an;
+              }
               $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an);
             }
             
             # use total to get ref allele freq
+            if ($self->{display_ac}){
+             $data->{$ref_allele}->{'ExAC_'.$ach} = $total_ac;
+            }
+            if ($self->{display_an}){
+              $data->{$ref_allele}->{'ExAC_'.$anh} = $an;
+            }
             $data->{$ref_allele}->{'ExAC_'.$afh} = sprintf("%.3g", 1 - ($total_ac / $an));
           }
         }
