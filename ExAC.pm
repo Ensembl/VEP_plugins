@@ -40,6 +40,10 @@ limitations under the License.
  
  Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current to download the latest ExAC VCF.
  
+ Note that the currently available version of the ExAC data file (0.3) is only available
+ on the GRCh37 assembly; therefore it can only be used with this plugin when using the
+ VEP on GRCh37. See http://www.ensembl.org/info/docs/tools/vep/script/vep_other.html#assembly
+ 
  The tabix utility must be installed in your path to use this plugin.
 
  The plugin takes 3 command line arguments. Second and third arguments are not mandatory. If AC specified as second
