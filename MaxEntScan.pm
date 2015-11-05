@@ -114,7 +114,7 @@ sub run {
   my $tr = $tva->transcript;
   my $tr_strand = $tr->strand;
 
-  return unless $vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/;
+  return {} unless $vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/;
 
   foreach my $intron(@{$tr->get_all_Introns}) {
     # get coords depending on strand
