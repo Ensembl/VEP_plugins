@@ -184,6 +184,28 @@ my $VEP_PLUGIN_CONFIG = {
         #"/path/to/whole_genome_SNVs.tsv.gz"
       ]
     },
+    
+    # FATHMM-MKL
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/FATHMM_MKL.pm
+    # Requires tabix-indexed data file as first param
+    # No other parameters so no form required
+    # data file currently only available for GRCh37
+    {
+      "key" => "FATHMM_MKL",
+      "label" => "FATHMM-MKL",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "FATHMM-MKL predicts functional consequences of variants, both coding and non-coding.",
+      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/FATHMM_MKL.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/fathmm-MKL_Current.tab.gz"
+      ]
+    },
 
     # GWAVA
     # https://www.sanger.ac.uk/sanger/StatGen_Gwava
