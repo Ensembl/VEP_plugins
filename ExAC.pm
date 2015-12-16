@@ -124,7 +124,7 @@ sub get_header_info {
     my @lines = <IN>;
     
     while(my $line = shift @lines) {
-      if($line =~ /ID\=AC(\_[A-Z]+)?\,.*\"(.+)\"/) {
+      if($line =~ /ID\=AC(\_[A-Zdj]+)?\,.*\"(.+)\"/) {
         my ($pop, $desc) = ($1, $2);
         
         $desc =~ s/Counts?/frequency/i;
@@ -228,11 +228,6 @@ sub run {
           my $afh = $h;
           $afh =~ s/AC/AF/;
 
-          # now sed header to get AN_Adj and get value
-          my $an_adj = '';
-          my $an_adj_h = $h;
-          $an_adj_h =~ s/AC/AN_Adj/;
-
           # get AC from header
           my $ach = $h;
 
@@ -241,13 +236,6 @@ sub run {
             # grab AN
             my $an = $1;            
             next unless $an;
-
-            #check if AN_adj not equal to zero and get value if so
-            if(/$an_adj_h\=([0-9\,]+)/){
-              if ($1 ne '0'){
-                $an = $1;
-              }
-            }
 
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
