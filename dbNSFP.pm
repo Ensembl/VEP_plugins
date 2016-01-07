@@ -75,36 +75,21 @@ use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-  
-  # test tabix
-  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
+
+  $self->expand_left(0);
+  $self->expand_right(0);
   
   # get dbNSFP file
   my $file = $self->params->[0];
-  
-  # remote files?
-  if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
-  }
-
-  # check files exist
-  else {
-    die "ERROR: dbNSFP file $file not found\n" unless -e $file;
-    die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-  }
-  
-  $self->{file} = $file;
+  $self->add_file($file);
   
   # get headers
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
@@ -137,10 +122,6 @@ sub new {
   return $self;
 }
 
-sub version {
-  return 71;
-}
-
 sub feature_types {
   return ['Transcript'];
 }
@@ -151,7 +132,7 @@ sub get_header_info {
   if(!exists($self->{_header_info})) {
 
     # look for readme
-    my $file_dir = $self->{file};
+    my $file_dir = $self->files->[0];
 
     my %rm_descs;
 
@@ -229,42 +210,14 @@ sub run {
   
   # get transcript stable ID
   my $tr_id = $tva->transcript->stable_id;
-    
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $vf->{start}, $vf->{end});
-  
-  my @dbnsfp_data;
-  
-  # cached?
-  if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
-    @dbnsfp_data = @{$self->{cache}->{$pos_string}};
-  }
-  
-  # read from file
-  else {
-    open TABIX, sprintf("tabix -f %s %s |", $self->{file}, $pos_string);
 
-    while(<TABIX>) {
-      chomp;
-      s/\r$//g;
-      my @split = split /\t/;
-      
-      # parse data into hash of col names and values
-      my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
-      
-      push @dbnsfp_data, \%data;
-    }
-    
-    close TABIX;
-  }
-  
-  # overwrite cache
-  $self->{cache} = {$pos_string => \@dbnsfp_data};
-  
   my $data;
   
-  foreach my $tmp_data(@dbnsfp_data) {
+  foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
+
     # compare allele and transcript
     next unless
+      $tmp_data->{'pos(1-based)'} == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele;
     
@@ -308,6 +261,25 @@ sub run {
     keys %$data;
   
   return \%return;
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+
+  my @split = split /\t/, $line;
+  
+  # parse data into hash of col names and values
+  my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
+
+  return \%data;
+}
+
+sub get_start {  
+  return $_[1]->{'pos(1-based)'};
+}
+
+sub get_end {
+  return $_[1]->{'pos(1-based)'};
 }
 
 1;

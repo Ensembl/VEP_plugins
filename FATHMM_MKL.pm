@@ -47,40 +47,18 @@ use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-  
-  # test tabix
-  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
-  
-  # get FATHMM_MKL file
-  my $files = $self->params;
-  
-  foreach my $file(@$files) {
-    
-    # remote files?
-    if($file =~ /tp\:\/\//) {
-      my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-      if($remote_test && $remote_test !~ /get_local_version/) {
-        die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-      }
-    }
 
-    # check files exist
-    else {
-      die "ERROR: FATHMM-MKL file $file not found\n" unless -e $file;
-      die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-    }
-  }
-  
-  $self->{files} = $files;
-  
+  $self->expand_left(0);
+  $self->expand_right(0);
+
   return $self;
 }
 
@@ -112,53 +90,37 @@ sub run {
   # adjust coords, file is BED-like (but not 0-indexed, go figure...)
   my ($s, $e) = ($vf->{start}, $vf->{end} + 1);
   
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $s, $e);
-  
-  # clear cache if it looks like the coords are the same
-  # but allele type is different
-  delete $self->{cache} if
-    defined($self->{cache}->{$pos_string}) &&
-    scalar keys %{$self->{cache}->{$pos_string}} &&
-    !defined($self->{cache}->{$pos_string}->{$allele});
-  
-  my %fathmm_data;
-  
-  # cached?
-  if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
-    %fathmm_data = %{$self->{cache}->{$pos_string}};
-  }
-  
-  # read from file(s)
-  else {
-    foreach my $file(@{$self->{files}}) {
-      open TABIX, sprintf("tabix -f %s %s |", $file, $pos_string);
-    
-      while(<TABIX>) {
-        chomp;
-        s/\r$//g;
-        my ($c, $s, $e, $ref, $alt, $nc_score, $nc_groups, $c_score, $c_groups) = split /\t/;
-
-        # BED-like adjustment
-        $e--;
-      
-        next unless $s == $vf->{start} && $e == $vf->{end};
-      
-        $fathmm_data{$alt} = {
-          FATHMM_MKL_C  => $c_score,
-          FATHMM_MKL_NC => $nc_score,
-        };
-      }
-    
-      close TABIX;
-      
-      last if scalar keys %fathmm_data;
+  foreach my $data(@{$self->get_data($vf->{chr}, $s, $e)}) {
+    if($data->{start} == $s && $allele eq $data->{alt}) {
+      return $data->{result};
     }
   }
-  
-  # overwrite cache
-  $self->{cache} = {$pos_string => \%fathmm_data};
-  
-  return defined($fathmm_data{$allele}) ? $fathmm_data{$allele} : {};
+
+  return {};
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+
+  my ($c, $s, $e, $ref, $alt, $nc_score, $nc_groups, $c_score, $c_groups) = split /\t/, $line;
+
+  return {
+    start => $s,
+    end => $e - 1,
+    alt => $alt,
+    result => {
+      FATHMM_MKL_C  => $c_score,
+      FATHMM_MKL_NC => $nc_score,
+    }
+  };
+}
+
+sub get_start {
+  return $_[1]->{start};
+}
+
+sub get_end {
+  return $_[1]->{end};
 }
 
 1;
