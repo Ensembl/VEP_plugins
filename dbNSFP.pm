@@ -266,6 +266,8 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
 
+  $line =~ s/\r$//g;
+
   my @split = split /\t/, $line;
   
   # parse data into hash of col names and values
