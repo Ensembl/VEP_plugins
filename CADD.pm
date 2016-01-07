@@ -52,38 +52,18 @@ use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-  
-  # test tabix
-  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
-  
-  # get CADD file
-  my $files = $self->params;
-  
-  foreach my $file(@$files) {
-    
-    # remote files?
-    if($file =~ /tp\:\/\//) {
-      my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-      if($remote_test && $remote_test !~ /get_local_version/) {
-        die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-      }
-    }
 
-    # check files exist
-    else {
-      die "ERROR: CADD file $file not found\n" unless -e $file;
-      die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-    }
-  }
-  
-  $self->{files} = $files;
-  
+  $self->expand_left(0);
+  $self->expand_right(0);
+
+  $self->get_user_params();
+
   return $self;
 }
 
@@ -112,62 +92,44 @@ sub run {
   
   # adjust coords to account for VCF-like storage of indels
   my ($s, $e) = ($vf->{start} - 1, $vf->{end} + 1);
-  
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $s, $e);
-  
-  # clear cache if it looks like the coords are the same
-  # but allele type is different
-  delete $self->{cache} if
-    defined($self->{cache}->{$pos_string}) &&
-    scalar keys %{$self->{cache}->{$pos_string}} &&
-    !defined($self->{cache}->{$pos_string}->{$allele});
-  
-  my %cadd_data;
-  
-  # cached?
-  if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
-    %cadd_data = %{$self->{cache}->{$pos_string}};
+
+  my ($res) = grep {$_->{alt} eq $allele} @{$self->get_data($vf->{chr}, $s, $e)};
+
+  return $res ? $res->{result} : {};
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+
+  my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/, $line;
+
+  # do VCF-like coord adjustment for mismatched subs
+  my $e = ($s + length($ref)) - 1;
+  if(length($alt) != length($ref)) {
+    $s++;
+    $ref = substr($ref, 1);
+    $alt = substr($alt, 1);
+    $ref ||= '-';
+    $alt ||= '-';
   }
-  
-  # read from file(s)
-  else {
-    foreach my $file(@{$self->{files}}) {
-      open TABIX, sprintf("tabix -f %s %s |", $file, $pos_string);
-    
-      while(<TABIX>) {
-        chomp;
-        s/\r$//g;
-        my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/;
-      
-        # do VCF-like coord adjustment for mismatched subs
-        my $e = ($s + length($ref)) - 1;
-        if(length($alt) != length($ref)) {
-          $s++;
-          $ref = substr($ref, 1);
-          $alt = substr($alt, 1);
-          $ref ||= '-';
-          $alt ||= '-';
-        }
-      
-        next unless $s == $vf->{start} && $e == $vf->{end};
-      
-        $cadd_data{$alt} = {
-          CADD_RAW   => $raw,
-          CADD_PHRED => $phred
-        };
-      }
-    
-      close TABIX;
-      
-      last if scalar keys %cadd_data;
+
+  return {
+    alt => $alt,
+    start => $s,
+    end => $e,
+    result => {
+      CADD_RAW   => $raw,
+      CADD_PHRED => $phred
     }
-  }
-  
-  # overwrite cache
-  $self->{cache} = {$pos_string => \%cadd_data};
-  
-  return defined($cadd_data{$allele}) ? $cadd_data{$allele} : {};
+  };
+}
+
+sub get_start {
+  return $_[1]->{start};
+}
+
+sub get_end {
+  return $_[1]->{end};
 }
 
 1;
-
