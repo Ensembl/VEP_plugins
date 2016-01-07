@@ -70,48 +70,30 @@ use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-  
-  # test tabix
-  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
-  
-  # get dbscSNV file
-  my $file = $self->params->[0];
-  
-  # remote files?
-  if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
-  }
 
-  # check files exist
-  else {
-    die "ERROR: dbscSNV file $file not found\n" unless -e $file;
-    die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-  }
+  $self->expand_left(0);
+  $self->expand_right(0);
   
-  $self->{file} = $file;
+  # get dbNSFP file
+  my $file = $self->params->[0];
+  $self->add_file($file);
   
   # get headers
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
-    next unless /^c/;
     chomp;
     $self->{headers} = [split];
   }
   close HEAD;
-  
-  die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
-  
+
   # check alt and Ensembl_transcriptid headers
   foreach my $h(qw(alt Ensembl_gene)) {
     die "ERROR: Could not find required column $h in $file\n" unless grep {$_ eq $h} @{$self->{headers}};
@@ -146,7 +128,7 @@ sub run {
   my $vf = $tva->variation_feature;
   
   return {} unless $vf->{start} eq $vf->{end};
-  return {} unless grep {$_->SO_term =~ /splic/} @{$tva->get_all_OverlapConsequences};
+  # return {} unless grep {$_->SO_term =~ /splic/} @{$tva->get_all_OverlapConsequences};
   
   # get allele, reverse comp if needed
   my $allele = $tva->variation_feature_seq;
@@ -156,54 +138,23 @@ sub run {
   
   # get gene stable ID
   my $g_id = $tva->transcript->{_gene_stable_id} || $tva->transcript->gene->stable_id;
-    
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $vf->{start}, $vf->{end});
-  
-  my @dbscsnv_data;
-  
-  # cached?
-  if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
-    @dbscsnv_data = @{$self->{cache}->{$pos_string}};
-  }
-  
-  # read from file
-  else {
-    open TABIX, sprintf("tabix -f %s %s |", $self->{file}, $pos_string);
-    
-    while(<TABIX>) {
-      chomp;
-      s/\r$//g;
-      my @split = split /\t/;
-      
-      # parse data into hash of col names and values
-      my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
-      
-      push @dbscsnv_data, \%data;
-    }
-    
-    close TABIX;
-  }
-  
-  # overwrite cache
-  $self->{cache} = {$pos_string => \@dbscsnv_data};
   
   my $data;
   
-  foreach my $tmp_data(@dbscsnv_data) {
+  foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
     # compare allele and transcript
     next unless
+      $tmp_data->{'pos'} == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele; # &&
-#       defined($tmp_data->{Ensembl_gene}) &&
-#       $tmp_data->{Ensembl_gene} =~ /$g_id($|;)/;
+      # defined($tmp_data->{Ensembl_gene}) &&
+      # $tmp_data->{Ensembl_gene} =~ /$g_id($|;)/;
     
     $data = $tmp_data;
     last;
   }
   
   return {} unless scalar keys %$data;
-  
-  $DB::single = 1;
   
   # get required data
   my %return =
@@ -213,6 +164,27 @@ sub run {
     keys %$data;
   
   return \%return;
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+
+  $line =~ s/\r$//g;
+
+  my @split = split /\t/, $line;
+  
+  # parse data into hash of col names and values
+  my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
+
+  return \%data;
+}
+
+sub get_start {  
+  return $_[1]->{'pos'};
+}
+
+sub get_end {
+  return $_[1]->{'pos'};
 }
 
 1;
