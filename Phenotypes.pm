@@ -181,8 +181,8 @@ sub run {
   
   my $vf = $tva->variation_feature;
   
-  # adjust coords to account for VCF-like storage of indels
-  my ($s, $e) = ($vf->{start} - 1, $vf->{end} + 1);
+  # adjust coords for tabix
+  my ($s, $e) = ($vf->{start} - 1, $vf->{end});
   
   my $data = $self->get_data($vf->{chr}, $s, $e);
 
