@@ -266,9 +266,7 @@ sub run {
     # compare allele and transcript
     next unless
       defined($tmp_data->{alt}) &&
-      $tmp_data->{alt} eq $allele &&
-      defined($tmp_data->{Ensembl_transcriptid}) &&
-      $tmp_data->{Ensembl_transcriptid} =~ /$tr_id($|;)/;
+      $tmp_data->{alt} eq $allele;
     
     # make a clean copy as we're going to edit it
     %$data = %$tmp_data;
