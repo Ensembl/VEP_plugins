@@ -100,13 +100,13 @@ sub new {
         );
     }
 
-    my $mlss_adap = $config->{mlssa} or $reg->get_adaptor('Multi', 'compara', 'MethodLinkSpeciesSet')
+    my $mlss_adap = $config->{mlssa} ||= $reg->get_adaptor('Multi', 'compara', 'MethodLinkSpeciesSet')
         or die "Failed to connect to compara database\n";
 
     $self->{mlss} = $mlss_adap->fetch_by_method_link_type_species_set_name($self->{method_link_type}, $self->{species_set})
         or die "Failed to fetch MLSS for ".$self->{method_link_type}." and ".$self->{species_set}."\n";
 
-    $self->{cs_adap} = $config->{cosa} or $reg->get_adaptor('Multi', 'compara', 'ConservationScore')
+    $self->{cs_adap} = $config->{cosa} ||= $reg->get_adaptor('Multi', 'compara', 'ConservationScore')
         or die "Failed to fetch conservation adaptor\n";
 
     return $self;
