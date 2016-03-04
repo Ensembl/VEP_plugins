@@ -31,7 +31,47 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves overlapping phenotype information
+ A VEP plugin that retrieves overlapping phenotype information.
+
+ On the first run for each new version/species/assembly will
+ download a GFF-format dump to ~/.vep/Plugins/
+
+ Ensembl provides phenotype annotations mapped to a number of genomic
+ feature types, including genes, variants and QTLs.
+
+ This plugin is best used with JSON output format; the output will be
+ more verbose and include all available phenotype annotation data and
+ metadata.
+
+ For other output formats, only a concatenated list of phenotype
+ description strings is returned.
+
+ Several paramters can be set using a key=value system:
+
+ file           : provide a file path, either to create anew from the download
+                  or to point to an existing file
+
+ exclude_sources: exclude sources of phenotype information. By default
+                  HGMD and COSMIC annotations are excluded. See
+                  http://www.ensembl.org/info/genome/variation/sources_phenotype_documentation.html
+                  Separate multiple values with '&'
+
+ include_sources: force include sources, as exclude_sources
+
+ exclude_types  : exclude types of features. By default StructuralVariation
+                  and SupportingStructuralVariation annotations are excluded
+                  due to their size. Separate multiple values with '&'.
+                  Valid types: Gene, Variation, QTL, StructuralVariation,
+                  SupportingStructuralVariation, RegulatoryFeature
+
+ include_types  : force include types, as exclude_types
+
+ expand_right   : sets cache size in bp. By default annotations 100000bp (100kb)
+                  downstream of the initial lookup are cached
+
+ Example:
+
+ --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
  
 =cut
 
@@ -45,13 +85,13 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 # default config
-my %CONFIG = (
+my %DEFAULTS = (
   exclude_sources => 'HGMD_PUBLIC&COSMIC',
   exclude_types => 'StructuralVariation&SupportingStructuralVariation',
   expand_right => 100000,
 );
 
-my @FIELDS = qw(seqname source type start end score strand frame attributes comments);
+my @FIELDS = qw(seq_region_name source type start end score strand frame attributes comments);
 
 sub new {
   my $class = shift;
@@ -59,9 +99,9 @@ sub new {
   my $self = $class->SUPER::new(@_);
   
   my $params_hash = $self->params_to_hash();
-  $CONFIG{$_} = $params_hash->{$_} for keys %$params_hash;
+  $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
 
-  unless($CONFIG{file}) {
+  unless($DEFAULTS{file}) {
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
 
@@ -71,12 +111,12 @@ sub new {
     my $version = $config->{db_version} || $config->{reg}->software_version;
     my $assembly = $config->{assembly};
 
-    $CONFIG{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+    $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
   }
 
-  $self->generate_phenotype_gff($CONFIG{file}) if !(-e $CONFIG{file}) || (-e $CONFIG{file}.'.lock');
+  $self->generate_phenotype_gff($DEFAULTS{file}) if !(-e $DEFAULTS{file}) || (-e $DEFAULTS{file}.'.lock');
 
-  $self->add_file($CONFIG{file});
+  $self->add_file($DEFAULTS{file});
 
   $self->get_user_params();
 
@@ -90,7 +130,7 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   return {
-    phenotypes => 'Phenotypes associated with overlapping genomic features'
+    PHENOTYPES => 'Phenotypes associated with overlapping genomic features'
   }
 }
 
@@ -189,7 +229,7 @@ sub run {
   return {} unless $data && scalar @$data;
 
   return {
-    phenotypes => $self->{config}->{json} ? $data : join(",", map {$_->{phenotype} =~ s/\s+/\_/gr} @$data)
+    PHENOTYPES => $self->{config}->{json} ? $data : join(",", map {$_->{phenotype} =~ tr/ ;/\_\_/; $_->{phenotype}} @$data)
   };
 }
 
@@ -279,7 +319,7 @@ sub _generic_inc_exc {
   my ($self, $key) = @_;
 
   if(!exists($self->{'_'.$key})) {
-    my %exc = map {$_ => 1} split('&', $CONFIG{$key} || '');
+    my %exc = map {$_ => 1} split('&', $DEFAULTS{$key} || '');
     $self->{'_'.$key} = \%exc;
   }
 
