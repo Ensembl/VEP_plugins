@@ -33,6 +33,40 @@ limitations under the License.
 
  A VEP plugin that uses G2P allelic requirements to assess variants in genes
  for potential phenotype involvement.
+
+ The plugin has multiple configuration options, though minimally requires only
+ the CSV file of G2P data.
+
+ Options are passed to the plugin as key=value pairs, (defaults in parentheses):
+
+ file        : path to G2P data file, as found at
+               http://www.ebi.ac.uk/gene2phenotype/gene2phenotype-webcode/cgi-bin/handler.cgi?show_downloads=all
+
+ maf         : maximum allele frequency for inclusion (0.01)
+
+ maf_key     : allele key to use; by default this is (minor_allele_freq), which
+               is the 1000 Genomes global frequency. Choose from:
+               1000 genomes: minor_allele_freq,AFR,AMR,EAS,EUR,SAS
+               ESP: AA,EA
+               ExAC: ExAC,ExAC_AFR,ExAC_AMR,ExAC_Adj,ExAC_EAS,ExAC_FIN,ExAC_NFE,ExAC_OTH,ExAC_SAS
+
+ default_maf : default frequency of the input variant if no frequency data is
+               found (0). This determines whether such variants are included;
+               the value of 0 forces variants with no frequency data to be
+               included as this is considered equivalent to having a frequency
+               of 0. Set to 1 (or any value higher than maf) to exclude them.
+
+ types       : SO consequence types to include. Separate multiple values with '&'
+               (splice_donor_variant,splice_acceptor_variant,stop_gained,
+               frameshift_variant,stop_lost,initiator_codon_variant,
+               inframe_insertion,inframe_deletion,missense_variant,
+               coding_sequence_variant,start_lost,transcript_ablation,
+               transcript_amplification,protein_altering_variant)
+
+
+ Example:
+
+ --plugin G2P,file=G2P.csv.gz,maf=0.05,maf_key=ExAC_Adj,types=stop_gained&frameshift_variant
  
 =cut
 
