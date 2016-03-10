@@ -89,11 +89,12 @@ sub run {
   reverse_comp(\$allele) if $vf->{strand} < 0;
   
   return {} unless $allele =~ /^[ACGT-]$/;
-  
-  # adjust coords to account for VCF-like storage of indels
-  my ($s, $e) = ($vf->{start} - 1, $vf->{end} + 1);
 
-  my ($res) = grep {$_->{alt} eq $allele} @{$self->get_data($vf->{chr}, $s, $e)};
+  my ($res) = grep {
+    $_->{alt}   eq $allele &&
+    $_->{start} eq $vf->{start} &&
+    $_->{end}   eq $vf->{end}
+  } @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
 
   return $res ? $res->{result} : {};
 }
