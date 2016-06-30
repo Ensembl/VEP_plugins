@@ -121,7 +121,7 @@ sub run {
         my $new_length = ($tv->translation_start < $tv->translation_end ? $tv->translation_start : $tv->translation_end) + length($new_pep);
         
         return {
-            Downstream          => $new_pep,
+            DownstreamProtein   => $new_pep,
             ProteinLengthChange => $new_length - length($translation),
         };
     }
