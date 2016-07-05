@@ -43,9 +43,10 @@ limitations under the License.
  
  The file must be processed and indexed by tabix before use by this plugin:
  
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.0b2a.zip
- > unzip dbNSFPv3.0b2a.zip
- > cat dbNSFP*chr* | bgzip -c > dbNSFP.gz
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.2a.zip
+ > unzip dbNSFPv3.2a.zip
+ > head -n1 dbNSFP3.2a_variant.chr1 > h
+ > cat dbNSFP3.2a_variant.chr* | grep -v ^#chr | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP.gz
  > tabix -s 1 -b 2 -e 2 dbNSFP.gz
  
  When running the plugin you must list at least one column to retrieve from the
