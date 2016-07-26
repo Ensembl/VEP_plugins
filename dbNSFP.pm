@@ -145,7 +145,7 @@ sub get_header_info {
       $file_dir =~ s/\/[^\/]+$/\//;
 
       if(opendir DIR, $file_dir) {
-        my ($readme_file) = grep {/dbnsfp.*readme/i} readdir DIR;
+        my ($readme_file) = grep {/dbnsfp.*readme\.txt/i} readdir DIR;
         closedir DIR;
 
         if(open RM, $file_dir.$readme_file) {
