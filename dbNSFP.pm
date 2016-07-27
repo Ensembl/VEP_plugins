@@ -218,10 +218,18 @@ sub run {
   foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
 
     # compare allele and transcript
-    next unless
-      $tmp_data->{'pos(1-based)'} == $vf->{start} &&
-      defined($tmp_data->{alt}) &&
-      $tmp_data->{alt} eq $allele;
+    if (exists $tmp_data->{'pos(1-based)'}) {
+      next unless
+        $tmp_data->{'pos(1-based)'} == $vf->{start} &&
+        defined($tmp_data->{alt}) &&
+        $tmp_data->{alt} eq $allele;
+    } else {
+      # for dbNSFP version 2.9.1
+      next unless
+        $tmp_data->{'pos(1-coor)'} == $vf->{start} &&
+        defined($tmp_data->{alt}) &&
+        $tmp_data->{alt} eq $allele;
+    }
     
     # make a clean copy as we're going to edit it
     %$data = %$tmp_data;
