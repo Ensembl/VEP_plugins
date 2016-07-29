@@ -234,11 +234,14 @@ sub run {
           if(/$anh\=([0-9\,]+)/) {
             
             # grab AN
-            my $an = $1;            
-            next unless $an;
+            my @an = split /\,/, $1;
+            next unless @an;
+            my $an;
 
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
+              $an = shift @an if @an;
+
               $total_ac += $ac;
               if ($self->{display_ac}){
                 $data->{$a}->{'ExAC_'.$ach} = $ac;
@@ -246,6 +249,7 @@ sub run {
               if ($self->{display_an}){
                 $data->{$a}->{'ExAC_'.$anh} = $an;
               }
+
               $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an);
             }
             
