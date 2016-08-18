@@ -213,6 +213,7 @@ sub run {
       my $ref_allele = shift @vcf_alleles;
       
       # iterate over required headers
+      HEADER:
       foreach my $h(@{$self->{headers} || []}) {
         my $total_ac = 0;
         
@@ -242,6 +243,7 @@ sub run {
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
               $an = shift @an if @an;
+              next HEADER unless $an;
 
               $total_ac += $ac;
               if ($self->{display_ac}){
