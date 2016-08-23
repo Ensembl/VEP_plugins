@@ -41,7 +41,7 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
  file        : path to G2P data file, as found at
-               http://www.ebi.ac.uk/gene2phenotype/gene2phenotype-webcode/cgi-bin/handler.cgi?show_downloads=all
+               http://www.ebi.ac.uk/gene2phenotype/downloads
 
  maf         : maximum allele frequency for inclusion (0.01)
 
