@@ -75,6 +75,7 @@ package G2P;
 
 use strict;
 use warnings;
+
 use Scalar::Util qw(looks_like_number);
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
@@ -296,37 +297,64 @@ sub get_freq {
   reverse_comp(\$allele) if $vf->{strand} < 0;
 
   my $cache = $vf->{_g2p_freqs} ||= {};
-
   # cache it on VF...
-  if(!exists($cache->{allele})) {
-
+  if (!exists($cache->{$allele})) {
     my $freq    = $self->{user_params}->{default_maf};
     my $maf_key = $self->{user_params}->{maf_key};
 
     foreach my $ex(@{$vf->{existing} || []}) {
-      
-      if($maf_key eq 'minor_allele_freq') {
-        if(($ex->{minor_allele} || '') eq $allele && defined($ex->{minor_allele_freq})) {
-          $freq = $ex->{minor_allele_freq};
-          last;
+      my $existing_allele_string = $ex->{allele_string};
+      my $variation_name = $ex->{variation_name};
+
+      if ($maf_key eq 'minor_allele_freq') {
+        if (defined $ex->{minor_allele_freq}) {
+          if (($ex->{minor_allele} || '') eq $allele ) {
+            my $variation_name = $ex->{variation_name};
+            $freq = $ex->{minor_allele_freq};
+            last;
+          } else {
+            my $variation_name = $ex->{variation_name};
+            $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele);
+            last if ($freq);
+          }
         }
       }
       else {
         foreach my $pair(split(',', $ex->{$maf_key} || '')) {
           my ($a, $f) = split(':', $pair);
-
           if(($a || '') eq $allele && defined($f)) {
             $freq = $f;
             last;
+          } else {
+            $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele);
+            last if ($freq);
           }
         }
       }
     }
 
-    $cache->{$allele} = $freq;
+    $cache->{$allele} = $freq || $self->{user_params}->{default_maf};
   }
 
   return $cache->{$allele};
+}
+
+sub correct_frequency {
+  my ($self, $allele_string, $minor_allele, $maf, $allele) = @_;
+  my @existing_alleles = split('/', $allele_string);
+  my $freq = 1;
+  if (scalar @existing_alleles == 2) {
+    my $existing_ref_allele = $existing_alleles[0];
+    my $existing_alt_allele = $existing_alleles[1];
+    if ($minor_allele eq $existing_ref_allele && ($allele eq $existing_alt_allele)) {
+      $freq = 1.0 - $maf;
+      return $freq;
+    } elsif ($minor_allele eq $existing_alt_allele && ($allele eq $existing_ref_allele)) {
+      $freq = 1.0 - $maf;
+      return $freq;
+    }
+  }
+  return undef;
 }
 
 1;
