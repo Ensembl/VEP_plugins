@@ -87,7 +87,7 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 my %DEFAULTS = (
 
   # vars must have a frequency <= to this to pass
-  maf => 0.01,
+  maf => 0.001,
 
   # by default we look at the global MAF
   # configure this to use e.g. a continental MAF or an ExAC one
@@ -103,6 +103,16 @@ my %DEFAULTS = (
   types => {map {$_ => 1} qw(splice_donor_variant splice_acceptor_variant stop_gained frameshift_variant stop_lost initiator_codon_variant inframe_insertion inframe_deletion missense_variant
  coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)}
 );
+
+
+my $maf_key_2_population_name = {
+  minor_allele_freq => '1000GENOMES:phase_3:ALL',
+  AFR => '1000GENOMES:phase_3:AFR',
+  AMR => '1000GENOMES:phase_3:AMR',
+  EAS => '1000GENOMES:phase_3:EAS',
+  EUR => '1000GENOMES:phase_3:EUR',
+  SAS => '1000GENOMES:phase_3:SAS',
+};
 
 sub new {
   my $class = shift;
@@ -135,6 +145,12 @@ sub new {
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
+
+  my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
+  $va->db->use_vcf(1);
+  $self->{va} = $va;
+  my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
+  $self->{pa} = $pa;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -291,7 +307,6 @@ sub gene_data {
 sub get_freq {
   my $self = shift;
   my $tva = shift;
-
   my $vf     = $tva->base_variation_feature;
   my $allele = $tva->variation_feature_seq;
   reverse_comp(\$allele) if $vf->{strand} < 0;
@@ -314,7 +329,7 @@ sub get_freq {
             last;
           } else {
             my $variation_name = $ex->{variation_name};
-            $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele);
+            $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name);
             last if ($freq);
           }
         }
@@ -326,7 +341,7 @@ sub get_freq {
             $freq = $f;
             last;
           } else {
-            $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele);
+            $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name);
             last if ($freq);
           }
         }
@@ -340,7 +355,7 @@ sub get_freq {
 }
 
 sub correct_frequency {
-  my ($self, $allele_string, $minor_allele, $maf, $allele) = @_;
+  my ($self, $allele_string, $minor_allele, $maf, $allele, $variation_name) = @_;
   my @existing_alleles = split('/', $allele_string);
   my $freq = 1;
   if (scalar @existing_alleles == 2) {
@@ -352,10 +367,27 @@ sub correct_frequency {
     } elsif ($minor_allele eq $existing_alt_allele && ($allele eq $existing_ref_allele)) {
       $freq = 1.0 - $maf;
       return $freq;
+    } 
+  } else {
+    my $va = $self->{va};
+    my $pa = $self->{pa};
+    my $variation = $va->fetch_by_name($variation_name);
+    my $maf_key = $self->{user_params}->{maf_key};
+    my $population_name = $maf_key_2_population_name->{$maf_key};
+    if ($population_name) {
+      my $population = $self->{$population_name};
+      if (!$population) {
+        $population = $pa->fetch_by_name($population_name);
+        $self->{$population_name} = $population;
+      }
+      foreach (@{$variation->get_all_Alleles($population)}) {
+        if ($_->allele eq $allele) {
+          return $_->frequency;
+        }
+      }
     }
   }
   return undef;
 }
 
 1;
-
