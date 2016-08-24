@@ -31,7 +31,11 @@ limitations under the License.
  perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz
  perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC
  perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,,PASS
  perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,,PASS
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN,PASS
+ perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN,PASS
 
 
 
@@ -47,9 +51,10 @@ limitations under the License.
 
  The tabix utility must be installed in your path to use this plugin.
 
- The plugin takes 3 command line arguments. Second and third arguments are not mandatory. If AC specified as second
- argument Allele counts per population will be included in output. If AN specified as third argument Allele specific
- chromosome counts will be included in output.
+ The plugin takes 4 command line arguments. Second, third and fourth arguments are not mandatory. If AC specified
+ as second argument Allele counts per population will be included in output. If AN specified as third argument
+ Allele specific chromosome counts will be included in output. If PASS is specified as fourth argument only ExAC
+ variants with PASS in the filter field will be included in output.
 
 
 =cut
@@ -90,6 +95,13 @@ sub new {
   }
   else {
     $self->{display_an} = 0;
+  }
+
+  if (exists($self->params->[3]) && $self->params->[3] eq 'PASS'){
+    $self->{pass_only} = 1;
+  }
+  else {
+    $self->{pass_only} = 0;
   }
 
   # remote files?
@@ -224,7 +236,11 @@ sub process_exac {
     my $start = $fields[1];
     my $ref = $fields[3];
     my @alts = split /,/, $fields[4];
+    my $filter = $fields[6];
     my $info = $fields[7];
+
+    # if we only want PASSing ExAC records, don't parse further
+    next unless !$self->{pass_only} || $filter eq "PASS";
 
     # if the variant is not at the position of the variation feature (accounting
     # for indels), don't parse it further
