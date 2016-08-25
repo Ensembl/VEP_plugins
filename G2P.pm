@@ -63,7 +63,8 @@ limitations under the License.
                inframe_insertion,inframe_deletion,missense_variant,
                coding_sequence_variant,start_lost,transcript_ablation,
                transcript_amplification,protein_altering_variant)
-
+  exac_file  : ExAC data file, Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current
+               to download the latest ExAC VCF
 
  Example:
 
@@ -75,6 +76,8 @@ package G2P;
 
 use strict;
 use warnings;
+
+use ExAC;
 
 use Scalar::Util qw(looks_like_number);
 
@@ -104,6 +107,7 @@ my %DEFAULTS = (
  coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)}
 );
 
+my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
 
 my $maf_key_2_population_name = {
   minor_allele_freq => '1000GENOMES:phase_3:ALL',
@@ -112,6 +116,8 @@ my $maf_key_2_population_name = {
   EAS => '1000GENOMES:phase_3:EAS',
   EUR => '1000GENOMES:phase_3:EUR',
   SAS => '1000GENOMES:phase_3:SAS',
+  AA => 'ESP6500:African_American',
+  EA => 'ESP6500:European_American',
 };
 
 sub new {
@@ -139,6 +145,18 @@ sub new {
       die("ERROR: Invalid value for maf: ".$params->{maf}."\n") unless
         looks_like_number($params->{maf}) &&
         ($params->{maf} >= 0 && $params->{maf} <= 1)
+    }
+
+    if ($params->{maf_key}) {
+      die("ERROR: maf_key: ". $params->{maf_key}. " not supported. Check plugin documentation for supported maf_keys.\n") unless
+        $supported_maf_keys->{$params->{maf_key}};
+
+      if ($params->{maf_key} =~ /^ExAC/) {
+        my $file = $params->{exac_file};
+        die("ERROR: ExAC data file is required if you want to filter by ExAC frequencies") unless $file;
+        my $exac_plugin = ExAC->new($self->{config}, ($file));
+        $self->{exac_plugin} = $exac_plugin;
+      }
     }
   }
 
@@ -186,6 +204,8 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva, $line) = @_;
+
+  $self->{tva} = $tva;
 
   my $params = $self->{user_params};
 
@@ -250,7 +270,7 @@ sub run {
 }
 
 # read G2P CSV dump
-# as from http://www.ebi.ac.uk/gene2phenotype/gene2phenotype-webcode/cgi-bin/handler.cgi?show_downloads=all
+# as from http://www.ebi.ac.uk/gene2phenotype/downloads
 sub read_gene_data_from_file {
   my $self = shift;
   my $file = shift;
@@ -324,11 +344,9 @@ sub get_freq {
       if ($maf_key eq 'minor_allele_freq') {
         if (defined $ex->{minor_allele_freq}) {
           if (($ex->{minor_allele} || '') eq $allele ) {
-            my $variation_name = $ex->{variation_name};
             $freq = $ex->{minor_allele_freq};
             last;
           } else {
-            my $variation_name = $ex->{variation_name};
             $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name);
             last if ($freq);
           }
@@ -356,17 +374,24 @@ sub get_freq {
 
 sub correct_frequency {
   my ($self, $allele_string, $minor_allele, $maf, $allele, $variation_name) = @_;
+  my $maf_key = $self->{user_params}->{maf_key};
+
+  if ($maf_key =~ /^ExAC/) {
+    $maf_key =~ s/ExAC/ExAC_AF/;
+    my $exac_plugin = $self->{exac_plugin};
+    my $tva = $self->{tva};
+    my $exac_data = $exac_plugin->run($tva); 
+    my $freq = $exac_data->{$maf_key};
+    return $freq;
+  }
+
   my @existing_alleles = split('/', $allele_string);
-  my $freq = 1;
-  if (scalar @existing_alleles == 2) {
+  if ($maf_key eq 'minor_allele_freq' && (scalar @existing_alleles == 2)) {
     my $existing_ref_allele = $existing_alleles[0];
     my $existing_alt_allele = $existing_alleles[1];
-    if ($minor_allele eq $existing_ref_allele && ($allele eq $existing_alt_allele)) {
-      $freq = 1.0 - $maf;
-      return $freq;
-    } elsif ($minor_allele eq $existing_alt_allele && ($allele eq $existing_ref_allele)) {
-      $freq = 1.0 - $maf;
-      return $freq;
+    if ( ($minor_allele eq $existing_ref_allele && ($allele eq $existing_alt_allele)) || 
+         ($minor_allele eq $existing_alt_allele && ($allele eq $existing_ref_allele)) ) {
+      return (1.0 - $maf);
     } 
   } else {
     my $va = $self->{va};
@@ -386,7 +411,7 @@ sub correct_frequency {
         }
       }
     }
-  }
+  }     
   return undef;
 }
 
