@@ -109,7 +109,8 @@ my %DEFAULTS = (
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
   types => {map {$_ => 1} qw(splice_donor_variant splice_acceptor_variant stop_gained frameshift_variant stop_lost initiator_codon_variant inframe_insertion inframe_deletion missense_variant
- coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)}
+ coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)},
+
 );
 
 my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
@@ -124,6 +125,8 @@ my $maf_key_2_population_name = {
   AA => 'ESP6500:African_American',
   EA => 'ESP6500:European_American',
 };
+
+my @population_wide = qw(AA EA AFR AMR EAS EUR SAS ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS);
 
 sub new {
   my $class = shift;
@@ -154,17 +157,32 @@ sub new {
       }
     }
 
-    if ($params->{maf_key}) {
-      die("ERROR: maf_key: ". $params->{maf_key}. " not supported. Check plugin documentation for supported maf_keys.\n") unless
-        $supported_maf_keys->{$params->{maf_key}};
+    my $use_exac = 0;
+    my $population_wide = 0;
+    my @maf_keys = ();
 
-      if ($params->{maf_key} =~ /^ExAC/) {
-        my $file = $params->{exac_file};
-        die("ERROR: ExAC data file is required if you want to filter by ExAC frequencies") unless $file;
-        my $exac_plugin = ExAC->new($self->{config}, ($file));
-        $self->{exac_plugin} = $exac_plugin;
+    if ($params->{maf_key}) {
+      foreach my $maf_key (split(',', $params->{maf_key})) {
+        die("ERROR: maf_key: " . $maf_key . " not supported. Check plugin documentation for supported maf_keys.\n") unless $supported_maf_keys->{$maf_key};
+        $use_exac = 1 if ($maf_key =~ /^ExAC/);
+        push @maf_keys, $maf_key;
       }
     }
+
+    if (scalar @maf_keys == 0) {
+      $params->{maf_keys} = \@population_wide;  
+      $population_wide = 1;
+    } else {
+      $params->{maf_keys} = \@maf_keys;
+    }
+    
+    if ($use_exac || $population_wide) {
+      my $file = $params->{exac_file};
+      die("ERROR: ExAC data file is required if you want to filter by ExAC frequencies") unless $file;
+      my $exac_plugin = ExAC->new($self->{config}, ($file));
+      $self->{exac_plugin} = $exac_plugin;
+    }
+
   }
 
   # copy in default params
@@ -233,11 +251,18 @@ sub run {
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   # limit by MAF
+
+  my $freqs = $self->get_freq($tva);
+
+  my $threshold = 0; 
   if ($ar eq 'monoallelic') {
-    return {} unless $self->get_freq($tva) < $params->{maf_monoallelic};
+    $threshold = $params->{maf_monoallelic};
+  } else {
+    $threshold = $params->{maf_biallelic};
   }
-  if ($ar eq 'biallelic') {
-    return {} unless $self->get_freq($tva) < $params->{maf_biallelic};
+
+  foreach my $maf_key (keys %$freqs) {
+    return {} if $freqs->{$maf_key} > $threshold;
   }
 
   my %return = (
@@ -344,47 +369,43 @@ sub get_freq {
   my $cache = $vf->{_g2p_freqs} ||= {};
   # cache it on VF...
   if (!exists($cache->{$allele})) {
-    my $freq    = $self->{user_params}->{default_maf};
-    my $maf_key = $self->{user_params}->{maf_key};
-
-    foreach my $ex(@{$vf->{existing} || []}) {
+    foreach my $ex (@{$vf->{existing} || []}) {
       my $existing_allele_string = $ex->{allele_string};
       my $variation_name = $ex->{variation_name};
-
-      if ($maf_key eq 'minor_allele_freq') {
-        if (defined $ex->{minor_allele_freq}) {
-          if (($ex->{minor_allele} || '') eq $allele ) {
-            $freq = $ex->{minor_allele_freq};
-            last;
-          } else {
-            $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name);
-            last if ($freq);
+      next if ($variation_name !~ /^rs/);
+      my $freqs = {};  
+      foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
+        my $freq = $self->{user_params}->{default_maf};
+        if ($maf_key eq 'minor_allele_freq') {
+          if (defined $ex->{minor_allele_freq}) {
+            if (($ex->{minor_allele} || '') eq $allele ) {
+              $freq = $ex->{minor_allele_freq};
+            } else {
+              $freq || $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key) || 0.0;
+            }
           }
         }
-      }
-      else {
-        foreach my $pair(split(',', $ex->{$maf_key} || '')) {
-          my ($a, $f) = split(':', $pair);
-          if(($a || '') eq $allele && defined($f)) {
-            $freq = $f;
-            last;
-          } else {
-            $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name);
-            last if ($freq);
+        else {
+          foreach my $pair(split(',', $ex->{$maf_key} || '')) {
+            my ($a, $f) = split(':', $pair);
+            if(($a || '') eq $allele && defined($f)) {
+              $freq = $f;
+            } else {
+              $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || 0.0;
+            }
           }
         }
+        $freqs->{$maf_key} = $freq;
       }
+      $cache->{$allele} = $freqs;
     }
-
-    $cache->{$allele} = $freq || $self->{user_params}->{default_maf};
   }
 
   return $cache->{$allele};
 }
 
 sub correct_frequency {
-  my ($self, $allele_string, $minor_allele, $maf, $allele, $variation_name) = @_;
-  my $maf_key = $self->{user_params}->{maf_key};
+  my ($self, $allele_string, $minor_allele, $maf, $allele, $variation_name, $maf_key) = @_;
 
   if ($maf_key =~ /^ExAC/) {
     $maf_key =~ s/ExAC/ExAC_AF/;
@@ -422,7 +443,7 @@ sub correct_frequency {
       }
     }
   }     
-  return undef;
+  return 0.0;
 }
 
 1;
