@@ -431,7 +431,11 @@ sub correct_frequency {
     $maf_key =~ s/ExAC/ExAC_AF/;
     my $exac_plugin = $self->{exac_plugin};
     my $tva = $self->{tva};
-    my $exac_data = $exac_plugin->run($tva); 
+    my $exac_data = {};
+    eval {
+      $exac_data = $exac_plugin->run($tva);
+    };
+    warn "Problem in ExAC plugin: $variation_name $allele_string $allele $@" if $@; 
     my $freq = $exac_data->{$maf_key};
     return $freq;
   }
