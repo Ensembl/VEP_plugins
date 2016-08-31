@@ -68,6 +68,8 @@ limitations under the License.
 
   exac_file      : ExAC data file, Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current
                    to download the latest ExAC VCF
+  
+  log_file       : write stats to log file 
 
  Example:
 
@@ -211,6 +213,14 @@ sub new {
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
 
+  if ($self->{log_file}) {
+    # empty content
+    open(my $fh, '>', $self->{log_file}) or die "Could not open file '$self->{log_file}' $!";
+    close $fh;
+  } else {
+    $self->{log_file} = 'g2p_plugin_logs';
+  }
+
   return $self;
 }
 
@@ -231,6 +241,9 @@ sub run {
   my ($self, $tva, $line) = @_;
 
   $self->{tva} = $tva;
+  # create a name for the VF to cache by
+  my $vf = $tva->base_variation_feature;
+  my $vf_name = $vf->variation_name || $vf->{start}.'_'.$vf->{allele_string};
 
   my $params = $self->{user_params};
 
@@ -240,20 +253,28 @@ sub run {
 
   # only interested in given gene set
   my $tr = $tva->transcript;
+  my $tr_stable_id = $tr->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
   return {} unless $gene_data;
+#  $self->write_log('gene', $vf_name, $tr_stable_id, $gene_symbol);
 
   my $ar = $gene_data->{'allelic requirement'};
+#  $self->write_log('allelic requirement', $vf_name, $tr_stable_id, $gene_symbol, $ar);
   return {} unless $ar && $ar =~ /^(mono|bi)allelic$/;
+#  $self->write_log('g2p allelic requirement', $vf_name, $tr_stable_id, $gene_symbol, $ar);
   
   # limit by type
+  my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
+#  $self->write_log('consequence types', $vf_name, $tr_stable_id, $gene_symbol, \@consequence_types);
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+#  $self->write_log('g2p consequence types', $vf_name, $tr_stable_id, $gene_symbol, \@consequence_types);
   
   # limit by MAF
 
   my $freqs = $self->get_freq($tva);
 
+#  $self->write_log('frequencies', $vf_name, $tr_stable_id, $gene_symbol, $freqs);
   my $threshold = 0; 
   if ($ar eq 'monoallelic') {
     $threshold = $params->{maf_monoallelic};
@@ -262,8 +283,10 @@ sub run {
   }
 
   foreach my $maf_key (keys %$freqs) {
-    return {} if $freqs->{$maf_key} > $threshold;
+    return {} if ($freqs->{$maf_key} > $threshold);
   }
+
+#  $self->write_log('g2p frequencies', $vf_name, $tr_stable_id, $gene_symbol, $freqs);
 
   my %return = (
     G2P_flag => $zyg
@@ -271,9 +294,6 @@ sub run {
 
   my $cache = $self->{cache}->{$tr->stable_id} ||= {};
 
-  # create a name for the VF to cache by
-  my $vf = $tva->base_variation_feature;
-  my $vf_name = $vf->variation_name || $vf->{start}.'_'.$vf->{allele_string};
   delete $cache->{$vf_name} if exists($cache->{$vf_name});
 
   # biallelic genes require >=1 hom or >=2 hets
@@ -381,7 +401,7 @@ sub get_freq {
             if (($ex->{minor_allele} || '') eq $allele ) {
               $freq = $ex->{minor_allele_freq};
             } else {
-              $freq || $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key) || 0.0;
+              $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key) || $freq;
             }
           }
         }
@@ -391,7 +411,7 @@ sub get_freq {
             if(($a || '') eq $allele && defined($f)) {
               $freq = $f;
             } else {
-              $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || 0.0;
+              $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || $freq;
             }
           }
         }
@@ -444,6 +464,21 @@ sub correct_frequency {
     }
   }     
   return 0.0;
+}
+
+sub write_log {
+  my ($self, $type, $vf_name, $tr_stable_id, $gene_symbol, $data) = @_;
+  my $log_file = $self->{user_params}->{log_file};
+  open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
+  if ($type =~ /frequencies/) {
+    $data = join(',', map {"$_=$data->{$_}"} keys %$data);
+  } 
+  if ($type =~ /consequence types/) {
+    $data = join(',', @$data);
+  }
+  $data ||= '';
+  print $fh join("\t", $type, $gene_symbol, $tr_stable_id, $vf_name, $data), "\n";
+  close $fh;
 }
 
 1;
