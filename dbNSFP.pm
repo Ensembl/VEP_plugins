@@ -214,12 +214,19 @@ sub run {
   my $tr_id = $tva->transcript->stable_id;
 
   my $data;
+  my $pos;
   
   foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
 
     # compare allele and transcript
+    if (exists $tmp_data->{'pos(1-based)'}) {
+      $pos = $tmp_data->{'pos(1-based)'}
+    } else {
+      # for dbNSFP version 2.9.1
+      $pos = $tmp_data->{'pos(1-coor)'}
+    }
     next unless
-      $tmp_data->{'pos(1-based)'} == $vf->{start} &&
+      ${pos} == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele;
     
