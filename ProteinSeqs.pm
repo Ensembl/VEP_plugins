@@ -70,6 +70,11 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
+    if($self->{config}->{fork}) {
+      print STDERR "WARNING: Plugin ProteinSeqs is disabling forking\n" unless $self->{config}->{quiet};
+      delete($self->{config}->{fork});
+    }
+
     # use some default file names if none are supplied
 
     my $ref_file = $self->params->[0] || 'reference.fa';
