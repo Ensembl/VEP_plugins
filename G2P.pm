@@ -187,6 +187,12 @@ sub new {
 
   }
 
+  if (!$params->{log_file}) {
+    $params->{log_file} = 'g2p_plugin_logs';
+  }
+  open(my $fh, '>', $params->{log_file}) or die "Could not open file '$params->{log_file}' $!";
+  close $fh;
+
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
@@ -212,14 +218,6 @@ sub new {
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
-
-  if ($self->{log_file}) {
-    # empty content
-    open(my $fh, '>', $self->{log_file}) or die "Could not open file '$self->{log_file}' $!";
-    close $fh;
-  } else {
-    $self->{log_file} = 'g2p_plugin_logs';
-  }
 
   return $self;
 }
@@ -288,9 +286,12 @@ sub run {
 
 #  $self->write_log('g2p frequencies', $vf_name, $tr_stable_id, $gene_symbol, $freqs);
 
+
   my %return = (
     G2P_flag => $zyg
   );
+
+  $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_flag');
 
   my $cache = $self->{cache}->{$tr->stable_id} ||= {};
 
@@ -302,6 +303,7 @@ sub run {
     # homozygous, report complete
     if(uc($zyg) eq 'HOM') {
       $return{G2P_complete} = 1;
+      $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_complete');
     }
 
     # heterozygous
@@ -309,6 +311,7 @@ sub run {
     elsif(uc($zyg) eq 'HET') {
       if(scalar keys %$cache) {
         $return{G2P_complete} = 1;
+        $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_complete');
       }
       $cache->{$vf_name} = 1;
     }
@@ -316,6 +319,7 @@ sub run {
   # monoallelic genes require only one allele
   elsif($ar eq 'monoallelic') {
     $return{G2P_complete} = 1;
+    $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_complete');
   }
   else {
     return {};
@@ -468,6 +472,14 @@ sub correct_frequency {
     }
   }     
   return 0.0;
+}
+
+sub write_flags {
+  my ($self, $gene_symbol, $tr_stable_id, $ar, $genotype, $flag) = @_;
+  my $log_file = $self->{user_params}->{log_file};
+  open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
+  print $fh join(" ", $gene_symbol, $tr_stable_id, $ar, $genotype, $flag), "\n";
+  close $fh;
 }
 
 sub write_log {
