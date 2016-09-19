@@ -94,6 +94,8 @@ sub run {
         my $before_var_seq       = substr $cds_seq, $last_complete_codon, $low_pos - $last_complete_codon - ($is_insertion ? 0 : 1);
         my $after_var_seq        = substr $cds_seq, $high_pos - ($is_insertion ? 1 : 0);
         my $to_translate         = $before_var_seq.$tva->feature_seq.$after_var_seq;
+        my $three_prime_utr_seq  = $tr->three_prime_utr->seq() if ($tr->three_prime_utr);
+        $to_translate            = $to_translate.$three_prime_utr_seq if ($three_prime_utr_seq);
         $to_translate            =~ s/\-//g;
         
         # create a bioperl object
