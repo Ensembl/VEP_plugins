@@ -226,7 +226,7 @@ sub run {
       $pos = $tmp_data->{'pos(1-coor)'}
     }
     next unless
-      ${pos} == $vf->{start} &&
+      $pos == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele;
     
