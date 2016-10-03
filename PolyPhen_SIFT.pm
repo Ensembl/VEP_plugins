@@ -37,8 +37,6 @@ limitations under the License.
  source of VEP transcript annotation (e.g. a GFF file or GFF-based cache)
  does not contain these predictions.
 
- Please note the location of this file may change.
-
  You must either download or create a sqlite database of the predictions.
  You may point to the file by adding db=[file] as a parameter:
 
@@ -47,6 +45,8 @@ limitations under the License.
  Human predictions (assembly-independent) are available here:
 
  https://dl.dropboxusercontent.com/u/12936195/homo_sapiens.PolyPhen_SIFT.db
+
+ (Please note the download location of this file may change)
 
  Place this file in $HOME/.vep to have the plugin find it automatically.
  You may change this directory by adding dir=[dir] as a parameter:
