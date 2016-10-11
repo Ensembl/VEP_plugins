@@ -68,10 +68,16 @@ sub run {
     my ($self, $tva) = @_;
     
     $self->{has_cache} = 1;
-    
+
+    my %hg_assembly = ( 'grch37' => 'hg19', 'grch38' => 'hg38' );
+    my $assembly = lc($self->{config}->{assembly});
+
     # only works on human
     die("ERROR: LOVD plugin works only on human data") unless $self->{config}->{species} =~ /human|homo/i;
     
+    # only work on 2 human assemblies
+    die("ERROR: LOVD plugin works only on human assemblies ".join(' and ', keys(%hg_assembly))) unless $hg_assembly{$assembly};
+
     # get the VF object
     my $vf = $tva->variation_feature;
     return {} unless defined $vf;
@@ -88,7 +94,7 @@ sub run {
     if(!exists($self->{lovd_cache}->{$locus})) {
         
         # construct a LOVD URL
-        my $url = 'http://www.lovd.nl/search.php?build=hg19&position='.$locus;
+        my $url = sprintf('http://www.lovd.nl/search.php?build=%s&position=%s', $hg_assembly{$assembly}, $locus);
         
         # get the accession (only need the head to get the redirect URL that contains the accession)
         my $response = $ua->get($url);
