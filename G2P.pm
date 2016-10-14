@@ -82,6 +82,7 @@ package G2P;
 use strict;
 use warnings;
 
+
 use ExAC;
 
 use Scalar::Util qw(looks_like_number);
@@ -115,6 +116,7 @@ my %DEFAULTS = (
 
 );
 
+
 my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
 
 my $maf_key_2_population_name = {
@@ -134,6 +136,8 @@ sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
+my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
+
 
   my $params = $self->params_to_hash();
   my $file = '';
@@ -182,7 +186,7 @@ sub new {
       my $file = $params->{exac_file};
       die("ERROR: ExAC data file is required if you want to filter by ExAC frequencies") unless $file;
       my $exac_plugin = ExAC->new($self->{config}, ($file));
-      $self->{exac_plugin} = $exac_plugin;
+      $self->{config}->{exac_plugin} = $exac_plugin;
     }
 
   }
@@ -199,9 +203,9 @@ sub new {
 
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
   $va->db->use_vcf(1);
-  $self->{va} = $va;
+  $self->{config}->{va} = $va;
   my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
-  $self->{pa} = $pa;
+  $self->{config}->{pa} = $pa;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -237,10 +241,10 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva, $line) = @_;
-
-  $self->{tva} = $tva;
+  $self->{config}->{tva} = $tva;
   # create a name for the VF to cache by
   my $vf = $tva->base_variation_feature;
+  my $individual = $vf->{individual};
   my $vf_name = $vf->variation_name || $vf->{start}.'_'.$vf->{allele_string};
 
   my $params = $self->{user_params};
@@ -254,25 +258,19 @@ sub run {
   my $tr_stable_id = $tr->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
+
   return {} unless $gene_data;
-#  $self->write_log('gene', $vf_name, $tr_stable_id, $gene_symbol);
 
   my $ar = $gene_data->{'allelic requirement'};
-#  $self->write_log('allelic requirement', $vf_name, $tr_stable_id, $gene_symbol, $ar);
   return {} unless $ar && $ar =~ /^(mono|bi)allelic$/;
-#  $self->write_log('g2p allelic requirement', $vf_name, $tr_stable_id, $gene_symbol, $ar);
   
   # limit by type
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
-#  $self->write_log('consequence types', $vf_name, $tr_stable_id, $gene_symbol, \@consequence_types);
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
-#  $self->write_log('g2p consequence types', $vf_name, $tr_stable_id, $gene_symbol, \@consequence_types);
   
   # limit by MAF
-
   my $freqs = $self->get_freq($tva);
 
-#  $self->write_log('frequencies', $vf_name, $tr_stable_id, $gene_symbol, $freqs);
   my $threshold = 0; 
   if ($ar eq 'monoallelic') {
     $threshold = $params->{maf_monoallelic};
@@ -284,16 +282,20 @@ sub run {
     return {} if ($freqs->{$maf_key} > $threshold);
   }
 
-#  $self->write_log('g2p frequencies', $vf_name, $tr_stable_id, $gene_symbol, $freqs);
-
+  my $g2p_data = {
+    'zyg' => $zyg,
+    'allele_requirement' => $ar,
+    'frequencies' => join(',', map {"$_=$freqs->{$_}"} keys %$freqs),
+    'consequence_types' => join(',', @consequence_types),
+  };
 
   my %return = (
     G2P_flag => $zyg
   );
 
-  $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_flag');
+  $self->write_report('G2P_flag', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
 
-  my $cache = $self->{cache}->{$tr->stable_id} ||= {};
+  my $cache = $self->{cache}->{$individual}->{$tr->stable_id} ||= {};
 
   delete $cache->{$vf_name} if exists($cache->{$vf_name});
 
@@ -303,7 +305,7 @@ sub run {
     # homozygous, report complete
     if(uc($zyg) eq 'HOM') {
       $return{G2P_complete} = 1;
-      $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_complete');
+      $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
     }
 
     # heterozygous
@@ -311,7 +313,7 @@ sub run {
     elsif(uc($zyg) eq 'HET') {
       if(scalar keys %$cache) {
         $return{G2P_complete} = 1;
-        $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_complete');
+        $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
       }
       $cache->{$vf_name} = 1;
     }
@@ -319,7 +321,7 @@ sub run {
   # monoallelic genes require only one allele
   elsif($ar eq 'monoallelic') {
     $return{G2P_complete} = 1;
-    $self->write_flags($gene_symbol, $tr_stable_id, $ar, $zyg, 'G2P_complete');
+    $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
   }
   else {
     return {};
@@ -433,8 +435,8 @@ sub correct_frequency {
 
   if ($maf_key =~ /^ExAC/) {
     $maf_key =~ s/ExAC/ExAC_AF/;
-    my $exac_plugin = $self->{exac_plugin};
-    my $tva = $self->{tva};
+    my $exac_plugin = $self->{config}->{exac_plugin};
+    my $tva = $self->{config}->{tva};
     my $exac_data = {};
     eval {
       $exac_data = $exac_plugin->run($tva);
@@ -453,16 +455,16 @@ sub correct_frequency {
       return (1.0 - $maf);
     } 
   } else {
-    my $va = $self->{va};
-    my $pa = $self->{pa};
+    my $va = $self->{config}->{va};
+    my $pa = $self->{config}->{pa};
     my $variation = $va->fetch_by_name($variation_name);
     my $maf_key = $self->{user_params}->{maf_key};
     my $population_name = $maf_key_2_population_name->{$maf_key};
     if ($population_name) {
-      my $population = $self->{$population_name};
+      my $population = $self->{config}->{$population_name};
       if (!$population) {
         $population = $pa->fetch_by_name($population_name);
-        $self->{$population_name} = $population;
+        $self->{config}->{$population_name} = $population;
       }
       foreach (@{$variation->get_all_Alleles($population)}) {
         if ($_->allele eq $allele) {
@@ -474,26 +476,12 @@ sub correct_frequency {
   return 0.0;
 }
 
-sub write_flags {
-  my ($self, $gene_symbol, $tr_stable_id, $ar, $genotype, $flag) = @_;
+sub write_report {
+  my ($self, $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data) = @_;
   my $log_file = $self->{user_params}->{log_file};
+  $data = join(';', map {"$_=$data->{$_}"} sort keys %$data);
   open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
-  print $fh join(" ", $gene_symbol, $tr_stable_id, $ar, $genotype, $flag), "\n";
-  close $fh;
-}
-
-sub write_log {
-  my ($self, $type, $vf_name, $tr_stable_id, $gene_symbol, $data) = @_;
-  my $log_file = $self->{user_params}->{log_file};
-  open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
-  if ($type =~ /frequencies/) {
-    $data = join(',', map {"$_=$data->{$_}"} keys %$data);
-  } 
-  if ($type =~ /consequence types/) {
-    $data = join(',', @$data);
-  }
-  $data ||= '';
-  print $fh join("\t", $type, $gene_symbol, $tr_stable_id, $vf_name, $data), "\n";
+  print $fh join("\t", $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data), "\n";
   close $fh;
 }
 
