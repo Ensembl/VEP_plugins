@@ -216,6 +216,7 @@ my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SA
 
   if($params->{maf} > 0) {
     $self->{config}->{check_existing} = 1;
+    $self->{config}->{failed} = 1;
     $self->{config}->{check_alleles} = 1;
     $self->{config}->{gmaf} = 1;
   }
@@ -258,7 +259,7 @@ sub run {
   my $tr_stable_id = $tr->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
-
+  $self->write_report('G2P_in_vcf', $gene_symbol);
   return {} unless $gene_data;
 
   my $ar = $gene_data->{'allelic requirement'};
@@ -369,6 +370,7 @@ sub read_gene_data_from_file {
 
       # store data as hash keyed on gene symbol
       $gene_data{$tmp{"gene symbol"}} = \%tmp;
+      $self->write_report('G2P_list', $tmp{"gene symbol"});
     }
   }
 
@@ -421,7 +423,7 @@ sub get_freq {
             }
           }
         }
-        $freqs->{$maf_key} = $freq;
+        $freqs->{$maf_key} = $freq if ($freq);
       }
       $cache->{$allele} = $freqs;
     }
@@ -479,9 +481,13 @@ sub correct_frequency {
 sub write_report {
   my ($self, $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data) = @_;
   my $log_file = $self->{user_params}->{log_file};
-  $data = join(';', map {"$_=$data->{$_}"} sort keys %$data);
   open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
-  print $fh join("\t", $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data), "\n";
+  if ($flag ne 'G2P_list' && $flag ne 'G2P_in_vcf') {
+    $data = join(';', map {"$_=$data->{$_}"} sort keys %$data);
+    print $fh join("\t", $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data), "\n";
+  } else {
+    print $fh "$flag\t$gene_symbol\n";
+  }
   close $fh;
 }
 
