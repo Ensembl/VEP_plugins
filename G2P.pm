@@ -256,6 +256,8 @@ sub run {
 
   # only interested in given gene set
   my $tr = $tva->transcript;
+  my $refseq = $tr->{_refseq};
+
   my $tr_stable_id = $tr->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
@@ -270,7 +272,7 @@ sub run {
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   # limit by MAF
-  my $freqs = $self->get_freq($tva);
+  my ($freqs, $existing_variant) = @{$self->get_freq($tva)};
 
   my $threshold = 0; 
   if ($ar eq 'monoallelic') {
@@ -283,11 +285,31 @@ sub run {
     return {} if ($freqs->{$maf_key} > $threshold);
   }
 
+  my $hgvs_t = $tva->hgvs_transcript || 'NA';
+  my $hgvs_p = $tva->hgvs_protein || 'NA';
+
+  my ($clin_sig, $novel, $failed, $frequencies) = ('NA', 'yes', 'NA', 'NA');
+  if ($existing_variant) {
+    $clin_sig = $existing_variant->{clin_sig} || 'NA';
+    $failed = ($existing_variant->{failed}) ? 'yes' : 'no';
+    $novel = 'no';
+  }
+ 
+  if (scalar keys %$freqs > 0) {
+    $frequencies = join(',', map {"$_=$freqs->{$_}"} keys %$freqs);
+  }   
+
   my $g2p_data = {
     'zyg' => $zyg,
     'allele_requirement' => $ar,
-    'frequencies' => join(',', map {"$_=$freqs->{$_}"} keys %$freqs),
+    'frequencies' => $frequencies,
     'consequence_types' => join(',', @consequence_types),
+    'refseq' => $refseq,
+    'failed' => $failed,
+    'clin_sig' => $clin_sig, 
+    'novel' => $novel,
+    'hgvs_t' => $hgvs_t,
+    'hgvs_p' => $hgvs_p,
   };
 
   my %return = (
@@ -306,7 +328,7 @@ sub run {
     # homozygous, report complete
     if(uc($zyg) eq 'HOM') {
       $return{G2P_complete} = 1;
-      $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
+      $self->write_report('G2P_complete', $gene_symbol, $individual);
     }
 
     # heterozygous
@@ -314,7 +336,7 @@ sub run {
     elsif(uc($zyg) eq 'HET') {
       if(scalar keys %$cache) {
         $return{G2P_complete} = 1;
-        $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
+        $self->write_report('G2P_complete', $gene_symbol, $individual);
       }
       $cache->{$vf_name} = 1;
     }
@@ -322,7 +344,7 @@ sub run {
   # monoallelic genes require only one allele
   elsif($ar eq 'monoallelic') {
     $return{G2P_complete} = 1;
-    $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
+    $self->write_report('G2P_complete', $gene_symbol, $individual);
   }
   else {
     return {};
@@ -370,7 +392,7 @@ sub read_gene_data_from_file {
 
       # store data as hash keyed on gene symbol
       $gene_data{$tmp{"gene symbol"}} = \%tmp;
-      $self->write_report('G2P_list', $tmp{"gene symbol"});
+      $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
     }
   }
 
@@ -396,7 +418,7 @@ sub get_freq {
 
   my $cache = $vf->{_g2p_freqs} ||= {};
   # cache it on VF...
-  if (!exists($cache->{$allele})) {
+  if (!exists($cache->{$allele}->{freq})) {
     foreach my $ex (@{$vf->{existing} || []}) {
       my $existing_allele_string = $ex->{allele_string};
       my $variation_name = $ex->{variation_name};
@@ -425,11 +447,12 @@ sub get_freq {
         }
         $freqs->{$maf_key} = $freq if ($freq);
       }
-      $cache->{$allele} = $freqs;
+      $cache->{$allele}->{freq} = $freqs;
+      $cache->{$allele}->{ex_variant} = $ex;
     }
   }
 
-  return $cache->{$allele};
+  return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
 }
 
 sub correct_frequency {
@@ -479,14 +502,23 @@ sub correct_frequency {
 }
 
 sub write_report {
-  my ($self, $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data) = @_;
+  my $self = shift;
+  my $flag = shift;
   my $log_file = $self->{user_params}->{log_file};
   open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
-  if ($flag ne 'G2P_list' && $flag ne 'G2P_in_vcf') {
+  if ($flag eq 'G2P_list') {
+    my ($gene_symbol, $DDD_category) = @_;
+    $DDD_category ||= 'Not assigned';
+    print $fh "$flag\t$gene_symbol\t$DDD_category\n";
+  } elsif ($flag eq 'G2P_in_vcf') {
+    my $gene_symbol = shift;
+    print $fh "$flag\t$gene_symbol\n";
+  } elsif ($flag eq 'G2P_complete') {
+    print $fh join("\t", $flag, @_), "\n";
+  } else {
+    my ($gene_symbol, $tr_stable_id, $individual, $vf_name, $data) = @_;
     $data = join(';', map {"$_=$data->{$_}"} sort keys %$data);
     print $fh join("\t", $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data), "\n";
-  } else {
-    print $fh "$flag\t$gene_symbol\n";
   }
   close $fh;
 }
