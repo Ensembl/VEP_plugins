@@ -111,6 +111,13 @@ sub new {
     my $config_dir = $self->params->[0];
     $self->{output} = $self->params->[1] || 'b';
     $self->{version} = $self->params->[2] || 2;
+
+    # find config dir
+    unless($config_dir && -d $config_dir) {
+        $config_dir = $INC{'Condel.pm'};
+        $config_dir =~ s/Condel\.pm/config\/Condel\/config/;
+        die "ERROR: Unable to find Condel config path\n" unless -d $config_dir;
+    }
     
     my $config_file = "$config_dir/condel_SP.conf";
 
@@ -123,7 +130,14 @@ sub new {
     for (my $i = 0; $i < @conf; $i++){
         if ($conf[$i] =~ /condel\.dir=\'(\S+)\'/){
             $self->{config}->{'condel.dir'} = $1;
-            $safe_conf++;
+
+            # user has not edited config, attempt to get correct dir
+            if($self->{config}->{'condel.dir'} eq 'path/to/config/Condel/') {
+                my $dir = $INC{'Condel.pm'};
+                $dir =~ s/Condel\.pm/config\/Condel/;
+                $self->{config}->{'condel.dir'} = $dir;
+            }
+            $safe_conf++ if -d $self->{config}->{'condel.dir'};
         }
         elsif ($conf[$i] =~ /(cutoff\.HumVar\.\w+)=\'(\S+)\'/){
             $self->{config}->{$1} = $2;
