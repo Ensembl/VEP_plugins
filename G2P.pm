@@ -424,6 +424,8 @@ sub get_freq {
       my $variation_name = $ex->{variation_name};
       next if ($variation_name !~ /^rs/);
       my $freqs = {};  
+      my $has_exac = 0;
+
       foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
         my $freq = $self->{user_params}->{default_maf};
         if ($maf_key eq 'minor_allele_freq') {
@@ -443,16 +445,43 @@ sub get_freq {
             } else {
               $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || $freq;
             }
+            if ($maf_key =~ /^ExAC/ && $freq) {
+              $has_exac = 1;
+            }
           }
         }
         $freqs->{$maf_key} = $freq if ($freq);
       }
+
+      if (!$has_exac) {
+        my $exac_data = $self->get_ExAC_frequencies; 
+        foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
+          if ($maf_key =~ /^ExAC/) {
+            my $exac_key = $maf_key;
+            $exac_key =~ s/ExAC/ExAC_AF/;
+            my $freq = $exac_data->{$exac_key};
+            $freqs->{$maf_key} = $freq if ($freq);
+          }
+        }      
+      }
+
       $cache->{$allele}->{freq} = $freqs;
       $cache->{$allele}->{ex_variant} = $ex;
     }
   }
-
   return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+}
+
+sub get_ExAC_frequencies {
+  my $self = shift;
+  my $exac_plugin = $self->{config}->{exac_plugin};
+  my $tva = $self->{config}->{tva};
+  my $exac_data = {};
+  eval {
+    $exac_data = $exac_plugin->run($tva);
+  };
+  warn "Problem in ExAC plugin: $@" if $@; 
+  return $exac_data;
 }
 
 sub correct_frequency {
