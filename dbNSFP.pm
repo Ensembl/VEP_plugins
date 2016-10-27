@@ -263,7 +263,8 @@ sub run {
   
   # get required data
   my %return =
-    map {$data->{$_} =~ tr/\;\|/\,\&/; $_ }
+    map {$_ => $data->{$_}}
+    map {$data->{$_} =~ tr/\;\|/\,\&/; $_}
     grep {$data->{$_} ne '.'}              # ignore missing data
     grep {defined($self->{cols}->{$_})}  # only include selected cols
     keys %$data;
