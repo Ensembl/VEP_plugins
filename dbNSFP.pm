@@ -263,8 +263,7 @@ sub run {
   
   # get required data
   my %return =
-    map {$_ => ($data->{$_} =~ s/[|]/&/gr) } # replace | with & to prevent conflict with existing field sep
-    map {$data->{$_} =~ s/\;/\,/g; $_ }
+    map {$data->{$_} =~ tr/\;\|/\,\&/; $_ }
     grep {$data->{$_} ne '.'}              # ignore missing data
     grep {defined($self->{cols}->{$_})}  # only include selected cols
     keys %$data;
