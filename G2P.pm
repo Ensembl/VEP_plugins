@@ -209,6 +209,7 @@ my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SA
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
+  $self->synonym_mappings();
 
   # force some config params
   $self->{config}->{individual} //= ['all'];
@@ -379,6 +380,7 @@ sub read_gene_data_from_file {
 
   while(<FILE>) {
     chomp;
+    $_ =~ s/\R//g;
 
     my @split = grep defined, "$_," =~ /$re/g;
 
@@ -405,7 +407,28 @@ sub read_gene_data_from_file {
 # this should allow updates to this plugin to e.g. query a REST server, for example
 sub gene_data {
   my ($self, $gene_symbol) = @_;
-  return $gene_symbol ? $self->{gene_data}->{$gene_symbol} : $self->{gene_data};
+  my $gene_data = $self->{gene_data}->{$gene_symbol};
+  if (!$gene_data) {
+    my $prev_gene_symbol = $self->{prev_symbol_mappings}->{$gene_symbol};
+    return $prev_gene_symbol ? $self->{gene_data}->{$prev_gene_symbol} : $self->{gene_data};
+  } 
+  return $gene_data;
+#  return $gene_symbol ? $self->{gene_data}->{$gene_symbol} : $self->{gene_data};
+}
+
+sub synonym_mappings {
+  my $self = shift;
+  my $gene_data = $self->{gene_data};
+  my $synonym_mappings = {};
+  foreach my $gene_symbol (keys %$gene_data) {
+    my $prev_symbols = $gene_data->{$gene_symbol}->{'prev symbols'};
+    if ($prev_symbols) {
+      foreach my $prev_symbol (split(';', $prev_symbols)) {
+        $synonym_mappings->{$prev_symbol} = $gene_symbol;
+      }
+    }
+  }
+  $self->{prev_symbol_mappings} = $synonym_mappings;
 }
 
 # get the relevant allele frequency
