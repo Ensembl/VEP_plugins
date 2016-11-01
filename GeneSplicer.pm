@@ -267,7 +267,7 @@ sub results_from_seq {
   my $output = `$cmd 2>&1`;
   unlink($seq_file);
 
-  return {} unless -e $result_file;
+  return [] unless -e $result_file;
 
   open RES, $result_file;
   my @results;
