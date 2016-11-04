@@ -69,7 +69,8 @@ limitations under the License.
   exac_file      : ExAC data file, Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current
                    to download the latest ExAC VCF
   
-  log_file       : write stats to log file 
+  log_dir        : write stats to log files in log_dir 
+  
 
  Example:
 
@@ -111,13 +112,9 @@ my %DEFAULTS = (
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
-  types => {map {$_ => 1} qw(splice_donor_variant splice_acceptor_variant stop_gained frameshift_variant stop_lost initiator_codon_variant inframe_insertion inframe_deletion missense_variant
- coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)},
+  types => {map {$_ => 1} qw(splice_donor_variant splice_acceptor_variant stop_gained frameshift_variant stop_lost initiator_codon_variant inframe_insertion inframe_deletion missense_variant coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)},
 
 );
-
-
-my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
 
 my $maf_key_2_population_name = {
   minor_allele_freq => '1000GENOMES:phase_3:ALL',
@@ -136,21 +133,20 @@ sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
-
+  my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
 
   my $params = $self->params_to_hash();
   my $file = '';
 
   # user only supplied file as first param?
-  if(!keys %$params) {
+  if (!keys %$params) {
     $file = $self->params->[0];
   }
   else {
     $file = $params->{file};
 
     # process types
-    if($params->{types}) {
+    if ($params->{types}) {
       $params->{types} = {map {$_ => 1} split(/[\;\&\|]/, $params->{types})};
     }
 
@@ -158,8 +154,7 @@ my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SA
     foreach my $maf (qw/maf_monoallelic maf_biallelic/) {
       if($params->{$maf}) {
         die("ERROR: Invalid value for maf: ".$params->{$maf} . "\n") unless
-          looks_like_number($params->{$maf}) &&
-          ($params->{$maf} >= 0 && $params->{$maf} <= 1)
+          looks_like_number($params->{$maf}) && ($params->{$maf} >= 0 && $params->{$maf} <= 1)
       }
     }
 
@@ -197,6 +192,20 @@ my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SA
   open(my $fh, '>', $params->{log_file}) or die "Could not open file '$params->{log_file}' $!";
   close $fh;
 
+  if (!$params->{log_dir}) {
+    $params->{log_dir} = 'g2p_plugin_log_dir';
+  }
+  my $log_dir = $params->{log_dir};
+  if (-d $log_dir) {
+    my @files = <$log_dir/*>;
+    if (scalar @files > 0) {
+      unlink glob "'$log_dir/*.*'";
+    }
+    @files = <$log_dir/*>;
+    die("G2P plugin log dir ($log_dir) is not empty") if (scalar @files > 0);
+  } else {
+    mkdir $log_dir, 0755;
+  }
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
@@ -243,13 +252,6 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva, $line) = @_;
-  $self->{config}->{tva} = $tva;
-  # create a name for the VF to cache by
-  my $vf = $tva->base_variation_feature;
-  my $individual = $vf->{individual};
-  my $vf_name = $vf->variation_name || $vf->{start}.'_'.$vf->{allele_string};
-
-  my $params = $self->{user_params};
 
   # only interested if we know the zygosity
   my $zyg = $line->{Extra}->{ZYG};
@@ -257,9 +259,6 @@ sub run {
 
   # only interested in given gene set
   my $tr = $tva->transcript;
-  my $refseq = $tr->{_refseq};
-
-  my $tr_stable_id = $tr->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
   $self->write_report('G2P_in_vcf', $gene_symbol);
@@ -271,28 +270,46 @@ sub run {
   # limit by type
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
-  
-  # limit by MAF
-  my ($freqs, $existing_variant) = @{$self->get_freq($tva)};
 
+  # limit by MAF
+  $self->{config}->{tva} = $tva;
   my $threshold = 0; 
   if ($ar eq 'monoallelic') {
-    $threshold = $params->{maf_monoallelic};
+    $threshold = $self->{user_params}->{maf_monoallelic};
   } else {
-    $threshold = $params->{maf_biallelic};
+    $threshold = $self->{user_params}->{maf_biallelic};
   }
+
+  my ($freqs, $existing_variant) = @{$self->get_freq($tva)};
 
   foreach my $maf_key (keys %$freqs) {
     return {} if ($freqs->{$maf_key} > $threshold);
   }
 
+  my $vf = $tva->base_variation_feature;
+  my $allele = $tva->variation_feature_seq;
+  my $start = $vf->{start};
+  my $end = $vf->{end};
+
+  my $individual = $vf->{individual};
+  my $vf_name = $vf->variation_name || $vf->{start}.'_'.$vf->{allele_string};
+
+  my $allele_string = $vf->{allele_string};
+  my @alleles = split('/', $allele_string);
+  my $ref = $alleles[0]; 
+  my $seq_region_name = $vf->{chr};
+
+  my $params = $self->{user_params};
+  my $refseq = $tr->{_refseq};
+  my $tr_stable_id = $tr->stable_id;
   my $hgvs_t = $tva->hgvs_transcript || 'NA';
   my $hgvs_p = $tva->hgvs_protein || 'NA';
-
-  my ($clin_sig, $novel, $failed, $frequencies) = ('NA', 'yes', 'NA', 'NA');
+  
+  my ($clin_sig, $novel, $failed, $frequencies, $existing_name) = ('NA', 'yes', 'NA', 'NA', 'NA');
   if ($existing_variant) {
     $clin_sig = $existing_variant->{clin_sig} || 'NA';
     $failed = ($existing_variant->{failed}) ? 'yes' : 'no';
+    $existing_name = $existing_variant->{variation_name} || 'NA';
     $novel = 'no';
   }
  
@@ -309,8 +326,10 @@ sub run {
     'failed' => $failed,
     'clin_sig' => $clin_sig, 
     'novel' => $novel,
+    'existing_name' => $existing_name,
     'hgvs_t' => $hgvs_t,
     'hgvs_p' => $hgvs_p,
+    'vf_location' => "$seq_region_name:$start-$end $ref/$allele",
   };
 
   my %return = (
@@ -324,18 +343,17 @@ sub run {
   delete $cache->{$vf_name} if exists($cache->{$vf_name});
 
   # biallelic genes require >=1 hom or >=2 hets
-  if($ar eq 'biallelic') {
-
+  if ($ar eq 'biallelic') {
     # homozygous, report complete
-    if(uc($zyg) eq 'HOM') {
+    if (uc($zyg) eq 'HOM') {
       $return{G2P_complete} = 1;
       $self->write_report('G2P_complete', $gene_symbol, $individual);
     }
 
     # heterozygous
     # we need to cache that we've observed one
-    elsif(uc($zyg) eq 'HET') {
-      if(scalar keys %$cache) {
+    elsif (uc($zyg) eq 'HET') {
+      if (scalar keys %$cache > 0) {
         $return{G2P_complete} = 1;
         $self->write_report('G2P_complete', $gene_symbol, $individual);
       }
@@ -343,7 +361,7 @@ sub run {
     }
   }
   # monoallelic genes require only one allele
-  elsif($ar eq 'monoallelic') {
+  elsif ($ar eq 'monoallelic') {
     $return{G2P_complete} = 1;
     $self->write_report('G2P_complete', $gene_symbol, $individual);
   }
@@ -413,7 +431,6 @@ sub gene_data {
     return $prev_gene_symbol ? $self->{gene_data}->{$prev_gene_symbol} : $self->{gene_data};
   } 
   return $gene_data;
-#  return $gene_symbol ? $self->{gene_data}->{$gene_symbol} : $self->{gene_data};
 }
 
 sub synonym_mappings {
@@ -556,7 +573,8 @@ sub correct_frequency {
 sub write_report {
   my $self = shift;
   my $flag = shift;
-  my $log_file = $self->{user_params}->{log_file};
+  my $log_dir = $self->{user_params}->{log_dir};
+  my $log_file = "$log_dir/$$.txt";
   open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
   if ($flag eq 'G2P_list') {
     my ($gene_symbol, $DDD_category) = @_;
