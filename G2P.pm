@@ -212,6 +212,7 @@ sub new {
 
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
   $va->db->use_vcf(1);
+  $va->db->include_failed_variations(1);
   $self->{config}->{va} = $va;
   my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
   $self->{config}->{pa} = $pa;
@@ -272,7 +273,6 @@ sub run {
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
 
   # limit by MAF
-  $self->{config}->{tva} = $tva;
   my $threshold = 0; 
   if ($ar eq 'monoallelic') {
     $threshold = $self->{user_params}->{maf_monoallelic};
@@ -473,7 +473,7 @@ sub get_freq {
             if (($ex->{minor_allele} || '') eq $allele ) {
               $freq = $ex->{minor_allele_freq};
             } else {
-              $freq = $self->correct_frequency($existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key) || $freq;
+              $freq = $self->correct_frequency($tva, $existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key) || $freq;
             }
           }
         }
@@ -483,7 +483,7 @@ sub get_freq {
             if(($a || '') eq $allele && defined($f)) {
               $freq = $f;
             } else {
-              $freq = $self->correct_frequency($existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || $freq;
+              $freq = $self->correct_frequency($tva, $existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || $freq;
             }
             if ($maf_key =~ /^ExAC/ && $freq) {
               $has_exac = 1;
@@ -494,7 +494,7 @@ sub get_freq {
       }
 
       if (!$has_exac) {
-        my $exac_data = $self->get_ExAC_frequencies; 
+        my $exac_data = $self->get_ExAC_frequencies($tva); 
         foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
           if ($maf_key =~ /^ExAC/) {
             my $exac_key = $maf_key;
@@ -514,8 +514,9 @@ sub get_freq {
 
 sub get_ExAC_frequencies {
   my $self = shift;
+  my $tva = shift;
   my $exac_plugin = $self->{config}->{exac_plugin};
-  my $tva = $self->{config}->{tva};
+#  my $tva = $self->{config}->{tva};
   my $exac_data = {};
   eval {
     $exac_data = $exac_plugin->run($tva);
@@ -525,12 +526,12 @@ sub get_ExAC_frequencies {
 }
 
 sub correct_frequency {
-  my ($self, $allele_string, $minor_allele, $maf, $allele, $variation_name, $maf_key) = @_;
+  my ($self, $tva, $allele_string, $minor_allele, $maf, $allele, $variation_name, $maf_key) = @_;
 
   if ($maf_key =~ /^ExAC/) {
     $maf_key =~ s/ExAC/ExAC_AF/;
     my $exac_plugin = $self->{config}->{exac_plugin};
-    my $tva = $self->{config}->{tva};
+#    my $tva = $self->{config}->{tva};
     my $exac_data = {};
     eval {
       $exac_data = $exac_plugin->run($tva);
