@@ -265,25 +265,29 @@ sub run {
   $self->write_report('G2P_in_vcf', $gene_symbol);
   return {} unless $gene_data;
 
-  my $ar = $gene_data->{'allelic requirement'};
-  return {} unless $ar && $ar =~ /^(mono|bi)allelic$/;
-  
+  my @ars = @{$gene_data->{'allelic requirement'}};
+
+  return {} unless (@ars && ( grep {$_ =~ /^(mono|bi)allelic$/} @ars ));
+ 
   # limit by type
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
 
   # limit by MAF
   my $threshold = 0; 
-  if ($ar eq 'monoallelic') {
-    $threshold = $self->{user_params}->{maf_monoallelic};
-  } else {
-    $threshold = $self->{user_params}->{maf_biallelic};
-  }
-
-  my ($freqs, $existing_variant) = @{$self->get_freq($tva)};
-
-  foreach my $maf_key (keys %$freqs) {
-    return {} if ($freqs->{$maf_key} > $threshold);
+  my $ar_passed = {};
+  my ($freqs, $existing_variant);
+  foreach my $ar (@ars) {
+    if ($ar eq 'monoallelic') {
+      $threshold = $self->{user_params}->{maf_monoallelic};
+    } else {
+      $threshold = $self->{user_params}->{maf_biallelic};
+    }
+    ($freqs, $existing_variant) = @{$self->get_freq($tva)};
+    foreach my $maf_key (keys %$freqs) {
+      return {} if ($freqs->{$maf_key} > $threshold);
+    }
+    $ar_passed->{$ar} = 1;
   }
 
   my $vf = $tva->base_variation_feature;
@@ -316,7 +320,8 @@ sub run {
   if (scalar keys %$freqs > 0) {
     $frequencies = join(',', map {"$_=$freqs->{$_}"} keys %$freqs);
   }   
-
+ 
+  my $ar = join(',', keys %$ar_passed);
   my $g2p_data = {
     'zyg' => $zyg,
     'allele_requirement' => $ar,
@@ -338,36 +343,7 @@ sub run {
 
   $self->write_report('G2P_flag', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
 
-  my $cache = $self->{cache}->{$individual}->{$tr->stable_id} ||= {};
-
-  delete $cache->{$vf_name} if exists($cache->{$vf_name});
-
-  # biallelic genes require >=1 hom or >=2 hets
-  if ($ar eq 'biallelic') {
-    # homozygous, report complete
-    if (uc($zyg) eq 'HOM') {
-      $return{G2P_complete} = 1;
-      $self->write_report('G2P_complete', $gene_symbol, $individual);
-    }
-
-    # heterozygous
-    # we need to cache that we've observed one
-    elsif (uc($zyg) eq 'HET') {
-      if (scalar keys %$cache > 0) {
-        $return{G2P_complete} = 1;
-        $self->write_report('G2P_complete', $gene_symbol, $individual);
-      }
-      $cache->{$vf_name} = 1;
-    }
-  }
-  # monoallelic genes require only one allele
-  elsif ($ar eq 'monoallelic') {
-    $return{G2P_complete} = 1;
-    $self->write_report('G2P_complete', $gene_symbol, $individual);
-  }
-  else {
-    return {};
-  }
+  $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $ar, $zyg);
 
   return \%return;
 }
@@ -378,9 +354,8 @@ sub read_gene_data_from_file {
   my $self = shift;
   my $file = shift;
   my $delimiter = shift;
-
   my (@headers, %gene_data);
-  
+
   die("ERROR: No file specified or could not read from file ".($file || '')."\n") unless $file && -e $file;
 
   # allow file to be (b)gzipped
@@ -407,11 +382,10 @@ sub read_gene_data_from_file {
     }
     else {
       my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
-
       die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
-
-      # store data as hash keyed on gene symbol
-      $gene_data{$tmp{"gene symbol"}} = \%tmp;
+      my $gene_symbol = $tmp{"gene symbol"};
+      $gene_data{$gene_symbol}->{"prev symbols"} = $tmp{"prev symbols"};
+      push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
       $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
     }
   }
@@ -516,7 +490,6 @@ sub get_ExAC_frequencies {
   my $self = shift;
   my $tva = shift;
   my $exac_plugin = $self->{config}->{exac_plugin};
-#  my $tva = $self->{config}->{tva};
   my $exac_data = {};
   eval {
     $exac_data = $exac_plugin->run($tva);
@@ -531,7 +504,6 @@ sub correct_frequency {
   if ($maf_key =~ /^ExAC/) {
     $maf_key =~ s/ExAC/ExAC_AF/;
     my $exac_plugin = $self->{config}->{exac_plugin};
-#    my $tva = $self->{config}->{tva};
     my $exac_data = {};
     eval {
       $exac_data = $exac_plugin->run($tva);
