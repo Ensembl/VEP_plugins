@@ -248,6 +248,7 @@ sub get_header_info {
   return {
     G2P_flag => 'Flags zygosity of valid variants for a G2P gene',
     G2P_complete => 'Indicates this variant completes the allelic requirements for a G2P gene',
+    G2P_gene_req => 'MONO or BI depending on the context in which this gene has been explored',
   };
 }
 
@@ -320,7 +321,7 @@ sub run {
     $frequencies = join(',', map {"$_=$freqs->{$_}"} keys %$freqs);
   }   
  
-  my $ar = join(',', keys %$ar_passed);
+  my $ar = join(',', sort keys %$ar_passed);
   my $g2p_data = {
     'zyg' => $zyg,
     'allele_requirement' => $ar,
@@ -340,9 +341,45 @@ sub run {
     G2P_flag => $zyg
   );
 
+
   $self->write_report('G2P_flag', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
 
   $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $ar, $zyg);
+
+  my $cache = $self->{cache}->{$individual}->{$tr->stable_id} ||= {};
+
+  delete $cache->{$vf_name} if exists($cache->{$vf_name});
+
+  # biallelic genes require >=1 hom or >=2 hets
+  my $gene_reqs = {};
+  foreach my $ar (keys %$ar_passed) { 
+    if($ar eq 'biallelic') {
+      # homozygous, report complete
+      if(uc($zyg) eq 'HOM') {
+        $return{G2P_complete} = 1;
+        $gene_reqs->{BI} = 1;
+      }
+      # heterozygous
+      # we need to cache that we've observed one
+      elsif(uc($zyg) eq 'HET') {
+        if(scalar keys %$cache) {
+          $return{G2P_complete} = 1;
+        }
+        $cache->{$vf_name} = 1;
+      }
+    }
+    # monoallelic genes require only one allele
+    elsif($ar eq 'monoallelic') {
+      $return{G2P_complete} = 1;
+      $gene_reqs->{MONO} = 1;
+    }
+    else {
+      return {};
+    }
+  }
+  if ($return{G2P_complete}) {
+    $return{G2P_gene_req} = join(',', sort keys %$gene_reqs);
+  }
 
   return \%return;
 }
