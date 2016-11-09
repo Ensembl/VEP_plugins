@@ -265,8 +265,7 @@ sub run {
   $self->write_report('G2P_in_vcf', $gene_symbol);
   return {} unless $gene_data;
 
-  my @ars = @{$gene_data->{'allelic requirement'}};
-
+  my @ars = ($gene_data->{'allelic requirement'}) ? @{$gene_data->{'allelic requirement'}} : ();
   return {} unless (@ars && ( grep {$_ =~ /^(mono|bi)allelic$/} @ars ));
  
   # limit by type
