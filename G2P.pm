@@ -602,4 +602,8 @@ sub write_report {
   close $fh;
 }
 
+sub finish {
+  my $self = shift;
+}
+
 1;
