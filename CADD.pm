@@ -89,7 +89,7 @@ sub run {
   my $allele = $tva->variation_feature_seq;
   reverse_comp(\$allele) if $vf->{strand} < 0;
   
-  return {} unless $allele =~ /^[ACGT-]$/;
+  return {} unless $allele =~ /^[ACGT-]+$/;
 
   my ($res) = grep {
     $_->{alt}   eq $allele &&
