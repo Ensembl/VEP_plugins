@@ -531,7 +531,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "HGVSshift",
       "label" => "Unshifted HGVS",
-      "helptip" => "By default VEP 3' shifts HGVS notations in repetetive sequence; use this plugin to additionally report unshifted notations",
+      "helptip" => "By default VEP 3' shifts HGVS notations in repetitive sequence; use this plugin to additionally report unshifted notations",
       "available" => 0,
       "enabled" => 0,
       "section" => "Identifiers",
