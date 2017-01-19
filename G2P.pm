@@ -85,7 +85,7 @@ use warnings;
 
 
 use ExAC;
-
+use Cwd;
 use Scalar::Util qw(looks_like_number);
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
@@ -193,7 +193,8 @@ sub new {
   close $fh;
 
   if (!$params->{log_dir}) {
-    $params->{log_dir} = 'g2p_plugin_log_dir';
+    my $cwd_dir = getcwd;
+    $params->{log_dir} = $cwd_dir . '/g2p_plugin_log_dir';
   }
   my $log_dir = $params->{log_dir};
   if (-d $log_dir) {
@@ -209,6 +210,19 @@ sub new {
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
+
+  if (!defined($self->{config}->{reg})) {
+    my $reg = 'Bio::EnsEMBL::Registry';
+    $reg->load_registry_from_db(
+      -host       => $self->config->{host},
+      -user       => $self->config->{user},
+      -port       => $self->config->{port},
+      -db_version => $self->config->{db_version},
+      -species    => $self->config->{species},
+      -no_cache   => $self->config->{no_slice_cache},
+    );
+    $self->{config}->{reg} = $reg;
+  }
 
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
   $va->db->use_vcf(1);
@@ -230,6 +244,10 @@ sub new {
     $self->{config}->{failed} = 1;
     $self->{config}->{check_alleles} = 1;
     $self->{config}->{gmaf} = 1;
+    $self->{config}->{af} = 1;
+    $self->{config}->{af_1kg} = 1;
+    $self->{config}->{af_esp} = 1;
+    $self->{config}->{af_exac} = 1;
   }
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
@@ -256,7 +274,7 @@ sub run {
   my ($self, $tva, $line) = @_;
 
   # only interested if we know the zygosity
-  my $zyg = $line->{Extra}->{ZYG};
+  my $zyg = $line->{Extra}->{ZYG} || $line->{ZYG};
   return {} unless $zyg;
 
   # only interested in given gene set
@@ -296,8 +314,10 @@ sub run {
   my $end = $vf->{end};
 
   my $individual = $vf->{individual};
-  my $vf_name = $vf->variation_name || $vf->{start}.'_'.$vf->{allele_string};
-
+  my $vf_name = $vf->variation_name;
+  if ($vf_name || $vf_name eq '.') {
+    $vf_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
+  }
   my $allele_string = $vf->{allele_string};
   my @alleles = split('/', $allele_string);
   my $ref = $alleles[0]; 
@@ -466,10 +486,18 @@ sub get_freq {
   my $allele = $tva->variation_feature_seq;
   reverse_comp(\$allele) if $vf->{strand} < 0;
 
-  my $cache = $vf->{_g2p_freqs} ||= {};
-  # cache it on VF...
+  my $vf_name = $vf->variation_name;
+  if ($vf_name || $vf_name eq '.') {
+    $vf_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
+  }
+
+# my $cache = $vf->{_g2p_freqs} ||= {};
+  my $cache = $self->{cache}->{$vf_name}->{_g2p_freqs} ||= {};
+
+ # cache it on VF...
   if (!exists($cache->{$allele}->{freq})) {
     foreach my $ex (@{$vf->{existing} || []}) {
+
       my $existing_allele_string = $ex->{allele_string};
       my $variation_name = $ex->{variation_name};
       next if ($variation_name !~ /^rs/);
@@ -477,34 +505,43 @@ sub get_freq {
       my $has_exac = 0;
 
       foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
+        
         my $freq = $self->{user_params}->{default_maf};
         if ($maf_key eq 'minor_allele_freq') {
           if (defined $ex->{minor_allele_freq}) {
             if (($ex->{minor_allele} || '') eq $allele ) {
               $freq = $ex->{minor_allele_freq};
             } else {
-              $freq = $self->correct_frequency($tva, $existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key) || $freq;
+              $freq = $self->correct_frequency($tva, $existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key, $vf_name) || $freq;
             }
           }
         }
         else {
-          foreach my $pair(split(',', $ex->{$maf_key} || '')) {
+          my @pairs = split(',', $ex->{$maf_key} || '');
+          my $found = 0;    
+          if (scalar @pairs == 0) {
+            $found = 1; # no allele frequency for this population/maf_key available
+          }
+          foreach my $pair (@pairs) {
             my ($a, $f) = split(':', $pair);
             if(($a || '') eq $allele && defined($f)) {
               $freq = $f;
-            } else {
-              $freq = $self->correct_frequency($tva, $existing_allele_string, $a, $f, $allele, $variation_name, $maf_key) || $freq;
-            }
-            if ($maf_key =~ /^ExAC/ && $freq) {
-              $has_exac = 1;
-            }
+              $found = 1;
+            } 
           }
+          if ($maf_key =~ /^ExAC/ && $freq) {
+            $has_exac = 1;
+          }
+          if (!$found) {
+            # fetch frequency for variant allele and maf_key 
+            $freq = $self->correct_frequency($tva, $existing_allele_string, undef, undef, $allele, $variation_name, $maf_key, $vf_name) || $freq;
+          }       
         }
         $freqs->{$maf_key} = $freq if ($freq);
       }
 
       if (!$has_exac) {
-        my $exac_data = $self->get_ExAC_frequencies($tva); 
+        my $exac_data = $self->get_ExAC_frequencies($tva, $allele, $vf_name); 
         foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
           if ($maf_key =~ /^ExAC/) {
             my $exac_key = $maf_key;
@@ -514,37 +551,37 @@ sub get_freq {
           }
         }      
       }
-
       $cache->{$allele}->{freq} = $freqs;
       $cache->{$allele}->{ex_variant} = $ex;
     }
-  }
+  } 
   return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
 }
 
 sub get_ExAC_frequencies {
   my $self = shift;
   my $tva = shift;
+  my $vf_name = shift;
+  my $allele = shift;
+
+  my $exac_data = $self->{cache}->{$vf_name}->{_g2p_freqs}->{$allele}->{exac};
+
   my $exac_plugin = $self->{config}->{exac_plugin};
-  my $exac_data = {};
-  eval {
-    $exac_data = $exac_plugin->run($tva);
-  };
-  warn "Problem in ExAC plugin: $@" if $@; 
+  if (!$exac_data) {
+    eval {
+      $exac_data = $exac_plugin->run($tva);
+      $self->{cache}->{$vf_name}->{_g2p_freqs}->{$allele}->{exac} = $exac_data;
+    };
+    warn "Problem in ExAC plugin: $@" if $@; 
+  } 
   return $exac_data;
 }
 
 sub correct_frequency {
-  my ($self, $tva, $allele_string, $minor_allele, $maf, $allele, $variation_name, $maf_key) = @_;
-
+  my ($self, $tva, $allele_string, $minor_allele, $maf, $allele, $variation_name, $maf_key, $vf_name) = @_;
   if ($maf_key =~ /^ExAC/) {
     $maf_key =~ s/ExAC/ExAC_AF/;
-    my $exac_plugin = $self->{config}->{exac_plugin};
-    my $exac_data = {};
-    eval {
-      $exac_data = $exac_plugin->run($tva);
-    };
-    warn "Problem in ExAC plugin: $variation_name $allele_string $allele $@" if $@; 
+    my $exac_data = $self->get_ExAC_frequencies($tva, $vf_name, $allele);
     my $freq = $exac_data->{$maf_key};
     return $freq;
   }
@@ -584,7 +621,7 @@ sub write_report {
   my $flag = shift;
   my $log_dir = $self->{user_params}->{log_dir};
   my $log_file = "$log_dir/$$.txt";
-  open(my $fh, '>>', $log_file) or die "Could not open file '$log_file' $!";
+  open(my $fh, '>>', $log_file) or die "Could not open file '$flag $log_file' $!";
   if ($flag eq 'G2P_list') {
     my ($gene_symbol, $DDD_category) = @_;
     $DDD_category ||= 'Not assigned';
