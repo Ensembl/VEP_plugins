@@ -95,9 +95,10 @@ sub new {
   # remote files?
   if($file =~ /tp\:\/\//) {
     my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
+    print STDERR "$remote_test\n";
+    # if($remote_test && $remote_test !~ /get_local_version/) {
+    #   die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
+    # }
   }
 
   # check files exist
@@ -243,7 +244,6 @@ sub run {
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
               $an = shift @an if @an;
-              next HEADER unless $an;
 
               $total_ac += $ac;
               if ($self->{display_ac}){
@@ -253,7 +253,7 @@ sub run {
                 $data->{$a}->{'ExAC_'.$anh} = $an;
               }
 
-              $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an);
+              $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an) if $an;
             }
             
             # use total to get ref allele freq
@@ -263,7 +263,7 @@ sub run {
             if ($self->{display_an}){
               $data->{$ref_allele}->{'ExAC_'.$anh} = $an;
             }
-            $data->{$ref_allele}->{'ExAC_'.$afh} = sprintf("%.3g", 1 - ($total_ac / $an));
+            $data->{$ref_allele}->{'ExAC_'.$afh} = sprintf("%.3g", 1 - ($total_ac / $an)) if $an;
           }
         }
       }
