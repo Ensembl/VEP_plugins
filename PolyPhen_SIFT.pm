@@ -150,7 +150,10 @@ sub run {
   my $tr = $tva->transcript;
   my $tr_vep_cache = $tr->{_variation_effect_feature_cache} ||= {};
 
-  unless(exists($tr_vep_cache->{protein_function_predictions})) {
+  ## if predictions are not available for both tools in the cache, look in the SQLite database
+  unless(exists($tr_vep_cache->{protein_function_predictions}) &&
+     $tva->sift_prediction() && $tva->polyphen_prediction()
+   ){
 
     # get peptide
     unless($tr_vep_cache->{peptide}) {
