@@ -81,6 +81,8 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
+
 sub new {
   my $class = shift;
   
@@ -198,7 +200,7 @@ sub run {
   my ($self, $tva) = @_;
   
   # only for missense variants
-  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   my $vf = $tva->variation_feature;
   
