@@ -391,6 +391,25 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # ExACpLI
+    # Requires ExACpLI_values.txt file as first param (available in VEP_plugins GitHub repo)
+    {
+      "key" => "ExACpLI",
+      "helptip" => "Provides a per-gene probability of being loss-of-function intolerant (pLI) from ExAC data",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/87/ExACpLI.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/ExACpLI_values.txt"
+      ]
+    },
+
+
     
     ## SPLICING PREDICTIONS
     #######################
