@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv FATHMM_MKL.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i input.vcf --plugin FATHMM_MKL,fathmm-MKL_Current.tab.gz
+ ./vep -i input.vcf --plugin FATHMM_MKL,fathmm-MKL_Current.tab.gz
 
 =head1 DESCRIPTION
 

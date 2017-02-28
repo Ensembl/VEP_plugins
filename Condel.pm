@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Condel.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Condel,/path/to/config/Condel/config,b
+ ./vep -i variations.vcf --plugin Condel,/path/to/config/Condel/config,b
 
 =head1 DESCRIPTION
 

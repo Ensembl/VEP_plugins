@@ -28,10 +28,10 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv ExAC.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN
 
 
 

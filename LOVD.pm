@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv LOVD.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin LOVD
+ ./vep -i variations.vcf --plugin LOVD
 
 =head1 DESCRIPTION
 

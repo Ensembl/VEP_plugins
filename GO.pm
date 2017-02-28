@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GO.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin GO
+ ./vep -i variations.vcf --plugin GO
 
 =head1 DESCRIPTION
 

@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Carol.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Carol
+ ./vep -i variations.vcf --plugin Carol
 
 =head1 DESCRIPTION
 

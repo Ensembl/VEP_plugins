@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv VEPbrowse.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin VEPbrowse --individual JohnDoe
+ ./vep -i variations.vcf --plugin VEPbrowse --individual JohnDoe
 
 =head1 DESCRIPTION
 

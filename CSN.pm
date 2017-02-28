@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
   mv CSN.pm ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variations.vcf --cache --plugin CSN
+  ./vep -i variations.vcf --cache --plugin CSN
 
 =head1 DESCRIPTION
 

@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Downstream.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Downstream
+ ./vep -i variations.vcf --plugin Downstream
 
 =head1 DESCRIPTION
 

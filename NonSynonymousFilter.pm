@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv NonSynonymousFilter.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin NonSynonymousFilter
+ ./vep -i variations.vcf --plugin NonSynonymousFilter
 
 =head1 DESCRIPTION
 

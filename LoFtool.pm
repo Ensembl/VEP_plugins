@@ -29,7 +29,7 @@ limitations under the License.
 
   mv LoFtool.pm ~/.vep/Plugins
   mv LoFtool_scores.txt ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool
+  ./vep -i variants.vcf --plugin LoFtool
 
 =head1 DESCRIPTION
 
@@ -51,7 +51,7 @@ limitations under the License.
 
   To use another scores file, add it as a parameter i.e.
 
-  perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool,scores_file.txt
+  ./vep -i variants.vcf --plugin LoFtool,scores_file.txt
 
 =cut
 

@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv ProteinSeqs.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin ProteinSeqs,reference.fa,mutated.fa
+ ./vep -i variations.vcf --plugin ProteinSeqs,reference.fa,mutated.fa
 
 =head1 DESCRIPTION
 

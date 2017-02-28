@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Draw.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Draw
+ ./vep -i variations.vcf --plugin Draw
 
 =head1 DESCRIPTION
 
@@ -43,7 +43,7 @@ limitations under the License.
  
  e.g.
  
- perl variant_effect_predictor.pl -i variations.vcf --plugin Draw,myimg,2000,100
+ ./vep -i variations.vcf --plugin Draw,myimg,2000,100
  
  Images are written to [file_stem]_[transcript_id]_[variant_id].png
  

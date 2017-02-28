@@ -33,7 +33,7 @@ ExACpLI - Add ExAC pLI to the VEP output
 
   mv ExACpLI.pm ~/.vep/Plugins
   mv ExACpLI_values.txt ~/.vep/Plugins
-  perl vep.pl -i variants.vcf --plugin ExACpLI
+  ./vep -i variants.vcf --plugin ExACpLI
 
 =head1 DESCRIPTION
 
@@ -62,7 +62,7 @@ ExACpLI - Add ExAC pLI to the VEP output
 
   To use another values file, add it as a parameter i.e.
 
-     perl vep.pl -i variants.vcf --plugin ExACpLI,values_file.txt
+     ./vep -i variants.vcf --plugin ExACpLI,values_file.txt
 
 
 =cut

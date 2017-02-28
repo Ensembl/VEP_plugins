@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Phenotypes.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Phenotypes
+ ./vep -i variations.vcf --plugin Phenotypes
 
 =head1 DESCRIPTION
 
