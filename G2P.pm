@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv G2P.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin G2P,/path/to/G2P.csv.gz
+ ./vep -i variations.vcf --plugin G2P,/path/to/G2P.csv.gz
 
 =head1 DESCRIPTION
 

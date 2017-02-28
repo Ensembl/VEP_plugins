@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv PolyPhen_SIFT.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf -cache --plugin PolyPhen_SIFT
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT
 
 =head1 DESCRIPTION
 

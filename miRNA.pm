@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv miRNA.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin miRNA
+ ./vep -i variations.vcf --plugin miRNA
 
 =head1 DESCRIPTION
 

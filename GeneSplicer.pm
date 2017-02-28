@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GeneSplicer.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variants.vcf --plugin GeneSplicer,[path_to_genesplicer_bin],[path_to_training_dir],[option1=value],[option2=value]
+ ./vep -i variants.vcf --plugin GeneSplicer,[path_to_genesplicer_bin],[path_to_training_dir],[option1=value],[option2=value]
 
 =head1 DESCRIPTION
 

@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv CADD.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
+ ./vep -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
 
 =head1 DESCRIPTION
 

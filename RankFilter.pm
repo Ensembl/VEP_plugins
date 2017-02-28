@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv RankFilter.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin RankFilter,splice_region_variant
+ ./vep -i variations.vcf --plugin RankFilter,splice_region_variant
 
 =head1 DESCRIPTION
 

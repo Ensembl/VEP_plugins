@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv NearestGene.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --cache --plugin NearestGene
+ ./vep -i variations.vcf --cache --plugin NearestGene
 
 =head1 DESCRIPTION
 

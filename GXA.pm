@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
   mv GXA.pm ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variations.vcf --cache --plugin GXA
+  ./vep -i variations.vcf --cache --plugin GXA
 
 =head1 DESCRIPTION
 

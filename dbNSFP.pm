@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv dbNSFP.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin dbNSFP,/path/to/dbNSFP.gz,col1,col2
+ ./vep -i variations.vcf --plugin dbNSFP,/path/to/dbNSFP.gz,col1,col2
 
 =head1 DESCRIPTION
 

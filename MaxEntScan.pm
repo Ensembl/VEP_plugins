@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv MaxEntScan.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variants.vcf --plugin MaxEntScan,[path_to_maxentscan_dir]
+ ./vep -i variants.vcf --plugin MaxEntScan,[path_to_maxentscan_dir]
 
 =head1 DESCRIPTION
 

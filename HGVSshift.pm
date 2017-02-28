@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
   mv HGVSshift.pm ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variations.vcf --cache --plugin HGVSshift
+  ./vep -i variations.vcf --cache --plugin HGVSshift
 
 =head1 DESCRIPTION
 

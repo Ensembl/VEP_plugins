@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv UpDownDistance.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin UpDownDistance,10000
+ ./vep -i variations.vcf --plugin UpDownDistance,10000
 
 =head1 DESCRIPTION
 

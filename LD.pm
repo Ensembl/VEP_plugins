@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv LD.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin LD,1000GENOMES:pilot_1_CEU_low_coverage_panel,0.8
+ ./vep -i variations.vcf --plugin LD,1000GENOMES:pilot_1_CEU_low_coverage_panel,0.8
 
 =head1 DESCRIPTION
 
@@ -53,7 +53,7 @@ limitations under the License.
  'interesting' variants first. You can do this by supplying a filter
  plugin as an argument to the VEP before this one, e.g.:
 
-  perl variant_effect_predictor.pl -i variations.vcf --plugin MyFilter --plugin LD
+  ./vep -i variations.vcf --plugin MyFilter --plugin LD
 
 =cut
 

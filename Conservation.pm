@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Conservation.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Conservation,GERP_CONSERVATION_SCORE,mammals
+ ./vep -i variations.vcf --plugin Conservation,GERP_CONSERVATION_SCORE,mammals
 
 =head1 DESCRIPTION
 

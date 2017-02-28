@@ -3,7 +3,7 @@
  
 =head1 SYNOPSIS
  mv PON_P2.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
+ ./vep -i variations.vcf --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
  
 =head1 DESCRIPTION
  This plugin for Ensembl Variant Effect Predictor (VEP) computes the predictions of PON-P2

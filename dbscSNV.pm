@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
   mv dbscSNV.pm ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variations.vcf --plugin dbscSNV,/path/to/dbscSNV.txt.gz
+  ./vep -i variations.vcf --plugin dbscSNV,/path/to/dbscSNV.txt.gz
 
 =head1 DESCRIPTION
 

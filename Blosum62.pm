@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Blosum62.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Blosum62
+ ./vep -i variations.vcf --plugin Blosum62
 
 =head1 DESCRIPTION
 

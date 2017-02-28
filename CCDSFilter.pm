@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv CCDSFilter.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin CCDSFilter
+ ./vep -i variations.vcf --plugin CCDSFilter
 
 =head1 DESCRIPTION
 
