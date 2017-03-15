@@ -358,7 +358,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # LOFTEE
-    # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
+    # See https://github.com/konradjk/loftee for details
     {
       "key" => "LoF",
       "helptip" => "LOFTEE identifies LoF (loss-of-function) variation",
