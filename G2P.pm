@@ -127,6 +127,16 @@ my $maf_key_2_population_name = {
   EA => 'ESP6500:European_American',
 };
 
+my $allelic_requirements = {
+  'biallelic' => {maf => 0.005, rules => {HET => 2, HOM => 1}},
+  'monoallelic' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
+  'x-linked dominant' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
+  'monoallelic (X; hemizygous)' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
+  'x-linked over-dominance' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
+};
+
+my @allelic_requirement_terms = keys %$allelic_requirements;
+
 my @population_wide = qw(AA EA AFR AMR EAS EUR SAS ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS);
 
 sub new {
@@ -248,6 +258,8 @@ sub new {
     $self->{config}->{af_1kg} = 1;
     $self->{config}->{af_esp} = 1;
     $self->{config}->{af_exac} = 1;
+    $self->{config}->{sift} = 1;
+    $self->{config}->{polyphen} = 1;
   }
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
@@ -285,7 +297,9 @@ sub run {
   return {} unless $gene_data;
 
   my @ars = ($gene_data->{'allelic requirement'}) ? @{$gene_data->{'allelic requirement'}} : ();
-  return {} unless (@ars && ( grep {$_ =~ /^(mono|bi)allelic$/} @ars ));
+  my %seen;
+  @ars = grep { !$seen{$_}++ } @ars;
+  return {} unless (@ars && ( grep { exists($allelic_requirements->{$_}) } @ars));
  
   # limit by type
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
@@ -296,17 +310,23 @@ sub run {
   my $ar_passed = {};
   my ($freqs, $existing_variant);
   foreach my $ar (@ars) {
-    if ($ar eq 'monoallelic') {
-      $threshold = $self->{user_params}->{maf_monoallelic};
-    } else {
-      $threshold = $self->{user_params}->{maf_biallelic};
+    my $passed = 1;
+    if (defined $allelic_requirements->{$ar}) {
+      $threshold = $allelic_requirements->{$ar}->{maf};
+      ($freqs, $existing_variant) = @{$self->get_freq($tva)};
+      foreach my $maf_key (keys %$freqs) {
+        if ($freqs->{$maf_key} > $threshold) {
+          $passed = 0;  
+          last;
+        }
+      }
+      if ($passed) {
+        $ar_passed->{$ar} = 1;
+      }
     }
-    ($freqs, $existing_variant) = @{$self->get_freq($tva)};
-    foreach my $maf_key (keys %$freqs) {
-      return {} if ($freqs->{$maf_key} > $threshold);
-    }
-    $ar_passed->{$ar} = 1;
   }
+
+  return {} if (!keys %$ar_passed);
 
   my $vf = $tva->base_variation_feature;
   my $allele = $tva->variation_feature_seq;
@@ -336,15 +356,22 @@ sub run {
     $existing_name = $existing_variant->{variation_name} || 'NA';
     $novel = 'no';
   }
+
+  my $pph_score   = (defined $tva->polyphen_score) ? $tva->polyphen_score : 'NA';
+  my $pph_pred    = (defined $tva->polyphen_prediction) ? $tva->polyphen_prediction : 'NA';
+  my $sift_score  = (defined $tva->sift_score) ? $tva->sift_score : 'NA';
+  my $sift_pred   = (defined $tva->sift_prediction) ? $tva->sift_prediction : 'NA';
  
   if (scalar keys %$freqs > 0) {
     $frequencies = join(',', map {"$_=$freqs->{$_}"} keys %$freqs);
   }   
  
   my $ar = join(',', sort keys %$ar_passed);
+  my $ar_in_g2pdb = join(',', sort @ars);
   my $g2p_data = {
     'zyg' => $zyg,
     'allele_requirement' => $ar,
+    'ar_in_g2pdb' => $ar_in_g2pdb,
     'frequencies' => $frequencies,
     'consequence_types' => join(',', @consequence_types),
     'refseq' => $refseq,
@@ -355,6 +382,10 @@ sub run {
     'hgvs_t' => $hgvs_t,
     'hgvs_p' => $hgvs_p,
     'vf_location' => "$seq_region_name:$start-$end $ref/$allele",
+    'sift_score' => "$sift_score",
+    'sift_prediction' => $sift_pred,
+    'polyphen_score' => "$pph_score",
+    'polyphen_prediction' => $pph_pred,
   };
 
   my %return = (
@@ -371,7 +402,9 @@ sub run {
   delete $cache->{$vf_name} if exists($cache->{$vf_name});
 
   # biallelic genes require >=1 hom or >=2 hets
+
   my $gene_reqs = {};
+
   foreach my $ar (keys %$ar_passed) { 
     if($ar eq 'biallelic') {
       # homozygous, report complete
@@ -389,7 +422,7 @@ sub run {
       }
     }
     # monoallelic genes require only one allele
-    elsif($ar eq 'monoallelic') {
+    elsif($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'monoallelic (X; hemizygous)' || $ar eq 'x-linked over-dominance') {
       $return{G2P_complete} = 1;
       $gene_reqs->{MONO} = 1;
     }
