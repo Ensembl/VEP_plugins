@@ -225,11 +225,11 @@ sub run {
 
         my $seq_to_check;
         my $offset = 0;
+        ## sequence to compare is the reference allele for deletion
+        $seq_to_check = $input_ref_allele if ($input_alt_allele eq '-') ;
+        ## sequence to compare is the alt allele
+        $seq_to_check = $input_alt_allele if ($input_ref_allele eq '-');
         if ($seq_to_check) {
-          ## sequence to compare is the reference allele for deletion
-          $seq_to_check = $input_ref_allele if ($input_alt_allele eq '-') ;
-          ## sequence to compare is the alt allele
-          $seq_to_check = $input_alt_allele if ($input_ref_allele eq '-');
           ## 3' flanking sequence to check
           my ($ref_seq, $ref_start, $ref_end) = _get_flank_seq($vf); 
           my $downstream_seq = substr($ref_seq ,$ref_end);
