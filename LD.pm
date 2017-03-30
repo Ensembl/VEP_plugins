@@ -90,7 +90,7 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
-    if ($self->config->{cache}) {
+    if ($self->config->{offline}) {
         warn "Warning: a connection to the database is required to calculate LD\n";
     }
 
@@ -123,7 +123,7 @@ sub new {
     
     my $ld_adap = $reg->get_adaptor('human', 'variation', 'ldfeaturecontainer')
         || die "Failed to get LD adaptor\n";
-    
+    $ld_adap->db->use_vcf(1);    
     my $var_adap = $reg->get_adaptor('human', 'variation', 'variation')
         || die "Failed to get variation adaptor\n";
         
