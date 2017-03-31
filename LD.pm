@@ -165,21 +165,22 @@ sub run {
                     if (my $ldfc = $self->{ld_adap}->fetch_by_VariationFeature($vf, $self->{pop})) {
                     
                         # loop over all the linked variants
-
-                        for my $result (@{ $ldfc->get_all_r_square_values }) {
+                        # we pass 1 to get_all_ld_values() so that it doesn't lazy load
+                        # VariationFeature objects - we only need the name here anyway
+                        for my $result (@{ $ldfc->get_all_ld_values(1) }) {
                         
                             # apply our r2 cutoff
 
                             if ($result->{r2} >= $self->{r2_cutoff}) {
 
-                                my $v1 = $result->{variation1};
-                                my $v2 = $result->{variation2};
+                                my $v1 = $result->{variation_name1};
+                                my $v2 = $result->{variation_name2};
 
                                 # I'm not sure which of these are the query variant, so just check the names
                                     
-                                my $linked = $v1->variation_name eq $var ? $v2 : $v1;
+                                my $linked = $v1 eq $var ? $v2 : $v1;
                                 
-                                push @linked, sprintf("%s:%.3f", $linked->variation_name, $result->{r2});
+                                push @linked, sprintf("%s:%.3f", $linked, $result->{r2});
                             }
                         }
                     }
