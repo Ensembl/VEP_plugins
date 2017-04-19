@@ -141,6 +141,7 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $five_start, $five_end)) {
+      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $five_start, $five_end)};
 
       return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
@@ -156,6 +157,7 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $three_start, $three_end)) {
+      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $three_start, $three_end)};
 
       return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
@@ -178,14 +180,17 @@ sub get_seqs {
   my ($self, $tva, $start, $end) = @_;
   my $vf = $tva->variation_feature;
 
+  my $tr_strand = $tva->transcript->strand;
+
   my $ref_seq = $vf->{slice}->sub_Slice(
     $start,
     $end,
-    $tva->transcript->strand
+    $tr_strand
   )->seq;
 
   my $alt_seq = $ref_seq;
-  substr($alt_seq, $vf->{start} - $start, ($vf->{end} - $vf->{start}) + 1) = $tva->feature_seq;
+  my $substr_start = $tr_strand > 0 ? $vf->{start} - $start : $end - $vf->{end};
+  substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $tva->feature_seq;
 
   return [$ref_seq, $alt_seq];
 }
