@@ -471,6 +471,17 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # SpliceRegion
+    {
+      "key" => "SpliceRegion",
+      "label" => "SpliceRegion",
+      "helptip" => "More granular predictions of splicing effects",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/88/SpliceRegion.pm",
+    },
+
 
     ## CONSERVATION
     ###############
