@@ -357,6 +357,23 @@ my $VEP_PLUGIN_CONFIG = {
       ],
     },
 
+    # PolyPhen_SIFT
+    {
+      "key" => "PolyPhen_SIFT",
+      "helptip" => "Retrieves PolyPhen and SIFT predictions from a locally constructed sqlite database",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/88/PolyPhen_SIFT.pm",
+      "requires_install" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        "@*"
+      ],
+    },
+
     # LOFTEE
     # See https://github.com/konradjk/loftee for details
     {
