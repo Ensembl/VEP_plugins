@@ -171,7 +171,7 @@ sub get_header_info {
               m/^\d+\s+(.+?)\:\s+(.+)/;
               $col = $1;
 
-              $rm_descs{$col} = '(from dbNSFP) '.$2;
+              $rm_descs{$col} = '(from dbNSFP) '.$2 if $col && $2;
             }
             elsif($reading && /\w/) {
               s/^\s+//;
