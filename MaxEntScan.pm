@@ -112,12 +112,18 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-  my $tr = $tva->transcript;
-  my $tr_strand = $tr->strand;
-
   return {} unless $vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/;
 
-  foreach my $intron(@{$tr->get_all_Introns}) {
+  my $tv = $tva->transcript_variation;
+  my $tr = $tva->transcript;
+  my $tr_strand = $tr->strand;
+  my ($vf_start, $vf_end) = ($vf->start, $vf->end);
+
+  # use _overlapped_introns() method from BaseTranscriptVariation
+  # this will use an interval tree if available for superfast lookup of overlapping introns
+  # we have to expand the search space around $vf because we're looking for the splice region not the intron per se
+  foreach my $intron(@{$tv->_overlapped_introns($vf_start - 21, $vf_end + 21)}) {
+    
     # get coords depending on strand
     # MaxEntScan does different predictions for 5 and 3 prime
     # and we need to feed it different bits of sequence for each
