@@ -211,14 +211,14 @@ sub run {
   my $return = join(',',
     map {
       join('/',
-        $_->{gl},
-        $_->{type},
-        $_->{end5}.'-'.$_->{end3},
-        $_->{confidence},
-        $_->{score}
+        $_->[0]->{gl},
+        $_->[0]->{type},
+        $_->[1]->{end5}.'-'.$_->[1]->{end3},
+        $_->[0]->{confidence},
+        $_->[0]->{score}
       )
     }
-    map {$self->map_ss_coords($_, $vf)}
+    map {[$_, $self->map_ss_coords($_, $vf)]}
     grep {overlap($vf_start, $vf_end, $_->{end5}, $_->{end3})}
     (@losses, @gains, @diffs)
   );
@@ -230,13 +230,13 @@ sub run {
       map {
         join('/',
           'no_change',
-          $_->{type},
-          $_->{end5}.'-'.$_->{end3},
-          $_->{confidence},
-          $_->{score}
+          $_->[0]->{type},
+          $_->[1]->{end5}.'-'.$_->[1]->{end3},
+          $_->[0]->{confidence},
+          $_->[0]->{score}
         )
       }
-      map {$self->map_ss_coords($_, $vf)}
+      map {[$_, $self->map_ss_coords($_, $vf)]}
       grep {overlap($vf_start, $vf_end, $_->{end5}, $_->{end3})} @$ref_results
     );
   }
@@ -344,11 +344,13 @@ sub map_ss_coords {
   my $res = shift;
   my $vf = shift;
 
+  my $return = {};
+
   foreach my $coord(qw(end5 end3)) {
-    $res->{$coord} = (($res->{$coord} - $self->{'_param_context'}) + $vf->{start}) - 1;
+    $return->{$coord} = (($res->{$coord} - $self->{'_param_context'}) + $vf->{start}) - 1;
   }
 
-  return $res;
+  return $return;
 }
 
 1;
