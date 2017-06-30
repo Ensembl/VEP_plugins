@@ -437,6 +437,24 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # MPC
+    # Requires fordist_constraint_official_mpc_values.txt.gz data file
+    {
+      "key" => "MPC",
+      "helptip" => "MPC is a missense deleteriousness metric based on the analysis of genic regions depleted of missense mutations in ExAC",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/90/MPC.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/fordist_constraint_official_mpc_values.txt.gz"
+      ]
+    },
+
 
     
     ## SPLICING PREDICTIONS
