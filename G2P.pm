@@ -70,7 +70,10 @@ limitations under the License.
                    to download the latest ExAC VCF
   
   log_dir        : write stats to log files in log_dir 
-  
+
+  txt_report     : write all G2P complete genes and attributes to txt file
+
+  html_report    : write all G2P complete genes and attributes to html file
 
  Example:
 
@@ -83,10 +86,11 @@ package G2P;
 use strict;
 use warnings;
 
-
 use ExAC;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
+use FileHandle;
+use CGI qw/:standard/;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
@@ -217,6 +221,18 @@ sub new {
   } else {
     mkdir $log_dir, 0755;
   }
+
+  foreach my $report_type (qw/txt_report html_report/) {
+    if (!$params->{$report_type}) {
+      my $cwd_dir = getcwd;
+      my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
+      $year += 1900;
+      my $stamp = join('_', ($mday, $mon, $hour, $min, $sec));
+      my $file_type = ($report_type eq 'txt_report') ? 'txt' : 'html';
+      $params->{$report_type} = $cwd_dir . "/$report_type\_$stamp.$file_type";
+    } 
+  }
+
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
@@ -240,6 +256,8 @@ sub new {
   $self->{config}->{va} = $va;
   my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
   $self->{config}->{pa} = $pa;
+  my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
+  $self->{config}->{ta} = $ta;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -674,6 +692,576 @@ sub write_report {
 
 sub finish {
   my $self = shift;
+  $self->generate_report;
+}
+
+sub generate_report {
+  my $self = shift;
+  my $result_summary = $self->parse_log_files;
+  my $chart_txt_data = $self->chart_and_txt_data($result_summary);
+  my $chart_data = $chart_txt_data->{chart_data};
+  my $txt_data = $chart_txt_data->{txt_data};
+  my $new_chart_data = $chart_txt_data->{new_chart_data};
+  my $canonical_transcripts = $chart_txt_data->{canonical_transcripts};
+  $self->write_txt_output($txt_data);
+  $self->write_charts($result_summary, $chart_data, $new_chart_data, $canonical_transcripts);
+}
+
+sub write_txt_output {
+  my $self = shift;
+  my $txt_output_data = shift; 
+  my $txt_output_file = $self->{user_params}->{txt_report};
+  my $fh_txt = FileHandle->new($txt_output_file, 'w');
+  foreach my $individual (keys %$txt_output_data) {
+    foreach my $gene_symbol (keys %{$txt_output_data->{$individual}}) {
+      foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_symbol}}) {
+        my $is_canonical = $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{is_canonical};
+        my $canonical_tag = ($is_canonical) ? 'is_canonical' : 'not_canonical';
+        my $acting_ar = $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{acting_ar};
+        my $variants = join(';', @{$txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{variants}});
+        print $fh_txt "$individual $gene_symbol $tr_stable_id $canonical_tag $acting_ar $variants\n";
+      }
+    }
+  }
+  $fh_txt->close();
+}
+
+sub write_charts {
+  my $self = shift;
+  my $result_summary = shift;
+  my $chart_data = shift;
+  my $new_chart_data = shift;
+  my $canonical_transcripts = shift;
+
+  my $count_g2p_genes = keys %{$result_summary->{g2p_list}};
+  my $count_in_vcf_file = keys %{$result_summary->{in_vcf_file}};
+  my $count_complete_genes = keys %{$result_summary->{complete_genes}};
+
+  my @charts = ();
+#  my @frequencies_header = qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/;
+  my @frequencies_header = (); 
+  my $maf_key_2_population_name = {
+    AFR => '1000GENOMES:phase_3:AFR',
+    AMR => '1000GENOMES:phase_3:AMR',
+    EAS => '1000GENOMES:phase_3:EAS',
+    EUR => '1000GENOMES:phase_3:EUR',
+    SAS => '1000GENOMES:phase_3:SAS',
+    AA => 'Exome Sequencing Project 6500:African_American',
+    EA => 'Exome Sequencing Project 6500:European_American',
+    ExAC => 'Exome Aggregation Consortium:Total',
+    ExAC_AFR => 'Exome Aggregation Consortium:African/African American',
+    ExAC_AMR => 'Exome Aggregation Consortium:American',
+    ExAC_Adj => 'Exome Aggregation Consortium:Adjusted',
+    ExAC_EAS => 'Exome Aggregation Consortium:East Asian',
+    ExAC_FIN => 'Exome Aggregation Consortium:Finnish',
+    ExAC_NFE => 'Exome Aggregation Consortium:Non-Finnish European',
+    ExAC_OTH => 'Exome Aggregation Consortium:Other',
+    ExAC_SAS => 'Exome Aggregation Consortium:South Asian',
+  };
+
+  foreach my $short_name (qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/) {
+    my $text = $maf_key_2_population_name->{$short_name};
+#    push @frequencies_header, "<span style=\"cursor: pointer\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</span>";
+    push @frequencies_header, "<a style=\"cursor: pointer\" data-placement=\"top\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</a>";
+  }
+
+  my $count = 1;
+  my @new_header = (
+    'Variant location and alleles (REF/ALT)',
+    'Variant name', 
+    'Existing name', 
+    'Zygosity', 
+    'Consequence types', 
+    'ClinVar annotation', 
+    'SIFT', 
+    'PolyPhen', 
+    'Novel variant', 
+    'Has been failed by Ensembl', 
+    @frequencies_header,
+    'HGVS transcript', 
+    'HGVS protein', 
+    'RefSeq IDs', 
+  );
+
+  my @header = ('Variant location and alleles (REF/ALT)', 'Gene symbol', 'Transcript stable ID', 'HGVS transcript', 'HGVS protein', 'RefSeq IDs', 'Variant name', 'Existing name', 'Novel variant', 'Has been failed by Ensembl', 'ClinVar annotation', 'Consequence types', 'Allelic requirement (all observed in G2P DB)', 'GENE REQ', 'Zygosity', 'SIFT', 'PolyPhen', @frequencies_header);
+
+  foreach my $individual (sort keys %$chart_data) {
+    push @charts, {
+      type => 'Table',
+      title => $individual,
+      data => $chart_data->{$individual},
+      sort => 'value',
+    };
+    $count++;
+  }
+
+  my $html_output_file = $self->{user_params}->{html_report};
+  my $fh_out = FileHandle->new($html_output_file, 'w');
+  print $fh_out stats_html_head(\@charts);
+  print $fh_out "<div class='main_content'>";
+
+  print $fh_out p("G2P genes: $count_g2p_genes");
+  print $fh_out p("G2P genes in input VCF file: $count_in_vcf_file");
+  print $fh_out p("G2P complete genes in input VCF file: $count_complete_genes");
+
+  print $fh_out h1("Summary for G2P complete genes per Individual");
+
+  foreach my $population (qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/) {
+    my $description = $maf_key_2_population_name->{$population};
+    print $fh_out p("<b>$population</b> $description");
+  }
+
+
+my $switch =<<SHTML;
+<form>
+<div class="checkbox">
+  <label>
+    <input class="target" type="checkbox"> Show only canonical transcript
+  </label>
+</div>
+</form>
+SHTML
+
+  print $fh_out $switch;
+
+  print $fh_out "<ul>\n";
+  foreach my $individual (keys %$new_chart_data) {
+    foreach my $gene_symbol (keys %{$new_chart_data->{$individual}}) {
+      foreach my $ar (keys %{$new_chart_data->{$individual}->{$gene_symbol}}) {
+        foreach my $transcript_stable_id (keys %{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
+          my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
+          print $fh_out "<li><a style=\"$class\" href=\"#$individual\_$gene_symbol\_$ar\_$transcript_stable_id\">" . "$individual > $gene_symbol > $ar > $transcript_stable_id" . "</a> </li>\n";
+          # pointer-events:none
+        }
+      }
+    }
+  }
+  print $fh_out "</ul>\n";
+
+
+=begin
+  foreach my $chart(@charts) {
+    print $fh_out hr();
+    print $fh_out h3({id => $chart->{id}}, $chart->{title});
+    print $fh_out "<TABLE  class=\"table table-bordered\">";
+    print $fh_out Tr(th(\@header) );
+    foreach my $data (@{$chart->{data}}) {
+      my $data_row = $data->[0];
+      my $is_canonical = $data->[1];
+      my $class = (!$is_canonical) ? 'not_canonical' : 'is_canonical';
+      print $fh_out Tr( {-class => $class},  td( $data_row ) );
+    }
+    print $fh_out "</TABLE>\n";
+  }
+
+  print $fh_out '</div>';
+  print $fh_out hr();
+=end
+=cut
+
+  foreach my $individual (keys %$new_chart_data) {
+#    print $fh_out h3($individual);
+    foreach my $gene_symbol (keys %{$new_chart_data->{$individual}}) {
+#      print $fh_out div({-style=>'margin-left: 1em;'}, h3("$individual > $gene_symbol"));
+      foreach my $ar (keys %{$new_chart_data->{$individual}->{$gene_symbol}}) {
+#        print $fh_out div({-style=>'margin-left: 1.5em;'}, h3("$individual > $gene_symbol > $ar"));
+        foreach my $transcript_stable_id (keys %{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
+          my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
+          print $fh_out "<div class=\"$class\">";
+#            print $fh_out div({-style=>'margin-left: 0em;'}, h3("$individual > $gene_symbol > $ar > $transcript_stable_id"));
+          my $name = "$individual\_$gene_symbol\_$ar\_$transcript_stable_id";
+          my $title = "$individual > $gene_symbol > $ar > $transcript_stable_id";
+          print $fh_out "<h3><a class=\"anchor\" name=\"$name\" style=\"text-decoration:none\">$title</a><a title=\"Back to Top\" href='#top'><span class=\"glyphicon glyphicon-arrow-up\" aria-hidden=\"true\"></span></a></h3>\n";
+          print $fh_out "<div class=\"table-responsive\">\n";
+            print $fh_out "<TABLE  class=\"table table-bordered table-condensed\" style=\"margin-left: 2em\">";
+            print $fh_out "<thead>\n";
+            print $fh_out Tr(th(\@new_header) );
+            print $fh_out "</thead>\n";
+            print $fh_out "<tbody>\n";
+            foreach my $vf_data (@{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
+              my $data_row = $vf_data->[0];
+#              my $is_canonical = $vf_data->[1];
+#              my $class = (!$is_canonical) ? 'not_canonical' : 'is_canonical';
+#              print $fh_out Tr( {-class => $class},  td( $data_row ) );
+              print $fh_out Tr(td($data_row));
+
+            }
+            print $fh_out "</tbody>\n";
+            print $fh_out "</TABLE>\n";
+          print $fh_out "</div>\n";
+          print $fh_out "</div>\n";
+        }
+      }
+    }
+  }
+
+  print $fh_out stats_html_tail();
+
+}
+
+sub chart_and_txt_data {
+  my $self = shift;
+  my $result_summary = shift;
+  my $individuals = $result_summary->{individuals};
+  my $complete_genes = $result_summary->{complete_genes};
+  my $acting_ars = $result_summary->{acting_ars};
+  my $new_order = $result_summary->{new_order};
+
+  my @frequencies_header = qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/; 
+  my $maf_key_2_population_name = {
+    AFR => '1000GENOMES:phase_3:AFR',
+    AMR => '1000GENOMES:phase_3:AMR',
+    EAS => '1000GENOMES:phase_3:EAS',
+    EUR => '1000GENOMES:phase_3:EUR',
+    SAS => '1000GENOMES:phase_3:SAS',
+    AA => 'Exome Sequencing Project 6500:African_American',
+    EA => 'Exome Sequencing Project 6500:European_American',
+    ExAC => 'Exome Aggregation Consortium:Total',
+    ExAC_AFR => 'Exome Aggregation Consortium:African/African American',
+    ExAC_AMR => 'Exome Aggregation Consortium:American',
+    ExAC_Adj => 'Exome Aggregation Consortium:Adjusted',
+    ExAC_EAS => 'Exome Aggregation Consortium:East Asian',
+    ExAC_FIN => 'Exome Aggregation Consortium:Finnish',
+    ExAC_NFE => 'Exome Aggregation Consortium:Non-Finnish European',
+    ExAC_OTH => 'Exome Aggregation Consortium:Other',
+    ExAC_SAS => 'Exome Aggregation Consortium:South Asian',
+  };
+
+  my $transcripts = {};
+  my $canonical_transcripts = {};
+  my $transcript_adaptor = $self->{config}->{ta};
+  my $new_chart_data = {};
+
+  foreach my $individual (keys %$new_order) {
+#    print STDERR $individual, "\n";
+    foreach my $gene_symbol (keys %{$new_order->{$individual}}) {
+#      print STDERR "  $gene_symbol\n";
+      foreach my $ar (keys %{$new_order->{$individual}->{$gene_symbol}}) {
+#          print STDERR "    $ar\n";
+        foreach my $transcript_stable_id (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}}) {
+#          print STDERR "      $transcript_stable_id\n";
+          foreach my $vf_name (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
+            my $data = $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$transcript_stable_id};
+
+            my $hash = {};
+            foreach my $pair (split/;/, $data) {
+              my ($key, $value) = split('=', $pair, 2);
+              $value ||= '';
+              $hash->{$key} = $value;
+            }
+            my $vf_location = $hash->{vf_location};
+            my $existing_name = $hash->{existing_name};
+            my $refseq = $hash->{refseq};
+            my $failed = $hash->{failed};
+            my $clin_sign = $hash->{clin_sig};
+            my $novel = $hash->{novel};
+            my $hgvs_t = $hash->{hgvs_t};
+            my $hgvs_p = $hash->{hgvs_p};
+            my $allelic_requirement = $hash->{allele_requirement};
+            my $observed_allelic_requirement = $hash->{ar_in_g2pdb};
+            my $consequence_types = $hash->{consequence_types};
+            my $zygosity = $hash->{zyg};
+            my $sift_score = $hash->{sift_score} || '0.0';
+            my $sift_prediction = $hash->{sift_prediction};
+            my $sift = 'NA';
+            my $sift_bg_color = '';
+            if ($sift_prediction ne 'NA') {
+              $sift = "$sift_prediction(" . "$sift_score)";
+            }
+            my $polyphen_score = $hash->{polyphen_score} || '0.0';
+            my $polyphen_prediction = $hash->{polyphen_prediction};
+            my $polyphen = 'NA';
+            if ($polyphen_prediction ne 'NA') {
+              $polyphen = "$polyphen_prediction($polyphen_score)";
+            }
+            
+            my %frequencies_hash = ();
+            if ($hash->{frequencies} ne 'NA') {
+              %frequencies_hash = split /[,=]/, $hash->{frequencies};
+            }
+            my @frequencies = ();
+            my @txt_output_frequencies = ();
+            foreach my $population (@frequencies_header) {
+              my $frequency = $frequencies_hash{$population} || '';
+              push @frequencies, "$frequency";
+              if ($frequency) {
+                push @txt_output_frequencies, "$population=$frequency";
+              }
+            }
+#            my $acting_ar = join(',', sort keys (%{$acting_ars->{$gene_symbol}->{$individual}}));
+
+            my $is_canonical = 0;
+            if ($hash->{is_canonical}) {
+              $is_canonical = ($hash->{is_canonical} eq 'yes') ? 1 : 0;
+            } else {
+              if ($transcripts->{$transcript_stable_id}) {
+                $is_canonical = 1 if ($canonical_transcripts->{$transcript_stable_id});
+              } else {
+                my $transcript = $transcript_adaptor->fetch_by_stable_id($transcript_stable_id);
+                $is_canonical = $transcript->is_canonical();
+                $transcripts->{$transcript_stable_id} = 1;
+                $canonical_transcripts->{$transcript_stable_id} = 1 if ($is_canonical);
+              }
+            }
+            my ($location, $alleles) = split(' ', $vf_location);
+            $location =~ s/\-/:/;
+            $alleles =~ s/\//:/;
+
+            push @{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}, [[
+              $vf_location, 
+              $vf_name, 
+              $existing_name, 
+              $zygosity, 
+              $consequence_types, 
+              $clin_sign, 
+              $sift, 
+              $polyphen, 
+              $novel, 
+              $failed, 
+              @frequencies,
+              $hgvs_t, 
+              $hgvs_p, 
+              $refseq 
+            ], $is_canonical];
+
+          }
+        }
+      }
+    }
+  }
+
+  my $chart_data = {};
+  my $txt_output_data = {};
+  foreach my $individual (keys %$individuals) {
+    foreach my $gene_symbol (keys %{$individuals->{$individual}}) {
+      foreach my $vf_name (keys %{$individuals->{$individual}->{$gene_symbol}}) {
+        foreach my $tr_stable_id (keys %{$individuals->{$individual}->{$gene_symbol}->{$vf_name}}) {
+          if ($complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id}) {
+            my $data = $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$tr_stable_id};
+
+            my $hash = {};
+            foreach my $pair (split/;/, $data) {
+              my ($key, $value) = split('=', $pair, 2);
+              $value ||= '';
+              $hash->{$key} = $value;
+            }
+            my $vf_location = $hash->{vf_location};
+            my $existing_name = $hash->{existing_name};
+            my $refseq = $hash->{refseq};
+            my $failed = $hash->{failed};
+            my $clin_sign = $hash->{clin_sig};
+            my $novel = $hash->{novel};
+            my $hgvs_t = $hash->{hgvs_t};
+            my $hgvs_p = $hash->{hgvs_p};
+            my $allelic_requirement = $hash->{allele_requirement};
+            my $observed_allelic_requirement = $hash->{ar_in_g2pdb};
+            my $consequence_types = $hash->{consequence_types};
+            my $zygosity = $hash->{zyg};
+            my $sift_score = $hash->{sift_score} || '0.0';
+            my $sift_prediction = $hash->{sift_prediction};
+            my $sift = 'NA';
+            if ($sift_prediction ne 'NA') {
+              $sift = "$sift_prediction(" . "$sift_score)";
+            }
+            my $polyphen_score = $hash->{polyphen_score} || '0.0';
+            my $polyphen_prediction = $hash->{polyphen_prediction};
+            my $polyphen = 'NA';
+            if ($polyphen_prediction ne 'NA') {
+              $polyphen = "$polyphen_prediction($polyphen_score)";
+            }
+            my %frequencies_hash = ();
+            if ($hash->{frequencies} ne 'NA') {
+              %frequencies_hash = split /[,=]/, $hash->{frequencies};
+            }
+            my @frequencies = ();
+            my @txt_output_frequencies = ();
+            foreach my $population (@frequencies_header) {
+              
+              my $frequency = $frequencies_hash{$population} || 'NA';
+              push @frequencies, "$frequency";
+              if ($frequency) {
+                push @txt_output_frequencies, "$population=$frequency";
+              }
+            }
+            my $acting_ar = join(',', sort keys (%{$acting_ars->{$gene_symbol}->{$individual}}));
+
+            my $is_canonical = 0;
+            if ($hash->{is_canonical}) {
+              $is_canonical = ($hash->{is_canonical} eq 'yes') ? 1 : 0;
+            } else {
+              if ($transcripts->{$tr_stable_id}) {
+                $is_canonical = 1 if ($canonical_transcripts->{$tr_stable_id});
+              } else {
+                my $transcript = $transcript_adaptor->fetch_by_stable_id($tr_stable_id);
+                $is_canonical = $transcript->is_canonical();
+                $transcripts->{$tr_stable_id} = 1;
+                $canonical_transcripts->{$tr_stable_id} = 1 if ($is_canonical);
+              }
+            }
+            my ($location, $alleles) = split(' ', $vf_location);
+            $location =~ s/\-/:/;
+            $alleles =~ s/\//:/;
+            my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
+            if (@txt_output_frequencies) {
+              $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
+            }
+
+            $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{is_canonical} = $is_canonical;
+            $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{acting_ar} = $acting_ar;
+            push @{$txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{variants}}, $txt_output_variant;
+            push @{$chart_data->{$individual}}, [[$vf_location, $gene_symbol, $tr_stable_id, $hgvs_t, $hgvs_p, $refseq, $vf_name, $existing_name, $novel, $failed, $clin_sign, $consequence_types, $observed_allelic_requirement, $acting_ar, $zygosity, $sift, $polyphen, @frequencies], $is_canonical];
+
+          }
+        }
+      }
+    }
+  }
+  return {txt_data => $txt_output_data, chart_data => $chart_data, new_chart_data => $new_chart_data, canonical_transcripts => $canonical_transcripts};
+}
+
+
+sub parse_log_files {
+  my $self = shift;
+
+  my $log_dir = $self->{user_params}->{log_dir}; 
+  my @files = <$log_dir/*>;
+
+  my $genes = {};
+  my $individuals = {};
+  my $complete_genes = {};
+  my $g2p_list = {};
+  my $in_vcf_file = {};
+  my $cache = {};
+  my $acting_ars = {};
+
+  my $new_order = {};
+
+  foreach my $file (@files) {
+    my $fh = FileHandle->new($file, 'r');
+    while (<$fh>) {
+      chomp;
+      if (/^G2P_list/) {
+        my ($flag, $gene_symbol, $DDD_category) = split/\t/;
+        $g2p_list->{$gene_symbol} = 1;
+      } elsif (/^G2P_in_vcf/) {
+        my ($flag, $gene_symbol) = split/\t/;
+        $in_vcf_file->{$gene_symbol} = 1;
+      } elsif (/^G2P_complete/) {
+        my ($flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $ars, $zyg) = split/\t/;
+        foreach my $ar (split(',', $ars)) {
+          if ($ar eq 'biallelic') {
+            # homozygous, report complete
+            if (uc($zyg) eq 'HOM') {
+              $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
+              $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
+              $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
+            }
+            # heterozygous
+            # we need to cache that we've observed one
+            elsif (uc($zyg) eq 'HET') {
+              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} > 0) {
+                $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
+                $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
+                $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
+              }
+              $cache->{$individual}->{$tr_stable_id}->{$vf_name}++;
+            }
+          }
+          # monoallelic genes require only one allele
+          elsif ($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'monoallelic (X; hemizygous)' || $ar eq 'x-linked over-dominance') {
+            $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
+            $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
+            $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
+          }
+        }
+      } elsif (/^G2P_flag/) {
+        my ($flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data) = split/\t/;
+        $genes->{$gene_symbol}->{"$individual\t$vf_name"}->{$tr_stable_id} = $g2p_data;
+        $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$tr_stable_id} = $g2p_data;
+      } else {
+
+      }
+    }
+    $fh->close();
+  }
+  return {
+    genes => $genes,
+    individuals => $individuals,
+    complete_genes => $complete_genes,
+    g2p_list => $g2p_list,
+    in_vcf_file => $in_vcf_file,
+    acting_ars => $acting_ars,
+    new_order => $new_order,
+  };
+}
+
+
+sub stats_html_head {
+    my $charts = shift;
+
+    my $html =<<SHTML;
+<html>
+<head>
+  <title>VEP summary</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <style>
+    a.inactive {
+      color: grey;
+      pointer-events:none;
+    }
+  </style>
+</head>
+<body>
+SHTML
+  return $html;
+}
+
+sub stats_html_tail {
+  my $script =<<SHTML;
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+  <script>
+    \$( "input[type=checkbox]" ).on( "click", function(){
+      if (\$('.target').is(':checked')) {
+        \$( "div.not_canonical" ).hide();
+        \$("a.not_canonical").addClass("inactive");
+      } else {
+        \$( "div.not_canonical" ).show();
+        \$("a.not_canonical").removeClass("inactive");
+      }
+    } );
+  \$(document).ready(function(){
+    \$('[data-toggle="tooltip"]').tooltip(); 
+  });
+  </script>
+SHTML
+  return "\n</div>\n$script\n</body>\n</html>\n";
+}
+
+sub sort_keys {
+  my $data = shift;
+  my $sort = shift;
+  print $data, "\n";
+  my @keys;
+
+  # sort data
+  if(defined($sort)) {
+    if($sort eq 'chr') {
+      @keys = sort {($a !~ /^\d+$/ || $b !~ /^\d+/) ? $a cmp $b : $a <=> $b} keys %{$data};
+    }
+    elsif($sort eq 'value') {
+      @keys = sort {$data->{$a} <=> $data->{$b}} keys %{$data};
+    }
+    elsif(ref($sort) eq 'HASH') {
+      @keys = sort {$sort->{$a} <=> $sort->{$b}} keys %{$data};
+    }
+  }
+  else {
+    @keys = keys %{$data};
+  }
+
+  return \@keys;
 }
 
 1;
