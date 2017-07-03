@@ -17,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
