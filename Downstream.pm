@@ -116,7 +116,7 @@ sub run {
         }
         
         # translate
-        my $new_pep = $codon_seq->translate(undef, undef, undef, $codon_table)->seq();
+        my $new_pep = $codon_seq->translate(-codontable_id => $codon_table)->seq();
         $new_pep =~ s/\*.*//;
         
         # compare lengths
