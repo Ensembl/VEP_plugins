@@ -250,6 +250,7 @@ sub new {
     $self->{config}->{reg} = $reg;
   }
 
+
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
   $va->db->use_vcf(1);
   $va->db->include_failed_variations(1);
@@ -547,16 +548,33 @@ sub get_freq {
 
  # cache it on VF...
   if (!exists($cache->{$allele}->{freq})) {
-    foreach my $ex (@{$vf->{existing} || []}) {
-
+    if (!$vf->{existing}) {
+      my $freqs = {};  
+      my $exac_data = $self->get_ExAC_frequencies($tva, $allele, $vf_name); 
+      foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
+        if ($maf_key =~ /^ExAC/) {
+          my $exac_key = $maf_key;
+          $exac_key =~ s/ExAC/ExAC_AF/;
+          my $freq = $exac_data->{$exac_key};
+          $freqs->{$maf_key} = $freq if ($freq);
+        }
+      }      
+      $cache->{$allele}->{freq} = $freqs;
+      $cache->{$allele}->{ex_variant} = undef;
+    } else { 
+    
+    my @existing_variants = @{$vf->{existing}};
+    my @dbSNP_variants = grep {$_->{variation_name} =~ /^rs/} @existing_variants; 
+    if (@dbSNP_variants) {
+      @existing_variants = @dbSNP_variants;
+    }
+    foreach my $ex (@existing_variants) {
       my $existing_allele_string = $ex->{allele_string};
       my $variation_name = $ex->{variation_name};
-      next if ($variation_name !~ /^rs/);
       my $freqs = {};  
       my $has_exac = 0;
 
       foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
-        
         my $freq = $self->{user_params}->{default_maf};
         if ($maf_key eq 'minor_allele_freq') {
           if (defined $ex->{minor_allele_freq}) {
@@ -590,7 +608,7 @@ sub get_freq {
         }
         $freqs->{$maf_key} = $freq if ($freq);
       }
-
+      
       if (!$has_exac) {
         my $exac_data = $self->get_ExAC_frequencies($tva, $allele, $vf_name); 
         foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
@@ -605,6 +623,10 @@ sub get_freq {
       $cache->{$allele}->{freq} = $freqs;
       $cache->{$allele}->{ex_variant} = $ex;
     }
+    }
+
+
+
   } 
   return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
 }
@@ -701,10 +723,9 @@ sub generate_report {
   my $chart_txt_data = $self->chart_and_txt_data($result_summary);
   my $chart_data = $chart_txt_data->{chart_data};
   my $txt_data = $chart_txt_data->{txt_data};
-  my $new_chart_data = $chart_txt_data->{new_chart_data};
   my $canonical_transcripts = $chart_txt_data->{canonical_transcripts};
   $self->write_txt_output($txt_data);
-  $self->write_charts($result_summary, $chart_data, $new_chart_data, $canonical_transcripts);
+  $self->write_charts($result_summary, $chart_data, $canonical_transcripts);
 }
 
 sub write_txt_output {
@@ -714,12 +735,13 @@ sub write_txt_output {
   my $fh_txt = FileHandle->new($txt_output_file, 'w');
   foreach my $individual (keys %$txt_output_data) {
     foreach my $gene_symbol (keys %{$txt_output_data->{$individual}}) {
-      foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_symbol}}) {
-        my $is_canonical = $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{is_canonical};
-        my $canonical_tag = ($is_canonical) ? 'is_canonical' : 'not_canonical';
-        my $acting_ar = $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{acting_ar};
-        my $variants = join(';', @{$txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{variants}});
-        print $fh_txt "$individual $gene_symbol $tr_stable_id $canonical_tag $acting_ar $variants\n";
+      foreach my $ar (keys %{$txt_output_data->{$individual}->{$gene_symbol}}) {
+        foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}}) {
+          my $is_canonical = $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{is_canonical};
+          my $canonical_tag = ($is_canonical) ? 'is_canonical' : 'not_canonical';
+          my $variants = join(';', @{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{variants}});
+          print $fh_txt "$individual $gene_symbol $tr_stable_id $canonical_tag $ar $variants\n";
+        }
       }
     }
   }
@@ -730,15 +752,13 @@ sub write_charts {
   my $self = shift;
   my $result_summary = shift;
   my $chart_data = shift;
-  my $new_chart_data = shift;
   my $canonical_transcripts = shift;
 
   my $count_g2p_genes = keys %{$result_summary->{g2p_list}};
   my $count_in_vcf_file = keys %{$result_summary->{in_vcf_file}};
-  my $count_complete_genes = keys %{$result_summary->{complete_genes}};
+  my $count_complete_genes = scalar keys %{$result_summary->{complete_genes}};
 
   my @charts = ();
-#  my @frequencies_header = qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/;
   my @frequencies_header = (); 
   my $maf_key_2_population_name = {
     AFR => '1000GENOMES:phase_3:AFR',
@@ -761,7 +781,6 @@ sub write_charts {
 
   foreach my $short_name (qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/) {
     my $text = $maf_key_2_population_name->{$short_name};
-#    push @frequencies_header, "<span style=\"cursor: pointer\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</span>";
     push @frequencies_header, "<a style=\"cursor: pointer\" data-placement=\"top\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</a>";
   }
 
@@ -771,6 +790,7 @@ sub write_charts {
     'Variant name', 
     'Existing name', 
     'Zygosity', 
+    'All allelic requirements from G2P DB',
     'Consequence types', 
     'ClinVar annotation', 
     'SIFT', 
@@ -783,33 +803,16 @@ sub write_charts {
     'RefSeq IDs', 
   );
 
-  my @header = ('Variant location and alleles (REF/ALT)', 'Gene symbol', 'Transcript stable ID', 'HGVS transcript', 'HGVS protein', 'RefSeq IDs', 'Variant name', 'Existing name', 'Novel variant', 'Has been failed by Ensembl', 'ClinVar annotation', 'Consequence types', 'Allelic requirement (all observed in G2P DB)', 'GENE REQ', 'Zygosity', 'SIFT', 'PolyPhen', @frequencies_header);
-
-  foreach my $individual (sort keys %$chart_data) {
-    push @charts, {
-      type => 'Table',
-      title => $individual,
-      data => $chart_data->{$individual},
-      sort => 'value',
-    };
-    $count++;
-  }
-
   my $html_output_file = $self->{user_params}->{html_report};
   my $fh_out = FileHandle->new($html_output_file, 'w');
   print $fh_out stats_html_head(\@charts);
-  print $fh_out "<div class='main_content'>";
+  print $fh_out "<div class='main_content container'>";
 
   print $fh_out p("G2P genes: $count_g2p_genes");
   print $fh_out p("G2P genes in input VCF file: $count_in_vcf_file");
   print $fh_out p("G2P complete genes in input VCF file: $count_complete_genes");
 
-  print $fh_out h1("Summary for G2P complete genes per Individual");
-
-  foreach my $population (qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/) {
-    my $description = $maf_key_2_population_name->{$population};
-    print $fh_out p("<b>$population</b> $description");
-  }
+  print $fh_out h1("Summary for G2P complete genes per individual");
 
 
 my $switch =<<SHTML;
@@ -824,79 +827,57 @@ SHTML
 
   print $fh_out $switch;
 
-  print $fh_out "<ul>\n";
-  foreach my $individual (keys %$new_chart_data) {
-    foreach my $gene_symbol (keys %{$new_chart_data->{$individual}}) {
-      foreach my $ar (keys %{$new_chart_data->{$individual}->{$gene_symbol}}) {
-        foreach my $transcript_stable_id (keys %{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
+  foreach my $individual (keys %$chart_data) {
+    foreach my $gene_symbol (keys %{$chart_data->{$individual}}) {
+      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_symbol}}) {
+        print $fh_out "<ul>\n";
+        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
           my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
-          print $fh_out "<li><a style=\"$class\" href=\"#$individual\_$gene_symbol\_$ar\_$transcript_stable_id\">" . "$individual > $gene_symbol > $ar > $transcript_stable_id" . "</a> </li>\n";
-          # pointer-events:none
+          print $fh_out "<li><a class=\"$class\" href=\"#$individual\_$gene_symbol\_$ar\_$transcript_stable_id\">" . "$individual &gt; $gene_symbol &gt; $ar &gt; $transcript_stable_id" . "</a> </li>\n";
         }
+        print $fh_out "</ul>\n";
       }
     }
   }
-  print $fh_out "</ul>\n";
 
-
-=begin
-  foreach my $chart(@charts) {
-    print $fh_out hr();
-    print $fh_out h3({id => $chart->{id}}, $chart->{title});
-    print $fh_out "<TABLE  class=\"table table-bordered\">";
-    print $fh_out Tr(th(\@header) );
-    foreach my $data (@{$chart->{data}}) {
-      my $data_row = $data->[0];
-      my $is_canonical = $data->[1];
-      my $class = (!$is_canonical) ? 'not_canonical' : 'is_canonical';
-      print $fh_out Tr( {-class => $class},  td( $data_row ) );
-    }
-    print $fh_out "</TABLE>\n";
-  }
-
-  print $fh_out '</div>';
-  print $fh_out hr();
-=end
-=cut
-
-  foreach my $individual (keys %$new_chart_data) {
-#    print $fh_out h3($individual);
-    foreach my $gene_symbol (keys %{$new_chart_data->{$individual}}) {
-#      print $fh_out div({-style=>'margin-left: 1em;'}, h3("$individual > $gene_symbol"));
-      foreach my $ar (keys %{$new_chart_data->{$individual}->{$gene_symbol}}) {
-#        print $fh_out div({-style=>'margin-left: 1.5em;'}, h3("$individual > $gene_symbol > $ar"));
-        foreach my $transcript_stable_id (keys %{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
+  foreach my $individual (keys %$chart_data) {
+    foreach my $gene_symbol (keys %{$chart_data->{$individual}}) {
+      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_symbol}}) {
+        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
           my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
           print $fh_out "<div class=\"$class\">";
-#            print $fh_out div({-style=>'margin-left: 0em;'}, h3("$individual > $gene_symbol > $ar > $transcript_stable_id"));
           my $name = "$individual\_$gene_symbol\_$ar\_$transcript_stable_id";
-          my $title = "$individual > $gene_symbol > $ar > $transcript_stable_id";
-          print $fh_out "<h3><a class=\"anchor\" name=\"$name\" style=\"text-decoration:none\">$title</a><a title=\"Back to Top\" href='#top'><span class=\"glyphicon glyphicon-arrow-up\" aria-hidden=\"true\"></span></a></h3>\n";
-          print $fh_out "<div class=\"table-responsive\">\n";
-            print $fh_out "<TABLE  class=\"table table-bordered table-condensed\" style=\"margin-left: 2em\">";
-            print $fh_out "<thead>\n";
-            print $fh_out Tr(th(\@new_header) );
-            print $fh_out "</thead>\n";
-            print $fh_out "<tbody>\n";
-            foreach my $vf_data (@{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
-              my $data_row = $vf_data->[0];
-#              my $is_canonical = $vf_data->[1];
-#              my $class = (!$is_canonical) ? 'not_canonical' : 'is_canonical';
-#              print $fh_out Tr( {-class => $class},  td( $data_row ) );
-              print $fh_out Tr(td($data_row));
-
+          my $title = "$individual &gt; $gene_symbol &gt; $ar &gt; $transcript_stable_id";
+          print $fh_out "<h3><a name=\"$name\"></a>$title <a title=\"Back to Top\" data-toggle=\"tooltip\" href='#top'><span class=\"glyphicon glyphicon-arrow-up\" aria-hidden=\"true\"></span></a></h3>\n";
+          print $fh_out "<div class=\"table-responsive\" style=\"width:100%\">\n";
+          print $fh_out "<TABLE  class=\"table table-bordered table-condensed\" style=\"margin-left: 2em\">";
+          print $fh_out "<thead>\n";
+          print $fh_out Tr(th(\@new_header) );
+          print $fh_out "</thead>\n";
+          print $fh_out "<tbody>\n";
+          foreach my $vf_data (@{$chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
+            my $data_row = $vf_data->[0];
+            my @tds = ();
+            foreach my $cell (@$data_row) {
+              my $value = $cell->[0];
+              my $class = $cell->[1];
+              if ($class) {
+                push @tds, "<td class=\"$class\">$value</td>";
+              } else {
+                push @tds, "<td>$value</td>";
+              }
             }
-            print $fh_out "</tbody>\n";
-            print $fh_out "</TABLE>\n";
+            print $fh_out "<tr>", join('', @tds), "</tr>\n";
+          }
+          print $fh_out "</tbody>\n";
+          print $fh_out "</TABLE>\n";
           print $fh_out "</div>\n";
           print $fh_out "</div>\n";
         }
       }
     }
   }
-
   print $fh_out stats_html_tail();
-
 }
 
 sub chart_and_txt_data {
@@ -930,16 +911,22 @@ sub chart_and_txt_data {
   my $transcripts = {};
   my $canonical_transcripts = {};
   my $transcript_adaptor = $self->{config}->{ta};
-  my $new_chart_data = {};
+  my $chart_data = {};
+  my $txt_output_data = {};
+
+  my $prediction2bgcolor = {
+    'probably damaging' => 'danger',
+    'deleterious' => 'danger',
+    'possibly damaging' => 'warning',
+    'unknown'  => 'warning',
+    'benign' => 'success',
+    'tolerated' => 'success',
+  };
 
   foreach my $individual (keys %$new_order) {
-#    print STDERR $individual, "\n";
     foreach my $gene_symbol (keys %{$new_order->{$individual}}) {
-#      print STDERR "  $gene_symbol\n";
       foreach my $ar (keys %{$new_order->{$individual}->{$gene_symbol}}) {
-#          print STDERR "    $ar\n";
         foreach my $transcript_stable_id (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}}) {
-#          print STDERR "      $transcript_stable_id\n";
           foreach my $vf_name (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
             my $data = $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$transcript_stable_id};
 
@@ -951,6 +938,9 @@ sub chart_and_txt_data {
             }
             my $vf_location = $hash->{vf_location};
             my $existing_name = $hash->{existing_name};
+            if ($existing_name ne 'NA') {
+              $existing_name = "<a href=\"http://grch37.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
+            }
             my $refseq = $hash->{refseq};
             my $failed = $hash->{failed};
             my $clin_sign = $hash->{clin_sig};
@@ -964,15 +954,18 @@ sub chart_and_txt_data {
             my $sift_score = $hash->{sift_score} || '0.0';
             my $sift_prediction = $hash->{sift_prediction};
             my $sift = 'NA';
-            my $sift_bg_color = '';
+            my $sift_class = '';
             if ($sift_prediction ne 'NA') {
               $sift = "$sift_prediction(" . "$sift_score)";
+              $sift_class = $prediction2bgcolor->{$sift_prediction};
             }
             my $polyphen_score = $hash->{polyphen_score} || '0.0';
             my $polyphen_prediction = $hash->{polyphen_prediction};
             my $polyphen = 'NA';
+            my $polyphen_class = '';
             if ($polyphen_prediction ne 'NA') {
               $polyphen = "$polyphen_prediction($polyphen_score)";
+              $polyphen_class =  $prediction2bgcolor->{$polyphen_prediction};
             }
             
             my %frequencies_hash = ();
@@ -983,13 +976,11 @@ sub chart_and_txt_data {
             my @txt_output_frequencies = ();
             foreach my $population (@frequencies_header) {
               my $frequency = $frequencies_hash{$population} || '';
-              push @frequencies, "$frequency";
+              push @frequencies, ["$frequency"];
               if ($frequency) {
                 push @txt_output_frequencies, "$population=$frequency";
               }
             }
-#            my $acting_ar = join(',', sort keys (%{$acting_ars->{$gene_symbol}->{$individual}}));
-
             my $is_canonical = 0;
             if ($hash->{is_canonical}) {
               $is_canonical = ($hash->{is_canonical} eq 'yes') ? 1 : 0;
@@ -1007,118 +998,37 @@ sub chart_and_txt_data {
             $location =~ s/\-/:/;
             $alleles =~ s/\//:/;
 
-            push @{$new_chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}, [[
-              $vf_location, 
-              $vf_name, 
-              $existing_name, 
-              $zygosity, 
-              $consequence_types, 
-              $clin_sign, 
-              $sift, 
-              $polyphen, 
-              $novel, 
-              $failed, 
+            push @{$chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}, [[
+              [$vf_location], 
+              [$vf_name], 
+              [$existing_name], 
+              [$zygosity], 
+              [$observed_allelic_requirement],
+              [$consequence_types], 
+              [$clin_sign], 
+              [$sift, $sift_class], 
+              [$polyphen, $polyphen_class], 
+              [$novel], 
+              [$failed], 
               @frequencies,
-              $hgvs_t, 
-              $hgvs_p, 
-              $refseq 
+              [$hgvs_t], 
+              [$hgvs_p], 
+              [$refseq] 
             ], $is_canonical];
 
-          }
-        }
-      }
-    }
-  }
-
-  my $chart_data = {};
-  my $txt_output_data = {};
-  foreach my $individual (keys %$individuals) {
-    foreach my $gene_symbol (keys %{$individuals->{$individual}}) {
-      foreach my $vf_name (keys %{$individuals->{$individual}->{$gene_symbol}}) {
-        foreach my $tr_stable_id (keys %{$individuals->{$individual}->{$gene_symbol}->{$vf_name}}) {
-          if ($complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id}) {
-            my $data = $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$tr_stable_id};
-
-            my $hash = {};
-            foreach my $pair (split/;/, $data) {
-              my ($key, $value) = split('=', $pair, 2);
-              $value ||= '';
-              $hash->{$key} = $value;
-            }
-            my $vf_location = $hash->{vf_location};
-            my $existing_name = $hash->{existing_name};
-            my $refseq = $hash->{refseq};
-            my $failed = $hash->{failed};
-            my $clin_sign = $hash->{clin_sig};
-            my $novel = $hash->{novel};
-            my $hgvs_t = $hash->{hgvs_t};
-            my $hgvs_p = $hash->{hgvs_p};
-            my $allelic_requirement = $hash->{allele_requirement};
-            my $observed_allelic_requirement = $hash->{ar_in_g2pdb};
-            my $consequence_types = $hash->{consequence_types};
-            my $zygosity = $hash->{zyg};
-            my $sift_score = $hash->{sift_score} || '0.0';
-            my $sift_prediction = $hash->{sift_prediction};
-            my $sift = 'NA';
-            if ($sift_prediction ne 'NA') {
-              $sift = "$sift_prediction(" . "$sift_score)";
-            }
-            my $polyphen_score = $hash->{polyphen_score} || '0.0';
-            my $polyphen_prediction = $hash->{polyphen_prediction};
-            my $polyphen = 'NA';
-            if ($polyphen_prediction ne 'NA') {
-              $polyphen = "$polyphen_prediction($polyphen_score)";
-            }
-            my %frequencies_hash = ();
-            if ($hash->{frequencies} ne 'NA') {
-              %frequencies_hash = split /[,=]/, $hash->{frequencies};
-            }
-            my @frequencies = ();
-            my @txt_output_frequencies = ();
-            foreach my $population (@frequencies_header) {
-              
-              my $frequency = $frequencies_hash{$population} || 'NA';
-              push @frequencies, "$frequency";
-              if ($frequency) {
-                push @txt_output_frequencies, "$population=$frequency";
-              }
-            }
-            my $acting_ar = join(',', sort keys (%{$acting_ars->{$gene_symbol}->{$individual}}));
-
-            my $is_canonical = 0;
-            if ($hash->{is_canonical}) {
-              $is_canonical = ($hash->{is_canonical} eq 'yes') ? 1 : 0;
-            } else {
-              if ($transcripts->{$tr_stable_id}) {
-                $is_canonical = 1 if ($canonical_transcripts->{$tr_stable_id});
-              } else {
-                my $transcript = $transcript_adaptor->fetch_by_stable_id($tr_stable_id);
-                $is_canonical = $transcript->is_canonical();
-                $transcripts->{$tr_stable_id} = 1;
-                $canonical_transcripts->{$tr_stable_id} = 1 if ($is_canonical);
-              }
-            }
-            my ($location, $alleles) = split(' ', $vf_location);
-            $location =~ s/\-/:/;
-            $alleles =~ s/\//:/;
-            my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
+            my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen:REQ=$observed_allelic_requirement";
             if (@txt_output_frequencies) {
               $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
             }
-
-            $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{is_canonical} = $is_canonical;
-            $txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{acting_ar} = $acting_ar;
-            push @{$txt_output_data->{$individual}->{$gene_symbol}->{$tr_stable_id}->{variants}}, $txt_output_variant;
-            push @{$chart_data->{$individual}}, [[$vf_location, $gene_symbol, $tr_stable_id, $hgvs_t, $hgvs_p, $refseq, $vf_name, $existing_name, $novel, $failed, $clin_sign, $consequence_types, $observed_allelic_requirement, $acting_ar, $zygosity, $sift, $polyphen, @frequencies], $is_canonical];
-
+            $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{is_canonical} = $is_canonical;
+            push @{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{variants}}, $txt_output_variant;
           }
         }
       }
     }
   }
-  return {txt_data => $txt_output_data, chart_data => $chart_data, new_chart_data => $new_chart_data, canonical_transcripts => $canonical_transcripts};
+  return {txt_data => $txt_output_data, chart_data => $chart_data, canonical_transcripts => $canonical_transcripts};
 }
-
 
 sub parse_log_files {
   my $self = shift;
