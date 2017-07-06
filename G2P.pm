@@ -133,10 +133,10 @@ my $maf_key_2_population_name = {
 
 my $allelic_requirements = {
   'biallelic' => {maf => 0.005, rules => {HET => 2, HOM => 1}},
-  'monoallelic' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
-  'x-linked dominant' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
-  'monoallelic (X; hemizygous)' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
-  'x-linked over-dominance' => {maf => 0.0001, rules => {HET => 1, HOM => 0}},
+  'monoallelic' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
+  'x-linked dominant' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
+  'monoallelic (X; hemizygous)' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
+  'x-linked over-dominance' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
 };
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
@@ -227,7 +227,8 @@ sub new {
       my $cwd_dir = getcwd;
       my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
       $year += 1900;
-      my $stamp = join('_', ($mday, $mon, $hour, $min, $sec));
+      $mon++;
+      my $stamp = join('_', ($year, $mon, $mday, $hour, $min));
       my $file_type = ($report_type eq 'txt_report') ? 'txt' : 'html';
       $params->{$report_type} = $cwd_dir . "/$report_type\_$stamp.$file_type";
     } 
@@ -249,7 +250,6 @@ sub new {
     );
     $self->{config}->{reg} = $reg;
   }
-
 
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
   $va->db->use_vcf(1);
@@ -733,14 +733,15 @@ sub write_txt_output {
   my $txt_output_data = shift; 
   my $txt_output_file = $self->{user_params}->{txt_report};
   my $fh_txt = FileHandle->new($txt_output_file, 'w');
-  foreach my $individual (keys %$txt_output_data) {
+  foreach my $individual (sort keys %$txt_output_data) {
     foreach my $gene_symbol (keys %{$txt_output_data->{$individual}}) {
       foreach my $ar (keys %{$txt_output_data->{$individual}->{$gene_symbol}}) {
         foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}}) {
           my $is_canonical = $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{is_canonical};
           my $canonical_tag = ($is_canonical) ? 'is_canonical' : 'not_canonical';
+          my $req =  $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{REQ};
           my $variants = join(';', @{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{variants}});
-          print $fh_txt "$individual $gene_symbol $tr_stable_id $canonical_tag $ar $variants\n";
+          print $fh_txt join("\t", $individual, $gene_symbol, $tr_stable_id, $canonical_tag, "OBS=$ar", "REQ=$req", $variants), "\n";
         }
       }
     }
@@ -808,12 +809,22 @@ sub write_charts {
   print $fh_out stats_html_head(\@charts);
   print $fh_out "<div class='main_content container'>";
 
+  print $fh_out p("G2P list: ", $self->{user_params}->{file}, " Log directory: ", $self->{user_params}->{log_dir}, " HTML report: ", $self->{user_params}->{html_report}, " TXT report: ", $self->{user_params}->{txt_report});
+
   print $fh_out p("G2P genes: $count_g2p_genes");
   print $fh_out p("G2P genes in input VCF file: $count_in_vcf_file");
   print $fh_out p("G2P complete genes in input VCF file: $count_complete_genes");
 
-  print $fh_out h1("Summary for G2P complete genes per individual");
+  print $fh_out h1("Summary of G2P complete genes per individual");
+  print $fh_out p("G2P complete gene: A sufficient number of variant hits for the observed allelic requirement in at least one of the gene's transcripts. Variants are filtered by frequency.");
+  print $fh_out p("Frequency thresholds and number of required variant hits for each allelic requirement:");
 
+  foreach my $ar (sort keys %$allelic_requirements) {
+    my $maf = $allelic_requirements->{$ar}->{maf};
+    my $rules =  $allelic_requirements->{$ar}->{rules};
+    my $rule = join(' OR ', map {"$_ >= $rules->{$_}"} keys %$rules);
+    print $fh_out p("$ar: Frequency threshold for filtering: $maf, Variant counts by zygosity: $rule");
+  }
 
 my $switch =<<SHTML;
 <form>
@@ -827,7 +838,7 @@ SHTML
 
   print $fh_out $switch;
 
-  foreach my $individual (keys %$chart_data) {
+  foreach my $individual (sort keys %$chart_data) {
     foreach my $gene_symbol (keys %{$chart_data->{$individual}}) {
       foreach my $ar (keys %{$chart_data->{$individual}->{$gene_symbol}}) {
         print $fh_out "<ul>\n";
@@ -840,7 +851,7 @@ SHTML
     }
   }
 
-  foreach my $individual (keys %$chart_data) {
+  foreach my $individual (sort keys %$chart_data) {
     foreach my $gene_symbol (keys %{$chart_data->{$individual}}) {
       foreach my $ar (keys %{$chart_data->{$individual}->{$gene_symbol}}) {
         foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
@@ -923,7 +934,7 @@ sub chart_and_txt_data {
     'tolerated' => 'success',
   };
 
-  foreach my $individual (keys %$new_order) {
+  foreach my $individual (sort keys %$new_order) {
     foreach my $gene_symbol (keys %{$new_order->{$individual}}) {
       foreach my $ar (keys %{$new_order->{$individual}->{$gene_symbol}}) {
         foreach my $transcript_stable_id (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}}) {
@@ -1016,11 +1027,12 @@ sub chart_and_txt_data {
               [$refseq] 
             ], $is_canonical];
 
-            my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen:REQ=$observed_allelic_requirement";
+            my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
             if (@txt_output_frequencies) {
               $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
             }
             $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{is_canonical} = $is_canonical;
+            $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{REQ} = $observed_allelic_requirement;
             push @{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{variants}}, $txt_output_variant;
           }
         }
@@ -1069,10 +1081,14 @@ sub parse_log_files {
             # heterozygous
             # we need to cache that we've observed one
             elsif (uc($zyg) eq 'HET') {
-              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} > 0) {
+              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} >= 1) {
                 $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
                 $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
                 $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
+                # add first observed het variant to the list
+                foreach my $vf (keys %{$cache->{$individual}->{$tr_stable_id}}) {
+                  $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf} = 1;
+                }
               }
               $cache->{$individual}->{$tr_stable_id}->{$vf_name}++;
             }
