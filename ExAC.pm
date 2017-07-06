@@ -60,7 +60,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_3prime_seq_offset);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_3prime_seq_offset trim_sequences);
 
 use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line get_slice);
 
@@ -176,8 +176,10 @@ sub run {
   
   # adjust coords to account for VCF-like storage of indels
   my ($s, $e) = ($vf->{start} - 1, $vf->{end} + 1);
-  
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $s, $e);
+ 
+  my $vf_chr = $vf->{chr};
+  $vf_chr =~ s/chr//;
+  my $pos_string = sprintf("%s:%i-%i", $vf_chr, $s, $e);
 
   
   # clear cache if it looks like the coords are the same
@@ -201,7 +203,6 @@ sub run {
     while(<TABIX>) {
       chomp;
       s/\r$//g;
-      
       # parse VCF line into a VariationFeature object
       my ($vcf_vf) = @{parse_line({format => 'vcf', minimal => 1}, $_)};
       
@@ -238,36 +239,51 @@ sub run {
         }
         my $input_vf_start = $vf->{start} + $offset;
         my $input_vf_end = $vf->{end} + $offset;
-
+        my $empty_to_dash = 1;
+        my $end_first = 1;
         foreach my $alt_allele (@vcf_alleles) {
-          my ($short_string, $long_string ) = ($ref_allele, $alt_allele);
-          if (length($ref_allele) >= length($alt_allele)) {
-            ($short_string, $long_string ) = ($alt_allele, $ref_allele);
-          }
+          my ($new_ref_allele, $new_alt_allele, $new_start, $new_end, $changed) = @{trim_sequences($ref_allele, $alt_allele, $vcf_vf_start, $vcf_vf_end, $empty_to_dash, $end_first)};
+#          my ($short_string, $long_string ) = ($ref_allele, $alt_allele);
+#          if (length($ref_allele) >= length($alt_allele)) {
+#            ($short_string, $long_string ) = ($alt_allele, $ref_allele);
+#          }
           my $var_class = ''; 
 
           my $vf_copy = { %$vcf_vf };
           bless $vf_copy, ref($vcf_vf);
 
-          my $substring = substr($long_string, 0, length($short_string)); 
-          my ($new_ref_allele, $new_alt_allele);
-          if ($substring eq $short_string) {
-            if ($short_string eq $ref_allele) {
-              $var_class = 'insertion';
-              $new_alt_allele =  substr($long_string, length($short_string));
-              $vf_copy->{allele_string} = "-/$new_alt_allele";
-            } else {
-              $var_class = 'deletion';
-              $new_ref_allele = substr($long_string, length($short_string));
-              $vf_copy->{allele_string} = "$new_ref_allele/-";
-            }
-            my $start = $vcf_vf_start + length($short_string);   
-            $vf_copy->{start} = $start;
-          }
+#          my $substring = substr($long_string, 0, length($short_string)); 
+#          print STDERR "Substring $substring Short string $short_string\n";
+#          my ($new_ref_allele, $new_alt_allele);
+#          if ($substring eq $short_string) {
+#          print STDERR "Substring $substring Short string $short_string\n";
 
+#            if ($short_string eq $ref_allele) {
+#              $var_class = 'insertion';
+#              $new_alt_allele =  substr($long_string, length($short_string));
+#              $vf_copy->{allele_string} = "-/$new_alt_allele";
+#            } else {
+#              $var_class = 'deletion';
+#              $new_ref_allele = substr($long_string, length($short_string));
+#              $vf_copy->{allele_string} = "$new_ref_allele/-";
+#            }
+#            my $start = $vcf_vf_start + length($short_string);   
+#            $vf_copy->{start} = $start;
+#          }
+#          print STDERR "var_class $var_class\n";
+          $vf_copy->{allele_string} = "$new_ref_allele/$new_alt_allele";
+          $vf_copy->{start} = $new_start;
+          $vf_copy->{end} = $new_end;
+
+          if ($new_alt_allele eq '-') {
+            $var_class = 'deletion';
+          }
+          if ($new_ref_allele eq '-') {
+            $var_class = 'insertion';
+          }
           if ($var_class eq 'insertion' || $var_class eq 'deletion') {
-            $vf_copy->{slice} ||= get_slice($self->{config}, $vf_copy->{chr}, undef, 1);
-            my ($ref_seq, $ref_start, $ref_end) = _get_flank_seq($vf_copy); 
+#            $vf_copy->{slice} ||= get_slice($self->{config}, $vf_copy->{chr}, undef, 1);
+            my ($ref_seq, $ref_start, $ref_end) = _get_flank_seq($vf); 
 
             my $seq_to_check;
             ## sequence to compare is the reference allele for deletion
