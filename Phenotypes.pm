@@ -109,7 +109,7 @@ sub new {
     my $config = $self->{config};
 
     my $species = $config->{species};
-    my $version = $config->{db_version} || $config->{reg}->software_version;
+    my $version = $config->{db_version} || 'Bio::EnsEMBL::Registry'->software_version;
     my $assembly = $config->{assembly};
 
     $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
