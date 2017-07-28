@@ -86,8 +86,11 @@ sub run {
     # set up a LWP UserAgent
     my $ua = LWP::UserAgent->new;
     $ua->env_proxy;
+
+    my $chr = $vf->{chr};
+    $chr =~ s/^chr//;
     
-    my $locus = sprintf('chr%s:%s_%s', $vf->{chr}, $vf->{start}, $vf->{end});
+    my $locus = sprintf('chr%s:%s_%s', $chr, $vf->{start}, $vf->{end});
     
     my $data;
     
@@ -106,13 +109,9 @@ sub run {
             for(grep {$_ !~ /hg_build/} split /\cJ/, $response->decoded_content) {
                 s/\"//g;
                 
-                my ($build, $pos, $gene, $acc, $dna, $id, $url) = split /\t/;
+                my ($build, $pos, $gene, $acc, $dna, $url) = split /\t/;
                 
-                $data->{$id} = {
-                    gene => $gene,
-                    acc  => $acc,
-                    dna  => $dna
-                };
+                $data = join(',', $gene, $acc, $dna)
             }
             
             $self->{lovd_cache}->{$locus} = $data;
@@ -122,11 +121,7 @@ sub run {
         $data = $self->{lovd_cache}->{$locus};
     }
     
-    return {} unless scalar keys %$data;
-    
-    return {
-        LOVD => (join ",", keys %$data)
-    };
+    return $data ? { LOVD => $data } : {};
 }
 
 1;
