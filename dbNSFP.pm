@@ -38,9 +38,13 @@ limitations under the License.
  Please cite the dbNSFP publication alongside the VEP if you use this resource:
  http://www.ncbi.nlm.nih.gov/pubmed/21520341
  
- The tabix utility must be installed in your path to use this plugin. The dbNSFP
- data file can be downloaded from
+ You must have the Bio::DB::HTS module or the tabix utility must be installed
+ in your path to use this plugin. The dbNSFP data file can be downloaded from
  https://sites.google.com/site/jpopgen/dbNSFP.
+
+ Note that the 3.x releases of dbNSFP use GRCh38/hg38 coordinates; to use
+ this plugin with GRCh37/hg19 data, please download instead one of the 2.9.x
+ releases of dbNSFP.
  
  The file must be processed and indexed by tabix before use by this plugin:
  
