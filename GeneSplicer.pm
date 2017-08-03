@@ -76,6 +76,12 @@ limitations under the License.
    make
    cd -
    ./vep [options] --plugin GeneSplicer,$GS/sources/genesplicer,$GS/human
+
+ On Mac OSX the make step is known to fail; the genesplicer.cpp file requires modification:
+
+   cd $GS/sources
+   perl -pi -e "s/^main  /int main  /" genesplicer.cpp
+   make
  
 
 =cut
