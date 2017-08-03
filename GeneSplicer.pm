@@ -68,8 +68,15 @@ limitations under the License.
  cache_size : change how many sequences' scores are cached in memory
               (default: 50)
 
- Example: --plugin GeneSplicer,$GS/bin,$GS/human,context=200,tmpdir=/mytmp
+ Example: --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
 
+ On some systems the binaries provided will not execute, but can be compiled from source:
+
+   cd $GS/sources
+   make
+   cd -
+   ./vep [options] --plugin GeneSplicer,$GS/sources/genesplicer,$GS/human
+ 
 
 =cut
 
@@ -105,6 +112,8 @@ sub new {
   my $bin = shift @$params;
   die("ERROR: genesplicer binary not specified\n") unless $bin;
   die("ERROR: genesplicer binary not found\n") unless -e $bin;
+  my $test = `$bin 2>&1`;
+  die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
   $self->{_bin} = $bin;
   
   my $training_dir = shift @$params;
