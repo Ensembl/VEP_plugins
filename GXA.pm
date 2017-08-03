@@ -54,6 +54,8 @@ sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
+
+  die("ERROR: This plugin is currently non-functional due to changes in the Gene Expression Atlas API");
   
   $self->{species} =  $self->{config}->{species};
   $self->{species} =~ s/\_/\%20/;
