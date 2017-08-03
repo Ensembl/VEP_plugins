@@ -60,8 +60,12 @@ limitations under the License.
 
 =head1 INSTALLATION
 
- LD calculation requires an additional installation step; a binary
- from the ensembl-variation git repository must be compiled and either
+ LD calculation requires additional installation steps.
+
+ The JSON perl library is required; see VEP's installation instructions
+ for guidance: http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html#additional
+
+ A binary from the ensembl-variation git repository must be compiled and either
  added to your PATH or specified on the command line. In the ensembl-vep
  directory:
 
