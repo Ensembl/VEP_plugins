@@ -193,8 +193,6 @@ sub new {
   $self->{var_adap} = $var_adap;
   $self->{var_feat_adap} = $var_feat_adap;
 
-  $self->{has_cache} = 1;
-
   return $self;
 }
 
