@@ -141,9 +141,6 @@ sub new {
     $self->{'_param_'.$key} = $val;
   }
 
-  # tell VEP this plugin uses a cache
-  $self->{has_cache} = 1;
-
   return $self;
 }
 

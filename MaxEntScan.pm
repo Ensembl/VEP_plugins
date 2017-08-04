@@ -83,9 +83,6 @@ sub new {
   die("ERROR: MaxEntScan directory not found\n") unless -d $dir;
   $self->{_dir} = $dir;
 
-  # tell VEP this plugin uses a cache
-  $self->{has_cache} = 1 unless $self->{config}->{fork};
-
   ## setup from score5.pl
   $self->{'score5_me2x5'} = $self->score5_makescorematrix($dir.'/me2x5');
   $self->{'score5_seq'}   = $self->score5_makesequencematrix($dir.'/splicemodels/splice5sequences');
