@@ -60,7 +60,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_3prime_seq_offset trim_sequences);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line get_slice);
 
@@ -167,6 +167,7 @@ sub run {
   $self->get_header_info();
 
   my $vf = $tva->variation_feature;
+  my $name = $vf->variation_name;
   
   # get allele, reverse comp if needed
   my $allele;
@@ -208,112 +209,22 @@ sub run {
       
       # check parsed OK
       next unless $vcf_vf && $vcf_vf->isa('Bio::EnsEMBL::Variation::VariationFeature');
+
       my @vcf_alleles = split /\//, $vcf_vf->allele_string;
       my $ref_allele  = shift @vcf_alleles;
       my $vcf_vf_start = $vcf_vf->{start};
       my $vcf_vf_end = $vcf_vf->{end};
-      my ($input_ref_allele, $input_alt_allele) = split('/', $vf->allele_string);
 
-#      next unless $vcf_vf->{start} == $vf->{start} && $vcf_vf->{end} == $vf->{end};
-      my $found_variant_after_shifting = 0;
-      if (($vcf_vf_start != $vf->{start} || $vcf_vf_end != $vf->{end})) {
-        # look at alleles individually
-        # create copy for each ref/alt
-        # remove same bases for ref and alt adjust vf coordinates
-        # find out if all the alts start with the same base
-        # 3prime_align input and ExAC variant to check if they are equivalent
-        # deal with ExAV variants that look like this: 2  241696840 . ATCCTCCTCCTCC ATCCTCCTCC,ATCCTCC,ATCC,ATCCTCCTCCTCCTCC,A
+      my @vf_alleles = split /\//, $vf->allele_string;
+      my $vf_ref_allele = shift @vf_alleles;
 
-        my $seq_to_check;
-        my $offset = 0;
-        ## sequence to compare is the reference allele for deletion
-        $seq_to_check = $input_ref_allele if ($input_alt_allele eq '-') ;
-        ## sequence to compare is the alt allele
-        $seq_to_check = $input_alt_allele if ($input_ref_allele eq '-');
-        if ($seq_to_check) {
-          ## 3' flanking sequence to check
-          my ($ref_seq, $ref_start, $ref_end) = _get_flank_seq($vf); 
-          my $downstream_seq = substr($ref_seq ,$ref_end);
-          my $three_prime_allele;
-          ($three_prime_allele, $offset ) = get_3prime_seq_offset($seq_to_check, $downstream_seq);
-        }
-        my $input_vf_start = $vf->{start} + $offset;
-        my $input_vf_end = $vf->{end} + $offset;
-        my $empty_to_dash = 1;
-        my $end_first = 1;
-        foreach my $alt_allele (@vcf_alleles) {
-          my ($new_ref_allele, $new_alt_allele, $new_start, $new_end, $changed) = @{trim_sequences($ref_allele, $alt_allele, $vcf_vf_start, $vcf_vf_end, $empty_to_dash, $end_first)};
-#          my ($short_string, $long_string ) = ($ref_allele, $alt_allele);
-#          if (length($ref_allele) >= length($alt_allele)) {
-#            ($short_string, $long_string ) = ($alt_allele, $ref_allele);
-#          }
-          my $var_class = ''; 
+      if ($vcf_vf_start != $vf->{start} || $vcf_vf_end != $vf->{end}) {
+        my $matched_alleles = get_matched_variant_alleles({ref => $vf_ref_allele, alts => [$allele], pos => $vf->{start}}, {ref => $ref_allele, alts => \@vcf_alleles,  pos => $vcf_vf_start});
 
-          my $vf_copy = { %$vcf_vf };
-          bless $vf_copy, ref($vcf_vf);
-
-#          my $substring = substr($long_string, 0, length($short_string)); 
-#          print STDERR "Substring $substring Short string $short_string\n";
-#          my ($new_ref_allele, $new_alt_allele);
-#          if ($substring eq $short_string) {
-#          print STDERR "Substring $substring Short string $short_string\n";
-
-#            if ($short_string eq $ref_allele) {
-#              $var_class = 'insertion';
-#              $new_alt_allele =  substr($long_string, length($short_string));
-#              $vf_copy->{allele_string} = "-/$new_alt_allele";
-#            } else {
-#              $var_class = 'deletion';
-#              $new_ref_allele = substr($long_string, length($short_string));
-#              $vf_copy->{allele_string} = "$new_ref_allele/-";
-#            }
-#            my $start = $vcf_vf_start + length($short_string);   
-#            $vf_copy->{start} = $start;
-#          }
-#          print STDERR "var_class $var_class\n";
-          $vf_copy->{allele_string} = "$new_ref_allele/$new_alt_allele";
-          $vf_copy->{start} = $new_start;
-          $vf_copy->{end} = $new_end;
-
-          if ($new_alt_allele eq '-') {
-            $var_class = 'deletion';
-          }
-          if ($new_ref_allele eq '-') {
-            $var_class = 'insertion';
-          }
-          if ($var_class eq 'insertion' || $var_class eq 'deletion') {
-#            $vf_copy->{slice} ||= get_slice($self->{config}, $vf_copy->{chr}, undef, 1);
-            my ($ref_seq, $ref_start, $ref_end) = _get_flank_seq($vf); 
-
-            my $seq_to_check;
-            ## sequence to compare is the reference allele for deletion
-            $seq_to_check = $new_ref_allele  if $var_class eq 'deletion' ;
-
-            ## sequence to compare is the alt allele
-            $seq_to_check = $new_alt_allele if $var_class eq 'insertion';
-
-            ## 3' flanking sequence to check
-            my $downstream_seq = substr($ref_seq ,$ref_end);
-            my $three_prime_allele;
-            my $offset = 0;
-
-            ($three_prime_allele, $offset ) = get_3prime_seq_offset($seq_to_check, $downstream_seq);
-
-            $vf_copy->{start} = $vf_copy->{start} + $offset;           
-            $vf_copy->{end} = $vf_copy->{end} + $offset;           
-          }
-
-          if ($vf_copy->{start} == $input_vf_start && $vf_copy->{end} == $input_vf_end) {
-            $allele = $alt_allele;
-            $found_variant_after_shifting = 1;
-            last;
-          }
-        }       
-      } 
-      if (!($vcf_vf->{start} == $vf->{start} && $vcf_vf->{end} == $vf->{end})) {
-        next if (!$found_variant_after_shifting);
-      } 
-      
+        next unless (@$matched_alleles);
+        # We only match one alt allele from the input VF against alleles from the VCF line. b_allele is the matched allele from the VCF alt alleles
+        $allele = $matched_alleles->[0]->{b_allele};
+      }
       # iterate over required headers
       HEADER:
       foreach my $h(@{$self->{headers} || []}) {
@@ -376,34 +287,6 @@ sub run {
   # overwrite cache
   $self->{cache} = {$pos_string => $data};
   return defined($data->{$allele}) ? $data->{$allele} : {};
-}
-
-sub _get_flank_seq{
-  my $vf = shift;
-  # Get the underlying slice and sequence
-  my $ref_slice = $vf->{slice};
-  my $add_length = 100;  ## allow at least 100 for 3'shifting
-  my @allele = split(/\//, $vf->allele_string());
-  foreach my $al (@allele) { ## alleles be longer
-    if(length($al) > $add_length){
-      $add_length = length $al ;
-    }
-  }
-  my $seq_start =  $vf->start() - $add_length;
-  my $seq_end   =  $vf->end() + $add_length;
-
-  ## variant position relative to flank
-  my $ref_start = $add_length;
-  my $ref_end   = $add_length + $vf->end() - $vf->start();
-
-  # Should we be at the beginning of the sequence, adjust the coordinates to not cause an exception
-  if ($seq_start < 0) {
-    $ref_start += $seq_start;
-    $ref_end   += $seq_start;
-    $seq_start  = 0;
-  }
-  my $flank_seq = $ref_slice->subseq($seq_start + 1, $seq_end, 1);
-  return ($flank_seq, $ref_start, $ref_end );
 }
 
 1;
