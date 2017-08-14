@@ -10,7 +10,7 @@
                                                                                                                      
 =head1 CONTACT                                                                                                       
 
- Graham Ritchie <grsr@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
