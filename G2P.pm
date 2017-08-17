@@ -23,12 +23,12 @@ limitations under the License.
 
 =head1 NAME
 
- dbNSFP
+ G2P
 
 =head1 SYNOPSIS
 
  mv G2P.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin G2P,/path/to/G2P.csv.gz
+ ./vep -i variations.vcf --plugin G2P,file=/path/to/G2P.csv.gz
 
 =head1 DESCRIPTION
 
@@ -43,21 +43,27 @@ limitations under the License.
  file            : path to G2P data file, as found at
                    http://www.ebi.ac.uk/gene2phenotype/downloads
 
- maf_monoallelic : maximum allele frequency for inclusion for monoallelic genes (0.0001)
+ af_monoallelic  : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
- maf_biallelic   : maximum allele frequency for inclusion for biallelic genes (0.005)
+ af_biallelic    : maximum allele frequency for inclusion for biallelic genes (0.005)
 
- maf_key         : allele key to use; by default this is (minor_allele_freq), which
-                   is the 1000 Genomes global frequency. Choose from:
-                   1000 genomes: minor_allele_freq,AFR,AMR,EAS,EUR,SAS
-                   ESP: AA,EA
-                   ExAC: ExAC,ExAC_AFR,ExAC_AMR,ExAC_Adj,ExAC_EAS,ExAC_FIN,ExAC_NFE,ExAC_OTH,ExAC_SAS
+ af_key          : reference populations used for annotating variant alleles with observed
+                   allele frequencies. Allele frequencies are stored in VEP cache files. 
+                   Default populations are:
+                   ESP: AA, EA
+                   1000 Genomes AFR, AMR, EAS, EUR, SAS 
+                   gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
+                   Separate multiple values with '&'
+ af_from_vcf     : set value to 1 to include allele frequencies from VCF file. This
+                   will increase the running time. Default is 0. If a variant doesn't
+                   have a co-located variant we try and assign allele frequencies from
+                   file.
 
- default_maf     : default frequency of the input variant if no frequency data is
+ default_af     :  default frequency of the input variant if no frequency data is
                    found (0). This determines whether such variants are included;
                    the value of 0 forces variants with no frequency data to be
                    included as this is considered equivalent to having a frequency
-                   of 0. Set to 1 (or any value higher than maf) to exclude them.
+                   of 0. Set to 1 (or any value higher than af) to exclude them.
 
  types           : SO consequence types to include. Separate multiple values with '&'
                    (splice_donor_variant,splice_acceptor_variant,stop_gained,
@@ -65,9 +71,6 @@ limitations under the License.
                    inframe_insertion,inframe_deletion,missense_variant,
                    coding_sequence_variant,start_lost,transcript_ablation,
                    transcript_amplification,protein_altering_variant)
-
-  exac_file      : ExAC data file, Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current
-                   to download the latest ExAC VCF
   
   log_dir        : write stats to log files in log_dir 
 
@@ -77,7 +80,10 @@ limitations under the License.
 
  Example:
 
- --plugin G2P,file=G2P.csv.gz,maf_monoallelic=0.05,maf_key=ExAC_Adj,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_key=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05
+ --plugin G2P,file=G2P.csv.gz
  
 =cut
 
@@ -86,7 +92,6 @@ package G2P;
 use strict;
 use warnings;
 
-use ExAC;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
@@ -101,18 +106,18 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 my %DEFAULTS = (
 
   # vars must have a frequency <= to this to pass
-  maf => 0.001,
-  maf_monoallelic => 0.0001,
-  maf_biallelic => 0.005, 
+  af => 0.001,
+  af_monoallelic => 0.0001,
+  af_biallelic => 0.005, 
 
   # by default we look at the global MAF
   # configure this to use e.g. a continental MAF or an ExAC one
-  maf_key => 'minor_allele_freq',
+  af_key => {map {$_ => 1} qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)},
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
   # set to 1 to do the "opposite", i.e. exclude variants with no MAF data
-  default_maf => 0,
+  default_af => 0,
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
@@ -120,34 +125,63 @@ my %DEFAULTS = (
 
 );
 
-my $maf_key_2_population_name = {
-  minor_allele_freq => '1000GENOMES:phase_3:ALL',
+my $af_key_2_population_name = {
+  minor_allele_freq => 'global allele frequency (AF) from 1000 Genomes Phase 3 data',
   AFR => '1000GENOMES:phase_3:AFR',
   AMR => '1000GENOMES:phase_3:AMR',
   EAS => '1000GENOMES:phase_3:EAS',
   EUR => '1000GENOMES:phase_3:EUR',
   SAS => '1000GENOMES:phase_3:SAS',
-  AA => 'ESP6500:African_American',
-  EA => 'ESP6500:European_American',
+  AA => 'Exome Sequencing Project 6500:African_American',
+  EA => 'Exome Sequencing Project 6500:European_American',
+  gnomAD => 'Genome Aggregation Database:Total',
+  gnomAD_AFR => 'Genome Aggregation Database exomes:African/African American',
+  gnomAD_AMR => 'Genome Aggregation Database exomes:Latino',
+  gnomAD_ASJ => 'Genome Aggregation Database exomes:Ashkenazi Jewish',
+  gnomAD_EAS => 'Genome Aggregation Database exomes:East Asian',
+  gnomAD_FIN => 'Genome Aggregation Database exomes:Finnish',
+  gnomAD_NFE => 'Genome Aggregation Database exomes:Non-Finnish European',
+  gnomAD_OTH => 'Genome Aggregation Database exomes:Other (population not assigned)',
+  gnomAD_SAS => 'Genome Aggregation Database exomes:South Asian',
+  ALSPAC => 'UK10K:ALSPAC cohort',
+  TOPMed => 'Trans-Omics for Precision Medicine (TOPMed) Program',
+  TWINSUK => 'UK10K:TWINSUK cohort',
+  'gnomADe:AFR' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:ALL' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:AMR' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:ASJ' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:EAS' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:FIN' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:NFE' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:OTH' => 'Genome Aggregation Database exomes v170228',
+  'gnomADe:SAS' => 'Genome Aggregation Database exomes v170228',
+  'gnomADg:AFR' => 'Genome Aggregation Database genomes v170228:African/African American',
+  'gnomADg:ALL' => 'Genome Aggregation Database genomes v170228:All gnomAD genomes individuals',
+  'gnomADg:AMR' => 'Genome Aggregation Database genomes v170228:Latino',
+  'gnomADg:ASJ' => 'Genome Aggregation Database genomes v170228:Ashkenazi Jewish',
+  'gnomADg:EAS' => 'Genome Aggregation Database genomes v170228:East Asian',
+  'gnomADg:FIN' => 'Genome Aggregation Database genomes v170228:Finnish',
+  'gnomADg:NFE' => 'Genome Aggregation Database genomes v170228:Non-Finnish European',
+  'gnomADg:OTH' => 'Genome Aggregation Database genomes v170228:Other (population not assigned)',
 };
 
 my $allelic_requirements = {
-  'biallelic' => {maf => 0.005, rules => {HET => 2, HOM => 1}},
-  'monoallelic' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
-  'x-linked dominant' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
-  'monoallelic (X; hemizygous)' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
-  'x-linked over-dominance' => {maf => 0.0001, rules => {HET => 1, HOM => 1}},
+  'biallelic' => { af => 0.005, rules => {HET => 2, HOM => 1} },
+  'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
 };
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
 
-my @population_wide = qw(AA EA AFR AMR EAS EUR SAS ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS);
+my @population_wide = qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-  my $supported_maf_keys = { map {$_ => 1} qw(minor_allele_freq AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS) };
+  my $supported_af_keys = { map {$_ => 1} @population_wide }; 
 
   my $params = $self->params_to_hash();
   my $file = '';
@@ -164,71 +198,46 @@ sub new {
       $params->{types} = {map {$_ => 1} split(/[\;\&\|]/, $params->{types})};
     }
 
-    # check maf
-    foreach my $maf (qw/maf_monoallelic maf_biallelic/) {
-      if($params->{$maf}) {
-        die("ERROR: Invalid value for maf: ".$params->{$maf} . "\n") unless
-          looks_like_number($params->{$maf}) && ($params->{$maf} >= 0 && $params->{$maf} <= 1)
+    # check af
+    foreach my $af (qw/af_monoallelic af_biallelic/) {
+      if($params->{$af}) {
+        die("ERROR: Invalid value for af: ".$params->{$af} . "\n") unless
+          looks_like_number($params->{$af}) && ($params->{$af} >= 0 && $params->{$af} <= 1)
       }
     }
-
-    my $use_exac = 0;
-    my $population_wide = 0;
-    my @maf_keys = ();
-
-    if ($params->{maf_key}) {
-      foreach my $maf_key (split(',', $params->{maf_key})) {
-        die("ERROR: maf_key: " . $maf_key . " not supported. Check plugin documentation for supported maf_keys.\n") unless $supported_maf_keys->{$maf_key};
-        $use_exac = 1 if ($maf_key =~ /^ExAC/);
-        push @maf_keys, $maf_key;
+    my @af_keys = ();
+    if ($params->{af_key}) {
+      foreach my $af_key (split(/[\;\&\|]/, $params->{af_key})) {
+        die("ERROR: af_key: " . $af_key . " not supported. Check plugin documentation for supported af_keys.\n") unless $supported_af_keys->{$af_key};
+        push @af_keys, $af_key;
       }
     }
-
-    if (scalar @maf_keys == 0) {
-      $params->{maf_keys} = \@population_wide;  
-      $population_wide = 1;
-    } else {
-      $params->{maf_keys} = \@maf_keys;
-    }
-    
-    if ($use_exac || $population_wide) {
-      my $file = $params->{exac_file};
-      die("ERROR: ExAC data file is required if you want to filter by ExAC frequencies") unless $file;
-      my $exac_plugin = ExAC->new($self->{config}, ($file));
-      $self->{config}->{exac_plugin} = $exac_plugin;
-    }
-
   }
 
-  if (!$params->{log_file}) {
-    $params->{log_file} = 'g2p_plugin_logs';
-  }
-  open(my $fh, '>', $params->{log_file}) or die "Could not open file '$params->{log_file}' $!";
-  close $fh;
-
-  if (!$params->{log_dir}) {
-    my $cwd_dir = getcwd;
-    $params->{log_dir} = $cwd_dir . '/g2p_plugin_log_dir';
-  }
-  my $log_dir = $params->{log_dir};
+  my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
+  $year += 1900;
+  $mon++;
+  my $stamp = join('_', ($year, $mon, $mday, $hour, $min));
+  my $cwd_dir = getcwd;
+  my $new_log_dir = "$cwd_dir/g2p_log_dir\_$stamp";
+  my $log_dir = $params->{log_dir} || $new_log_dir;
   if (-d $log_dir) {
     my @files = <$log_dir/*>;
     if (scalar @files > 0) {
       unlink glob "'$log_dir/*.*'";
     }
     @files = <$log_dir/*>;
-    die("G2P plugin log dir ($log_dir) is not empty") if (scalar @files > 0);
+    if (scalar @files > 0) {
+      mkdir $new_log_dir, 0755;
+      $params->{log_dir} = $new_log_dir;
+    }
   } else {
     mkdir $log_dir, 0755;
+    $params->{log_dir} = $log_dir;
   }
 
   foreach my $report_type (qw/txt_report html_report/) {
     if (!$params->{$report_type}) {
-      my $cwd_dir = getcwd;
-      my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
-      $year += 1900;
-      $mon++;
-      my $stamp = join('_', ($year, $mon, $mday, $hour, $min));
       my $file_type = ($report_type eq 'txt_report') ? 'txt' : 'html';
       $params->{$report_type} = $cwd_dir . "/$report_type\_$stamp.$file_type";
     } 
@@ -257,6 +266,8 @@ sub new {
   $self->{config}->{va} = $va;
   my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
   $self->{config}->{pa} = $pa;
+  my $vca = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'VCFCollection');
+  $self->{config}->{vca} = $vca;
   my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
   $self->{config}->{ta} = $ta;
 
@@ -268,18 +279,15 @@ sub new {
   $self->{config}->{individual} //= ['all'];
   $self->{config}->{symbol} = 1;
 
-  if($params->{maf} > 0) {
-    $self->{config}->{check_existing} = 1;
-    $self->{config}->{failed} = 1;
-    $self->{config}->{check_alleles} = 1;
-    $self->{config}->{gmaf} = 1;
-    $self->{config}->{af} = 1;
-    $self->{config}->{af_1kg} = 1;
-    $self->{config}->{af_esp} = 1;
-    $self->{config}->{af_exac} = 1;
-    $self->{config}->{sift} = 1;
-    $self->{config}->{polyphen} = 1;
-  }
+  $self->{config}->{check_existing} = 1;
+  $self->{config}->{failed} = 1;
+  $self->{config}->{check_alleles} = 1;
+  $self->{config}->{af} = 1;
+  $self->{config}->{af_1kg} = 1;
+  $self->{config}->{af_esp} = 1;
+  $self->{config}->{af_gnomad} = 1;
+  $self->{config}->{sift} = 1;
+  $self->{config}->{polyphen} = 1;
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
@@ -331,10 +339,10 @@ sub run {
   foreach my $ar (@ars) {
     my $passed = 1;
     if (defined $allelic_requirements->{$ar}) {
-      $threshold = $allelic_requirements->{$ar}->{maf};
+      $threshold = $allelic_requirements->{$ar}->{af};
       ($freqs, $existing_variant) = @{$self->get_freq($tva)};
-      foreach my $maf_key (keys %$freqs) {
-        if ($freqs->{$maf_key} > $threshold) {
+      foreach my $af_key (keys %$freqs) {
+        if ($freqs->{$af_key} > $threshold) {
           $passed = 0;  
           last;
         }
@@ -441,7 +449,7 @@ sub run {
       }
     }
     # monoallelic genes require only one allele
-    elsif($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'monoallelic (X; hemizygous)' || $ar eq 'x-linked over-dominance') {
+    elsif($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'hemizygous' || $ar eq 'x-linked over-dominance') {
       $return{G2P_complete} = 1;
       $gene_reqs->{MONO} = 1;
     }
@@ -530,149 +538,104 @@ sub synonym_mappings {
   $self->{prev_symbol_mappings} = $synonym_mappings;
 }
 
-# get the relevant allele frequency
 sub get_freq {
   my $self = shift;
   my $tva = shift;
-  my $vf     = $tva->base_variation_feature;
   my $allele = $tva->variation_feature_seq;
+  my $vf     = $tva->base_variation_feature;
   reverse_comp(\$allele) if $vf->{strand} < 0;
-
   my $vf_name = $vf->variation_name;
   if ($vf_name || $vf_name eq '.') {
     $vf_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
   }
-
-# my $cache = $vf->{_g2p_freqs} ||= {};
   my $cache = $self->{cache}->{$vf_name}->{_g2p_freqs} ||= {};
 
- # cache it on VF...
-  if (!exists($cache->{$allele}->{freq})) {
-    if (!$vf->{existing}) {
-      my $freqs = {};  
-      my $exac_data = $self->get_ExAC_frequencies($tva, $allele, $vf_name); 
-      foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
-        if ($maf_key =~ /^ExAC/) {
-          my $exac_key = $maf_key;
-          $exac_key =~ s/ExAC/ExAC_AF/;
-          my $freq = $exac_data->{$exac_key};
-          $freqs->{$maf_key} = $freq if ($freq);
-        }
-      }      
-      $cache->{$allele}->{freq} = $freqs;
-      $cache->{$allele}->{ex_variant} = undef;
-    } else { 
-    
-    my @existing_variants = @{$vf->{existing}};
-    my @dbSNP_variants = grep {$_->{variation_name} =~ /^rs/} @existing_variants; 
-    if (@dbSNP_variants) {
-      @existing_variants = @dbSNP_variants;
-    }
-    foreach my $ex (@existing_variants) {
-      my $existing_allele_string = $ex->{allele_string};
-      my $variation_name = $ex->{variation_name};
-      my $freqs = {};  
-      my $has_exac = 0;
+  if (exists $cache->{$allele}->{freq}) {
+    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+  }
+  if (!$vf->{existing}) {    
+    my $freqs = {};
+    $self->frequencies_from_VCF($freqs, $vf, $allele);
+    $cache->{$allele}->{freq} = $freqs;
+    $cache->{$allele}->{ex_variant} = undef;
+    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+  }
 
-      foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
-        my $freq = $self->{user_params}->{default_maf};
-        if ($maf_key eq 'minor_allele_freq') {
-          if (defined $ex->{minor_allele_freq}) {
-            if (($ex->{minor_allele} || '') eq $allele ) {
-              $freq = $ex->{minor_allele_freq};
-            } else {
-              $freq = $self->correct_frequency($tva, $existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $maf_key, $vf_name) || $freq;
-            }
+  my @existing_variants = @{$vf->{existing}};
+  # favour dbSNP variants
+  my @dbSNP_variants = grep {$_->{variation_name} =~ /^rs/} @existing_variants;
+  if (@dbSNP_variants) {
+    @existing_variants = @dbSNP_variants;
+  }
+  foreach my $ex (@existing_variants) {
+    my $existing_allele_string = $ex->{allele_string};
+    my $variation_name = $ex->{variation_name};
+    my $freqs = {};
+    my $has_gnomad = 0;
+    foreach my $af_key (@{$self->{user_params}->{af_keys}}) {
+      my $freq = $self->{user_params}->{default_af};
+      if ($af_key eq 'minor_allele_freq') {
+        if (defined $ex->{minor_allele_freq}) {
+          if (($ex->{minor_allele} || '') eq $allele ) {
+            $freq = $ex->{minor_allele_freq};
+          } else {
+            $freq = $self->correct_frequency($tva, $existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $af_key, $vf_name) || $freq;
           }
         }
-        else {
-          my @pairs = split(',', $ex->{$maf_key} || '');
-          my $found = 0;    
-          if (scalar @pairs == 0) {
-            $found = 1; # no allele frequency for this population/maf_key available
-          }
-          foreach my $pair (@pairs) {
-            my ($a, $f) = split(':', $pair);
-            if(($a || '') eq $allele && defined($f)) {
-              $freq = $f;
-              $found = 1;
-            } 
-          }
-          if ($maf_key =~ /^ExAC/ && $freq) {
-            $has_exac = 1;
-          }
-          if (!$found) {
-            # fetch frequency for variant allele and maf_key 
-            $freq = $self->correct_frequency($tva, $existing_allele_string, undef, undef, $allele, $variation_name, $maf_key, $vf_name) || $freq;
-          }       
-        }
-        $freqs->{$maf_key} = $freq if ($freq);
       }
-      
-      if (!$has_exac) {
-        my $exac_data = $self->get_ExAC_frequencies($tva, $allele, $vf_name); 
-        foreach my $maf_key (@{$self->{user_params}->{maf_keys}}) {
-          if ($maf_key =~ /^ExAC/) {
-            my $exac_key = $maf_key;
-            $exac_key =~ s/ExAC/ExAC_AF/;
-            my $freq = $exac_data->{$exac_key};
-            $freqs->{$maf_key} = $freq if ($freq);
+      else {
+        my @pairs = split(',', $ex->{$af_key} || '');
+        my $found = 0;
+        if (scalar @pairs == 0) {
+          $found = 1; # no allele frequency for this population/af_key available
+        }
+        foreach my $pair (@pairs) {
+          my ($a, $f) = split(':', $pair);
+          if(($a || '') eq $allele && defined($f)) {
+            $freq = $f;
+            $found = 1;
           }
-        }      
+        }
+        if (!$found) {
+          $freq = $self->correct_frequency($tva, $existing_allele_string, undef, undef, $allele, $variation_name, $af_key, $vf_name) || $freq;
+        }
+        if ($af_key =~ /^gnomAD/ && $freq) {
+          $has_gnomad = 1;
+        }
       }
-      $cache->{$allele}->{freq} = $freqs;
-      $cache->{$allele}->{ex_variant} = $ex;
+      $freqs->{$af_key} = $freq if ($freq);
     }
+    # or if add_af_from_vcf
+    if (!$has_gnomad) {    
+      $self->frequencies_from_VCF($freqs, $vf, $allele);
     }
-
-
-
-  } 
+    $cache->{$allele}->{freq} = $freqs;
+    $cache->{$allele}->{ex_variant} = $ex;
+  }
   return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
 }
 
-sub get_ExAC_frequencies {
-  my $self = shift;
-  my $tva = shift;
-  my $vf_name = shift;
-  my $allele = shift;
-
-  my $exac_data = $self->{cache}->{$vf_name}->{_g2p_freqs}->{$allele}->{exac};
-
-  my $exac_plugin = $self->{config}->{exac_plugin};
-  if (!$exac_data) {
-    eval {
-      $exac_data = $exac_plugin->run($tva);
-      $self->{cache}->{$vf_name}->{_g2p_freqs}->{$allele}->{exac} = $exac_data;
-    };
-    warn "Problem in ExAC plugin: $@" if $@; 
-  } 
-  return $exac_data;
-}
-
 sub correct_frequency {
-  my ($self, $tva, $allele_string, $minor_allele, $maf, $allele, $variation_name, $maf_key, $vf_name) = @_;
-  if ($maf_key =~ /^ExAC/) {
-    $maf_key =~ s/ExAC/ExAC_AF/;
-    my $exac_data = $self->get_ExAC_frequencies($tva, $vf_name, $allele);
-    my $freq = $exac_data->{$maf_key};
-    return $freq;
-  }
+  my ($self, $tva, $allele_string, $minor_allele, $af, $allele, $variation_name, $af_key, $vf_name) = @_;
 
   my @existing_alleles = split('/', $allele_string);
-  if ($maf_key eq 'minor_allele_freq' && (scalar @existing_alleles == 2)) {
+  if (!grep( /^$allele$/, @existing_alleles)) {
+    return 0.0;  
+  } 
+
+  if ($af_key eq 'minor_allele_freq' && (scalar @existing_alleles == 2)) {
     my $existing_ref_allele = $existing_alleles[0];
     my $existing_alt_allele = $existing_alleles[1];
     if ( ($minor_allele eq $existing_ref_allele && ($allele eq $existing_alt_allele)) || 
          ($minor_allele eq $existing_alt_allele && ($allele eq $existing_ref_allele)) ) {
-      return (1.0 - $maf);
+      return (1.0 - $af);
     } 
   } else {
     my $va = $self->{config}->{va};
     my $pa = $self->{config}->{pa};
     my $variation = $va->fetch_by_name($variation_name);
-    my $maf_key = $self->{user_params}->{maf_key};
-    my $population_name = $maf_key_2_population_name->{$maf_key};
+    my $af_key = $self->{user_params}->{af_key};
+    my $population_name = $af_key_2_population_name->{$af_key};
     if ($population_name) {
       my $population = $self->{config}->{$population_name};
       if (!$population) {
@@ -687,6 +650,26 @@ sub correct_frequency {
     }
   }     
   return 0.0;
+}
+
+sub frequencies_from_VCF {
+  my $self = shift;
+  my $freqs = shift;
+  my $vf = shift;
+  my $vf_allele = shift;
+  my $vca = $self->{config}->{vca};
+  my $collections = $vca->fetch_all;
+  foreach my $vc (@$collections) {
+    next if ($vc->id =~ /^1000/);
+    my $alleles = $vc->get_all_Alleles_by_VariationFeature($vf);
+    foreach my $allele (@$alleles) {
+      if ($allele->allele eq $vf_allele) {
+        my $af_key = $allele->population->name;
+        my $freq = $allele->frequency;
+        $freqs->{$af_key} = $freq;
+      }
+    }
+  }
 }
 
 sub write_report {
@@ -761,27 +744,9 @@ sub write_charts {
 
   my @charts = ();
   my @frequencies_header = (); 
-  my $maf_key_2_population_name = {
-    AFR => '1000GENOMES:phase_3:AFR',
-    AMR => '1000GENOMES:phase_3:AMR',
-    EAS => '1000GENOMES:phase_3:EAS',
-    EUR => '1000GENOMES:phase_3:EUR',
-    SAS => '1000GENOMES:phase_3:SAS',
-    AA => 'Exome Sequencing Project 6500:African_American',
-    EA => 'Exome Sequencing Project 6500:European_American',
-    ExAC => 'Exome Aggregation Consortium:Total',
-    ExAC_AFR => 'Exome Aggregation Consortium:African/African American',
-    ExAC_AMR => 'Exome Aggregation Consortium:American',
-    ExAC_Adj => 'Exome Aggregation Consortium:Adjusted',
-    ExAC_EAS => 'Exome Aggregation Consortium:East Asian',
-    ExAC_FIN => 'Exome Aggregation Consortium:Finnish',
-    ExAC_NFE => 'Exome Aggregation Consortium:Non-Finnish European',
-    ExAC_OTH => 'Exome Aggregation Consortium:Other',
-    ExAC_SAS => 'Exome Aggregation Consortium:South Asian',
-  };
 
-  foreach my $short_name (qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/) {
-    my $text = $maf_key_2_population_name->{$short_name};
+  foreach my $short_name (sort keys %$af_key_2_population_name) {
+    my $text = $af_key_2_population_name->{$short_name};
     push @frequencies_header, "<a style=\"cursor: pointer\" data-placement=\"top\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</a>";
   }
 
@@ -820,10 +785,10 @@ sub write_charts {
   print $fh_out p("Frequency thresholds and number of required variant hits for each allelic requirement:");
 
   foreach my $ar (sort keys %$allelic_requirements) {
-    my $maf = $allelic_requirements->{$ar}->{maf};
+    my $af = $allelic_requirements->{$ar}->{af};
     my $rules =  $allelic_requirements->{$ar}->{rules};
     my $rule = join(' OR ', map {"$_ >= $rules->{$_}"} keys %$rules);
-    print $fh_out p("$ar: Frequency threshold for filtering: $maf, Variant counts by zygosity: $rule");
+    print $fh_out p("$ar: Frequency threshold for filtering: $af, Variant counts by zygosity: $rule");
   }
 
 my $switch =<<SHTML;
@@ -899,25 +864,7 @@ sub chart_and_txt_data {
   my $acting_ars = $result_summary->{acting_ars};
   my $new_order = $result_summary->{new_order};
 
-  my @frequencies_header = qw/AFR AMR EAS EUR SAS AA EA ExAC ExAC_AFR ExAC_AMR ExAC_Adj ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS/; 
-  my $maf_key_2_population_name = {
-    AFR => '1000GENOMES:phase_3:AFR',
-    AMR => '1000GENOMES:phase_3:AMR',
-    EAS => '1000GENOMES:phase_3:EAS',
-    EUR => '1000GENOMES:phase_3:EUR',
-    SAS => '1000GENOMES:phase_3:SAS',
-    AA => 'Exome Sequencing Project 6500:African_American',
-    EA => 'Exome Sequencing Project 6500:European_American',
-    ExAC => 'Exome Aggregation Consortium:Total',
-    ExAC_AFR => 'Exome Aggregation Consortium:African/African American',
-    ExAC_AMR => 'Exome Aggregation Consortium:American',
-    ExAC_Adj => 'Exome Aggregation Consortium:Adjusted',
-    ExAC_EAS => 'Exome Aggregation Consortium:East Asian',
-    ExAC_FIN => 'Exome Aggregation Consortium:Finnish',
-    ExAC_NFE => 'Exome Aggregation Consortium:Non-Finnish European',
-    ExAC_OTH => 'Exome Aggregation Consortium:Other',
-    ExAC_SAS => 'Exome Aggregation Consortium:South Asian',
-  };
+  my @frequencies_header = sort keys $af_key_2_population_name;
 
   my $transcripts = {};
   my $canonical_transcripts = {};
