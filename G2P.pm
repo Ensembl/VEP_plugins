@@ -636,7 +636,7 @@ sub correct_frequency {
     my $va = $self->{config}->{va};
     my $pa = $self->{config}->{pa};
     my $variation = $va->fetch_by_name($variation_name);
-    my $af_key = $self->{user_params}->{af_key};
+    my $af_key = $self->{user_params}->{af_keys};
     my $population_name = $af_key_2_population_name->{$af_key};
     if ($population_name) {
       my $population = $self->{config}->{$population_name};
