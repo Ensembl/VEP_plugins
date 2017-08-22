@@ -47,13 +47,13 @@ limitations under the License.
 
  af_biallelic    : maximum allele frequency for inclusion for biallelic genes (0.005)
 
- af_key          : reference populations used for annotating variant alleles with observed
-                   allele frequencies. Allele frequencies are stored in VEP cache files. 
-                   Default populations are:
-                   ESP: AA, EA
-                   1000 Genomes AFR, AMR, EAS, EUR, SAS 
-                   gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
-                   Separate multiple values with '&'
+ af_keys          : reference populations used for annotating variant alleles with observed
+                    allele frequencies. Allele frequencies are stored in VEP cache files. 
+                    Default populations are:
+                    ESP: AA, EA
+                    1000 Genomes AFR, AMR, EAS, EUR, SAS 
+                    gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
+                    Separate multiple values with '&'
  af_from_vcf     : set value to 1 to include allele frequencies from VCF file. This
                    will increase the running time. Default is 0. If a variant doesn't
                    have a co-located variant we try and assign allele frequencies from
@@ -80,7 +80,7 @@ limitations under the License.
 
  Example:
 
- --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_key=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_keys=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05
  --plugin G2P,file=G2P.csv.gz
@@ -112,7 +112,7 @@ my %DEFAULTS = (
 
   # by default we look at the global MAF
   # configure this to use e.g. a continental MAF or an ExAC one
-  af_key => {map {$_ => 1} qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)},
+  af_keys => [qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -205,13 +205,14 @@ sub new {
           looks_like_number($params->{$af}) && ($params->{$af} >= 0 && $params->{$af} <= 1)
       }
     }
-    my @af_keys = ();
-    if ($params->{af_key}) {
-      foreach my $af_key (split(/[\;\&\|]/, $params->{af_key})) {
+    if ($params->{af_keys}) {
+      my @af_keys = ();
+      foreach my $af_key (split(/[\;\&\|]/, $params->{af_keys})) {
         die("ERROR: af_key: " . $af_key . " not supported. Check plugin documentation for supported af_keys.\n") unless $supported_af_keys->{$af_key};
         push @af_keys, $af_key;
       }
-    }
+      $params->{af_keys} = \@af_keys;
+    } 
   }
 
   my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
@@ -341,6 +342,7 @@ sub run {
     if (defined $allelic_requirements->{$ar}) {
       $threshold = $allelic_requirements->{$ar}->{af};
       ($freqs, $existing_variant) = @{$self->get_freq($tva)};
+      
       foreach my $af_key (keys %$freqs) {
         if ($freqs->{$af_key} > $threshold) {
           $passed = 0;  
