@@ -88,7 +88,7 @@ limitations under the License.
 
  --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_keys=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,types=stop_gained&frameshift_variant
- --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05
+ --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv.gz
  
 =cut
@@ -337,7 +337,7 @@ sub new {
 
   $self->{config}->{check_existing} = 1;
   $self->{config}->{failed} = 1;
-  $self->{config}->{check_alleles} = 1;
+#  $self->{config}->{check_alleles} = 1;
   $self->{config}->{af} = 1;
   $self->{config}->{af_1kg} = 1;
   $self->{config}->{af_esp} = 1;
@@ -830,22 +830,49 @@ sub write_charts {
   print $fh_out stats_html_head(\@charts);
   print $fh_out "<div class='main_content container'>";
 
-  print $fh_out p("G2P list: ", $self->{user_params}->{file}, " Log directory: ", $self->{user_params}->{log_dir}, " HTML report: ", $self->{user_params}->{html_report}, " TXT report: ", $self->{user_params}->{txt_report});
+ 
+  print $fh_out h1("G2P report");
+  print $fh_out p("Input and output files:");
 
-  print $fh_out p("G2P genes: $count_g2p_genes");
-  print $fh_out p("G2P genes in input VCF file: $count_in_vcf_file");
-  print $fh_out p("G2P complete genes in input VCF file: $count_complete_genes");
+  print $fh_out "<dl class='dl-horizontal'>";
+  print $fh_out "<dt>G2P list</dt>";
+  print $fh_out "<dd>" . $self->{user_params}->{file} .  "</dd>";
+  print $fh_out "<dt>Log directory</dt>";
+  print $fh_out "<dd>" . $self->{user_params}->{log_dir} .  "</dd>";
+  print $fh_out "<dt>HTML report</dt>";
+  print $fh_out "<dd>" . $self->{user_params}->{html_report} .  "</dd>";
+  print $fh_out "<dt>TXT report</dt>";
+  print $fh_out "<dd>" . $self->{user_params}->{txt_report} .  "</dd>";
+  print $fh_out "</dl>";
+
+  print $fh_out p("Counts:");
+  print $fh_out "<dl class='dl-horizontal text-overflow'>";
+  print $fh_out "<dt>$count_g2p_genes</dt>";
+  print $fh_out "<dd>G2P genes</dd>";
+  print $fh_out "<dt>$count_in_vcf_file</dt>";
+  print $fh_out "<dd>G2P genes in input VCF file</dd>";
+  print $fh_out "<dt>$count_complete_genes</dt>";
+  print $fh_out "<dd>G2P complete genes in input VCF file</dd>";
+  print $fh_out "</dl>";
+
 
   print $fh_out h1("Summary of G2P complete genes per individual");
   print $fh_out p("G2P complete gene: A sufficient number of variant hits for the observed allelic requirement in at least one of the gene's transcripts. Variants are filtered by frequency.");
   print $fh_out p("Frequency thresholds and number of required variant hits for each allelic requirement:");
 
+  print $fh_out "<table class='table table-bordered'>";
+  print $fh_out "<thead>";
+  print $fh_out "<tr><th>Allelic requirement</th><th>Frequency threshold for filtering</th><th>Variant counts by zygosity</th></tr>";
+  print $fh_out "</thead>";
+  print $fh_out "<tbody>";
   foreach my $ar (sort keys %$allelic_requirements) {
     my $af = $allelic_requirements->{$ar}->{af};
     my $rules =  $allelic_requirements->{$ar}->{rules};
     my $rule = join(' OR ', map {"$_ >= $rules->{$_}"} keys %$rules);
-    print $fh_out p("$ar: Frequency threshold for filtering: $af, Variant counts by zygosity: $rule");
+    print $fh_out "<tr><td>$ar</td><td>$af</td><td>$rule</td></tr>";
   }
+  print $fh_out "</tbody>";
+  print $fh_out "</table>";
 
 my $switch =<<SHTML;
 <form>
@@ -923,6 +950,7 @@ sub chart_and_txt_data {
 #  my @frequencies_header = sort keys $af_key_2_population_name;
   my @frequencies_header = sort @{$self->{user_params}->{af_keys}};
 
+  my $assembly = $self->{config}->{assembly};
   my $transcripts = {};
   my $canonical_transcripts = {};
   my $transcript_adaptor = $self->{config}->{ta};
@@ -954,7 +982,7 @@ sub chart_and_txt_data {
             my $vf_location = $hash->{vf_location};
             my $existing_name = $hash->{existing_name};
             if ($existing_name ne 'NA') {
-              $existing_name = "<a href=\"http://grch37.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
+              $existing_name = "<a href=\"http://$assembly.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
             }
             my $refseq = $hash->{refseq};
             my $failed = $hash->{failed};
