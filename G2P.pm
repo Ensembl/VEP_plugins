@@ -47,18 +47,24 @@ limitations under the License.
 
  af_biallelic    : maximum allele frequency for inclusion for biallelic genes (0.005)
 
- af_keys          : reference populations used for annotating variant alleles with observed
-                    allele frequencies. Allele frequencies are stored in VEP cache files. 
-                    Default populations are:
-                    ESP: AA, EA
-                    1000 Genomes AFR, AMR, EAS, EUR, SAS 
-                    gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
-                    Separate multiple values with '&'
- af_from_vcf     : set value to 1 to include allele frequencies from VCF file. This
-                   will increase the running time. Default is 0. If a variant doesn't
-                   have a co-located variant we try and assign allele frequencies from
-                   file.
-
+ af_keys         : reference populations used for annotating variant alleles with observed
+                   allele frequencies. Allele frequencies are stored in VEP cache files. 
+                   Default populations are:
+                   ESP: AA, EA
+                   1000 Genomes: AFR, AMR, EAS, EUR, SAS 
+                   gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
+                   Separate multiple values with '&'
+ af_from_vcf     : set value to 1 to include allele frequencies from VCF file. 
+                   Specifiy the list of reference populations to include with --af_from_vcf_keys    
+ af_from_vcf_keys: reference populations used for annotating variant alleles with observed
+                   allele frequencies. Allele frequencies are retrieved from VCF files. If
+                   af_from_vcf is set to 1 but no populations specified with --af_from_vcf_keys
+                   all available reference populations are included. 
+                   TOPmed: TOPMed
+                   UK10K: ALSPAC, TWINSUK
+                   gnomAD exomes: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
+                   gnomAD genomes: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                   Separate multiple values with '&'
  default_af     :  default frequency of the input variant if no frequency data is
                    found (0). This determines whether such variants are included;
                    the value of 0 forces variants with no frequency data to be
@@ -112,7 +118,11 @@ my %DEFAULTS = (
 
   # by default we look at the global MAF
   # configure this to use e.g. a continental MAF or an ExAC one
-  af_keys => [qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
+#  af_keys => [qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
+
+  af_keys => [qw(minor_allele_freq AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
+
+  af_from_vcf_keys => [qw(ALSPAC TOPMed TWINSUK gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -179,8 +189,9 @@ my @population_wide = qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPM
 
 sub new {
   my $class = shift;
-  
+
   my $self = $class->SUPER::new(@_);
+  
   my $supported_af_keys = { map {$_ => 1} @population_wide }; 
 
   my $params = $self->params_to_hash();
@@ -205,14 +216,58 @@ sub new {
           looks_like_number($params->{$af}) && ($params->{$af} >= 0 && $params->{$af} <= 1)
       }
     }
+
+    my $assembly =  $self->{config}->{assembly};
+    my $af_from_vcf_key_2_collection_id = {
+      ALSPAC => {GRCh37 => 'uk10k_GRCh37', GRCh38 => 'uk10k_GRCh38'},
+      TOPMed => {GRCh37 => 'topmed_GRCh37', GRCh38 => 'topmed_GRCh38'},
+      TWINSUK =>  {GRCh37 => 'uk10k_GRCh37', GRCh38 => 'uk10k_GRCh38'},
+      'gnomADe:AFR' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:ALL' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:AMR' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:ASJ' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:EAS' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:FIN' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:NFE' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:OTH' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADe:SAS' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
+      'gnomADg:AFR' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:ALL' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:AMR' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:ASJ' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:EAS' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:FIN' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:NFE' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+      'gnomADg:OTH' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
+    };
+
+    my @keys = ();
+    my $vcf_collection_ids = {};
     if ($params->{af_keys}) {
-      my @af_keys = ();
-      foreach my $af_key (split(/[\;\&\|]/, $params->{af_keys})) {
+      push @keys, $params->{af_keys};
+    } else {
+      push @keys, @{$DEFAULTS{af_keys}};
+    }
+    if ($params->{af_from_vcf}) {
+      if ($params->{af_from_vcf_keys}) {
+        push @keys, $params->{af_from_vcf_keys};
+      } else {
+        push @keys, @{$DEFAULTS{af_from_vcf_keys}};
+      }
+    }
+    my @af_keys = ();
+    foreach my $af_key_set (@keys) {
+      foreach my $af_key (split(/[\;\&\|]/, $af_key_set)) {
         die("ERROR: af_key: " . $af_key . " not supported. Check plugin documentation for supported af_keys.\n") unless $supported_af_keys->{$af_key};
         push @af_keys, $af_key;
+        if ($af_from_vcf_key_2_collection_id->{$af_key}) {
+          
+          $vcf_collection_ids->{$af_from_vcf_key_2_collection_id->{$af_key}->{$assembly}} = 1;
+        }
       }
-      $params->{af_keys} = \@af_keys;
-    } 
+    }
+    $params->{af_keys} = \@af_keys;
+    $params->{vcf_collection_ids} = $vcf_collection_ids;
   }
 
   my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
@@ -343,8 +398,8 @@ sub run {
       $threshold = $allelic_requirements->{$ar}->{af};
       ($freqs, $existing_variant) = @{$self->get_freq($tva)};
       
-      foreach my $af_key (keys %$freqs) {
-        if ($freqs->{$af_key} > $threshold) {
+      foreach my $af_key (@{$self->{user_params}->{af_keys}}) {
+        if ($freqs->{$af_key} && $freqs->{$af_key} > $threshold) {
           $passed = 0;  
           last;
         }
@@ -556,11 +611,13 @@ sub get_freq {
     return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
   }
   if (!$vf->{existing}) {    
-    my $freqs = {};
-    $self->frequencies_from_VCF($freqs, $vf, $allele);
-    $cache->{$allele}->{freq} = $freqs;
-    $cache->{$allele}->{ex_variant} = undef;
-    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+    if ($self->{user_params}->{af_from_vcf}) {
+      my $freqs = {};
+      $self->frequencies_from_VCF($freqs, $vf, $allele);
+      $cache->{$allele}->{freq} = $freqs;
+      $cache->{$allele}->{ex_variant} = undef;
+      return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+    }
   }
 
   my @existing_variants = @{$vf->{existing}};
@@ -601,14 +658,10 @@ sub get_freq {
         if (!$found) {
           $freq = $self->correct_frequency($tva, $existing_allele_string, undef, undef, $allele, $variation_name, $af_key, $vf_name) || $freq;
         }
-        if ($af_key =~ /^gnomAD/ && $freq) {
-          $has_gnomad = 1;
-        }
       }
       $freqs->{$af_key} = $freq if ($freq);
     }
-    # or if add_af_from_vcf
-    if (!$has_gnomad) {    
+    if ($self->{user_params}->{af_from_vcf}) {
       $self->frequencies_from_VCF($freqs, $vf, $allele);
     }
     $cache->{$allele}->{freq} = $freqs;
@@ -662,7 +715,7 @@ sub frequencies_from_VCF {
   my $vca = $self->{config}->{vca};
   my $collections = $vca->fetch_all;
   foreach my $vc (@$collections) {
-    next if ($vc->id =~ /^1000/);
+    next if (! $self->{user_params}->{vcf_collection_ids}->{$vc->id});
     my $alleles = $vc->get_all_Alleles_by_VariationFeature($vf);
     foreach my $allele (@$alleles) {
       if ($allele->allele eq $vf_allele) {
@@ -747,7 +800,8 @@ sub write_charts {
   my @charts = ();
   my @frequencies_header = (); 
 
-  foreach my $short_name (sort keys %$af_key_2_population_name) {
+  foreach my $short_name (sort @{$self->{user_params}->{af_keys}}) {
+#  foreach my $short_name (sort keys %$af_key_2_population_name) {
     my $text = $af_key_2_population_name->{$short_name};
     push @frequencies_header, "<a style=\"cursor: pointer\" data-placement=\"top\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</a>";
   }
@@ -866,7 +920,8 @@ sub chart_and_txt_data {
   my $acting_ars = $result_summary->{acting_ars};
   my $new_order = $result_summary->{new_order};
 
-  my @frequencies_header = sort keys $af_key_2_population_name;
+#  my @frequencies_header = sort keys $af_key_2_population_name;
+  my @frequencies_header = sort @{$self->{user_params}->{af_keys}};
 
   my $transcripts = {};
   my $canonical_transcripts = {};
