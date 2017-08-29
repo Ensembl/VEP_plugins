@@ -116,11 +116,7 @@ my %DEFAULTS = (
   af_monoallelic => 0.0001,
   af_biallelic => 0.005, 
 
-  # by default we look at the global MAF
-  # configure this to use e.g. a continental MAF or an ExAC one
-#  af_keys => [qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
-
-  af_keys => [qw(minor_allele_freq AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
+  af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
   af_from_vcf_keys => [qw(ALSPAC TOPMed TWINSUK gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
 
@@ -347,6 +343,7 @@ sub new {
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
+  $self->{cache}->{g2p_in_vcf} = {};
 
   return $self;
 }
@@ -376,7 +373,10 @@ sub run {
   my $tr = $tva->transcript;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
-  $self->write_report('G2P_in_vcf', $gene_symbol);
+  if (!$self->{cache}->{g2p_in_vcf}->{$gene_symbol}) {
+    $self->write_report('G2P_in_vcf', $gene_symbol);
+    $self->{cache}->{g2p_in_vcf}->{$gene_symbol} = 1;
+  }
   return {} unless $gene_data;
 
   my @ars = ($gene_data->{'allelic requirement'}) ? @{$gene_data->{'allelic requirement'}} : ();
@@ -390,25 +390,7 @@ sub run {
 
   # limit by MAF
   my $threshold = 0; 
-  my $ar_passed = {};
-  my ($freqs, $existing_variant);
-  foreach my $ar (@ars) {
-    my $passed = 1;
-    if (defined $allelic_requirements->{$ar}) {
-      $threshold = $allelic_requirements->{$ar}->{af};
-      ($freqs, $existing_variant) = @{$self->get_freq($tva)};
-      
-      foreach my $af_key (@{$self->{user_params}->{af_keys}}) {
-        if ($freqs->{$af_key} && $freqs->{$af_key} > $threshold) {
-          $passed = 0;  
-          last;
-        }
-      }
-      if ($passed) {
-        $ar_passed->{$ar} = 1;
-      }
-    }
-  }
+  my ($freqs, $existing_variant, $ar_passed) = @{$self->get_freq($tva, \@ars)};
 
   return {} if (!keys %$ar_passed);
 
@@ -598,6 +580,7 @@ sub synonym_mappings {
 sub get_freq {
   my $self = shift;
   my $tva = shift;
+  my $ars = shift;
   my $allele = $tva->variation_feature_seq;
   my $vf     = $tva->base_variation_feature;
   reverse_comp(\$allele) if $vf->{strand} < 0;
@@ -607,16 +590,33 @@ sub get_freq {
   }
   my $cache = $self->{cache}->{$vf_name}->{_g2p_freqs} ||= {};
 
-  if (exists $cache->{$allele}->{freq}) {
-    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+  if (exists $cache->{$allele}->{failed}) {
+    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, {}];
   }
-  if (!$vf->{existing}) {    
-    if ($self->{user_params}->{af_from_vcf}) {
-      my $freqs = {};
-      $self->frequencies_from_VCF($freqs, $vf, $allele);
-      $cache->{$allele}->{freq} = $freqs;
-      $cache->{$allele}->{ex_variant} = undef;
-      return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+
+  if (exists $cache->{$allele}->{freq}) {
+    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
+  }
+
+  if (!$vf->{existing}) {
+    my $failed_ars = {};
+    my $freqs = {};
+    my $passed = $self->frequencies_from_VCF($freqs, $vf, $allele, $ars, $failed_ars);
+    if (!$passed) {
+      $cache->{$allele}->{failed} = 1;
+      return [{}, {}, {}];
+    } else {
+     $cache->{$allele}->{freq} = $freqs;
+     $cache->{$allele}->{ex_variant} = undef;
+     # if we get to here return all allelic requirements that passed threshold filtering
+     my $passed_ar = {};
+     foreach my $ar (@$ars) {
+      if (!$failed_ars->{$ar}) {
+        $passed_ar->{$ar} = 1;
+      }
+     }
+     $cache->{$allele}->{passed_ar} = $passed_ar;
+     return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
     }
   }
 
@@ -630,7 +630,7 @@ sub get_freq {
     my $existing_allele_string = $ex->{allele_string};
     my $variation_name = $ex->{variation_name};
     my $freqs = {};
-    my $has_gnomad = 0;
+    my $failed_ars = {};
     foreach my $af_key (@{$self->{user_params}->{af_keys}}) {
       my $freq = $self->{user_params}->{default_af};
       if ($af_key eq 'minor_allele_freq') {
@@ -659,15 +659,35 @@ sub get_freq {
           $freq = $self->correct_frequency($tva, $existing_allele_string, undef, undef, $allele, $variation_name, $af_key, $vf_name) || $freq;
         }
       }
+      if (!$self->continue_af_annotation($ars, $failed_ars, $freq)) {
+        # cache failed results
+        $cache->{$allele}->{failed} = 1;
+        return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, {}];
+      }
       $freqs->{$af_key} = $freq if ($freq);
     }
     if ($self->{user_params}->{af_from_vcf}) {
-      $self->frequencies_from_VCF($freqs, $vf, $allele);
+      my $passed = $self->frequencies_from_VCF($freqs, $vf, $allele, $ars, $failed_ars);
+      if (!$passed) {
+        $cache->{$allele}->{failed} = 1;
+        return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, {}];
+      }
     }
     $cache->{$allele}->{freq} = $freqs;
     $cache->{$allele}->{ex_variant} = $ex;
+
+    # if we get to here return all allelic requirements that passed threshold filtering
+    my $passed_ar = {};
+    foreach my $ar (@$ars) {
+      if (!$failed_ars->{$ar}) {
+        $passed_ar->{$ar} = 1;
+      }
+    }
+    $cache->{$allele}->{passed_ar} = $passed_ar;
+
   }
-  return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}];
+
+  return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
 }
 
 sub correct_frequency {
@@ -712,6 +732,8 @@ sub frequencies_from_VCF {
   my $freqs = shift;
   my $vf = shift;
   my $vf_allele = shift;
+  my $ars = shift;
+  my $failed_ars = shift;
   my $vca = $self->{config}->{vca};
   my $collections = $vca->fetch_all;
   foreach my $vc (@$collections) {
@@ -721,11 +743,33 @@ sub frequencies_from_VCF {
       if ($allele->allele eq $vf_allele) {
         my $af_key = $allele->population->name;
         my $freq = $allele->frequency;
+        return 0 if (!$self->continue_af_annotation($ars, $failed_ars, $freq));
         $freqs->{$af_key} = $freq;
       }
     }
   }
+  return 1;
 }
+
+sub continue_af_annotation {
+  my $self = shift;
+  my $ars = shift;
+  my $failed_ars = shift;
+  my $freq = shift;
+  foreach my $ar (@$ars) {
+    if (!$failed_ars->{$ar})  {
+      if (defined $allelic_requirements->{$ar}) {
+        my $threshold = $allelic_requirements->{$ar}->{af};
+        if ($freq > $threshold) {
+          $failed_ars->{$ar} = 1;
+        }
+      }
+    } 
+  }
+  return (scalar @$ars != scalar keys %$failed_ars);
+} 
+
+
 
 sub write_report {
   my $self = shift;
