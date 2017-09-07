@@ -333,7 +333,6 @@ sub new {
 
   $self->{config}->{check_existing} = 1;
   $self->{config}->{failed} = 1;
-#  $self->{config}->{check_alleles} = 1;
   $self->{config}->{af} = 1;
   $self->{config}->{af_1kg} = 1;
   $self->{config}->{af_esp} = 1;
@@ -845,7 +844,6 @@ sub write_charts {
   my @frequencies_header = (); 
 
   foreach my $short_name (sort @{$self->{user_params}->{af_keys}}) {
-#  foreach my $short_name (sort keys %$af_key_2_population_name) {
     my $text = $af_key_2_population_name->{$short_name};
     push @frequencies_header, "<a style=\"cursor: pointer\" data-placement=\"top\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</a>";
   }
