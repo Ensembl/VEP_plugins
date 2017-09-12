@@ -337,8 +337,10 @@ sub new {
   $self->{config}->{af_1kg} = 1;
   $self->{config}->{af_esp} = 1;
   $self->{config}->{af_gnomad} = 1;
-  $self->{config}->{sift} = 1;
-  $self->{config}->{polyphen} = 1;
+#  $self->{config}->{sift} = 'b';
+#  $self->{config}->{polyphen} = 'b';
+#  $self->{config}->{hgvsc} = 1;
+#  $self->{config}->{hgvsp} = 1;
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
@@ -1168,7 +1170,7 @@ sub parse_log_files {
             }
           }
           # monoallelic genes require only one allele
-          elsif ($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'monoallelic (X; hemizygous)' || $ar eq 'x-linked over-dominance') {
+          elsif ($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'hemizygous' || $ar eq 'x-linked over-dominance') {
             $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
             $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
             $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
