@@ -173,6 +173,9 @@ sub run {
       if($$ != $self->{initial_pid}) {
         $self->{dbh} = DBI->connect("dbi:SQLite:dbname=".$self->{db_file},"","");
         $self->{get_sth} = $self->{dbh}->prepare("SELECT md5, analysis, matrix FROM predictions WHERE md5 = ?");
+
+        # set this so only do once per fork
+        $self->{initial_pid} = $$;
       }
 
       $self->{get_sth}->execute($md5);
