@@ -106,7 +106,6 @@ sub new {
   die("ERROR: DB file $db not found - you need to download or create it first, see documentation in plugin file\n") unless -e $db;
 
   $self->config->{_localid_db_file} = $db;
-  $self->config->{_localid_init_pid} = $$;
 
   return $self;
 }
@@ -332,14 +331,6 @@ sub create_VariationFeatures {
 
 sub id_db {
   my $self = shift;
-
-  # forks mess up sqlite connection so force re-connect
-  if(my $init_pid = $self->config->{_params}->{_localid_init_pid}) {
-    if($init_pid != $$) {
-      delete $self->{_id_db};
-      delete $self->{_id_sth};
-    }
-  }
 
   unless(exists($self->{_id_db})) {
     throw("ERROR: ID database not defined or detected - possible plugin compile failure\n") unless my $db = $self->config->{_params}->{_localid_db_file};
