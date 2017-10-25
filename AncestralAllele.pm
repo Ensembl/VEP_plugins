@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -52,7 +52,7 @@ limitations under the License.
  Note the first time you run the plugin with a newly generated FASTA file it will
  spend some time indexing the file. DO NOT INTERRUPT THIS PROCESS, particularly
  if you do not have Bio::DB::HTS installed.
- 
+
 =cut
 
 package AncestralAllele;
@@ -247,7 +247,7 @@ sub get_sr_name {
       $sr_name =~ /^chr/i ? (substr($sr_name, 3)) : ('chr'.$sr_name, 'CHR'.$sr_name)
     ) {
       if($map->{$alt}) {
-        print STDERR "USING SYNOYM $alt FOR $sr_name\n" if $DEBUG;
+        print STDERR "USING SYNONYM $alt FOR $sr_name\n" if $DEBUG;
         $sr_name = $alt;
         last;
       }
