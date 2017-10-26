@@ -53,6 +53,10 @@ limitations under the License.
  spend some time indexing the file. DO NOT INTERRUPT THIS PROCESS, particularly
  if you do not have Bio::DB::HTS installed.
 
+ Special cases:
+   "-" represents an insertion
+   "?" indicates the chromosome could not be looked up in the FASTA
+
 =cut
 
 package AncestralAllele;
