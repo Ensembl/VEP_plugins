@@ -589,6 +589,24 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # AncestralAllele
+    # Requires processed FASTA file from ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
+    {
+      "key" => "AncestralAllele",
+      "helptip" => "Retrieves the ancestral allele for variants inferred from the Ensembl Compara Enredo-Pecan-Ortheus (EPO) pipeline",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Conservation",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/91/AncestralAllele.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/homo_sapiens_ancestor_GRCh38_e86.fa.gz"
+      ]
+    },
+
 
     ## IDENTIFIERS
     ##############
