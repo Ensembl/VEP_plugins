@@ -672,18 +672,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Identifiers",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/91/CSN.pm",
     },
-
-    # HGVSshift
-    {
-      "key" => "HGVSshift",
-      "label" => "Unshifted HGVS",
-      "helptip" => "By default VEP 3' shifts HGVS notations in repetitive sequence; use this plugin to additionally report unshifted notations",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Identifiers",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/91/HGVSshift.pm",
-    },
-
+    
 
     ## FREQUENCY DATA
     #################
