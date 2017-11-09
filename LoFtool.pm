@@ -17,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- William McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -85,7 +85,7 @@ sub new {
   while(<IN>) {
     chomp;
     my ($gene, $score) = split;
-    next if $score eq 'LoFtool_percentile';
+    next if !defined($score) || $score eq 'LoFtool_percentile';
     $scores{lc($gene)} = sprintf("%g", $score);
   }
   
