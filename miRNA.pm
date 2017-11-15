@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- CADD
+ miRNA
 
 =head1 SYNOPSIS
 
