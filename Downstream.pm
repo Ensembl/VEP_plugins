@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- Donwstream
+ Downstream
 
 =head1 SYNOPSIS
 

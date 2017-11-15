@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- Draw
+ LOVD
 
 =head1 SYNOPSIS
 

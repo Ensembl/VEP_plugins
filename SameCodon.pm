@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- Draw
+ SameCodon
 
 =head1 SYNOPSIS
 
