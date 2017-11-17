@@ -8,24 +8,28 @@
 
 =head1 DESCRIPTION
 
- A VEP plugin to retrieve all requested info fields from a tabix-indexed vcf file.
- When a matching variant is found, info values for all alternatives are returned.
- Additionally, matched alleles are re-formatted to be concordant with the alleles found by VEP.
+ A VEP plugin to retrieve overlapping records from a given VCF file.
+ Values for POS, ID, and ALT, are retrieved as well as values for any available
+ INFO field. Additionally, the allele number of the overlapping ALT is returned.
 
- Returns for each overlapping allele:
-     <name>_POS: Original variant position
-     <name>_REF: Original reference
-     <name>_ALT: All alternatives with matching alleles minimized
-  <name>_<info>: List of requested info values
- 
+ By default, only VCF records with a filter value of "PASS" are returned, 
+ however this behaviour can be changed via the 'filter' option.
+
  Parameters:
-     name: short name added used as a prefix
-     file: path to tabix-index vcf file
-   filter: only consider variants marked as 'PASS', 1 or 0 
-   fields: info fields to be returned
+    name: short name added used as a prefix (required)
+    file: path to tabix-index vcf file (required)
+  filter: only consider variants marked as 'PASS', 1 or 0 (default, 1)
+  fields: info fields to be returned (default, not used)
             '%' can delimit multiple fields
             '*' can be used as a wildcard 
 
+ Returns:
+  <name>_POS: POS field from VCF
+  <name>_REF: REF field from VCF (minimised)
+  <name>_ALT: ALT field from VCF (minimised)
+  <name>_alt_index: Index of <name>_ALT matching variant at hand (zero-based)
+  <name>_<field>: List of requested info values
+ 
 =cut
 
 package SubsetVCF;
@@ -43,10 +47,28 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub simple_vf {
-  my ($vf, $filter) = @_;
+  my ($vf, $params) = @_;
   my @alleles = split /\//, $vf->{allele_string};
   my $ref = shift @alleles;
-  my @line = split /\t/, $vf->{_line};
+
+  my @line;
+  if (ref $vf->{_line} ne "ARRAY") {
+    @line = split /\t/, $vf->{_line};
+  } else {
+    @line = @{$vf->{_line}};
+  }
+
+  # Use a particular allele if requested
+  @alleles = ($params->{allele}) if $params->{allele};
+  
+  # Reverse comp if needed
+  if ($vf->{strand} < 0) {
+    @alleles = map { reverse_comp($_) } @alleles;
+    $ref = reverse_comp($ref);
+    $vf->{strand} = 1;
+  }
+
+  # Return values
   my $ret = {
       chr    => $vf->{chr},
       pos    => $vf->{start},
@@ -56,7 +78,9 @@ sub simple_vf {
       alts   => [@alleles],
       line   => [@line],
       ref    => $ref};
-  return $filter && $line[6] ne "PASS" ? {} : $ret;
+
+  # If filter is true, only return $ret if filter eq "PASS"
+  return $params->{filter} && $line[6] ne "PASS" ? {} : $ret;
 }
 
 sub parse_info {
@@ -79,28 +103,36 @@ sub new {
   $self->expand_right(0);
   $self->get_user_params();
 
-  # Add file via parameter hash
+  # Get params and ensure a minumum number of parameters
   my $params = $self->params_to_hash();
+  die "ERROR: no value for 'file' specified" if !$params->{file};
+  die "ERROR: no value for 'name' specified" if !$params->{name};
+
+  # Defaults
+  $params->{filter} = 1 if !$params->{filter};
+
+  # Add file via parameter hash
   $self->add_file($params->{file});
   $self->{filter} = $params->{filter};
   $self->{name} = $params->{name};
 
-  # Mung filter to make: # AC*%AN* => AC[^,]+|AN[^,]+
-  $params->{fields} =~ s/%/|/g;
-  $params->{fields} =~ s/\*/[^,]+/g;
+  if ($params->{fields}) {
+    # Mung filter to turn AC*%AN* into AC[^,]+|AN[^,]+
+    $params->{fields} =~ s/%/|/g;
+    $params->{fields} =~ s/\*/[^,]*/g;
 
-  # Get input file headers
-  my %fields;
-  my $info_regex = "^##INFO=<ID=($params->{fields}),.*Description=\"([^\"]+).*";
-  open HEAD, "tabix -fh $params->{file} 1:1-1 2>&1 | ";
-  while(my $line = <HEAD>) {
-    next unless $line =~ $info_regex;
-    $fields{$1} = $2;
+    # Get input file headers
+    my %fields;
+    my $info_regex = "^##INFO=<ID=($params->{fields}),.*Description=\"([^\"]+).*";
+    open HEAD, "tabix -fh $params->{file} 1:1-1 2>&1 | ";
+    while(my $line = <HEAD>) {
+      next unless $line =~ $info_regex;
+      $fields{$1} = $2;
+    }
+    die "Could not find any valid info fields" if not %fields;
+    $self->{fields} = \%fields;
+    $self->{valid_fields} = [keys %fields];
   }
-  die "Could not find any valid info fields" if not %fields;
-
-  $self->{fields} = \%fields;
-  $self->{valid_fields} = [keys %fields];
   return $self;
 }
 
@@ -111,23 +143,32 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   my %ret;
-  while (my ($field, $desc) = each %{$self->{fields}}) {
-    $ret{"$self->{name}_$field"} = $desc;
+
+  # Add fields if requested
+  if ($self->{fields}) {
+    while (my ($field, $desc) = each %{$self->{fields}}) {
+      $ret{"$self->{name}_$field"} = $desc;
+    }
   }
+
+  $ret{"$self->{name}_ID"} = "Original ID";
   $ret{"$self->{name}_POS"} = "Original POS";
   $ret{"$self->{name}_REF"} = "Original refrance allele";
-  $ret{"$self->{name}_ALT"} = "All alternatives with matching alleles minimized";
+  $ret{"$self->{name}_ALT"} = "Original alternatives as they appear in the VCF file";
+  $ret{"$self->{name}_alt_index"} = "Index of matching alternative (zero-based)";
   return \%ret;
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+  my ($vf) = @{parse_line({format => 'vcf', minimal => 1}, $line)};
+  return simple_vf($vf, {filter => $self->{filter}});
 }
 
 sub run {
   my ($self, $tva) = @_;
-  my $vf = simple_vf($tva->variation_feature);
+  my $vf = simple_vf($tva->variation_feature, {allele => $tva->{variation_feature_seq}});
   
-  # get allele, reverse comp if needed
-  my $allele = $tva->variation_feature_seq;
-  reverse_comp(\$allele) if $vf->{strand} < 0;
-
   # Zero-indexing start for tabix and adding 1 to end for VEP indels
   my @data = @{$self->get_data($vf->{chr}, ($vf->{start} - 1), ($vf->{end} + 1))};
 
@@ -142,39 +183,25 @@ sub run {
   }
 
   if (@matches) {
-    # Convert found alleles to match the VEP output
-    my @found_alts = @{$found_vf->{alts}};
-    for my $match (@matches) {
-      $found_alts[$match->{b_index}] = $match->{a_allele};
+    # Return the index of matching found alleles
+    my @found_alts = map { $_->{b_index} } @matches;
+
+    # Parse info fields if needed
+    if ($self->{fields}) {
+      my %found_fields = %{parse_info($found_vf->{line}, $self->{valid_fields})};
+      while (my ($field, $val) = each %found_fields) {
+        $ret{"$self->{name}_$field"} = [@$val];
+      }
     }
 
-    # Parse info fields
-    my %found_fields = %{parse_info($found_vf->{line}, $self->{valid_fields})};
-
-    # Organize results
-    while (my ($field, $val) = each %found_fields) {
-      $ret{"$self->{name}_$field"} = [@$val];
-    }
-
+    $ret{"$self->{name}_ID"} = $found_vf->{line}->[2];
+    $ret{"$self->{name}_POS"} = $found_vf->{pos};
     $ret{"$self->{name}_POS"} = $found_vf->{pos};
     $ret{"$self->{name}_REF"} = $found_vf->{ref};
-    $ret{"$self->{name}_ALT"} = [@found_alts];
+    $ret{"$self->{name}_ALT"} = $found_vf->{alts};
+    $ret{"$self->{name}_alt_index"} = [@found_alts]; 
   }
   return \%ret;
-}
-
-sub parse_data {
-  my ($self, $line) = @_;
-  my ($vf) = @{parse_line({format => 'vcf', minimal => 1}, $line)};
-  return simple_vf($vf, $self->{filter});
-}
-
-sub get_start {
-  return $_[1]->{start};
-}
-
-sub get_end {
-  return $_[1]->{end};
 }
 
 1;
