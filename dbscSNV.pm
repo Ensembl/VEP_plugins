@@ -94,6 +94,10 @@ sub new {
   # get dbNSFP file
   my $file = $self->params->[0];
   $self->add_file($file);
+
+  if(my $assembly = $self->params->[1]) {
+    $self->{_param_assembly} = $assembly;
+  }
   
   # get headers
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
@@ -207,7 +211,7 @@ sub pos_column {
 
   # work out which column to use
   unless(exists($self->{pos_column})) {  
-    if(my $assembly = $self->{config}->{assembly}) {
+    if(my $assembly = $self->{_param_assembly} || $self->{config}->{assembly}) {
       if($assembly eq 'GRCh37') {
         $self->{pos_column} = 'pos';
       }
