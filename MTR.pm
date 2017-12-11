@@ -12,6 +12,8 @@
 =head1 SYNOPSIS
 
   mv MTR.pm ~/.vep/Plugins
+  curl -O ftp://mtr-viewer.mdhs.unimelb.edu.au/pub/mtrflatfile_1.0.txt.gz
+  curl -O ftp://mtr-viewer.mdhs.unimelb.edu.au/pub/mtrflatfile_1.0.txt.gz.tbi
   perl variant_effect_predictor.pl -i variations.vcf --plugin MTR,mtrflatfile_1.0.txt.gz
 
 =head1 DESCRIPTION
@@ -31,7 +33,7 @@ http://genome.cshlp.org/content/27/10/1715
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
 to use this plugin. MTR flat files can be downloaded from:
-http://xxxxx
+ftp://mtr-viewer.mdhs.unimelb.edu.au/pub
 
 =cut
 
