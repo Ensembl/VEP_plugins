@@ -506,6 +506,24 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # MTR
+    # Requires mtrflatfile_1.0.txt.gz data file from ftp://mtr-viewer.mdhs.unimelb.edu.au/pub
+    {
+      "key" => "MTR",
+      "helptip" => "MTR scores quantify the amount of purifying selection acting specifically on missense variants in a given window of protein-coding sequence",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/91/MTR.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/mtrflatfile_1.0.txt.gz"
+      ]
+    },
+
 
     
     ## SPLICING PREDICTIONS
