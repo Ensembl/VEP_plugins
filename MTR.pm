@@ -35,6 +35,8 @@ The Bio::DB::HTS perl library or tabix utility must be installed in your path
 to use this plugin. MTR flat files can be downloaded from:
 ftp://mtr-viewer.mdhs.unimelb.edu.au/pub
 
+NB: Data are available for GRCh37 only
+
 =cut
 
 package MTR;
@@ -121,7 +123,7 @@ sub run {
     $_->{Genomic_position} eq $vf->{end} &&
     $_->{alt}              eq $allele &&
     $_->{Feature}          eq $tr_id
-  } @{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})};
+  } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   # return only the keys defined by get_header_info()
   return $res ? { map {$_ => $res->{$_}} grep {defined($res->{$_}) && $res->{$_} ne '.'} keys %{$self->get_header_info} } : {};
