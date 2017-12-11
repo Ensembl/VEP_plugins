@@ -7,7 +7,7 @@
 
 =head1 NAME
 
-  MTR
+  MTR (Missense Tolerance Ratio)
 
 =head1 SYNOPSIS
 
@@ -22,7 +22,7 @@ variants from a tabix-indexed flat file.
 MTR scores quantify the amount of purifying selection acting
 specifically on missense variants in a given window of protein-coding
 sequence. It is estimated across a sliding window of 31 codons and uses
-observed standing variation data from the WEST component of the Exome
+observed standing variation data from the WES component of the Exome
 Aggregation Consortium Database (ExAC), version 2.0
 (http://gnomad.broadinstitute.org).
 
@@ -96,7 +96,7 @@ sub get_header_info {
   return {
 	  MTR         => 'MTR score',
 	  FDR         => 'MTR false discovery rate adjusted binomial exact test.',
-	  MTR_centile => 'MTR percentile'
+	  MTR_centile => 'MTR gene-specific percentile'
 	 }
 }
 
