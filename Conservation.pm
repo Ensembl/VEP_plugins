@@ -43,6 +43,9 @@ limitations under the License.
  position will be returned, and for insertions the average score of
  the 2 flanking bases will be returned.
 
+ The plugin requires the ensembl-compara API module to be installed;
+ see http://www.ensembl.org/info/docs/api/index.html
+
 =cut
 
 package Conservation;
