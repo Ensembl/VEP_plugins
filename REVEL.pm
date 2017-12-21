@@ -66,7 +66,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature','Intergenic'];
+  return ['Transcript'];
 }
 
 sub get_header_info {
@@ -84,7 +84,8 @@ sub run {
   my ($res) = grep {
     $_->{alt}   eq $allele &&
     $_->{start} eq $vf->{start} &&
-    $_->{end}   eq $vf->{end}
+    $_->{end}   eq $vf->{end} &&
+    $_->{altaa} eq $tva->{peptide}
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? $res->{result} : {};
@@ -99,6 +100,7 @@ sub parse_data {
     alt => $alt,
     start => $s,
     end => $s,
+    altaa => $altaa,
     result => {
       REVEL   => $revel_value,
     }
