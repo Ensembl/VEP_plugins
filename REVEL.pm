@@ -85,7 +85,7 @@ sub run {
     $_->{alt}   eq $allele &&
     $_->{start} eq $vf->{start} &&
     $_->{end}   eq $vf->{end} &&
-    $_->{altaa} eq $tva->{peptide}
+    $_->{altaa} eq $tva->peptide
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? $res->{result} : {};
