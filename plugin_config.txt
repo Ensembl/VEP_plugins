@@ -524,6 +524,24 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # REVEL
+    # Requires data file processed from revel_all_chromosomes.csv.zip
+    {
+      "key" => "REVEL",
+      "helptip" => "An ensemble method for predicting the pathogenicity of rare missense variants",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/91/REVEL.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/revel_all_chromosomes.tsv.gz"
+      ]
+    },
+
 
     
     ## SPLICING PREDICTIONS
