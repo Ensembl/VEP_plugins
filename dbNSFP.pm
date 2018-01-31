@@ -63,6 +63,16 @@ limitations under the License.
  fully compatible with such a setup - simply use the URL of the remote file:
  
  --plugin dbNSFP,http://my.files.com/dbNSFP.gz,col1,col2
+
+ The plugin replaces occurrences of ';' with ',' and '|' with '&'. However, some
+ data field columns, e.g. Interpro_domain, use the replacement characters. We
+ added a file with replacement logic for customising the required replacement
+ of ';' and '|' in dbNSFP data columns. In addition to the default replacements
+ (; to , and | to &) users can add customised replacements. Users can either modify
+ the file dbNSFP_replacement_logic in the VEP_plugins directory or provide their own
+ file as second argument when calling the plugin:
+
+ --plugin dbNSFP,/path/to/dbNSFP.gz,/path/to/dbNSFP_replacement_logic,LRT_score,GERP++_RS
  
  Note that transcript sequences referred to in dbNSFP may be out of sync with
  those in the latest release of Ensembl; this may lead to discrepancies with
@@ -114,9 +124,19 @@ sub new {
   foreach my $h(qw(alt Ensembl_transcriptid)) {
     die "ERROR: Could not find required column $h in $file\n" unless grep {$_ eq $h} @{$self->{headers}};
   }
-  
+
+  my $i = 1; 
+  # check if 2nd argument is a file that specifies replacement logic
+  # read replacement logic 
+  my $replacement_file = $self->params->[$i];
+  if (defined $replacement_file && -e $replacement_file) {
+    $self->add_replacement_logic($replacement_file);  
+    $i++;
+  } else {
+    $self->add_replacement_logic();  
+  } 
+ 
   # get required columns
-  my $i = 1;
   while(defined($self->params->[$i])) {
     my $col = $self->params->[$i];
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
@@ -268,12 +288,23 @@ sub run {
   return {} unless scalar keys %$data;
   
   # get required data
-  my %return =
-    map {$_ => $data->{$_}}
-    map {$data->{$_} =~ tr/\;\|/\,\&/; $_}
-    grep {$data->{$_} ne '.'}              # ignore missing data
-    grep {defined($self->{cols}->{$_})}  # only include selected cols
-    keys %$data;
+  my @from = @{$self->{replacement}->{default}->{from}};
+  my @to = @{$self->{replacement}->{default}->{to}};
+
+  my %return;
+  foreach my $colname (keys %$data) {
+    next if(!defined($self->{cols}->{$colname}));
+    next if($data->{$colname} eq '.');
+
+    my @from = @{$self->{replacement}->{default}->{from}};
+    my @to   = @{$self->{replacement}->{default}->{to}};
+    @from    = @{$self->{replacement}->{$colname}->{from}} if (defined $self->{replacement}->{$colname});
+    @to      = @{$self->{replacement}->{$colname}->{to}} if (defined $self->{replacement}->{$colname});
+    for my $i (0 .. $#from) {
+      $data->{$colname} =~ s/\Q$from[$i]\E/$to[$i]/g;
+    }
+    $return{$colname} = $data->{$colname};
+  }
   
   return \%return;
 }
@@ -297,6 +328,28 @@ sub get_start {
 
 sub get_end {
   return $_[1]->{'pos(1-based)'};
+}
+
+sub add_replacement_logic {
+  my $self = shift;
+  my $file = shift;
+  $file ||= 'dbNSFP_replacement_logic';
+  if (! -e $file) {
+    $self->{replacement}->{default}->{from} = [';', '|'];
+    $self->{replacement}->{default}->{to} = [',', '&'];
+  } else {
+    open FILE, $file;
+    while(<FILE>) {
+      chomp;
+      next if /^colname/;
+      my ($colname, $from, $to) = split/\s+/;
+      die ("ERROR: 3 values separated by whitespace are required: colname from to.") if(!($colname && $from && $to));
+      push @{$self->{replacement}->{$colname}->{from}}, $from;
+      push @{$self->{replacement}->{$colname}->{to}}, $to;
+    }
+    close FILE;
+    die("ERROR: No default replacement logic has been specified.\n") if (!defined $self->{replacement}->{default});
+  }
 }
 
 1;
