@@ -91,7 +91,6 @@ sub run {
         
         my $sub_slice = $vf->slice->sub_Slice($slice_start, $slice_end);
         my $vf_adaptor = $vf->slice->_get_VariationFeatureAdaptor();
-        my @test = $vf_adaptor->fetch_all_by_Slice_SO_terms($sub_slice);
         push @results,
             map {$_->variation_name}
             grep {
