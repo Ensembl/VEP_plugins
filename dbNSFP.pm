@@ -53,6 +53,16 @@ limitations under the License.
  > head -n1 dbNSFP3.2a_variant.chr1 > h
  > cat dbNSFP3.2a_variant.chr* | grep -v ^#chr | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP.gz
  > tabix -s 1 -b 2 -e 2 dbNSFP.gz
+
+ UPDATE: Release 3.5c of dbNSFP uses GRCh38/hg38 coordinates and GRCh37/hg19
+ coordinates. If you want to use GRCh38 follow the previous instructions.
+ For GRCh37 and release 3.5c the file must be processed differently:
+
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.5c.zip
+ > unzip dbNSFPv3.5c.zip
+ > head -n1 dbNSFP3.5c_variant.chr1 > h
+ > cat dbNSFP3.5c_variant.chr* | grep -v ^#chr | awk '$8 != "."' | sort -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP_hg19.gz
+ > tabix -s 8 -b 9 -e 9 dbNSFP_hg19.gz
  
  When running the plugin you must list at least one column to retrieve from the
  dbNSFP file, specified as parameters to the plugin e.g.
@@ -241,16 +251,29 @@ sub run {
 
   my $data;
   my $pos;
-  
-  foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
 
+  my $assembly = $self->{config}->{assembly};
+ 
+  foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
     # compare allele and transcript
-    if (exists $tmp_data->{'pos(1-based)'}) {
-      $pos = $tmp_data->{'pos(1-based)'}
+    if ($assembly eq 'GRCh37') {
+      if (exists $tmp_data->{'pos(1-coor)'}) {
+        # for dbNSFP version 2.9.1
+        $pos = $tmp_data->{'pos(1-coor)'}
+      } elsif (exists $tmp_data->{'hg19_pos(1-based)'}) {
+        # for dbNSFP version 3.5c indexed for hg19/(=GRCh37)
+        $pos =  $tmp_data->{'hg19_pos(1-based)'}
+      } else {
+        die "dbNSFP file does not contain required columns (pos(1-coor) for version 2.9.1 or hg19_pos(1-based) for version 3.5c) to use with GRCh37";
+      }
     } else {
-      # for dbNSFP version 2.9.1
-      $pos = $tmp_data->{'pos(1-coor)'}
+      if (exists $tmp_data->{'pos(1-based)'}) {
+        $pos = $tmp_data->{'pos(1-based)'}
+      } else {
+        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38";
+      }
     }
+
     next unless
       $pos == $vf->{start} &&
       defined($tmp_data->{alt}) &&
