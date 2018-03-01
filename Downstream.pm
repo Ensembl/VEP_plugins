@@ -51,6 +51,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use POSIX qw(ceil);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
@@ -90,7 +91,7 @@ sub run {
         # get the sequence to translate
         my ($low_pos, $high_pos) = sort {$a <=> $b} ($tv->cds_start, $tv->cds_end);
         my $is_insertion         = $tv->cds_start > $tv->cds_end ? 1 : 0;
-        my $last_complete_codon  = int($low_pos / 3) * 3;
+        my $last_complete_codon  = (ceil($low_pos / 3) - 1) * 3;
         my $before_var_seq       = substr $cds_seq, $last_complete_codon, $low_pos - $last_complete_codon - ($is_insertion ? 0 : 1);
         my $after_var_seq        = substr $cds_seq, $high_pos - ($is_insertion ? 1 : 0);
         my $to_translate         = $before_var_seq.$tva->feature_seq.$after_var_seq;
