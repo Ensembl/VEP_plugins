@@ -39,8 +39,8 @@ limitations under the License.
   to synonymous mutations for each gene in 60,706 individuals from ExAC,
   adjusting for the gene de novo mutation rate and evolutionary protein
   conservation. The lower the LoFtool gene score percentile the most
-  intolerant is the gene to functional variation. Manuscript in
-  preparation (please contact Dr. Joao Fadista - joao.fadista@med.lu.se).
+  intolerant is the gene to functional variation. For more details please see
+  (Fadista J et al. 2017), PMID:27563026.
   The authors would like to thank the Exome Aggregation Consortium and
   the groups that provided exome variant data for comparison. A full
   list of contributing groups can be found at http://exac.broadinstitute.org/about.
