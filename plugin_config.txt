@@ -419,23 +419,6 @@ my $VEP_PLUGIN_CONFIG = {
       ],
     },
 
-    # PolyPhen_SIFT
-    {
-      "key" => "PolyPhen_SIFT",
-      "helptip" => "Retrieves PolyPhen and SIFT predictions from a locally constructed sqlite database",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/PolyPhen_SIFT.pm",
-      "requires_install" => 1,
-      "species" => [
-        "homo_sapiens"
-      ],
-      "params" => [
-        "@*"
-      ],
-    },
-
     # LOFTEE
     # See https://github.com/konradjk/loftee for details
     {
@@ -746,28 +729,6 @@ my $VEP_PLUGIN_CONFIG = {
     },
     
 
-    # UpDownDistance
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/UpDownDistance.pm
-    # Sets the upstream/downstream search distance either side of transcripts
-    {
-      "key" => "UpDownDistance",
-      "label" => "Upstream/Downstream distance",
-      "available" => 0,
-      "enabled" => 0,
-      "helptip" => "Change the distance to transcript (default is 5000bp) for which VEP assigns upstream and downstream consequences",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/UpDownDistance.pm",
-      "params" => [
-        "@*"
-      ],
-      "form" => [
-        {
-          "name" => "distance",
-          "label" => "Distance (bp)",
-          "type" => "string",
-          "value" => 5000
-        }
-      ]
-    },
 
     # NearestGene
     {
@@ -845,6 +806,16 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/SameCodon.pm",
       "section" => "Variant data",
     },
+    # LOVD
+    {
+      "key" => "LOVD",
+      "label" => "LOVD",
+      "helptip" => "Retrieves LOVD variation data",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/LOVD.pm",
+      "section" => "Variant data",
+    },
 
     # GO
     {
@@ -854,17 +825,6 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/GO.pm",
-      "section" => "Gene data",
-    },
-
-    # GXA
-    {
-      "key" => "GXA",
-      "label" => "Gene Expression Atlas",
-      "helptip" => "Reports data from the Gene Expression Atlas",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/GXA.pm",
       "section" => "Gene data",
     },
 
@@ -897,5 +857,47 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/TSSDistance.pm",
     },
+    
+    # Phenotypes
+    {
+      "key" => "Phenotypes",
+      "label" => "Phenotypes",
+      "helptip" => "Retrieves overlapping phenotype annotations",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/Phenotypes.pm",
+    },    
+    # Draw
+    {
+      "key" => "Draw",
+      "label" => "Draw",
+      "helptip" => "Creates images of the transcript model showing variant location",
+      "available" => 0,
+      "enabled" => 0,
+      "requires_install" => 1,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/Draw.pm",
+    },
+    # G2P
+    {
+      "key" => "G2P",
+      "label" => "G2P",
+      "helptip" => "Assesses variants using G2P allelic requirements for potential phenotype involvement.",
+      "available" => 0,
+      "enabled" => 0,
+      "requires_data" => 1,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/G2P.pm",
+    },
+
+    # LocalID
+    {
+      "key" => "LocalID",
+      "label" => "LocalID",
+      "helptip" => "Allows you to use variant IDs as VEP input without making a database connection.",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/92/LocalID.pm",
+    },
+
+    
   ]
 };

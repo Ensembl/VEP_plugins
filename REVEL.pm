@@ -37,6 +37,8 @@ limitations under the License.
 
  Please cite the REVEL publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
+ 
+ REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
 
  The tabix utility must be installed in your path to use this plugin.
 
@@ -75,7 +77,6 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-
   # only for missense variants
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 

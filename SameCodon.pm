@@ -60,8 +60,12 @@ sub get_header_info {
 }
 
 sub run {
-
+  
     my ($self, $tva) = @_;
+
+    if ($self->config->{offline}) {
+      die "A connection to the database is required to use the plugin SameCodon\n";
+    }
     
     my $tv = $tva->transcript_variation;
     my $vf = $tv->variation_feature;
