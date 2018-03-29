@@ -68,6 +68,11 @@ limitations under the License.
  dbNSFP file, specified as parameters to the plugin e.g.
  
  --plugin dbNSFP,/path/to/dbNSFP.gz,LRT_score,GERP++_RS
+
+ You may include all columns with ALL; this fetches a large amount of data per
+ variant!:
+ 
+ --plugin dbNSFP,/path/to/dbNSFP.gz,ALL
  
  Tabix also allows the data file to be hosted on a remote server. This plugin is
  fully compatible with such a setup - simply use the URL of the remote file:
@@ -149,6 +154,10 @@ sub new {
   # get required columns
   while(defined($self->params->[$i])) {
     my $col = $self->params->[$i];
+    if($col eq 'ALL') {
+      $self->{cols} = {map {$_ => 1} @{$self->{headers}}};
+      last;
+    }
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
     
     $self->{cols}->{$self->params->[$i]} = 1;
