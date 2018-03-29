@@ -177,8 +177,7 @@ sub run {
 
   return {} unless %results;
 
-  my @sorted_results = sort {$TERM_RANK{$a} <=> $TERM_RANK{$b}} keys %results;
-  return { SpliceRegion => [@sorted_results]};
+  return { SpliceRegion => [sort {$TERM_RANK{$a} <=> $TERM_RANK{$b}} keys %results]};
 }
 
 1;
