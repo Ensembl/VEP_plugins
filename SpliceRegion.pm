@@ -29,6 +29,9 @@ limitations under the License.
 
  mv SpliceRegion.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin SpliceRegion
+ 
+ To only show the additional consequence extended_intronic_splice_region_variant, use: 
+ ./vep -i variations.vcf --plugin SpliceRegion,Extended
 
 =head1 DESCRIPTION
 
@@ -71,6 +74,8 @@ my %TERM_RANK = (
   splice_donor_5th_base_variant => 1,
   splice_donor_region_variant => 2,
   splice_polypyrimidine_tract_variant => 3,
+  extended_intronic_splice_region_variant_5prime => 4,
+  extended_intronic_splice_region_variant_3prime => 5,
 );
 
 sub feature_types {
@@ -114,10 +119,12 @@ sub run {
 
   my %results;
 
+  my @terms;
+  my $extended_flag = lc($self->params->[0] || "") eq 'extended';
   for my $intron(@{$tv->_overlapped_introns($vf_start, $vf_end)}) {
 
     # define terms to check for and their regions
-    my @terms = (
+    @terms = (
       {
         term => 'splice_donor_5th_base_variant',
         region => [$intron->{$donor_coord} + (4 * $strand_mod), $intron->{$donor_coord} + (4 * $strand_mod)]
@@ -134,12 +141,29 @@ sub run {
         #   G => '_to_purine',
         # }
       },
-    );
+    ) unless $extended_flag;
+    
+    @terms = (
+      {
+        term => 'extended_intronic_splice_region_variant_5prime',
+        region => [$intron->{$donor_coord}, $intron->{$donor_coord} + (9 * $strand_mod)]
+      },
+      {
+        term => 'extended_intronic_splice_region_variant_3prime',
+        region => [$intron->{$acc_coord} + (-9 * $strand_mod), $intron->{$acc_coord} ],
+        # allele_specific_mod => {
+        #   A => '_to_purine',
+        #   G => '_to_purine',
+        # }
+      },
+    ) if $extended_flag;
+    
 
     foreach my $term_hash(@terms) {
       my $pass = overlap($vf_start, $vf_end, sort {$a <=> $b} @{$term_hash->{region}});
       if($pass) {
         my $term = $term_hash->{term};
+        $term = 'extended_intronic_splice_region_variant' if $extended_flag;
 
         # if(my $allele_specific_mods = $term_hash->{allele_specific_mod}) {
         #   $term .= $allele_specific_mods->{$vf_tr_seq} || '';
