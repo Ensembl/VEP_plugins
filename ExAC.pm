@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -27,10 +28,10 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv ExAC.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN
- perl variant_effect_predictor.pl -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,,AN
+ ./vep -i variations.vcf --plugin ExAC,/path/to/ExAC/ExAC.r0.3.sites.vep.vcf.gz,AC,AN
 
 
 
@@ -59,7 +60,9 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+
+use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line get_slice);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
@@ -94,9 +97,10 @@ sub new {
   # remote files?
   if($file =~ /tp\:\/\//) {
     my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
+    print STDERR "$remote_test\n";
+    # if($remote_test && $remote_test !~ /get_local_version/) {
+    #   die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
+    # }
   }
 
   # check files exist
@@ -159,11 +163,11 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-
   # make sure headers have been loaded
   $self->get_header_info();
 
   my $vf = $tva->variation_feature;
+  my $name = $vf->variation_name;
   
   # get allele, reverse comp if needed
   my $allele;
@@ -173,8 +177,11 @@ sub run {
   
   # adjust coords to account for VCF-like storage of indels
   my ($s, $e) = ($vf->{start} - 1, $vf->{end} + 1);
-  
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $s, $e);
+ 
+  my $vf_chr = $vf->{chr};
+  $vf_chr =~ s/chr//;
+  my $pos_string = sprintf("%s:%i-%i", $vf_chr, $s, $e);
+
   
   # clear cache if it looks like the coords are the same
   # but allele type is different
@@ -197,21 +204,29 @@ sub run {
     while(<TABIX>) {
       chomp;
       s/\r$//g;
-      
       # parse VCF line into a VariationFeature object
-      my ($vcf_vf) = @{parse_line({format => 'vcf'}, $_)};
+      my ($vcf_vf) = @{parse_line({format => 'vcf', minimal => 1}, $_)};
       
       # check parsed OK
       next unless $vcf_vf && $vcf_vf->isa('Bio::EnsEMBL::Variation::VariationFeature');
-      
-      # compare coords
-      next unless $vcf_vf->{start} == $vf->{start} && $vcf_vf->{end} == $vf->{end};
-      
-      # get alleles, shift off reference
+
       my @vcf_alleles = split /\//, $vcf_vf->allele_string;
-      my $ref_allele = shift @vcf_alleles;
-      
+      my $ref_allele  = shift @vcf_alleles;
+      my $vcf_vf_start = $vcf_vf->{start};
+      my $vcf_vf_end = $vcf_vf->{end};
+
+      my @vf_alleles = split /\//, $vf->allele_string;
+      my $vf_ref_allele = shift @vf_alleles;
+
+      if ($vcf_vf_start != $vf->{start} || $vcf_vf_end != $vf->{end}) {
+        my $matched_alleles = get_matched_variant_alleles({ref => $vf_ref_allele, alts => [$allele], pos => $vf->{start}}, {ref => $ref_allele, alts => \@vcf_alleles,  pos => $vcf_vf_start});
+
+        next unless (@$matched_alleles);
+        # We only match one alt allele from the input VF against alleles from the VCF line. b_allele is the matched allele from the VCF alt alleles
+        $allele = $matched_alleles->[0]->{b_allele};
+      }
       # iterate over required headers
+      HEADER:
       foreach my $h(@{$self->{headers} || []}) {
         my $total_ac = 0;
         
@@ -250,7 +265,7 @@ sub run {
                 $data->{$a}->{'ExAC_'.$anh} = $an;
               }
 
-              $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an);
+              $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an) if $an;
             }
             
             # use total to get ref allele freq
@@ -260,7 +275,7 @@ sub run {
             if ($self->{display_an}){
               $data->{$ref_allele}->{'ExAC_'.$anh} = $an;
             }
-            $data->{$ref_allele}->{'ExAC_'.$afh} = sprintf("%.3g", 1 - ($total_ac / $an));
+            $data->{$ref_allele}->{'ExAC_'.$afh} = sprintf("%.3g", 1 - ($total_ac / $an)) if $an;
           }
         }
       }
@@ -271,7 +286,6 @@ sub run {
   
   # overwrite cache
   $self->{cache} = {$pos_string => $data};
-  
   return defined($data->{$allele}) ? $data->{$allele} : {};
 }
 

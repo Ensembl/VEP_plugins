@@ -10,7 +10,7 @@
                                                                                                                      
 =head1 CONTACT                                                                                                       
 
- Graham Ritchie <grsr@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -21,7 +21,7 @@
 =head1 SYNOPSIS
 
  mv DAS.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin DAS,<DAS_server>,<DAS_source>,<proxy>
+ ./vep -i variations.vcf --plugin DAS,<DAS_server>,<DAS_source>,<proxy>
 
 =head1 DESCRIPTION
 
@@ -35,7 +35,7 @@
  multiple times, e.g.:
 
  export DAS="http://somewhere/das"
- perl variant_effect_predictor.pl -i variations.vcf --plugin DAS,$DAS,source1 --plugin DAS,$DAS,source2
+ ./vep -i variations.vcf --plugin DAS,$DAS,source1 --plugin DAS,$DAS,source2
 
  Requires the Bio::Das::Lite module from CPAN.
 

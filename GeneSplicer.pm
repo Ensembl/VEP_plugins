@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -27,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GeneSplicer.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variants.vcf --plugin GeneSplicer,[path_to_genesplicer_bin],[path_to_training_dir],[option1=value],[option2=value]
+ ./vep -i variants.vcf --plugin GeneSplicer,[path_to_genesplicer_bin],[path_to_training_dir],[option1=value],[option2=value]
 
 =head1 DESCRIPTION
 
@@ -67,8 +68,21 @@ limitations under the License.
  cache_size : change how many sequences' scores are cached in memory
               (default: 50)
 
- Example: --plugin GeneSplicer,$GS/bin,$GS/human,context=200,tmpdir=/mytmp
+ Example: --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
 
+ On some systems the binaries provided will not execute, but can be compiled from source:
+
+   cd $GS/sources
+   make
+   cd -
+   ./vep [options] --plugin GeneSplicer,$GS/sources/genesplicer,$GS/human
+
+ On Mac OSX the make step is known to fail; the genesplicer.cpp file requires modification:
+
+   cd $GS/sources
+   perl -pi -e "s/^main  /int main  /" genesplicer.cpp
+   make
+ 
 
 =cut
 
@@ -104,6 +118,8 @@ sub new {
   my $bin = shift @$params;
   die("ERROR: genesplicer binary not specified\n") unless $bin;
   die("ERROR: genesplicer binary not found\n") unless -e $bin;
+  my $test = `$bin 2>&1`;
+  die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
   $self->{_bin} = $bin;
   
   my $training_dir = shift @$params;
@@ -124,9 +140,6 @@ sub new {
 
     $self->{'_param_'.$key} = $val;
   }
-
-  # tell VEP this plugin uses a cache
-  $self->{has_cache} = 1;
 
   return $self;
 }
@@ -210,14 +223,14 @@ sub run {
   my $return = join(',',
     map {
       join('/',
-        $_->{gl},
-        $_->{type},
-        $_->{end5}.'-'.$_->{end3},
-        $_->{confidence},
-        $_->{score}
+        $_->[0]->{gl},
+        $_->[0]->{type},
+        $_->[1]->{end5}.'-'.$_->[1]->{end3},
+        $_->[0]->{confidence},
+        $_->[0]->{score}
       )
     }
-    map {$self->map_ss_coords($_, $vf)}
+    map {[$_, $self->map_ss_coords($_, $vf)]}
     grep {overlap($vf_start, $vf_end, $_->{end5}, $_->{end3})}
     (@losses, @gains, @diffs)
   );
@@ -229,13 +242,13 @@ sub run {
       map {
         join('/',
           'no_change',
-          $_->{type},
-          $_->{end5}.'-'.$_->{end3},
-          $_->{confidence},
-          $_->{score}
+          $_->[0]->{type},
+          $_->[1]->{end5}.'-'.$_->[1]->{end3},
+          $_->[0]->{confidence},
+          $_->[0]->{score}
         )
       }
-      map {$self->map_ss_coords($_, $vf)}
+      map {[$_, $self->map_ss_coords($_, $vf)]}
       grep {overlap($vf_start, $vf_end, $_->{end5}, $_->{end3})} @$ref_results
     );
   }
@@ -266,7 +279,7 @@ sub results_from_seq {
   my $output = `$cmd 2>&1`;
   unlink($seq_file);
 
-  return {} unless -e $result_file;
+  return [] unless -e $result_file;
 
   open RES, $result_file;
   my @results;
@@ -343,11 +356,13 @@ sub map_ss_coords {
   my $res = shift;
   my $vf = shift;
 
+  my $return = {};
+
   foreach my $coord(qw(end5 end3)) {
-    $res->{$coord} = (($res->{$coord} - $self->{'_param_context'}) + $vf->{start}) - 1;
+    $return->{$coord} = (($res->{$coord} - $self->{'_param_context'}) + $vf->{start}) - 1;
   }
 
-  return $res;
+  return $return;
 }
 
 1;

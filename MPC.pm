@@ -23,28 +23,33 @@ limitations under the License.
 
 =head1 NAME
 
- CADD
+ MPC
 
 =head1 SYNOPSIS
 
- mv CADD.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
+ mv MPC.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin MPC,fordist_constraint_official_mpc_values.txt.gz
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves CADD scores for variants from one or more
- tabix-indexed CADD data files.
+ A VEP plugin that retrieves MPC scores for variants from a tabix-indexed MPC data file.
+
+ MPC is a missense deleteriousness metric based on the analysis of genic regions
+ depleted of missense mutations in the Exome Agggregation Consortium (ExAC) data.
+
+ The MPC score is the product of work by Kaitlin Samocha (ks20@sanger.ac.uk).
+ Publication currently in pre-print: Samocha et al bioRxiv 2017 (TBD)
  
- Please cite the CADD publication alongside the VEP if you use this resource:
- http://www.ncbi.nlm.nih.gov/pubmed/24487276
- 
- The tabix utility must be installed in your path to use this plugin. The CADD
- data files can be downloaded from
- http://cadd.gs.washington.edu/download
+ The MPC score file is available to download from:
+
+ ftp://ftp.broadinstitute.org/pub/ExAC_release/release1/regional_missense_constraint/
+
+ The data are currently mapped to GRCh37 only. Not all transcripts are included; see
+ README in the above directory for exclusion criteria.
  
 =cut
 
-package CADD;
+package MPC;
 
 use strict;
 use warnings;
@@ -54,6 +59,8 @@ use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+
+my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
 
 sub new {
   my $class = shift;
@@ -69,69 +76,60 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature','Intergenic'];
+  return ['Transcript'];
 }
 
 sub get_header_info {
-  my $self = shift;
-  return {
-    CADD_PHRED => 'PHRED-like scaled CADD score',
-    CADD_RAW   => 'Raw CADD score'
-  }
+  return { MPC => 'MPC score' };
 }
 
 sub run {
   my ($self, $tva) = @_;
   
+  # only for missense variants
+  return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+  
   my $vf = $tva->variation_feature;
+  
+  return {} unless $vf->{start} eq $vf->{end};
   
   # get allele, reverse comp if needed
   my $allele = $tva->variation_feature_seq;
   reverse_comp(\$allele) if $vf->{strand} < 0;
   
-  return {} unless $allele =~ /^[ACGT-]+$/;
+  return {} unless $allele =~ /^[ACGT]$/;
+  
+  # get transcript stable ID
+  my $tr_id = $tva->transcript->stable_id;
 
   my ($res) = grep {
-    $_->{alt}   eq $allele &&
-    $_->{start} eq $vf->{start} &&
-    $_->{end}   eq $vf->{end}
-  } @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+    $_->{pos} == $vf->{start} &&
+    $_->{alt} eq $allele &&
+    $_->{tr}  eq $tr_id
+  } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
-  return $res ? $res->{result} : {};
+  return $res ? { MPC => $res->{MPC} } : {};
 }
 
 sub parse_data {
   my ($self, $line) = @_;
 
-  my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/, $line;
-
-  # do VCF-like coord adjustment for mismatched subs
-  my $e = ($s + length($ref)) - 1;
-  if(length($alt) != length($ref)) {
-    $s++;
-    $ref = substr($ref, 1);
-    $alt = substr($alt, 1);
-    $ref ||= '-';
-    $alt ||= '-';
-  }
+  my @split = split /\t/, $line;
 
   return {
-    alt => $alt,
-    start => $s,
-    end => $e,
-    result => {
-      CADD_RAW   => $raw,
-      CADD_PHRED => $phred
-    }
+    pos => $split[1],
+    alt => $split[3],
+    tr  => $split[5],
+    MPC => $split[-1],
   };
 }
 
 sub get_start {
-  return $_[1]->{start};
+  return $_[1]->{pos};
 }
 
 sub get_end {
-  return $_[1]->{end};
+  return $_[1]->{pos};
 }
 
 1;

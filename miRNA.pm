@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,18 +17,18 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
 =head1 NAME
 
- CADD
+ miRNA
 
 =head1 SYNOPSIS
 
  mv miRNA.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin miRNA
+ ./vep -i variations.vcf --plugin miRNA
 
 =head1 DESCRIPTION
 

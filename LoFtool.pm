@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- William McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -28,7 +29,7 @@ limitations under the License.
 
   mv LoFtool.pm ~/.vep/Plugins
   mv LoFtool_scores.txt ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool
+  ./vep -i variants.vcf --plugin LoFtool
 
 =head1 DESCRIPTION
 
@@ -50,7 +51,7 @@ limitations under the License.
 
   To use another scores file, add it as a parameter i.e.
 
-  perl variant_effect_predictor.pl -i variants.vcf --plugin LoFtool,scores_file.txt
+  ./vep -i variants.vcf --plugin LoFtool,scores_file.txt
 
 =cut
 
@@ -84,7 +85,7 @@ sub new {
   while(<IN>) {
     chomp;
     my ($gene, $score) = split;
-    next if $score eq 'LoFtool_percentile';
+    next if !defined($score) || $score eq 'LoFtool_percentile';
     $scores{lc($gene)} = sprintf("%g", $score);
   }
   

@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -27,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv NearestGene.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --cache --plugin NearestGene
+ ./vep -i variations.vcf --cache --plugin NearestGene
 
 =head1 DESCRIPTION
 
@@ -100,6 +101,7 @@ sub run {
   my $loc_string = sprintf("%s:%i-%i", $vf->{chr} || $vf->seq_region_name, $vf->{start}, $vf->{end});
   
   if(!exists($self->{_cache}) || !exists($self->{_cache}->{$loc_string})) {
+    $self->{config}->{ga} = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, $self->{config}->{core_type}, 'gene');
     $self->{ga} ||= $self->{config}->{ga};
     die("ERROR: Could not get gene adaptor; this plugin does not work in --offline mode\n") unless $self->{ga};
 

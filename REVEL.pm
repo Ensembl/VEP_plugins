@@ -18,33 +18,32 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
 
- CADD
+ REVEL
 
 =head1 SYNOPSIS
 
- mv CADD.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
+ mv REVEL.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin REVEL,/path/to/revel/data.tsv.gz
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves CADD scores for variants from one or more
- tabix-indexed CADD data files.
- 
- Please cite the CADD publication alongside the VEP if you use this resource:
- http://www.ncbi.nlm.nih.gov/pubmed/24487276
- 
- The tabix utility must be installed in your path to use this plugin. The CADD
- data files can be downloaded from
- http://cadd.gs.washington.edu/download
- 
-=cut
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
+ adds the REVEL score for missense variants to VEP output.
 
-package CADD;
+ Please cite the REVEL publication alongside the VEP if you use this resource:
+ https://www.ncbi.nlm.nih.gov/pubmed/27666373
+ 
+ REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
+
+ The tabix utility must be installed in your path to use this plugin.
+
+=cut
+package REVEL;
 
 use strict;
 use warnings;
@@ -57,7 +56,7 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
-  
+
   my $self = $class->SUPER::new(@_);
 
   $self->expand_left(0);
@@ -69,33 +68,26 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature','Intergenic'];
+  return ['Transcript'];
 }
 
 sub get_header_info {
-  my $self = shift;
-  return {
-    CADD_PHRED => 'PHRED-like scaled CADD score',
-    CADD_RAW   => 'Raw CADD score'
-  }
+  return { REVEL => 'Rare Exome Variant Ensemble Learner '};
 }
 
 sub run {
   my ($self, $tva) = @_;
-  
-  my $vf = $tva->variation_feature;
-  
-  # get allele, reverse comp if needed
-  my $allele = $tva->variation_feature_seq;
-  reverse_comp(\$allele) if $vf->{strand} < 0;
-  
-  return {} unless $allele =~ /^[ACGT-]+$/;
+  # only for missense variants
+  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
+  my $vf = $tva->variation_feature;
+  my $allele = $tva->variation_feature_seq;
   my ($res) = grep {
     $_->{alt}   eq $allele &&
     $_->{start} eq $vf->{start} &&
-    $_->{end}   eq $vf->{end}
-  } @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+    $_->{end}   eq $vf->{end} &&
+    $_->{altaa} eq $tva->peptide
+  } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? $res->{result} : {};
 }
@@ -103,25 +95,15 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
 
-  my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/, $line;
-
-  # do VCF-like coord adjustment for mismatched subs
-  my $e = ($s + length($ref)) - 1;
-  if(length($alt) != length($ref)) {
-    $s++;
-    $ref = substr($ref, 1);
-    $alt = substr($alt, 1);
-    $ref ||= '-';
-    $alt ||= '-';
-  }
+  my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = split /\t/, $line;
 
   return {
     alt => $alt,
     start => $s,
-    end => $e,
+    end => $s,
+    altaa => $altaa,
     result => {
-      CADD_RAW   => $raw,
-      CADD_PHRED => $phred
+      REVEL   => $revel_value,
     }
   };
 }

@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -27,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
   mv dbscSNV.pm ~/.vep/Plugins
-  perl variant_effect_predictor.pl -i variations.vcf --plugin dbscSNV,/path/to/dbscSNV.txt.gz
+  ./vep -i variations.vcf --plugin dbscSNV,/path/to/dbscSNV1.1_GRCh38.txt.gz
 
 =head1 DESCRIPTION
 
@@ -37,17 +38,25 @@ limitations under the License.
   Please cite the dbscSNV publication alongside the VEP if you use this resource:
   http://nar.oxfordjournals.org/content/42/22/13534
 
-  The tabix utility must be installed in your path to use this plugin. The dbscSNV
-  data file can be downloaded from
+  The Bio::DB::HTS perl library or tabix utility must be installed in your path
+  to use this plugin. The dbscSNV data file can be downloaded from
   https://sites.google.com/site/jpopgen/dbNSFP.
 
-  The file must be processed and indexed by tabix before use by this plugin:
+  The file must be processed and indexed by tabix before use by this plugin.
+  dbscSNV1.1 has coordinates for both GRCh38 and GRCh37; the file must be
+  processed differently according to the assembly you use.
 
-  > wget ftp://dbscsnv:dbscsnv@dbscsnv.softgenetics.com/dbscSNV.zip
-  > unzip dbscSNV.zip
-  > head -n1 dbscSNV.chr1 > h
-  > cat dbscSNV.chr* | grep -v ^chr | cat h - | bgzip -c > dbscSNV.txt.gz
-  > tabix -s 1 -b 2 -e 2 -c c dbscSNV.txt.gz
+  > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbscSNV1.1.zip
+  > unzip dbscSNV1.1.zip
+  > head -n1 dbscSNV1.1.chr1 > h
+
+  # GRCh38
+  > cat dbscSNV1.1.chr* | grep -v ^chr | sort -k5,5 -k6,6n | cat h - | bgzip -c > dbscSNV1.1_GRCh38.txt.gz
+  > tabix -s 5 -b 6 -e 6 -c c dbscSNV1.1_GRCh38.txt.gz
+
+  # GRCh37
+  > cat dbscSNV1.1.chr* | grep -v ^chr | cat h - | bgzip -c > dbscSNV1.1_GRCh37.txt.gz
+  > tabix -s 1 -b 2 -e 2 -c c dbscSNV1.1_GRCh37.txt.gz
 
   Note that in the last command we tell tabix that the header line starts with "c";
   this may change to the default of "#" in future versions of dbscSNV.
@@ -70,51 +79,42 @@ use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-  
-  # test tabix
-  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
-  
-  # get dbscSNV file
-  my $file = $self->params->[0];
-  
-  # remote files?
-  if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
-  }
 
-  # check files exist
-  else {
-    die "ERROR: dbscSNV file $file not found\n" unless -e $file;
-    die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-  }
+  $self->expand_left(0);
+  $self->expand_right(0);
   
-  $self->{file} = $file;
+  # get dbNSFP file
+  my $file = $self->params->[0];
+  $self->add_file($file);
+
+  if(my $assembly = $self->params->[1]) {
+    $self->{_param_assembly} = $assembly;
+  }
   
   # get headers
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
-    next unless /^c/;
     chomp;
     $self->{headers} = [split];
   }
   close HEAD;
-  
-  die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
-  
+
   # check alt and Ensembl_transcriptid headers
   foreach my $h(qw(alt Ensembl_gene)) {
     die "ERROR: Could not find required column $h in $file\n" unless grep {$_ eq $h} @{$self->{headers}};
+  }
+
+  # check we have hg38_pos col, only present in dbscSNV >= 1.1
+  if($self->pos_column eq 'hg38_pos') {
+    die("ERROR: Could not find hg38_pos column in $file\n") unless grep {$_ eq 'hg38_pos'} @{$self->{headers}};
   }
   
   $self->{cols} = {
@@ -146,7 +146,7 @@ sub run {
   my $vf = $tva->variation_feature;
   
   return {} unless $vf->{start} eq $vf->{end};
-  return {} unless grep {$_->SO_term =~ /splic/} @{$tva->get_all_OverlapConsequences};
+  # return {} unless grep {$_->SO_term =~ /splic/} @{$tva->get_all_OverlapConsequences};
   
   # get allele, reverse comp if needed
   my $allele = $tva->variation_feature_seq;
@@ -156,54 +156,24 @@ sub run {
   
   # get gene stable ID
   my $g_id = $tva->transcript->{_gene_stable_id} || $tva->transcript->gene->stable_id;
-    
-  my $pos_string = sprintf("%s:%i-%i", $vf->{chr}, $vf->{start}, $vf->{end});
-  
-  my @dbscsnv_data;
-  
-  # cached?
-  if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
-    @dbscsnv_data = @{$self->{cache}->{$pos_string}};
-  }
-  
-  # read from file
-  else {
-    open TABIX, sprintf("tabix -f %s %s |", $self->{file}, $pos_string);
-    
-    while(<TABIX>) {
-      chomp;
-      s/\r$//g;
-      my @split = split /\t/;
-      
-      # parse data into hash of col names and values
-      my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
-      
-      push @dbscsnv_data, \%data;
-    }
-    
-    close TABIX;
-  }
-  
-  # overwrite cache
-  $self->{cache} = {$pos_string => \@dbscsnv_data};
   
   my $data;
+  my $pos_column = $self->pos_column;
   
-  foreach my $tmp_data(@dbscsnv_data) {
+  foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
     # compare allele and transcript
     next unless
+      $tmp_data->{$pos_column} == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele; # &&
-#       defined($tmp_data->{Ensembl_gene}) &&
-#       $tmp_data->{Ensembl_gene} =~ /$g_id($|;)/;
+      # defined($tmp_data->{Ensembl_gene}) &&
+      # $tmp_data->{Ensembl_gene} =~ /$g_id($|;)/;
     
     $data = $tmp_data;
     last;
   }
   
   return {} unless scalar keys %$data;
-  
-  $DB::single = 1;
   
   # get required data
   my %return =
@@ -213,6 +183,51 @@ sub run {
     keys %$data;
   
   return \%return;
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+
+  $line =~ s/\r$//g;
+
+  my @split = split /\t/, $line;
+  
+  # parse data into hash of col names and values
+  my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
+
+  return \%data;
+}
+
+sub get_start {  
+  return $_[1]->{$_[0]->pos_column};
+}
+
+sub get_end {
+  return $_[1]->{$_[0]->pos_column};
+}
+
+sub pos_column {
+  my $self = shift;
+
+  # work out which column to use
+  unless(exists($self->{pos_column})) {  
+    if(my $assembly = $self->{_param_assembly} || $self->{config}->{assembly}) {
+      if($assembly eq 'GRCh37') {
+        $self->{pos_column} = 'pos';
+      }
+      elsif($assembly eq 'GRCh38') {
+        $self->{pos_column} = 'hg38_pos';
+      }
+      else {
+        die("ERROR: Assembly \"$assembly\" is not compatible with this plugin\n");
+      }
+    }
+    else {
+      die("ERROR: Could not establish which position column to use based on assembly; try setting assembly manually with --assembly\n");
+    }
+  }
+
+  return $self->{pos_column};
 }
 
 1;

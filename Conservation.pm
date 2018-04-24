@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Graham Ritchie <grsr@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -27,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Conservation.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Conservation,GERP_CONSERVATION_SCORE,mammals
+ ./vep -i variations.vcf --plugin Conservation,GERP_CONSERVATION_SCORE,mammals
 
 =head1 DESCRIPTION
 
@@ -41,6 +42,9 @@ limitations under the License.
  If a variant affects multiple nucleotides the average score for the
  position will be returned, and for insertions the average score of
  the 2 flanking bases will be returned.
+
+ The plugin requires the ensembl-compara API module to be installed;
+ see http://www.ensembl.org/info/docs/api/index.html
 
 =cut
 

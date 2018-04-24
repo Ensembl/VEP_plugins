@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,18 +17,18 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
 =head1 NAME
 
- Draw
+ LOVD
 
 =head1 SYNOPSIS
 
  mv LOVD.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin LOVD
+ ./vep -i variations.vcf --plugin LOVD
 
 =head1 DESCRIPTION
 
@@ -85,8 +86,11 @@ sub run {
     # set up a LWP UserAgent
     my $ua = LWP::UserAgent->new;
     $ua->env_proxy;
+
+    my $chr = $vf->{chr};
+    $chr =~ s/^chr//;
     
-    my $locus = sprintf('chr%s:%s_%s', $vf->{chr}, $vf->{start}, $vf->{end});
+    my $locus = sprintf('chr%s:%s_%s', $chr, $vf->{start}, $vf->{end});
     
     my $data;
     
@@ -105,13 +109,9 @@ sub run {
             for(grep {$_ !~ /hg_build/} split /\cJ/, $response->decoded_content) {
                 s/\"//g;
                 
-                my ($build, $pos, $gene, $acc, $dna, $id, $url) = split /\t/;
+                my ($build, $pos, $gene, $acc, $dna, $url) = split /\t/;
                 
-                $data->{$id} = {
-                    gene => $gene,
-                    acc  => $acc,
-                    dna  => $dna
-                };
+                $data = join(',', $gene, $acc, $dna)
             }
             
             $self->{lovd_cache}->{$locus} = $data;
@@ -121,11 +121,7 @@ sub run {
         $data = $self->{lovd_cache}->{$locus};
     }
     
-    return {} unless scalar keys %$data;
-    
-    return {
-        LOVD => (join ",", keys %$data)
-    };
+    return $data ? { LOVD => $data } : {};
 }
 
 1;

@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,18 +17,18 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
 =head1 NAME
 
- Donwstream
+ Downstream
 
 =head1 SYNOPSIS
 
  mv Downstream.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variations.vcf --plugin Downstream
+ ./vep -i variations.vcf --plugin Downstream
 
 =head1 DESCRIPTION
 
@@ -50,6 +51,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use POSIX qw(ceil);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
@@ -89,10 +91,12 @@ sub run {
         # get the sequence to translate
         my ($low_pos, $high_pos) = sort {$a <=> $b} ($tv->cds_start, $tv->cds_end);
         my $is_insertion         = $tv->cds_start > $tv->cds_end ? 1 : 0;
-        my $last_complete_codon  = int($low_pos / 3) * 3;
+        my $last_complete_codon  = (ceil($low_pos / 3) - 1) * 3;
         my $before_var_seq       = substr $cds_seq, $last_complete_codon, $low_pos - $last_complete_codon - ($is_insertion ? 0 : 1);
         my $after_var_seq        = substr $cds_seq, $high_pos - ($is_insertion ? 1 : 0);
         my $to_translate         = $before_var_seq.$tva->feature_seq.$after_var_seq;
+        my $three_prime_utr_seq  = $tr->three_prime_utr->seq() if ($tr->three_prime_utr);
+        $to_translate            = $to_translate.$three_prime_utr_seq if ($three_prime_utr_seq);
         $to_translate            =~ s/\-//g;
         
         # create a bioperl object
@@ -121,7 +125,7 @@ sub run {
         my $new_length = ($tv->translation_start < $tv->translation_end ? $tv->translation_start : $tv->translation_end) + length($new_pep);
         
         return {
-            Downstream          => $new_pep,
+            DownstreamProtein   => $new_pep,
             ProteinLengthChange => $new_length - length($translation),
         };
     }

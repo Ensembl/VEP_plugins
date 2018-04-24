@@ -1,6 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Will McLaren <wm2@ebi.ac.uk>
+ Ensembl <http://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -27,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv MaxEntScan.pm ~/.vep/Plugins
- perl variant_effect_predictor.pl -i variants.vcf --plugin MaxEntScan,[path_to_maxentscan_dir]
+ ./vep -i variants.vcf --plugin MaxEntScan,[path_to_maxentscan_dir]
 
 =head1 DESCRIPTION
 
@@ -82,9 +83,6 @@ sub new {
   die("ERROR: MaxEntScan directory not found\n") unless -d $dir;
   $self->{_dir} = $dir;
 
-  # tell VEP this plugin uses a cache
-  $self->{has_cache} = 1;
-
   ## setup from score5.pl
   $self->{'score5_me2x5'} = $self->score5_makescorematrix($dir.'/me2x5');
   $self->{'score5_seq'}   = $self->score5_makesequencematrix($dir.'/splicemodels/splice5sequences');
@@ -111,12 +109,18 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-  my $tr = $tva->transcript;
-  my $tr_strand = $tr->strand;
-
   return {} unless $vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/;
 
-  foreach my $intron(@{$tr->get_all_Introns}) {
+  my $tv = $tva->transcript_variation;
+  my $tr = $tva->transcript;
+  my $tr_strand = $tr->strand;
+  my ($vf_start, $vf_end) = ($vf->start, $vf->end);
+
+  # use _overlapped_introns() method from BaseTranscriptVariation
+  # this will use an interval tree if available for superfast lookup of overlapping introns
+  # we have to expand the search space around $vf because we're looking for the splice region not the intron per se
+  foreach my $intron(@{$tv->_overlapped_introns($vf_start - 21, $vf_end + 21)}) {
+    
     # get coords depending on strand
     # MaxEntScan does different predictions for 5 and 3 prime
     # and we need to feed it different bits of sequence for each
@@ -140,6 +144,7 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $five_start, $five_end)) {
+      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $five_start, $five_end)};
 
       return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
@@ -155,6 +160,7 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $three_start, $three_end)) {
+      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $three_start, $three_end)};
 
       return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
@@ -177,14 +183,17 @@ sub get_seqs {
   my ($self, $tva, $start, $end) = @_;
   my $vf = $tva->variation_feature;
 
+  my $tr_strand = $tva->transcript->strand;
+
   my $ref_seq = $vf->{slice}->sub_Slice(
     $start,
     $end,
-    $tva->transcript->strand
+    $tr_strand
   )->seq;
 
   my $alt_seq = $ref_seq;
-  substr($alt_seq, $vf->{start} - $start, ($vf->{end} - $vf->{start}) + 1) = $tva->feature_seq;
+  my $substr_start = $tr_strand > 0 ? $vf->{start} - $start : $end - $vf->{end};
+  substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $tva->feature_seq;
 
   return [$ref_seq, $alt_seq];
 }

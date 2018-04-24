@@ -8,7 +8,7 @@ my $VEP_PLUGIN_CONFIG = {
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/dbNSFP.pm
     # Requires tabix-indexed data file as first param
     # Field names are listed below and rendered as a multi-selectable autocomplete text field
-    # Human, GRCh38 only
+    # Human, GRCh38 only (3.x), for GRCh37 use 2.9.x
     {
       "key" => "dbNSFP",
       "label" => "dbNSFP",
@@ -16,11 +16,11 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "dbNSFP provides pathogenicity predictions for missense variants from various algorithms",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbNSFP.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/dbNSFP.pm",
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
-        #"/path/to/dbNSFP3.0b1a.txt.gz",
+        #"/path/to/dbNSFP3.5a.txt.gz",
         "@*"
       ],
       "species" => [
@@ -36,7 +36,7 @@ my $VEP_PLUGIN_CONFIG = {
           'multiple' => 1,
           'style' => 'height:150px',
           'required' => 1,
-          'notes' => 'Field descriptions in <a rel="external" href="https://drive.google.com/file/d/0B60wROKy6OqcSFNBbWVjNWl5UjQ/view?usp=sharing">dbNSFP README</a>',
+          'notes' => 'Field descriptions in <a rel="external" href="https://drive.google.com/file/d/0B60wROKy6OqcNGJ2STJlMTJONk0/view">dbNSFP README</a>',
           # "class" => "jquery-multiselect",
           "values" => [
             # "chr",
@@ -45,7 +45,7 @@ my $VEP_PLUGIN_CONFIG = {
             # "alt",
             # "aaref",
             # "aaalt",
-            # "rs_dbSNP142",
+            # "rs_dbSNP150",
             # "hg19_chr",
             # "hg19_pos(1-based)",
             # "hg18_chr",
@@ -54,6 +54,10 @@ my $VEP_PLUGIN_CONFIG = {
             # "cds_strand",
             # "refcodon",
             # "codonpos",
+            "codon_degeneracy",
+            "Ancestral_allele",
+            "AltaiNeandertal",
+            "Denisova",
             # "Ensembl_geneid",
             # "Ensembl_transcriptid",
             # "Ensembl_proteinid",
@@ -79,10 +83,10 @@ my $VEP_PLUGIN_CONFIG = {
             "MutationTaster_pred",
             "MutationTaster_model",
             "MutationTaster_AAE",
-            "Uniprot_id_MutationAssessor",
-            "Uniprot_variant_MutationAssessor",
+            "MutationAssessor_UniprotID",
+            "MutationAssessor_variant",
             "MutationAssessor_score",
-            "MutationAssessor_rankscore",
+            "MutationAssessor_score_rankscore",
             "MutationAssessor_pred",
             "FATHMM_score",
             "FATHMM_converted_rankscore",
@@ -94,9 +98,6 @@ my $VEP_PLUGIN_CONFIG = {
             "Transcript_var_VEST3",
             "VEST3_score",
             "VEST3_rankscore",
-            "CADD_raw",
-            "CADD_raw_rankscore",
-            "CADD_phred",
             "MetaSVM_score",
             "MetaSVM_rankscore",
             "MetaSVM_pred",
@@ -104,60 +105,185 @@ my $VEP_PLUGIN_CONFIG = {
             "MetaLR_rankscore",
             "MetaLR_pred",
             "Reliability_index",
+            "M-CAP_score",
+            "M-CAP_rankscore",
+            "M-CAP_pred",
+            "REVEL_score",
+            "REVEL_rankscore",
+            "MutPred_score",
+            "MutPred_rankscore",
+            "MutPred_protID",
+            "MutPred_AAchange",
+            "MutPred_Top5features",
+            "CADD_raw",
+            "CADD_raw_rankscore",
+            "CADD_phred",
+            "DANN_score",
+            "DANN_rankscore",
+            "fathmm-MKL_coding_score",
+            "fathmm-MKL_coding_rankscore",
+            "fathmm-MKL_coding_pred",
+            "fathmm-MKL_coding_group",
+            "Eigen_coding_or_noncoding",
+            "Eigen-raw",
+            "Eigen-phred",
+            "Eigen-PC-raw",
+            "Eigen-PC-phred",
+            "Eigen-PC-raw_rankscore",
+            "GenoCanyon_score",
+            "GenoCanyon_score_rankscore",
+            "integrated_fitCons_score",
+            "integrated_fitCons_score_rankscore",
+            "integrated_confidence_value",
+            "GM12878_fitCons_score",
+            "GM12878_fitCons_score_rankscore",
+            "GM12878_confidence_value",
+            "H1-hESC_fitCons_score",
+            "H1-hESC_fitCons_score_rankscore",
+            "H1-hESC_confidence_value",
+            "HUVEC_fitCons_score",
+            "HUVEC_fitCons_score_rankscore",
+            "HUVEC_confidence_value",
             "GERP++_NR",
             "GERP++_RS",
             "GERP++_RS_rankscore",
-            "phyloP7way_vertebrate",
-            "phyloP7way_vertebrate_rankscore",
-            "phastCons7way_vertebrate",
-            "phastCons7way_vertebrate_rankscore",
+            "phyloP100way_vertebrate",
+            "phyloP100way_vertebrate_rankscore",
+            "phyloP20way_mammalian",
+            "phyloP20way_mammalian_rankscore",
+            "phastCons100way_vertebrate",
+            "phastCons100way_vertebrate_rankscore",
+            "phastCons20way_mammalian",
+            "phastCons20way_mammalian_rankscore",
             "SiPhy_29way_pi",
             "SiPhy_29way_logOdds",
             "SiPhy_29way_logOdds_rankscore",
-            # "1000Gp3_AC",
-            # "1000Gp3_AF",
-            # "1000Gp3_AFR_AC",
-            # "1000Gp3_AFR_AF",
-            # "1000Gp3_EUR_AC",
-            # "1000Gp3_EUR_AF",
-            # "1000Gp3_AMR_AC",
-            # "1000Gp3_AMR_AF",
-            # "1000Gp3_EAS_AC",
-            # "1000Gp3_EAS_AF",
-            # "1000Gp3_SAS_AC",
-            # "1000Gp3_SAS_AF",
+            "1000Gp3_AC",
+            "1000Gp3_AF",
+            "1000Gp3_AFR_AC",
+            "1000Gp3_AFR_AF",
+            "1000Gp3_EUR_AC",
+            "1000Gp3_EUR_AF",
+            "1000Gp3_AMR_AC",
+            "1000Gp3_AMR_AF",
+            "1000Gp3_EAS_AC",
+            "1000Gp3_EAS_AF",
+            "1000Gp3_SAS_AC",
+            "1000Gp3_SAS_AF",
             "TWINSUK_AC",
             "TWINSUK_AF",
             "ALSPAC_AC",
             "ALSPAC_AF",
-            # "ESP6500_AA_AC",
-            # "ESP6500_AA_AF",
-            # "ESP6500_EA_AC",
-            # "ESP6500_EA_AF",
-            # "ExAC_AC",
-            # "ExAC_AF",
-            # "ExAC_Adj_AC",
-            # "ExAC_Adj_AF",
-            # "ExAC_AFR_AC",
-            # "ExAC_AFR_AF",
-            # "ExAC_AMR_AC",
-            # "ExAC_AMR_AF",
-            # "ExAC_EAS_AC",
-            # "ExAC_EAS_AF",
-            # "ExAC_FIN_AC",
-            # "ExAC_FIN_AF",
-            # "ExAC_NFE_AC",
-            # "ExAC_NFE_AF",
-            # "ExAC_SAS_AC",
-            # "ExAC_SAS_AF",
+            "ESP6500_AA_AC",
+            "ESP6500_AA_AF",
+            "ESP6500_EA_AC",
+            "ESP6500_EA_AF",
+            "ExAC_AC",
+            "ExAC_AF",
+            "ExAC_Adj_AC",
+            "ExAC_Adj_AF",
+            "ExAC_AFR_AC",
+            "ExAC_AFR_AF",
+            "ExAC_AMR_AC",
+            "ExAC_AMR_AF",
+            "ExAC_EAS_AC",
+            "ExAC_EAS_AF",
+            "ExAC_FIN_AC",
+            "ExAC_FIN_AF",
+            "ExAC_NFE_AC",
+            "ExAC_NFE_AF",
+            "ExAC_SAS_AC",
+            "ExAC_SAS_AF",
+            "ExAC_nonTCGA_AC",
+            "ExAC_nonTCGA_AF",
+            "ExAC_nonTCGA_Adj_AC",
+            "ExAC_nonTCGA_Adj_AF",
+            "ExAC_nonTCGA_AFR_AC",
+            "ExAC_nonTCGA_AFR_AF",
+            "ExAC_nonTCGA_AMR_AC",
+            "ExAC_nonTCGA_AMR_AF",
+            "ExAC_nonTCGA_EAS_AC",
+            "ExAC_nonTCGA_EAS_AF",
+            "ExAC_nonTCGA_FIN_AC",
+            "ExAC_nonTCGA_FIN_AF",
+            "ExAC_nonTCGA_NFE_AC",
+            "ExAC_nonTCGA_NFE_AF",
+            "ExAC_nonTCGA_SAS_AC",
+            "ExAC_nonTCGA_SAS_AF",
+            "ExAC_nonpsych_AC",
+            "ExAC_nonpsych_AF",
+            "ExAC_nonpsych_Adj_AC",
+            "ExAC_nonpsych_Adj_AF",
+            "ExAC_nonpsych_AFR_AC",
+            "ExAC_nonpsych_AFR_AF",
+            "ExAC_nonpsych_AMR_AC",
+            "ExAC_nonpsych_AMR_AF",
+            "ExAC_nonpsych_EAS_AC",
+            "ExAC_nonpsych_EAS_AF",
+            "ExAC_nonpsych_FIN_AC",
+            "ExAC_nonpsych_FIN_AF",
+            "ExAC_nonpsych_NFE_AC",
+            "ExAC_nonpsych_NFE_AF",
+            "ExAC_nonpsych_SAS_AC",
+            "ExAC_nonpsych_SAS_AF",
+            "gnomAD_exomes_AC",
+            "gnomAD_exomes_AN",
+            "gnomAD_exomes_AF",
+            "gnomAD_exomes_AFR_AC",
+            "gnomAD_exomes_AFR_AN",
+            "gnomAD_exomes_AFR_AF",
+            "gnomAD_exomes_AMR_AC",
+            "gnomAD_exomes_AMR_AN",
+            "gnomAD_exomes_AMR_AF",
+            "gnomAD_exomes_ASJ_AC",
+            "gnomAD_exomes_ASJ_AN",
+            "gnomAD_exomes_ASJ_AF",
+            "gnomAD_exomes_EAS_AC",
+            "gnomAD_exomes_EAS_AN",
+            "gnomAD_exomes_EAS_AF",
+            "gnomAD_exomes_FIN_AC",
+            "gnomAD_exomes_FIN_AN",
+            "gnomAD_exomes_FIN_AF",
+            "gnomAD_exomes_NFE_AC",
+            "gnomAD_exomes_NFE_AN",
+            "gnomAD_exomes_NFE_AF",
+            "gnomAD_exomes_SAS_AC",
+            "gnomAD_exomes_SAS_AN",
+            "gnomAD_exomes_SAS_AF",
+            "gnomAD_exomes_OTH_AC",
+            "gnomAD_exomes_OTH_AN",
+            "gnomAD_exomes_OTH_AF",
+            "gnomAD_genomes_AC",
+            "gnomAD_genomes_AN",
+            "gnomAD_genomes_AF",
+            "gnomAD_genomes_AFR_AC",
+            "gnomAD_genomes_AFR_AN",
+            "gnomAD_genomes_AFR_AF",
+            "gnomAD_genomes_AMR_AC",
+            "gnomAD_genomes_AMR_AN",
+            "gnomAD_genomes_AMR_AF",
+            "gnomAD_genomes_ASJ_AC",
+            "gnomAD_genomes_ASJ_AN",
+            "gnomAD_genomes_ASJ_AF",
+            "gnomAD_genomes_EAS_AC",
+            "gnomAD_genomes_EAS_AN",
+            "gnomAD_genomes_EAS_AF",
+            "gnomAD_genomes_FIN_AC",
+            "gnomAD_genomes_FIN_AN",
+            "gnomAD_genomes_FIN_AF",
+            "gnomAD_genomes_NFE_AC",
+            "gnomAD_genomes_NFE_AN",
+            "gnomAD_genomes_NFE_AF",
+            "gnomAD_genomes_OTH_AC",
+            "gnomAD_genomes_OTH_AN",
+            "gnomAD_genomes_OTH_AF",
             "clinvar_rs",
             "clinvar_clnsig",
             "clinvar_trait",
-            # "Interpro_domain",
-            "codon_degeneracy",
-            "Ancestral_allele",
-            "AltaiNeandertal",
-            "Denisova",
+            "clinvar_golden_stars",
+            "Interpro_domain",
+            "GTEx_V6p_gene",
+            "GTEx_V6p_tissue"
           ],
         },
       ]
@@ -175,7 +301,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "Combined Annotation Dependent Depletion (CADD) is a tool for scoring the deleteriousness of single nucleotide variants and insertion/deletion variants in the human genome. CADD integrates multiple annotations into one metric by contrasting variants that survived natural selection with simulated mutations.",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/CADD.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/CADD.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -197,7 +323,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "FATHMM-MKL predicts functional consequences of variants, both coding and non-coding.",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/FATHMM_MKL.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/FATHMM_MKL.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -251,7 +377,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Carol.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Carol.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -269,7 +395,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Condel.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Condel.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -294,7 +420,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # LOFTEE
-    # Requires LoFtool_scores.txt file as first param (available in VEP_plugins GitHub repo)
+    # See https://github.com/konradjk/loftee for details
     {
       "key" => "LoF",
       "helptip" => "LOFTEE identifies LoF (loss-of-function) variation",
@@ -317,7 +443,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/LoFtool.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/LoFtool.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -326,6 +452,79 @@ my $VEP_PLUGIN_CONFIG = {
         # "/path/to/LoFtool_scores.txt"
       ]
     },
+
+    # ExACpLI
+    # Requires ExACpLI_values.txt file as first param (available in VEP_plugins GitHub repo)
+    {
+      "key" => "ExACpLI",
+      "helptip" => "Provides a per-gene probability of being loss-of-function intolerant (pLI) from ExAC data",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/ExACpLI.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/ExACpLI_values.txt"
+      ]
+    },
+
+    # MPC
+    # Requires fordist_constraint_official_mpc_values.txt.gz data file
+    {
+      "key" => "MPC",
+      "helptip" => "MPC is a missense deleteriousness metric based on the analysis of genic regions depleted of missense mutations in ExAC",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/MPC.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/fordist_constraint_official_mpc_values.txt.gz"
+      ]
+    },
+
+    # MTR
+    # Requires mtrflatfile_1.0.txt.gz data file from ftp://mtr-viewer.mdhs.unimelb.edu.au/pub
+    {
+      "key" => "MTR",
+      "helptip" => "MTR scores quantify the amount of purifying selection acting specifically on missense variants in a given window of protein-coding sequence",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/MTR.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/mtrflatfile_1.0.txt.gz"
+      ]
+    },
+
+    # REVEL
+    # Requires data file processed from revel_all_chromosomes.csv.zip
+    {
+      "key" => "REVEL",
+      "helptip" => "An ensemble method for predicting the pathogenicity of rare missense variants",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/REVEL.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/revel_all_chromosomes.tsv.gz"
+      ]
+    },
+
 
     
     ## SPLICING PREDICTIONS
@@ -339,11 +538,11 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Splicing predictions",
       "helptip" => "Retrieves data for splicing variants from a tabix-indexed dbscSNV file",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/dbscSNV.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/dbscSNV.pm",
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
-        #"/path/to/dbscSNV.txt.gz"
+        #"/path/to/dbscSNV1.1.txt.gz"
       ],
       "species" => [
         "homo_sapiens"
@@ -358,7 +557,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GeneSplicer.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/GeneSplicer.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -378,7 +577,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/MaxEntScan.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/MaxEntScan.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -386,6 +585,17 @@ my $VEP_PLUGIN_CONFIG = {
       "params" => [
         #"/path/to/maxentscan"
       ]
+    },
+
+    # SpliceRegion
+    {
+      "key" => "SpliceRegion",
+      "label" => "SpliceRegion",
+      "helptip" => "More granular predictions of splicing effects",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/SpliceRegion.pm",
     },
 
 
@@ -400,7 +610,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Conservation",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Blosum62.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Blosum62.pm",
     },
 
     # Conservation
@@ -422,7 +632,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Conservation",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Conservation.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Conservation.pm",
       "params" => [
         "@*"
       ],
@@ -449,6 +659,25 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # AncestralAllele
+    # Requires processed FASTA file from ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
+    {
+      "key" => "AncestralAllele",
+      "label" => "Ancestral allele",
+      "helptip" => "Retrieves the ancestral allele for variants inferred from the Ensembl Compara Enredo-Pecan-Ortheus (EPO) pipeline",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Conservation",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/AncestralAllele.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/homo_sapiens_ancestor_GRCh38_e93.fa.gz"
+      ]
+    },
+
 
     ## IDENTIFIERS
     ##############
@@ -460,20 +689,9 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Identifiers",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/CSN.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/CSN.pm",
     },
-
-    # HGVSshift
-    {
-      "key" => "HGVSshift",
-      "label" => "Unshifted HGVS",
-      "helptip" => "By default VEP 3' shifts HGVS notations in repetetive sequence; use this plugin to additionally report unshifted notations",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Identifiers",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/HGVSshift.pm",
-    },
-
+    
 
     ## FREQUENCY DATA
     #################
@@ -485,7 +703,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ExAC.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/ExAC.pm",
       "section" => "Frequency data",
       "requires_data" => 1,
       "species" => [
@@ -507,32 +725,10 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/miRNA.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/miRNA.pm",
     },
     
 
-    # UpDownDistance
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/UpDownDistance.pm
-    # Sets the upstream/downstream search distance either side of transcripts
-    {
-      "key" => "UpDownDistance",
-      "label" => "Upstream/Downstream distance",
-      "available" => 0,
-      "enabled" => 0,
-      "helptip" => "Change the distance to transcript (default is 5000bp) for which VEP assigns upstream and downstream consequences",
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/UpDownDistance.pm",
-      "params" => [
-        "@*"
-      ],
-      "form" => [
-        {
-          "name" => "distance",
-          "label" => "Distance (bp)",
-          "type" => "string",
-          "value" => 5000
-        }
-      ]
-    },
 
     # NearestGene
     {
@@ -541,7 +737,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Finds the nearest gene to non-genic variants",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/NearestGene.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/NearestGene.pm",
     },
 
     # LD
@@ -551,7 +747,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Finds variants in linkage disequilibrium with any overlapping existing variants from the Ensembl variation databases",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/LD.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/LD.pm",
       "section" => "Variant data",
       "params" => [
         "@*"
@@ -607,7 +803,17 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports existing variants that fall in the same codon",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/SameCodon.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/SameCodon.pm",
+      "section" => "Variant data",
+    },
+    # LOVD
+    {
+      "key" => "LOVD",
+      "label" => "LOVD",
+      "helptip" => "Retrieves LOVD variation data",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/LOVD.pm",
       "section" => "Variant data",
     },
 
@@ -618,18 +824,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Retrieves Gene Ontology terms associated with transcripts/translations via the Ensembl API",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GO.pm",
-      "section" => "Gene data",
-    },
-
-    # GXA
-    {
-      "key" => "GXA",
-      "label" => "Gene Expression Atlas",
-      "helptip" => "Reports data from the Gene Expression Atlas",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/GXA.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/GO.pm",
       "section" => "Gene data",
     },
 
@@ -640,7 +835,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Predicts the downstream effects of a frameshift variant on the protein sequence of a transcript",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/Downstream.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Downstream.pm",
     },
 
     # ProteinSeqs
@@ -650,7 +845,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Prints out the reference and mutated protein sequences of any proteins found with non-synonymous mutations",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/ProteinSeqs.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/ProteinSeqs.pm",
     },
 
     # TSSDistance
@@ -660,7 +855,49 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Calculates the distance from the transcription start site for upstream variants   ",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/ensembl-variation/VEP_plugins/master/TSSDistance.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/TSSDistance.pm",
     },
+    
+    # Phenotypes
+    {
+      "key" => "Phenotypes",
+      "label" => "Phenotypes",
+      "helptip" => "Retrieves overlapping phenotype annotations",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Phenotypes.pm",
+    },    
+    # Draw
+    {
+      "key" => "Draw",
+      "label" => "Draw",
+      "helptip" => "Creates images of the transcript model showing variant location",
+      "available" => 0,
+      "enabled" => 0,
+      "requires_install" => 1,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/Draw.pm",
+    },
+    # G2P
+    {
+      "key" => "G2P",
+      "label" => "G2P",
+      "helptip" => "Assesses variants using G2P allelic requirements for potential phenotype involvement.",
+      "available" => 0,
+      "enabled" => 0,
+      "requires_data" => 1,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/G2P.pm",
+    },
+
+    # LocalID
+    {
+      "key" => "LocalID",
+      "label" => "LocalID",
+      "helptip" => "Allows you to use variant IDs as VEP input without making a database connection.",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/93/LocalID.pm",
+    },
+
+    
   ]
 };
