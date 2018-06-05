@@ -262,9 +262,7 @@ sub run {
   my $pos;
 
   my $assembly = $self->{config}->{assembly};
-  
-  my $chr = $vf->{chr};
-  $chr = 'M' if ($chr =~ /MT/i);
+  my $chr = ($vf->{chr} =~ /MT/i) ? 'M' : $vf->{chr};
   foreach my $tmp_data(@{$self->get_data($chr, $vf->{start} - 1, $vf->{end})}) {
     # compare allele and transcript
     if ($assembly eq 'GRCh37') {
