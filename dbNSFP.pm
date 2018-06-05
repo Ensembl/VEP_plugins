@@ -262,8 +262,10 @@ sub run {
   my $pos;
 
   my $assembly = $self->{config}->{assembly};
- 
-  foreach my $tmp_data(@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
+  
+  my $chr = $vf->{chr};
+  $chr = 'M' if ($chr =~ /MT/i);
+  foreach my $tmp_data(@{$self->get_data($chr, $vf->{start} - 1, $vf->{end})}) {
     # compare allele and transcript
     if ($assembly eq 'GRCh37') {
       if (exists $tmp_data->{'pos(1-coor)'}) {
