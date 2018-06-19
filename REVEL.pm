@@ -39,6 +39,12 @@ limitations under the License.
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
  
  REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
+ and can be tabix-processed by:
+ 
+ cat revel_all_chromosomes.csv | tr "," "\t" > tabbed_revel.tsv
+ sed '1s/.*/#&/' tabbed_revel.tsv > new_tabbed_revel.tsv
+ bgzip new_tabbed_revel.tsv
+ tabix -f -s 1 -b 2 -e 2 new_tabbed_revel.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
 
