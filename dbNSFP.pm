@@ -42,27 +42,21 @@ limitations under the License.
  in your path to use this plugin. The dbNSFP data file can be downloaded from
  https://sites.google.com/site/jpopgen/dbNSFP.
 
- Note that the 3.x releases of dbNSFP use GRCh38/hg38 coordinates; to use
- this plugin with GRCh37/hg19 data, please download instead one of the 2.9.x
- releases of dbNSFP.
- 
- The file must be processed and indexed by tabix before use by this plugin:
- 
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.2a.zip
- > unzip dbNSFPv3.2a.zip
- > head -n1 dbNSFP3.2a_variant.chr1 > h
- > cat dbNSFP3.2a_variant.chr* | grep -v ^#chr | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP.gz
- > tabix -s 1 -b 2 -e 2 dbNSFP.gz
-
- UPDATE: Release 3.5c of dbNSFP uses GRCh38/hg38 coordinates and GRCh37/hg19
- coordinates. If you want to use GRCh38 follow the previous instructions.
- For GRCh37 and release 3.5c the file must be processed differently:
-
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.5c.zip
- > unzip dbNSFPv3.5c.zip
- > head -n1 dbNSFP3.5c_variant.chr1 > h
- > cat dbNSFP3.5c_variant.chr* | grep -v ^#chr | awk '$8 != "."' | sort -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP_hg19.gz
+ Release 3.5a of dbNSFP uses GRCh38/hg38 coordinates and GRCh37/hg19
+ coordinates. 
+ To use plugin with GRCh37/hg19 data:
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.5a.zip
+ > unzip dbNSFPv3.5a.zip
+ > head -n1 dbNSFP3.5a_variant.chr1 > h
+ > cat dbNSFP3.5a_variant.chr* | grep -v ^#chr | awk '$8 != "."' | sort -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP_hg19.gz
  > tabix -s 8 -b 9 -e 9 dbNSFP_hg19.gz
+
+ To use plugin with GRCh38/hg38 data:
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.5a.zip
+ > unzip dbNSFPv3.5a.zip
+ > head -n1 dbNSFP3.5a_variant.chr1 > h
+ > cat dbNSFP3.5a_variant.chr* | grep -v ^#chr | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP.gz
+ > tabix -s 1 -b 2 -e 2 dbNSFP.gz
  
  When running the plugin you must list at least one column to retrieve from the
  dbNSFP file, specified as parameters to the plugin e.g.
