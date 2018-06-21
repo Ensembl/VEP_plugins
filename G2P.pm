@@ -1157,7 +1157,7 @@ sub parse_log_files {
             # heterozygous
             # we need to cache that we've observed one
             elsif (uc($zyg) eq 'HET') {
-              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} >= 1) {
+              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} > 1) {
                 $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
                 $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
                 $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
