@@ -101,8 +101,8 @@ use warnings;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
+use Text::CSV;
 use CGI qw/:standard/;
-
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
@@ -372,21 +372,29 @@ sub run {
 
   # only interested in given gene set
   my $tr = $tva->transcript;
+
+  my $ensembl_gene_id = $tr->{_gene}->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
   my $gene_data = $self->gene_data($gene_symbol);
+  if (! defined $gene_data) {
+    my $ensembl_gene_id = $tr->{_gene}->stable_id;
+    $gene_data = $self->gene_data($ensembl_gene_id);
+  }
+
   if (!$self->{cache}->{g2p_in_vcf}->{$gene_symbol}) {
     $self->write_report('G2P_in_vcf', $gene_symbol);
     $self->{cache}->{g2p_in_vcf}->{$gene_symbol} = 1;
   }
-  return {} unless $gene_data;
+  return {} unless defined $gene_data;
 
   my @ars = ($gene_data->{'allelic requirement'}) ? @{$gene_data->{'allelic requirement'}} : ();
   my %seen;
   @ars = grep { !$seen{$_}++ } @ars;
+
   return {} unless (@ars && ( grep { exists($allelic_requirements->{$_}) } @ars));
- 
   # limit by type
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
+
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
 
   # limit by MAF
@@ -512,42 +520,98 @@ sub read_gene_data_from_file {
   my $delimiter = shift;
   my (@headers, %gene_data);
 
+  my $assembly =  $self->{config}->{assembly};
   die("ERROR: No file specified or could not read from file ".($file || '')."\n") unless $file && -e $file;
 
-  # allow file to be (b)gzipped
-  if($file =~ /\.gz/) {
-    open FILE, "gzip -dc $file |";
-  }
-  else {
-    open FILE, $file;
-  }
-
-  # this regexp allows for nested ",", e.g.
-  # item,description
-  # cheese,"salty,delicious"
-  my $re = qr/(?: "\( ( [^()""]* ) \)" |  \( ( [^()]* ) \) |  " ( [^"]* ) " |  ( [^,]* ) ) , \s* /x;
-
-  while(<FILE>) {
+  # determine file type
+  my $file_type;
+  my $fh = FileHandle->new($file, 'r');
+  while (<$fh>) {
     chomp;
-    $_ =~ s/\R//g;
-
-    my @split = grep defined, "$_," =~ /$re/g;
-
-    unless(@headers) {
-      @headers = map {s/\"//g; $_} @split;
-    }
-    else {
-      my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
-      die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
-      my $gene_symbol = $tmp{"gene symbol"};
-      $gene_data{$gene_symbol}->{"prev symbols"} = $tmp{"prev symbols"};
-      push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
-      $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
-    }
+      if (/Model_Of_Inheritance/) {
+        $file_type = 'panelapp';
+      } elsif (/"allelic requirement"/) {
+        $file_type = 'g2p';
+      } else {
+        $file_type = 'unknown';
+      }
+      last;
+  }
+  $fh->close();
+  if ($file_type eq 'unknown') {
+    die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin");
   }
 
-  close FILE;
+  if ($file_type eq 'panelapp') {
+    my @headers = ();
+    my $csv = Text::CSV->new ({ sep_char => "\t" });
+    open my $fh, "<:encoding(utf8)", "$file" or die "$file: $!";
+    while ( my $row = $csv->getline( $fh ) ) {
+      unless (@headers) {
+        @headers = @$row;
+      } else {
+        my %tmp = map {$headers[$_] => $row->[$_]} (0..$#headers);
+        my $gene_symbol = $tmp{"Gene Entity Symbol"};
+        my $ensembl_gene_id = "";
+        if ($assembly eq 'GRCh37') { 
+          $ensembl_gene_id = $tmp{"EnsemblId(GRch37)"};
+        } else { # GRCh38
+          $ensembl_gene_id = $tmp{"EnsemblId(GRch38)"};
+        }
+        if ($ensembl_gene_id) {
+          my @ars = ();
+          my $allelic_requirement_panel_app = $tmp{"Model_Of_Inheritance"};
+          if ($allelic_requirement_panel_app =~ m/MONOALLELIC|BOTH/) {
+            push @ars, 'monoallelic';
+          } elsif ($allelic_requirement_panel_app =~ m/BIALLELIC|BOTH/) {
+            push @ars, 'biallelic'
+          } elsif ($allelic_requirement_panel_app =~ m/X-LINKED/) {
+            push @ars, 'biallelic'
+          } else {
+            $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
+          }
+          foreach my $ar (@ars) {
+            push @{$gene_data{$ensembl_gene_id}->{"allelic requirement"}}, $ar;
+          }
+        } else {
+          $self->write_report('log', "no ensembl gene id for $gene_symbol");
+        }
+      }
+    }
+    $csv->eof or $csv->error_diag();
+    close $fh;
+  }
 
+  if ($file_type eq 'g2p') {
+    # this regexp allows for nested ",", e.g.
+    # item,description
+    # cheese,"salty,delicious"
+    my $re = qr/(?: "\( ( [^()""]* ) \)" |  \( ( [^()]* ) \) |  " ( [^"]* ) " |  ( [^,]* ) ) , \s* /x;
+
+    my $fh = FileHandle->new($file, 'r');
+
+    while(<$fh>) {
+      chomp;
+      $_ =~ s/\R//g;
+      my @split = grep defined, "$_," =~ /$re/g;
+      unless(@headers) {
+        if ($file_type eq 'g2p') {
+          @headers = map {s/\"//g; $_} @split;
+        } else {
+          @headers = @split;
+        }
+      }
+      else {
+        my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
+        die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
+        my $gene_symbol = $tmp{"gene symbol"};
+        $gene_data{$gene_symbol}->{"prev symbols"} = $tmp{"prev symbols"};
+        push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
+        $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
+      }
+    }
+    $fh->close;
+  }
   return \%gene_data;
 }
 
@@ -558,7 +622,7 @@ sub gene_data {
   my $gene_data = $self->{gene_data}->{$gene_symbol};
   if (!$gene_data) {
     my $prev_gene_symbol = $self->{prev_symbol_mappings}->{$gene_symbol};
-    return $prev_gene_symbol ? $self->{gene_data}->{$prev_gene_symbol} : $self->{gene_data};
+    return $prev_gene_symbol ? $self->{gene_data}->{$prev_gene_symbol} : undef;
   } 
   return $gene_data;
 }
@@ -786,6 +850,8 @@ sub write_report {
     my $gene_symbol = shift;
     print $fh "$flag\t$gene_symbol\n";
   } elsif ($flag eq 'G2P_complete') {
+    print $fh join("\t", $flag, @_), "\n";
+  } elsif ($flag eq 'log') {
     print $fh join("\t", $flag, @_), "\n";
   } else {
     my ($gene_symbol, $tr_stable_id, $individual, $vf_name, $data) = @_;
@@ -1157,7 +1223,7 @@ sub parse_log_files {
             # heterozygous
             # we need to cache that we've observed one
             elsif (uc($zyg) eq 'HET') {
-              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} >= 1) {
+              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} > 1) {
                 $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
                 $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
                 $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
