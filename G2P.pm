@@ -101,7 +101,6 @@ use warnings;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
-use CGI qw/:standard/;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
@@ -875,8 +874,8 @@ sub write_charts {
   print $fh_out "<div class='main_content container'>";
 
  
-  print $fh_out h1("G2P report");
-  print $fh_out p("Input and output files:");
+  print $fh_out "<h1>G2P report</h1>";
+  print $fh_out "<p>Input and output files:</p>";
 
   print $fh_out "<dl class='dl-horizontal'>";
   print $fh_out "<dt>G2P list</dt>";
@@ -889,7 +888,7 @@ sub write_charts {
   print $fh_out "<dd>" . $self->{user_params}->{txt_report} .  "</dd>";
   print $fh_out "</dl>";
 
-  print $fh_out p("Counts:");
+  print $fh_out "<p>Counts:</p>";
   print $fh_out "<dl class='dl-horizontal text-overflow'>";
   print $fh_out "<dt>$count_g2p_genes</dt>";
   print $fh_out "<dd>G2P genes</dd>";
@@ -900,9 +899,9 @@ sub write_charts {
   print $fh_out "</dl>";
 
 
-  print $fh_out h1("Summary of G2P complete genes per individual");
-  print $fh_out p("G2P complete gene: A sufficient number of variant hits for the observed allelic requirement in at least one of the gene's transcripts. Variants are filtered by frequency.");
-  print $fh_out p("Frequency thresholds and number of required variant hits for each allelic requirement:");
+  print $fh_out "<h1>Summary of G2P complete genes per individual</h1>";
+  print $fh_out "<p>G2P complete gene: A sufficient number of variant hits for the observed allelic requirement in at least one of the gene's transcripts. Variants are filtered by frequency.</p>";
+  print $fh_out "<p>Frequency thresholds and number of required variant hits for each allelic requirement:</p>";
 
   print $fh_out "<table class='table table-bordered'>";
   print $fh_out "<thead>";
@@ -955,7 +954,7 @@ SHTML
           print $fh_out "<div class=\"table-responsive\" style=\"width:100%\">\n";
           print $fh_out "<TABLE  class=\"table table-bordered table-condensed\" style=\"margin-left: 2em\">";
           print $fh_out "<thead>\n";
-          print $fh_out Tr(th(\@new_header) );
+          print $fh_out "<tr>" . join('', map {"<th>$_</th>"} @new_header) . "</tr>\n";
           print $fh_out "</thead>\n";
           print $fh_out "<tbody>\n";
           foreach my $vf_data (@{$chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
