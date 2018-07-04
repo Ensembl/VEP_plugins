@@ -372,6 +372,7 @@ sub run {
   # only interested in given gene set
   my $tr = $tva->transcript;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
+  return {} unless $gene_symbol;
   my $gene_data = $self->gene_data($gene_symbol);
   if (!$self->{cache}->{g2p_in_vcf}->{$gene_symbol}) {
     $self->write_report('G2P_in_vcf', $gene_symbol);
@@ -410,7 +411,7 @@ sub run {
   my $seq_region_name = $vf->{chr};
 
   my $params = $self->{user_params};
-  my $refseq = $tr->{_refseq};
+  my $refseq = $tr->{_refseq} || 'NA';
   my $tr_stable_id = $tr->stable_id;
   my $hgvs_t = $tva->hgvs_transcript || 'NA';
   my $hgvs_p = $tva->hgvs_protein || 'NA';
@@ -1075,9 +1076,11 @@ sub chart_and_txt_data {
                 $is_canonical = 1 if ($canonical_transcripts->{$transcript_stable_id});
               } else {
                 my $transcript = $transcript_adaptor->fetch_by_stable_id($transcript_stable_id);
-                $is_canonical = $transcript->is_canonical();
-                $transcripts->{$transcript_stable_id} = 1;
-                $canonical_transcripts->{$transcript_stable_id} = 1 if ($is_canonical);
+                if ($transcript) {
+                  $is_canonical = $transcript->is_canonical();
+                  $transcripts->{$transcript_stable_id} = 1;
+                  $canonical_transcripts->{$transcript_stable_id} = 1 if ($is_canonical);
+                }
               }
             }
             my ($location, $alleles) = split(' ', $vf_location);
