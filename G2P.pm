@@ -40,56 +40,55 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
- file            : path to G2P data file, as found at
-                   http://www.ebi.ac.uk/gene2phenotype/downloads
+ file                  : path to G2P data file, as found at http://www.ebi.ac.uk/gene2phenotype/downloads
 
- af_monoallelic  : maximum allele frequency for inclusion for monoallelic genes (0.0001)
+ af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
- af_biallelic    : maximum allele frequency for inclusion for biallelic genes (0.005)
-
- af_keys         : reference populations used for annotating variant alleles with observed
-                   allele frequencies. Allele frequencies are stored in VEP cache files. 
-                   Default populations are:
-                   ESP: AA, EA
-                   1000 Genomes: AFR, AMR, EAS, EUR, SAS 
-                   gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
-                   Separate multiple values with '&'
- af_from_vcf     : set value to 1 to include allele frequencies from VCF file. 
-                   Specifiy the list of reference populations to include with --af_from_vcf_keys    
- af_from_vcf_keys: reference populations used for annotating variant alleles with observed
-                   allele frequencies. Allele frequencies are retrieved from VCF files. If
-                   af_from_vcf is set to 1 but no populations specified with --af_from_vcf_keys
-                   all available reference populations are included. 
-                   TOPmed: TOPMed
-                   UK10K: ALSPAC, TWINSUK
-                   gnomAD exomes: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
-                   gnomAD genomes: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
-                   Separate multiple values with '&'
- default_af     :  default frequency of the input variant if no frequency data is
-                   found (0). This determines whether such variants are included;
-                   the value of 0 forces variants with no frequency data to be
-                   included as this is considered equivalent to having a frequency
-                   of 0. Set to 1 (or any value higher than af) to exclude them.
-
- types           : SO consequence types to include. Separate multiple values with '&'
-                   (splice_donor_variant,splice_acceptor_variant,stop_gained,
-                   frameshift_variant,stop_lost,initiator_codon_variant,
-                   inframe_insertion,inframe_deletion,missense_variant,
-                   coding_sequence_variant,start_lost,transcript_ablation,
-                   transcript_amplification,protein_altering_variant)
+ af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
+ all_confidence_levels : set value to 1 to include all confidence levels: confirmed, probable and possible. 
+                         Default levels are confirmed and probable. 
+ af_keys               : reference populations used for annotating variant alleles with observed
+                         allele frequencies. Allele frequencies are stored in VEP cache files. 
+                         Default populations are:
+                         ESP: AA, EA
+                         1000 Genomes: AFR, AMR, EAS, EUR, SAS 
+                         gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
+                         Separate multiple values with '&'
+ af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
+                         Specifiy the list of reference populations to include with --af_from_vcf_keys    
+ af_from_vcf_keys      : reference populations used for annotating variant alleles with observed
+                         allele frequencies. Allele frequencies are retrieved from VCF files. If
+                         af_from_vcf is set to 1 but no populations specified with --af_from_vcf_keys
+                         all available reference populations are included. 
+                         TOPmed: TOPMed
+                         UK10K: ALSPAC, TWINSUK
+                         gnomAD exomes: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
+                         gnomAD genomes: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                         Separate multiple values with '&'
+ default_af            : default frequency of the input variant if no frequency data is
+                         found (0). This determines whether such variants are included;
+                         the value of 0 forces variants with no frequency data to be
+                         included as this is considered equivalent to having a frequency
+                         of 0. Set to 1 (or any value higher than af) to exclude them.
+ types                 : SO consequence types to include. Separate multiple values with '&'
+                         (splice_donor_variant,splice_acceptor_variant,stop_gained,
+                         frameshift_variant,stop_lost,initiator_codon_variant,
+                         inframe_insertion,inframe_deletion,missense_variant,
+                         coding_sequence_variant,start_lost,transcript_ablation,
+                         transcript_amplification,protein_altering_variant)
   
-  log_dir        : write stats to log files in log_dir 
+  log_dir              : write stats to log files in log_dir 
 
-  txt_report     : write all G2P complete genes and attributes to txt file
+  txt_report           : write all G2P complete genes and attributes to txt file
 
-  html_report    : write all G2P complete genes and attributes to html file
+  html_report          : write all G2P complete genes and attributes to html file
 
  Example:
 
- --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_keys=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
- --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,types=stop_gained&frameshift_variant
- --plugin G2P,file=G2P.csv.gz,af_monoallelic=0.05,af_from_vcf=1
- --plugin G2P,file=G2P.csv.gz
+ --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_keys=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
+ --plugin G2P,file=G2P.csv
  
 =cut
 
@@ -123,6 +122,8 @@ my %DEFAULTS = (
   # this means absence of MAF data is considered equivalent to MAF=0
   # set to 1 to do the "opposite", i.e. exclude variants with no MAF data
   default_af => 0,
+
+  confidence_levels => [qw(confirmed probable)],
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
@@ -250,6 +251,7 @@ sub new {
         push @keys, @{$DEFAULTS{af_from_vcf_keys}};
       }
     }
+    
     my @af_keys = ();
     foreach my $af_key_set (@keys) {
       foreach my $af_key (split(/[\;\&\|]/, $af_key_set)) {
@@ -292,6 +294,10 @@ sub new {
       my $file_type = ($report_type eq 'txt_report') ? 'txt' : 'html';
       $params->{$report_type} = $cwd_dir . "/$report_type\_$stamp.$file_type";
     } 
+  }
+
+  if ($params->{all_confidence_levels}) {
+    push @{$params->{confidence_levels}}, 'possible', @{$DEFAULTS{confidence_levels}};
   }
 
   # copy in default params
@@ -374,6 +380,7 @@ sub run {
 
   my $ensembl_gene_id = $tr->{_gene}->stable_id;
   my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
+  return {} unless $gene_symbol;
   my $gene_data = $self->gene_data($gene_symbol);
   if (! defined $gene_data) {
     my $ensembl_gene_id = $tr->{_gene}->stable_id;
@@ -418,7 +425,7 @@ sub run {
   my $seq_region_name = $vf->{chr};
 
   my $params = $self->{user_params};
-  my $refseq = $tr->{_refseq};
+  my $refseq = $tr->{_refseq} || 'NA';
   my $tr_stable_id = $tr->stable_id;
   my $hgvs_t = $tva->hgvs_transcript || 'NA';
   my $hgvs_p = $tva->hgvs_protein || 'NA';
@@ -522,6 +529,8 @@ sub read_gene_data_from_file {
   my $assembly =  $self->{config}->{assembly};
   die("ERROR: No file specified or could not read from file ".($file || '')."\n") unless $file && -e $file;
 
+  my @confidence_levels = @{$self->{user_params}->{confidence_levels}}, "\n";
+
   # determine file type
   my $file_type;
   my $fh = FileHandle->new($file, 'r');
@@ -538,7 +547,11 @@ sub read_gene_data_from_file {
   }
   $fh->close();
   if ($file_type eq 'unknown') {
-    die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin");
+    if ($file =~ /gz$/) { 
+      die("ERROR: G2P plugin can only read uncompressed data");
+    } else {
+      die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin");
+    }
   }
 
   if ($file_type eq 'panelapp') {
@@ -563,9 +576,11 @@ sub read_gene_data_from_file {
           if ($allelic_requirement_panel_app =~ m/MONOALLELIC|BOTH/) {
             push @ars, 'monoallelic';
           } elsif ($allelic_requirement_panel_app =~ m/BIALLELIC|BOTH/) {
-            push @ars, 'biallelic'
-          } elsif ($allelic_requirement_panel_app =~ m/X-LINKED/) {
-            push @ars, 'biallelic'
+            push @ars, 'biallelic';
+          } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, biallelic mutations in females') {
+            push @ars, 'hemizygous';
+          } elsif ($allelic_requirement_panel_all eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
+            push @ars, 'x-linked dominant';
           } else {
             $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
           }
@@ -603,6 +618,8 @@ sub read_gene_data_from_file {
       else {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
+        my $confidence_value = $tmp{"DDD category"};
+        next if (!grep{$_ eq $confidence_value} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         $gene_data{$gene_symbol}->{"prev symbols"} = $tmp{"prev symbols"};
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
@@ -1141,9 +1158,11 @@ sub chart_and_txt_data {
                 $is_canonical = 1 if ($canonical_transcripts->{$transcript_stable_id});
               } else {
                 my $transcript = $transcript_adaptor->fetch_by_stable_id($transcript_stable_id);
-                $is_canonical = $transcript->is_canonical();
-                $transcripts->{$transcript_stable_id} = 1;
-                $canonical_transcripts->{$transcript_stable_id} = 1 if ($is_canonical);
+                if ($transcript) {
+                  $is_canonical = $transcript->is_canonical();
+                  $transcripts->{$transcript_stable_id} = 1;
+                  $canonical_transcripts->{$transcript_stable_id} = 1 if ($is_canonical);
+                }
               }
             }
             my ($location, $alleles) = split(' ', $vf_location);
@@ -1222,7 +1241,7 @@ sub parse_log_files {
             # heterozygous
             # we need to cache that we've observed one
             elsif (uc($zyg) eq 'HET') {
-              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} > 1) {
+              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} >= 1) {
                 $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
                 $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
                 $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
