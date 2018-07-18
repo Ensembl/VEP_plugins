@@ -370,7 +370,6 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva, $line) = @_;
-
   # only interested if we know the zygosity
   my $zyg = $line->{Extra}->{ZYG} || $line->{ZYG};
   return {} unless $zyg;
@@ -529,7 +528,7 @@ sub read_gene_data_from_file {
   my $assembly =  $self->{config}->{assembly};
   die("ERROR: No file specified or could not read from file ".($file || '')."\n") unless $file && -e $file;
 
-  my @confidence_levels = @{$self->{user_params}->{confidence_levels}}, "\n";
+  my @confidence_levels = @{$self->{user_params}->{confidence_levels}};
 
   # determine file type
   my $file_type;
@@ -579,7 +578,7 @@ sub read_gene_data_from_file {
             push @ars, 'biallelic';
           } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, biallelic mutations in females') {
             push @ars, 'hemizygous';
-          } elsif ($allelic_requirement_panel_all eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
+          } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
             push @ars, 'x-linked dominant';
           } else {
             $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
