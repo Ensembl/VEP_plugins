@@ -144,10 +144,10 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $five_start, $five_end)) {
-      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $five_start, $five_end)};
 
-      return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
+      return {} unless defined($ref_seq) && $ref_seq =~ /^[ACGT]+$/;
+      return {} unless defined($alt_seq) && $alt_seq =~ /^[ACGT]+$/;
 
       my $ref_score = $self->score5($ref_seq);
       my $alt_score = $self->score5($alt_seq);
@@ -160,10 +160,10 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $three_start, $three_end)) {
-      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $three_start, $three_end)};
 
-      return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
+      return {} unless defined($ref_seq) && $ref_seq =~ /^[ACGT]+$/;
+      return {} unless defined($alt_seq) && $alt_seq =~ /^[ACGT]+$/;
 
       my $ref_score = $self->score3($ref_seq);
       my $alt_score = $self->score3($alt_seq);
@@ -185,15 +185,19 @@ sub get_seqs {
 
   my $tr_strand = $tva->transcript->strand;
 
-  my $ref_seq = $vf->{slice}->sub_Slice(
-    $start,
-    $end,
-    $tr_strand
-  )->seq;
+  my $ref_slice = $vf->{slice}->sub_Slice($start, $end, $tr_strand);
 
-  my $alt_seq = $ref_seq;
-  my $substr_start = $tr_strand > 0 ? $vf->{start} - $start : $end - $vf->{end};
-  substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $tva->feature_seq;
+  my ($ref_seq, $alt_seq);
+
+  if (defined $ref_slice) {
+
+    $ref_seq = $alt_seq = $ref_slice->seq();
+
+    my $substr_start = $tr_strand > 0 ? $vf->{start} - $start : $end - $vf->{end};
+    my $feature_seq = $tva->seq_length > 0 ? $tva->feature_seq : '';
+
+    substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $feature_seq;
+  } 
 
   return [$ref_seq, $alt_seq];
 }
