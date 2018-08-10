@@ -64,6 +64,9 @@ limitations under the License.
  If 'NCSS' is specified as a command-line argument, scores for the nearest
  upstream and downstream canonical splice sites are also included.
 
+ By default, only scores are reported. Add 'verbose' to the list of command-
+ line arguments to include the sequence output associated with those scores.
+
 =cut
 
 package MaxEntScan;
@@ -109,6 +112,8 @@ sub new {
   $self->{'run_SWA'} = 1 if exists $opts{'SWA'};
   $self->{'run_NCSS'} = 1 if exists $opts{'NCSS'};
 
+  $self->{'scores_only'} = 1 unless exists $opts{'verbose'};
+
   return $self;
 }
 
@@ -121,14 +126,29 @@ sub get_header_info {
 
   my $headers = $self->get_MES_header_info();
 
+  if ($self->{'scores_only'}) {
+    my @seqs = grep { /_seq$/ } keys %$headers;
+    delete @{$headers}{@seqs};
+  }
+
   if ($self->{'run_SWA'}) {
     my $swa_headers = $self->get_SWA_header_info();
+
+    if ($self->{'scores_only'}) {
+      my @swa_keys = grep { !/_score$/ && !/_diff$/ } keys %$swa_headers;
+      delete @{$swa_headers}{@swa_keys};
+    }
 
     $headers = {%$headers, %$swa_headers};
   }
 
   if ($self->{'run_NCSS'}) {
     my $ncss_headers = $self->get_NCSS_header_info();
+
+    if ($self->{'scores_only'}) {
+      my @ncss_keys = grep { !/_score$/ } keys %$ncss_headers;
+      delete @{$ncss_headers}{@ncss_keys};
+    }
 
     $headers = {%$headers, %$ncss_headers};
   }
@@ -139,7 +159,9 @@ sub get_header_info {
 sub get_MES_header_info {
   return {
     MaxEntScan_ref => "MaxEntScan reference sequence score",
+    MaxEntScan_ref_seq => "MaxEntScan reference sequence",
     MaxEntScan_alt => "MaxEntScan alternate sequence score",
+    MaxEntScan_alt_seq => "MaxEntScan alternate sequence",
     MaxEntScan_diff => "MaxEntScan score difference",
   };
 }
@@ -286,7 +308,9 @@ sub run_MES {
 
       return {
         MaxEntScan_ref => $ref_score,
+        MaxEntScan_ref_seq => $ref_seq,
         MaxEntScan_alt => $alt_score,
+        MaxEntScan_alt_seq => $alt_seq,
         MaxEntScan_diff => $ref_score - $alt_score,
       }
     }
@@ -302,7 +326,9 @@ sub run_MES {
 
       return {
         MaxEntScan_ref => $ref_score,
+        MaxEntScan_ref_seq => $ref_seq,
         MaxEntScan_alt => $alt_score,
+        MaxEntScan_alt_seq => $alt_seq,
         MaxEntScan_diff => $ref_score - $alt_score,
       }
     }
@@ -688,7 +714,7 @@ sub get_seqs {
     my $feature_seq = $tva->seq_length > 0 ? $tva->feature_seq : '';
 
     substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $feature_seq;
-  } 
+  }
 
   return [$ref_seq, $alt_seq];
 }
