@@ -542,7 +542,7 @@ sub run_NCSS {
       my $downstream_donor = $self->slice_donor_site_from_intron($downstream_intron);
 
       if (defined($downstream_donor)) {
-        $downstream_donor_seq = $upstream_donor->seq();
+        $downstream_donor_seq = $downstream_donor->seq();
         $downstream_donor_score = $self->get_donor_score($downstream_donor);
       }
     }
