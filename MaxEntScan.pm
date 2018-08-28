@@ -464,39 +464,33 @@ sub run_NCSS {
     my $intron_idx = $intron_number - 1;
     my $intron = $introns->[$intron_idx];
 
-    my $upstream_donor = $self->slice_donor_site_from_intron($intron);
-    my $downstream_acceptor = $self->slice_acceptor_site_from_intron($intron);
-
-    if (defined($upstream_donor)) {
-      $upstream_donor_seq = $upstream_donor->seq();
-      $upstream_donor_score = $self->get_donor_score($upstream_donor);
+    if (defined(my $seq = $self->get_donor_seq_from_intron($intron))) {
+      $upstream_donor_seq = $seq;
+      $upstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
     }
-    if (defined($downstream_acceptor)) {
-      $downstream_acceptor_seq = $downstream_acceptor->seq();
-      $downstream_acceptor_score = $self->get_acceptor_score($downstream_acceptor);
+
+    if (defined(my $seq = $self->get_acceptor_seq_from_intron($intron))) {
+      $downstream_acceptor_seq = $seq;
+      $downstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
     }
 
     # don't calculate an upstream acceptor score if the intron is the first in the transcript
     unless ($intron_number == 1) {
-
       my $upstream_intron = $introns->[$intron_idx - 1];
-      my $upstream_acceptor = $self->slice_acceptor_site_from_intron($upstream_intron);
 
-      if (defined($upstream_acceptor)) {
-        $upstream_acceptor_seq = $upstream_acceptor->seq();
-        $upstream_acceptor_score = $self->get_acceptor_score($upstream_acceptor);
+      if (defined(my $seq = $self->get_acceptor_seq_from_intron($upstream_intron))) {
+        $upstream_acceptor_seq = $seq;
+        $upstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
 
     # don't calculate a downstream donor score if the intron is the last in the transcript
     unless ($intron_number == $total_introns) {
-
       my $downstream_intron = $introns->[$intron_idx + 1];
-      my $downstream_donor = $self->slice_donor_site_from_intron($downstream_intron);
 
-      if (defined($downstream_donor)) {
-        $downstream_donor_seq = $downstream_donor->seq();
-        $downstream_donor_score = $self->get_donor_score($downstream_donor);
+      if (defined(my $seq = $self->get_donor_seq_from_intron($downstream_intron))) {
+        $downstream_donor_seq = $seq;
+        $downstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
   }
@@ -516,34 +510,32 @@ sub run_NCSS {
 
       my $upstream_exon = $exons->[$exon_idx - 1];
 
-      my $upstream_donor = $self->slice_donor_site_from_exon($upstream_exon);
-      my $upstream_acceptor = $self->slice_acceptor_site_from_exon($exon);
-
-      if (defined($upstream_donor)) {
-        $upstream_donor_seq = $upstream_donor->seq();
-        $upstream_donor_score = $self->get_donor_score($upstream_donor);
+      if (defined(my $seq = $self->get_donor_seq_from_exon($upstream_exon))) {
+        $upstream_donor_seq = $seq;
+        $upstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
-      if (defined($upstream_acceptor)) {
-        $upstream_acceptor_seq = $upstream_acceptor->seq();
-        $upstream_acceptor_score = $self->get_acceptor_score($upstream_acceptor);
+
+      if (defined(my $seq = $self->get_acceptor_seq_from_exon($exon))) {
+        $upstream_acceptor_seq = $seq;
+        $upstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
 
     # don't calculate downstream scores if the exon is the last exon in the transcript
     unless ($exon_number == $total_exons) {
-
       my $downstream_exon = $exons->[$exon_idx + 1];
 
       my $downstream_donor = $self->slice_donor_site_from_exon($exon);
       my $downstream_acceptor = $self->slice_acceptor_site_from_exon($downstream_exon);
 
-      if (defined($downstream_donor)) {
-        $downstream_donor_seq = $downstream_donor->seq();
-        $downstream_donor_score = $self->get_donor_score($downstream_donor);
+      if (defined(my $seq = $self->get_donor_seq_from_exon($exon))) {
+        $downstream_donor_seq = $seq;
+        $downstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
-      if (defined($downstream_acceptor)) {
-        $downstream_acceptor_seq = $downstream_acceptor->seq();
-        $downstream_acceptor_score = $self->get_acceptor_score($downstream_acceptor);
+
+      if (defined(my $seq = $self->get_acceptor_seq_from_exon($downstream_exon))) {
+        $downstream_acceptor_seq = $seq;
+        $downstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
   }
@@ -614,7 +606,7 @@ sub sliding_window {
 ## Nearest canonical splice site methods
 ########################################
 
-sub slice_donor_site_from_exon {
+sub get_donor_seq_from_exon {
   my ($self, $exon) = @_;
 
   my ($start, $end);
@@ -626,10 +618,13 @@ sub slice_donor_site_from_exon {
     ($start, $end) = ($exon->start - 6, $exon->start + 2);
   }
 
-  return $exon->slice()->sub_Slice($start, $end, $exon->strand);
+  my $slice = $exon->slice()->sub_Slice($start, $end, $exon->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
 }
 
-sub slice_acceptor_site_from_exon {
+sub get_acceptor_seq_from_exon {
   my ($self, $exon) = @_;
 
   my ($start, $end);
@@ -641,10 +636,13 @@ sub slice_acceptor_site_from_exon {
     ($start, $end) = ($exon->end - 2, $exon->end + 20);
   }
 
-  return $exon->slice()->sub_Slice($start, $end, $exon->strand);
+  my $slice = $exon->slice()->sub_Slice($start, $end, $exon->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
 }
 
-sub slice_donor_site_from_intron {
+sub get_donor_seq_from_intron {
   my ($self, $intron) = @_;
 
   my ($start, $end);
@@ -656,10 +654,13 @@ sub slice_donor_site_from_intron {
     ($start, $end) = ($intron->end - 5, $intron->end + 3);
   }
 
-  return $intron->slice()->sub_Slice($start, $end, $intron->strand);
+  my $slice = $intron->slice()->sub_Slice($start, $end, $intron->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
 }
 
-sub slice_acceptor_site_from_intron {
+sub get_acceptor_seq_from_intron {
   my ($self, $intron) = @_;
 
   my ($start, $end);
@@ -671,25 +672,10 @@ sub slice_acceptor_site_from_intron {
     ($start, $end) = ($intron->start - 3, $intron->start + 19);
   }
 
-  return $intron->slice()->sub_Slice($start, $end, $intron->strand);
-}
+  my $slice = $intron->slice()->sub_Slice($start, $end, $intron->strand);
+  my $seq = $slice->seq() if defined($slice);
 
-sub get_donor_score {
-  my ($self, $slice) = @_;
-
-  my $seq = $slice->seq();
-  my $score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
-
-  return $score;
-}
-
-sub get_acceptor_score {
-  my ($self, $slice) = @_;
-
-  my $seq = $slice->seq();
-  my $score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
-
-  return $score;
+  return $seq;
 }
 
 
