@@ -230,14 +230,14 @@ sub get_SWA_header_info {
 sub get_NCSS_header_info {
   return {
     "MES-NCSS_upstream_donor_seq" => "Nearest upstream canonical splice donor sequence",
-    "MES-NCSS_upstream_donor_score" => "Nearest upstream canonical splice donor score",
+    "MES-NCSS_upstream_donor" => "Nearest upstream canonical splice donor score",
     "MES-NCSS_downstream_donor_seq" => "Nearest downstream canonical splice donor sequence",
-    "MES-NCSS_downstream_donor_score" => "Nearest downstream canonical splice donor score",
+    "MES-NCSS_downstream_donor" => "Nearest downstream canonical splice donor score",
 
     "MES-NCSS_upstream_acceptor_seq" => "Nearest upstream canonical splice acceptor sequence",
-    "MES-NCSS_upstream_acceptor_score" => "Nearest upstream canonical splice acceptor score",
+    "MES-NCSS_upstream_acceptor" => "Nearest upstream canonical splice acceptor score",
     "MES-NCSS_downstream_acceptor_seq" => "Nearest downstream canonical splice acceptor sequence",
-    "MES-NCSS_downstream_acceptor_score" => "Nearest downstream canonical splice acceptor score",
+    "MES-NCSS_downstream_acceptor" => "Nearest downstream canonical splice acceptor score",
   };
 }
 
