@@ -171,9 +171,9 @@ sub get_SWA_header_info {
 
     # donor values
 
-    "MES-SWA_donor_alt_subseq" =>
+    "MES-SWA_donor_alt_context" =>
       "Splice donor subsequence containing the alternate allele",
-    "MES-SWA_donor_alt_kmer" =>
+    "MES-SWA_donor_alt_seq" =>
       "Substring (k-mer) with the highest splice donor score containing the alternate allele",
     "MES-SWA_donor_alt_frame" =>
       "Position of the k-mer with the highest splice donor score containing the alternate allele",
@@ -188,9 +188,9 @@ sub get_SWA_header_info {
     "MES-SWA_donor_ref_comp_score" =>
       "Selected donor reference comparison score (SNVs: SWA Donor ALT frame, non-SNVs: Donor REF frame)",
 
-    "MES-SWA_donor_ref_subseq" =>
+    "MES-SWA_donor_ref_context" =>
       "Splice donor subsequence containing the reference allele",
-    "MES-SWA_donor_ref_kmer" =>
+    "MES-SWA_donor_ref_seq" =>
       "Substring (k-mer) with the highest splice donor score containing the reference allele",
     "MES-SWA_donor_ref_frame" =>
       "Position of the k-mer with the highest splice donor score containing the reference allele",
@@ -199,9 +199,9 @@ sub get_SWA_header_info {
 
     # acceptor values
 
-    "MES-SWA_acceptor_alt_subseq" =>
+    "MES-SWA_acceptor_alt_context" =>
       "Splice acceptor subsequence containing the alternate allele",
-    "MES-SWA_acceptor_alt_kmer" =>
+    "MES-SWA_acceptor_alt_seq" =>
       "Substring (k-mer) with the highest splice acceptor score containing the alternate allele",
     "MES-SWA_acceptor_alt_frame" =>
       "Position of the k-mer with the highest splice acceptor score containing the alternate allele",
@@ -216,9 +216,9 @@ sub get_SWA_header_info {
     "MES-SWA_acceptor_ref_comp_score" =>
       "Selected acceptor reference comparison score (SNVs: SWA Donor ALT frame, non-SNVs: Donor REF frame)",
 
-    "MES-SWA_acceptor_ref_subseq" =>
+    "MES-SWA_acceptor_ref_context" =>
       "Splice acceptor subsequence containing the reference allele",
-    "MES-SWA_acceptor_ref_kmer" =>
+    "MES-SWA_acceptor_ref_seq" =>
       "Substring (k-mer) with the highest splice acceptor score containing the reference allele",
     "MES-SWA_acceptor_ref_frame" =>
       "Position of the k-mer with the highest splice acceptor score containing the reference allele",
@@ -345,98 +345,98 @@ sub run_SWA {
   my ($vf_start, $vf_end) = ($vf->start, $vf->end);
 
   # for score5.pl, the splice donor needs a window of 9 bases
-  my ($donor_ref_subseq, $donor_alt_subseq) =
+  my ($donor_ref_context, $donor_alt_context) =
     @{$self->get_seqs($tva, $vf_start - 8, $vf_end + 8)};
 
-  my ($donor_alt_kmer, $donor_alt_frame, $donor_alt_score);
-  my ($donor_ref_kmer, $donor_ref_frame, $donor_ref_score);
+  my ($donor_alt_seq, $donor_alt_frame, $donor_alt);
+  my ($donor_ref_seq, $donor_ref_frame, $donor_ref);
 
-  my ($donor_ref_comp_seq, $donor_ref_comp_score);
+  my ($donor_ref_comp_seq, $donor_ref_comp);
 
   my $donor_diff;
 
-  if (defined($donor_alt_subseq) && $donor_alt_subseq =~ /^[ACGT]+$/) {
+  if (defined($donor_alt_context) && $donor_alt_context =~ /^[ACGT]+$/) {
 
-    ($donor_alt_kmer, $donor_alt_frame, $donor_alt_score) =
-      @{$self->get_max_donor_score($donor_alt_subseq)};
+    ($donor_alt_seq, $donor_alt_frame, $donor_alt) =
+      @{$self->get_max_donor_score($donor_alt_context)};
 
-    ($donor_ref_kmer, $donor_ref_frame, $donor_ref_score) =
-      @{$self->get_max_donor_score($donor_ref_subseq)};
+    ($donor_ref_seq, $donor_ref_frame, $donor_ref) =
+      @{$self->get_max_donor_score($donor_ref_context)};
 
-    $donor_ref_comp_seq = $donor_ref_kmer;
-    $donor_ref_comp_score = $donor_ref_score;
+    $donor_ref_comp_seq = $donor_ref_seq;
+    $donor_ref_comp = $donor_ref;
 
     if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
-      $donor_ref_comp_seq = substr($donor_ref_subseq, $donor_alt_frame - 1, 9);
-      $donor_ref_comp_score = $self->score5($donor_ref_comp_seq);
+      $donor_ref_comp_seq = substr($donor_ref_context, $donor_alt_frame - 1, 9);
+      $donor_ref_comp = $self->score5($donor_ref_comp_seq);
     }
 
-    $donor_diff = $donor_ref_comp_score - $donor_alt_score;
+    $donor_diff = $donor_ref_comp - $donor_alt;
   }
 
   # for score3.pl, the splice acceptor needs a window of 23 bases
-  my ($acceptor_ref_subseq, $acceptor_alt_subseq) =
+  my ($acceptor_ref_context, $acceptor_alt_context) =
     @{$self->get_seqs($tva, $vf_start - 22, $vf_end + 22)};
 
-  my ($acceptor_alt_kmer, $acceptor_alt_frame, $acceptor_alt_score);
-  my ($acceptor_ref_kmer, $acceptor_ref_frame, $acceptor_ref_score);
+  my ($acceptor_alt_seq, $acceptor_alt_frame, $acceptor_alt);
+  my ($acceptor_ref_seq, $acceptor_ref_frame, $acceptor_ref);
 
-  my ($acceptor_ref_comp_seq, $acceptor_ref_comp_score);
+  my ($acceptor_ref_comp_seq, $acceptor_ref_comp);
 
   my $acceptor_diff;
 
-  if (defined($acceptor_alt_subseq) && $acceptor_alt_subseq =~ /^[ACGT]+$/) {
+  if (defined($acceptor_alt_context) && $acceptor_alt_context =~ /^[ACGT]+$/) {
 
-    ($acceptor_alt_kmer, $acceptor_alt_frame, $acceptor_alt_score) =
-      @{$self->get_max_acceptor_score($acceptor_alt_subseq)};
+    ($acceptor_alt_seq, $acceptor_alt_frame, $acceptor_alt) =
+      @{$self->get_max_acceptor_score($acceptor_alt_context)};
 
-    ($acceptor_ref_kmer, $acceptor_ref_frame, $acceptor_ref_score) =
-      @{$self->get_max_acceptor_score($acceptor_ref_subseq)};
+    ($acceptor_ref_seq, $acceptor_ref_frame, $acceptor_ref) =
+      @{$self->get_max_acceptor_score($acceptor_ref_context)};
 
-    $acceptor_ref_comp_seq = $acceptor_ref_kmer;
-    $acceptor_ref_comp_score = $acceptor_ref_score;
+    $acceptor_ref_comp_seq = $acceptor_ref_seq;
+    $acceptor_ref_comp = $acceptor_ref;
 
     if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
-      $acceptor_ref_comp_seq = substr($acceptor_ref_subseq, $acceptor_alt_frame - 1, 23);
-      $acceptor_ref_comp_score = $self->score3($acceptor_ref_comp_seq);
+      $acceptor_ref_comp_seq = substr($acceptor_ref_context, $acceptor_alt_frame - 1, 23);
+      $acceptor_ref_comp = $self->score3($acceptor_ref_comp_seq);
     }
 
-    $acceptor_diff = $acceptor_ref_comp_score - $acceptor_alt_score;
+    $acceptor_diff = $acceptor_ref_comp - $acceptor_alt;
   }
 
   return {
 
     # donor values
 
-    "MES-SWA_donor_alt_subseq" => $donor_alt_subseq,
-    "MES-SWA_donor_alt_kmer" => $donor_alt_kmer,
+    "MES-SWA_donor_alt_context" => $donor_alt_context,
+    "MES-SWA_donor_alt_seq" => $donor_alt_seq,
     "MES-SWA_donor_alt_frame" => $donor_alt_frame,
-    "MES-SWA_donor_alt_score" => $donor_alt_score,
+    "MES-SWA_donor_alt" => $donor_alt,
 
     "MES-SWA_donor_ref_comp_seq" => $donor_ref_comp_seq,
-    "MES-SWA_donor_ref_comp_score" => $donor_ref_comp_score,
+    "MES-SWA_donor_ref_comp" => $donor_ref_comp,
 
-    "MES-SWA_donor_ref_subseq" => $donor_ref_subseq,
-    "MES-SWA_donor_ref_kmer" => $donor_ref_kmer,
+    "MES-SWA_donor_ref_context" => $donor_ref_context,
+    "MES-SWA_donor_ref_seq" => $donor_ref_seq,
     "MES-SWA_donor_ref_frame" => $donor_ref_frame,
-    "MES-SWA_donor_ref_score" => $donor_ref_score,
+    "MES-SWA_donor_ref" => $donor_ref,
 
     "MES-SWA_donor_diff" => $donor_diff,
 
     # acceptor values
 
-    "MES-SWA_acceptor_alt_subseq" => $acceptor_alt_subseq,
-    "MES-SWA_acceptor_alt_kmer" => $acceptor_alt_kmer,
+    "MES-SWA_acceptor_alt_context" => $acceptor_alt_context,
+    "MES-SWA_acceptor_alt_seq" => $acceptor_alt_seq,
     "MES-SWA_acceptor_alt_frame" => $acceptor_alt_frame,
-    "MES-SWA_acceptor_alt_score" => $acceptor_alt_score,
+    "MES-SWA_acceptor_alt" => $acceptor_alt,
 
     "MES-SWA_acceptor_ref_comp_seq" => $acceptor_ref_comp_seq,
-    "MES-SWA_acceptor_ref_comp_score" => $acceptor_ref_comp_score,
+    "MES-SWA_acceptor_ref_comp" => $acceptor_ref_comp,
 
-    "MES-SWA_acceptor_ref_subseq" => $acceptor_ref_subseq,
-    "MES-SWA_acceptor_ref_kmer" => $acceptor_ref_kmer,
+    "MES-SWA_acceptor_ref_context" => $acceptor_ref_context,
+    "MES-SWA_acceptor_ref_seq" => $acceptor_ref_seq,
     "MES-SWA_acceptor_ref_frame" => $acceptor_ref_frame,
-    "MES-SWA_acceptor_ref_score" => $acceptor_ref_score,
+    "MES-SWA_acceptor_ref" => $acceptor_ref,
 
     "MES-SWA_acceptor_diff" => $acceptor_diff,
   };
