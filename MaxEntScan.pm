@@ -454,53 +454,6 @@ sub run_NCSS {
   my ($downstream_donor_seq, $downstream_donor_score);
   my ($downstream_acceptor_seq, $downstream_acceptor_score);
 
-  if ($tv->exon_number && !$tv->intron_number) {
-
-    my ($exon_numbers, $total_exons) = split(/\//, $tv->exon_number);
-    my $exon_number = (split(/-/, $exon_numbers))[0];
-
-    my $exons = $tr->get_all_Exons;
-
-    my $exon_idx = $exon_number - 1;
-    my $exon = $exons->[$exon_idx];
-
-    # don't calculate upstream scores if the exon is the first in the transcript
-    unless ($exon_number == 1) {
-
-      my $upstream_exon = $exons->[$exon_idx - 1];
-
-      my $upstream_donor = $self->slice_donor_site_from_exon($upstream_exon);
-      my $upstream_acceptor = $self->slice_acceptor_site_from_exon($exon);
-
-      if (defined($upstream_donor)) {
-        $upstream_donor_seq = $upstream_donor->seq();
-        $upstream_donor_score = $self->get_donor_score($upstream_donor);
-      }
-      if (defined($upstream_acceptor)) {
-        $upstream_acceptor_seq = $upstream_acceptor->seq();
-        $upstream_acceptor_score = $self->get_acceptor_score($upstream_acceptor);
-      }
-    }
-
-    # don't calculate downstream scores if the exon is the last exon in the transcript
-    unless ($exon_number == $total_exons) {
-
-      my $downstream_exon = $exons->[$exon_idx + 1];
-
-      my $downstream_donor = $self->slice_donor_site_from_exon($exon);
-      my $downstream_acceptor = $self->slice_acceptor_site_from_exon($downstream_exon);
-
-      if (defined($downstream_donor)) {
-        $downstream_donor_seq = $downstream_donor->seq();
-        $downstream_donor_score = $self->get_donor_score($downstream_donor);
-      }
-      if (defined($downstream_acceptor)) {
-        $downstream_acceptor_seq = $downstream_acceptor->seq();
-        $downstream_acceptor_score = $self->get_acceptor_score($downstream_acceptor);
-      }
-    }
-  }
-
   if ($tv->intron_number) {
 
     my ($intron_numbers, $total_introns) = split(/\//, $tv->intron_number);
@@ -544,6 +497,53 @@ sub run_NCSS {
       if (defined($downstream_donor)) {
         $downstream_donor_seq = $downstream_donor->seq();
         $downstream_donor_score = $self->get_donor_score($downstream_donor);
+      }
+    }
+  }
+
+  elsif ($tv->exon_number) {
+
+    my ($exon_numbers, $total_exons) = split(/\//, $tv->exon_number);
+    my $exon_number = (split(/-/, $exon_numbers))[0];
+
+    my $exons = $tr->get_all_Exons;
+
+    my $exon_idx = $exon_number - 1;
+    my $exon = $exons->[$exon_idx];
+
+    # don't calculate upstream scores if the exon is the first in the transcript
+    unless ($exon_number == 1) {
+
+      my $upstream_exon = $exons->[$exon_idx - 1];
+
+      my $upstream_donor = $self->slice_donor_site_from_exon($upstream_exon);
+      my $upstream_acceptor = $self->slice_acceptor_site_from_exon($exon);
+
+      if (defined($upstream_donor)) {
+        $upstream_donor_seq = $upstream_donor->seq();
+        $upstream_donor_score = $self->get_donor_score($upstream_donor);
+      }
+      if (defined($upstream_acceptor)) {
+        $upstream_acceptor_seq = $upstream_acceptor->seq();
+        $upstream_acceptor_score = $self->get_acceptor_score($upstream_acceptor);
+      }
+    }
+
+    # don't calculate downstream scores if the exon is the last exon in the transcript
+    unless ($exon_number == $total_exons) {
+
+      my $downstream_exon = $exons->[$exon_idx + 1];
+
+      my $downstream_donor = $self->slice_donor_site_from_exon($exon);
+      my $downstream_acceptor = $self->slice_acceptor_site_from_exon($downstream_exon);
+
+      if (defined($downstream_donor)) {
+        $downstream_donor_seq = $downstream_donor->seq();
+        $downstream_donor_score = $self->get_donor_score($downstream_donor);
+      }
+      if (defined($downstream_acceptor)) {
+        $downstream_acceptor_seq = $downstream_acceptor->seq();
+        $downstream_acceptor_score = $self->get_acceptor_score($downstream_acceptor);
       }
     }
   }
