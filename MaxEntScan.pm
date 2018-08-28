@@ -448,11 +448,7 @@ sub run_NCSS {
   my $tv = $tva->transcript_variation;
   my $tr = $tva->transcript;
 
-  my ($upstream_donor_seq, $upstream_donor_score);
-  my ($upstream_acceptor_seq, $upstream_acceptor_score);
-
-  my ($downstream_donor_seq, $downstream_donor_score);
-  my ($downstream_acceptor_seq, $downstream_acceptor_score);
+  my $results = {};
 
   if ($tv->intron_number) {
 
@@ -465,13 +461,13 @@ sub run_NCSS {
     my $intron = $introns->[$intron_idx];
 
     if (defined(my $seq = $self->get_donor_seq_from_intron($intron))) {
-      $upstream_donor_seq = $seq;
-      $upstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+      $results->{'MES-NCSS_upstream_donor_seq'} = $seq;
+      $results->{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
     }
 
     if (defined(my $seq = $self->get_acceptor_seq_from_intron($intron))) {
-      $downstream_acceptor_seq = $seq;
-      $downstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+      $results->{'MES-NCSS_downstream_acceptor_seq'} = $seq;
+      $results->{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
     }
 
     # don't calculate an upstream acceptor score if the intron is the first in the transcript
@@ -479,8 +475,8 @@ sub run_NCSS {
       my $upstream_intron = $introns->[$intron_idx - 1];
 
       if (defined(my $seq = $self->get_acceptor_seq_from_intron($upstream_intron))) {
-        $upstream_acceptor_seq = $seq;
-        $upstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+        $results->{'MES-NCSS_upstream_acceptor_seq'} = $seq;
+        $results->{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
 
@@ -489,8 +485,8 @@ sub run_NCSS {
       my $downstream_intron = $introns->[$intron_idx + 1];
 
       if (defined(my $seq = $self->get_donor_seq_from_intron($downstream_intron))) {
-        $downstream_donor_seq = $seq;
-        $downstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+        $results->{'MES-NCSS_downstream_donor_seq'} = $seq;
+        $results->{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
   }
@@ -507,17 +503,16 @@ sub run_NCSS {
 
     # don't calculate upstream scores if the exon is the first in the transcript
     unless ($exon_number == 1) {
-
       my $upstream_exon = $exons->[$exon_idx - 1];
 
       if (defined(my $seq = $self->get_donor_seq_from_exon($upstream_exon))) {
-        $upstream_donor_seq = $seq;
-        $upstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+        $results->{'MES-NCSS_upstream_donor_seq'} = $seq;
+        $results->{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
 
       if (defined(my $seq = $self->get_acceptor_seq_from_exon($exon))) {
-        $upstream_acceptor_seq = $seq;
-        $upstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+        $results->{'MES-NCSS_upstream_acceptor_seq'} = $seq;
+        $results->{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
 
@@ -525,32 +520,19 @@ sub run_NCSS {
     unless ($exon_number == $total_exons) {
       my $downstream_exon = $exons->[$exon_idx + 1];
 
-      my $downstream_donor = $self->slice_donor_site_from_exon($exon);
-      my $downstream_acceptor = $self->slice_acceptor_site_from_exon($downstream_exon);
-
       if (defined(my $seq = $self->get_donor_seq_from_exon($exon))) {
-        $downstream_donor_seq = $seq;
-        $downstream_donor_score = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+        $results->{'MES-NCSS_downstream_donor_seq'} = $seq;
+        $results->{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
 
       if (defined(my $seq = $self->get_acceptor_seq_from_exon($downstream_exon))) {
-        $downstream_acceptor_seq = $seq;
-        $downstream_acceptor_score = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+        $results->{'MES-NCSS_downstream_acceptor_seq'} = $seq;
+        $results->{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
   }
 
-  return {
-    "MES-NCSS_upstream_donor_seq" => $upstream_donor_seq,
-    "MES-NCSS_upstream_donor_score" => $upstream_donor_score,
-    "MES-NCSS_downstream_donor_seq" => $downstream_donor_seq,
-    "MES-NCSS_downstream_donor_score" => $downstream_donor_score,
-
-    "MES-NCSS_upstream_acceptor_seq" => $upstream_acceptor_seq,
-    "MES-NCSS_upstream_acceptor_score" => $upstream_acceptor_score,
-    "MES-NCSS_downstream_acceptor_seq" => $downstream_acceptor_seq,
-    "MES-NCSS_downstream_acceptor_score" => $downstream_acceptor_score,
-  };
+  return $results;
 }
 
 
