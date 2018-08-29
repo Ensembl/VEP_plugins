@@ -358,10 +358,10 @@ sub run_SWA {
   if (defined($donor_alt_context) && $donor_alt_context =~ /^[ACGT]+$/) {
 
     ($donor_alt_seq, $donor_alt_frame, $donor_alt) =
-      @{$self->get_max_donor_score($donor_alt_context)};
+      @{$self->get_max_donor($donor_alt_context)};
 
     ($donor_ref_seq, $donor_ref_frame, $donor_ref) =
-      @{$self->get_max_donor_score($donor_ref_context)};
+      @{$self->get_max_donor($donor_ref_context)};
 
     $donor_ref_comp_seq = $donor_ref_seq;
     $donor_ref_comp = $donor_ref;
@@ -388,10 +388,10 @@ sub run_SWA {
   if (defined($acceptor_alt_context) && $acceptor_alt_context =~ /^[ACGT]+$/) {
 
     ($acceptor_alt_seq, $acceptor_alt_frame, $acceptor_alt) =
-      @{$self->get_max_acceptor_score($acceptor_alt_context)};
+      @{$self->get_max_acceptor($acceptor_alt_context)};
 
     ($acceptor_ref_seq, $acceptor_ref_frame, $acceptor_ref) =
-      @{$self->get_max_acceptor_score($acceptor_ref_context)};
+      @{$self->get_max_acceptor($acceptor_ref_context)};
 
     $acceptor_ref_comp_seq = $acceptor_ref_seq;
     $acceptor_ref_comp = $acceptor_ref;
@@ -539,40 +539,40 @@ sub run_NCSS {
 ## Sliding window approach methods
 ##################################
 
-sub get_max_donor_score {
-  my ($self, $donor_sequence) = @_;
+sub get_max_donor {
+  my ($self, $sequence) = @_;
 
-  my ($donor_kmer, $donor_frame, $donor_score);
-  my @kmers = @{$self->sliding_window($donor_sequence, 9)};
+  my ($seq, $frame, $max);
+  my @kmers = @{$self->sliding_window($sequence, 9)};
 
   for my $i (0 .. $#kmers) {
     my $kmer = $kmers[$i];
     my $score = $self->score5($kmer);
-    if(!$donor_score || $score > $donor_score) {
-      $donor_kmer = $kmer;
-      $donor_frame = $i + 1;
-      $donor_score = $score;
+    if(!$max || $score > $max) {
+      $seq = $kmer;
+      $frame = $i + 1;
+      $max = $score;
     }
   }
-  return [$donor_kmer, $donor_frame, $donor_score];
+  return [$seq, $frame, $max];
 }
 
-sub get_max_acceptor_score {
-  my ($self, $acceptor_sequence) = @_;
+sub get_max_acceptor {
+  my ($self, $sequence) = @_;
 
-  my ($acceptor_kmer, $acceptor_frame, $acceptor_score);
-  my @kmers = @{$self->sliding_window($acceptor_sequence, 23)};
+  my ($seq, $frame, $max);
+  my @kmers = @{$self->sliding_window($sequence, 23)};
 
   for my $i (0 .. $#kmers) {
     my $kmer = $kmers[$i];
     my $score = $self->score3($kmer);
-    if(!$acceptor_score || $score > $acceptor_score) {
-      $acceptor_kmer = $kmer;
-      $acceptor_frame = $i + 1;
-      $acceptor_score = $score;
+    if(!$max || $score > $max) {
+      $seq = $kmer;
+      $frame = $i + 1;
+      $max = $score;
     }
   }
-  return [$acceptor_kmer, $acceptor_frame, $acceptor_score];
+  return [$seq, $frame, $max];
 }
 
 sub sliding_window {
