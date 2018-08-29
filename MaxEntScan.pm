@@ -336,104 +336,85 @@ sub run_SWA {
 
   my $vf = $tva->variation_feature;
 
-  my ($vf_start, $vf_end) = ($vf->start, $vf->end);
+  my $results = {};
 
-  # for score5.pl, the splice donor needs a window of 9 bases
-  my ($donor_ref_context, $donor_alt_context) =
-    @{$self->get_seqs($tva, $vf_start - 8, $vf_end + 8)};
+  # get the donor reference and alternate sequence contexts
+  my ($donor_ref_context, $donor_alt_context) = @{$self->get_seqs($tva, $vf->start - 8, $vf->end + 8)};
 
-  my ($donor_alt_seq, $donor_alt_frame, $donor_alt);
-  my ($donor_ref_seq, $donor_ref_frame, $donor_ref);
+  if (defined($donor_ref_context)) {
+    $results->{'MES-SWA_donor_ref_context'} = $donor_ref_context;
 
-  my ($donor_ref_comp_seq, $donor_ref_comp);
-
-  my $donor_diff;
-
-  if (defined($donor_alt_context) && $donor_alt_context =~ /^[ACGT]+$/) {
-
-    ($donor_alt_seq, $donor_alt_frame, $donor_alt) =
-      @{$self->get_max_donor($donor_alt_context)};
-
-    ($donor_ref_seq, $donor_ref_frame, $donor_ref) =
-      @{$self->get_max_donor($donor_ref_context)};
-
-    $donor_ref_comp_seq = $donor_ref_seq;
-    $donor_ref_comp = $donor_ref;
-
-    if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
-      $donor_ref_comp_seq = substr($donor_ref_context, $donor_alt_frame - 1, 9);
-      $donor_ref_comp = $self->score5($donor_ref_comp_seq);
+    if ($donor_ref_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_donor($donor_ref_context)};
+      $results->{'MES-SWA_donor_ref_seq'} = $seq;
+      $results->{'MES-SWA_donor_ref_frame'} = $frame;
+      $results->{'MES-SWA_donor_ref'} = $score;
     }
-
-    $donor_diff = $donor_ref_comp - $donor_alt;
   }
 
-  # for score3.pl, the splice acceptor needs a window of 23 bases
-  my ($acceptor_ref_context, $acceptor_alt_context) =
-    @{$self->get_seqs($tva, $vf_start - 22, $vf_end + 22)};
+  if (defined($donor_alt_context)) {
+    $results->{'MES-SWA_donor_alt_context'} = $donor_alt_context;
 
-  my ($acceptor_alt_seq, $acceptor_alt_frame, $acceptor_alt);
-  my ($acceptor_ref_seq, $acceptor_ref_frame, $acceptor_ref);
+    if ($donor_alt_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_donor($donor_alt_context)};
+      $results->{'MES-SWA_donor_alt_seq'} = $seq;
+      $results->{'MES-SWA_donor_alt_frame'} = $frame;
+      $results->{'MES-SWA_donor_alt'} = $score;
 
-  my ($acceptor_ref_comp_seq, $acceptor_ref_comp);
+      if (defined(my $ref_comp_seq = $results->{'MES-SWA_donor_ref_seq'})) {
 
-  my $acceptor_diff;
+        if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
+          # for SNVs, compare to the same frame as the highest scoring ALT k-mer
+          $ref_comp_seq = substr($donor_ref_context, $frame - 1, 9);
+        }
 
-  if (defined($acceptor_alt_context) && $acceptor_alt_context =~ /^[ACGT]+$/) {
+        $results->{'MES-SWA_donor_ref_comp_seq'} = $ref_comp_seq;
+        $results->{'MES-SWA_donor_ref_comp'} = $self->score5($ref_comp_seq);
 
-    ($acceptor_alt_seq, $acceptor_alt_frame, $acceptor_alt) =
-      @{$self->get_max_acceptor($acceptor_alt_context)};
-
-    ($acceptor_ref_seq, $acceptor_ref_frame, $acceptor_ref) =
-      @{$self->get_max_acceptor($acceptor_ref_context)};
-
-    $acceptor_ref_comp_seq = $acceptor_ref_seq;
-    $acceptor_ref_comp = $acceptor_ref;
-
-    if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
-      $acceptor_ref_comp_seq = substr($acceptor_ref_context, $acceptor_alt_frame - 1, 23);
-      $acceptor_ref_comp = $self->score3($acceptor_ref_comp_seq);
+        $results->{'MES-SWA_donor_diff'} = $results->{'MES-SWA_donor_ref_comp'} - $score;
+      }
     }
-
-    $acceptor_diff = $acceptor_ref_comp - $acceptor_alt;
   }
 
-  return {
+  # get the acceptor reference and alternate sequence contexts
+  my ($acceptor_ref_context, $acceptor_alt_context) = @{$self->get_seqs($tva, $vf->start - 22, $vf->end + 22)};
 
-    # donor values
+  if (defined($acceptor_ref_context)) {
+    $results->{'MES-SWA_acceptor_ref_context'} = $acceptor_ref_context;
 
-    "MES-SWA_donor_alt_context" => $donor_alt_context,
-    "MES-SWA_donor_alt_seq" => $donor_alt_seq,
-    "MES-SWA_donor_alt_frame" => $donor_alt_frame,
-    "MES-SWA_donor_alt" => $donor_alt,
+    if ($acceptor_ref_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_acceptor($acceptor_ref_context)};
+      $results->{'MES-SWA_acceptor_ref_seq'} = $seq;
+      $results->{'MES-SWA_acceptor_ref_frame'} = $frame;
+      $results->{'MES-SWA_acceptor_ref'} = $score;
+    }
+  }
 
-    "MES-SWA_donor_ref_comp_seq" => $donor_ref_comp_seq,
-    "MES-SWA_donor_ref_comp" => $donor_ref_comp,
+  if (defined($acceptor_alt_context)) {
+    $results->{'MES-SWA_acceptor_alt_context'} = $acceptor_alt_context;
 
-    "MES-SWA_donor_ref_context" => $donor_ref_context,
-    "MES-SWA_donor_ref_seq" => $donor_ref_seq,
-    "MES-SWA_donor_ref_frame" => $donor_ref_frame,
-    "MES-SWA_donor_ref" => $donor_ref,
+    if ($acceptor_alt_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_acceptor($acceptor_alt_context)};
+      $results->{'MES-SWA_acceptor_alt_seq'} = $seq;
+      $results->{'MES-SWA_acceptor_alt_frame'} = $frame;
+      $results->{'MES-SWA_acceptor_alt'} = $score;
 
-    "MES-SWA_donor_diff" => $donor_diff,
+      if (defined(my $ref_comp_seq = $results->{'MES-SWA_acceptor_ref_seq'})) {
 
-    # acceptor values
+        if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
+          # for SNVs, compare to the same frame as the highest scoring ALT k-mer
+          $ref_comp_seq = substr($acceptor_ref_context, $frame - 1, 23);
+        }
 
-    "MES-SWA_acceptor_alt_context" => $acceptor_alt_context,
-    "MES-SWA_acceptor_alt_seq" => $acceptor_alt_seq,
-    "MES-SWA_acceptor_alt_frame" => $acceptor_alt_frame,
-    "MES-SWA_acceptor_alt" => $acceptor_alt,
+        $results->{'MES-SWA_acceptor_ref_comp_seq'} = $ref_comp_seq;
+        $results->{'MES-SWA_acceptor_ref_comp'} = $self->score3($ref_comp_seq);
 
-    "MES-SWA_acceptor_ref_comp_seq" => $acceptor_ref_comp_seq,
-    "MES-SWA_acceptor_ref_comp" => $acceptor_ref_comp,
+        $results->{'MES-SWA_acceptor_diff'} = $results->{'MES-SWA_acceptor_ref_comp'} - $score;
+      }
+    }
+  }
 
-    "MES-SWA_acceptor_ref_context" => $acceptor_ref_context,
-    "MES-SWA_acceptor_ref_seq" => $acceptor_ref_seq,
-    "MES-SWA_acceptor_ref_frame" => $acceptor_ref_frame,
-    "MES-SWA_acceptor_ref" => $acceptor_ref,
-
-    "MES-SWA_acceptor_diff" => $acceptor_diff,
-  };
+  return $results;
 }
 
 sub run_NCSS {
