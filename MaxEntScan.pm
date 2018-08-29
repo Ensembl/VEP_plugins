@@ -112,7 +112,7 @@ sub new {
   $self->{'run_SWA'} = 1 if exists $opts{'SWA'};
   $self->{'run_NCSS'} = 1 if exists $opts{'NCSS'};
 
-  $self->{'scores_only'} = 1 unless exists $opts{'verbose'};
+  $self->{'verbose'} = 1 if exists $opts{'verbose'};
 
   return $self;
 }
@@ -124,32 +124,16 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  my $headers = $self->get_MES_header_info();
-
-  if ($self->{'scores_only'}) {
-    my @seqs = grep { /_seq$/ } keys %$headers;
-    delete @{$headers}{@seqs};
-  }
+  my $v = $self->{'verbose'};
+  my $headers = $self->get_MES_header_info($v);
 
   if ($self->{'run_SWA'}) {
-    my $swa_headers = $self->get_SWA_header_info();
-
-    if ($self->{'scores_only'}) {
-      my @swa_keys = grep { !/_score$/ && !/_diff$/ } keys %$swa_headers;
-      delete @{$swa_headers}{@swa_keys};
-    }
-
+    my $swa_headers = $self->get_SWA_header_info($v);
     $headers = {%$headers, %$swa_headers};
   }
 
   if ($self->{'run_NCSS'}) {
-    my $ncss_headers = $self->get_NCSS_header_info();
-
-    if ($self->{'scores_only'}) {
-      my @ncss_keys = grep { !/_score$/ } keys %$ncss_headers;
-      delete @{$ncss_headers}{@ncss_keys};
-    }
-
+    my $ncss_headers = $self->get_NCSS_header_info($v);
     $headers = {%$headers, %$ncss_headers};
   }
 
@@ -157,106 +141,116 @@ sub get_header_info {
 }
 
 sub get_MES_header_info {
-  return {
+  my ($self, $verbose) = @_;
+
+  my $headers = {
     MaxEntScan_ref => "MaxEntScan reference sequence score",
-    MaxEntScan_ref_seq => "MaxEntScan reference sequence",
     MaxEntScan_alt => "MaxEntScan alternate sequence score",
-    MaxEntScan_alt_seq => "MaxEntScan alternate sequence",
     MaxEntScan_diff => "MaxEntScan score difference",
   };
+
+  if ($verbose) {
+
+    $headers->{'MaxEntScan_ref_seq'} = "MaxEntScan reference sequence";
+    $headers->{'MaxEntScan_alt_seq'} = "MaxEntScan alternate sequence";
+  }
+
+  return $headers;
 }
 
 sub get_SWA_header_info {
-  return {
+  my ($self, $verbose) = @_;
 
-    # donor values
+  my $headers = {
+    "MES-SWA_donor_ref" => "Highest splice donor reference sequence score",
+    "MES-SWA_donor_alt" => "Highest splice donor alternate sequence score",
+    "MES-SWA_donor_ref_comp" => "Donor reference comparison sequence score",
+    "MES-SWA_donor_diff" => "Difference between the donor reference comparison and alternate sequence scores",
 
-    "MES-SWA_donor_alt_context" =>
-      "Splice donor subsequence containing the alternate allele",
-    "MES-SWA_donor_alt_seq" =>
-      "Substring (k-mer) with the highest splice donor score containing the alternate allele",
-    "MES-SWA_donor_alt_frame" =>
-      "Position of the k-mer with the highest splice donor score containing the alternate allele",
-    "MES-SWA_donor_alt_score" =>
-       "Score of the k-mer with the highest splice donor score containing the alternate allele",
-
-    "MES-SWA_donor_diff" =>
-      "Difference between the donor reference comparison score and donor alternate score",
-
-    "MES-SWA_donor_ref_comp_seq" =>
-      "Selected donor reference comparison sequence (SNVs: Donor ALT frame, non-SNVs: Donor REF frame)",
-    "MES-SWA_donor_ref_comp_score" =>
-      "Selected donor reference comparison score (SNVs: SWA Donor ALT frame, non-SNVs: Donor REF frame)",
-
-    "MES-SWA_donor_ref_context" =>
-      "Splice donor subsequence containing the reference allele",
-    "MES-SWA_donor_ref_seq" =>
-      "Substring (k-mer) with the highest splice donor score containing the reference allele",
-    "MES-SWA_donor_ref_frame" =>
-      "Position of the k-mer with the highest splice donor score containing the reference allele",
-    "MES-SWA_donor_ref_score" =>
-      "Score of the k-mer with the highest splice donor score containing the reference allele",
-
-    # acceptor values
-
-    "MES-SWA_acceptor_alt_context" =>
-      "Splice acceptor subsequence containing the alternate allele",
-    "MES-SWA_acceptor_alt_seq" =>
-      "Substring (k-mer) with the highest splice acceptor score containing the alternate allele",
-    "MES-SWA_acceptor_alt_frame" =>
-      "Position of the k-mer with the highest splice acceptor score containing the alternate allele",
-    "MES-SWA_acceptor_alt_score" =>
-      "Score of the k-mer with the highest splice acceptor score containing the alternate allele",
-
-    "MES-SWA_acceptor_diff" =>
-      "Difference between the acceptor reference comparison score and acceptor alternate score",
-
-    "MES-SWA_acceptor_ref_comp_seq" =>
-      "Selected acceptor reference comparison sequence (SNVs: Donor ALT frame, non-SNVs: Donor REF frame)",
-    "MES-SWA_acceptor_ref_comp_score" =>
-      "Selected acceptor reference comparison score (SNVs: SWA Donor ALT frame, non-SNVs: Donor REF frame)",
-
-    "MES-SWA_acceptor_ref_context" =>
-      "Splice acceptor subsequence containing the reference allele",
-    "MES-SWA_acceptor_ref_seq" =>
-      "Substring (k-mer) with the highest splice acceptor score containing the reference allele",
-    "MES-SWA_acceptor_ref_frame" =>
-      "Position of the k-mer with the highest splice acceptor score containing the reference allele",
-    "MES-SWA_acceptor_ref_score" =>
-      "Score of the k-mer with the highest splice acceptor score containing the reference allele",
+    "MES-SWA_acceptor_ref" => "Highest splice acceptor reference sequence score",
+    "MES-SWA_acceptor_alt" => "Highest splice acceptor alternate sequence score",
+    "MES-SWA_acceptor_ref_comp" => "Acceptor reference comparison sequence score",
+    "MES-SWA_acceptor_diff" => "Difference between the acceptor reference comparison and alternate sequence scores",
   };
+
+  if ($verbose) {
+
+    $headers->{'MES-SWA_donor_ref_seq'} = "Highest splice donor reference sequence";
+    $headers->{'MES-SWA_donor_ref_frame'} = "Position of the highest splice donor reference sequence";
+    $headers->{'MES-SWA_donor_ref_context'} = "Selected donor sequence context containing the reference allele";
+    $headers->{'MES-SWA_donor_alt_seq'} = "Highest splice donor alternate sequence";
+    $headers->{'MES-SWA_donor_alt_frame'} = "Position of the highest splice donor alternate sequence";
+    $headers->{'MES-SWA_donor_alt_context'} = "Selected donor sequence context containing the alternate allele";
+    $headers->{'MES-SWA_donor_ref_comp_seq'} = "Donor reference comparison sequence";
+
+    $headers->{'MES-SWA_acceptor_ref_seq'} = "Highest splice acceptor reference sequence";
+    $headers->{'MES-SWA_acceptor_ref_frame'} = "Position of the highest splice acceptor reference sequence";
+    $headers->{'MES-SWA_acceptor_ref_context'} = "Selected acceptor sequence context containing the reference allele";
+    $headers->{'MES-SWA_acceptor_alt_seq'} = "Highest splice acceptor alternate sequence";
+    $headers->{'MES-SWA_acceptor_alt_frame'} = "Position of the highest splice acceptor alternate sequence";
+    $headers->{'MES-SWA_acceptor_alt_context'} = "Selected acceptor sequence context containing the alternate allele";
+    $headers->{'MES-SWA_acceptor_ref_comp_seq'} = "Acceptor reference comparison sequence";
+  }
+
+  return $headers;
 }
 
 sub get_NCSS_header_info {
-  return {
-    "MES-NCSS_upstream_donor_seq" => "Nearest upstream canonical splice donor sequence",
-    "MES-NCSS_upstream_donor" => "Nearest upstream canonical splice donor score",
-    "MES-NCSS_downstream_donor_seq" => "Nearest downstream canonical splice donor sequence",
-    "MES-NCSS_downstream_donor" => "Nearest downstream canonical splice donor score",
+  my ($self, $verbose) = @_;
 
-    "MES-NCSS_upstream_acceptor_seq" => "Nearest upstream canonical splice acceptor sequence",
-    "MES-NCSS_upstream_acceptor" => "Nearest upstream canonical splice acceptor score",
-    "MES-NCSS_downstream_acceptor_seq" => "Nearest downstream canonical splice acceptor sequence",
-    "MES-NCSS_downstream_acceptor" => "Nearest downstream canonical splice acceptor score",
+  my $headers = {
+    "MES-NCSS_upstream_acceptor" => "Nearest upstream canonical splice acceptor sequence score",
+    "MES-NCSS_upstream_donor" => "Nearest upstream canonical splice donor sequence score",
+
+    "MES-NCSS_downstream_acceptor" => "Nearest downstream canonical splice acceptor sequence score",
+    "MES-NCSS_downstream_donor" => "Nearest downstream canonical splice donor sequence score",
   };
+
+  if ($verbose) {
+
+    $headers->{'MES-NCSS_upstream_acceptor_seq'} = "Nearest upstream canonical splice acceptor sequence";
+    $headers->{'MES-NCSS_upstream_donor_seq'} = "Nearest upstream canonical splice donor sequence";
+
+    $headers->{'MES-NCSS_downstream_acceptor_seq'} = "Nearest downstream canonical splice acceptor sequence";
+    $headers->{'MES-NCSS_downstream_donor_seq'} = "Nearest downstream canonical splice donor sequence";
+  }
+
+  return $headers;
 }
 
 sub run {
   my ($self, $tva) = @_;
 
+  my $seq_headers = $self->get_MES_header_info();
   my $results = $self->run_MES($tva);
 
   if ($self->{'run_SWA'}) {
+    my $swa_seq_headers = $self->get_SWA_header_info();
+    $seq_headers = {%$seq_headers, %$swa_seq_headers};
     my $swa_results = $self->run_SWA($tva);
     $results = {%$results, %$swa_results};
   }
 
   if ($self->{'run_NCSS'}) {
+    my $ncss_seq_headers = $self->get_NCSS_header_info();
+    $seq_headers = {%$seq_headers, %$ncss_seq_headers};
     my $ncss_results = $self->run_NCSS($tva);
     $results = {%$results, %$ncss_results};
   }
 
-  return $results;
+  my %data;
+
+  # add the scores
+  my @scores = grep { exists $results->{$_} } keys %$seq_headers;
+  @data{@scores} = map { sprintf('%.3f', $_) } @{$results}{@scores};
+
+  if ($self->{'verbose'}) {
+    # add any remaining results
+    my @non_scores = grep { ! exists $data{$_} } keys %$results;
+    @data{@non_scores} = @{$results}{@non_scores};
+  }
+
+  return \%data;
 }
 
 sub run_MES {
