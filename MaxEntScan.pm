@@ -336,42 +336,42 @@ sub run_SWA {
 
   my $vf = $tva->variation_feature;
 
-  my $results = {};
+  my %results;
 
   # get the donor reference and alternate sequence contexts
   my ($donor_ref_context, $donor_alt_context) = @{$self->get_seqs($tva, $vf->start - 8, $vf->end + 8)};
 
   if (defined($donor_ref_context)) {
-    $results->{'MES-SWA_donor_ref_context'} = $donor_ref_context;
+    $results{'MES-SWA_donor_ref_context'} = $donor_ref_context;
 
     if ($donor_ref_context  =~ /^[ACGT]+$/) {
       my ($seq, $frame, $score) = @{$self->get_max_donor($donor_ref_context)};
-      $results->{'MES-SWA_donor_ref_seq'} = $seq;
-      $results->{'MES-SWA_donor_ref_frame'} = $frame;
-      $results->{'MES-SWA_donor_ref'} = $score;
+      $results{'MES-SWA_donor_ref_seq'} = $seq;
+      $results{'MES-SWA_donor_ref_frame'} = $frame;
+      $results{'MES-SWA_donor_ref'} = $score;
     }
   }
 
   if (defined($donor_alt_context)) {
-    $results->{'MES-SWA_donor_alt_context'} = $donor_alt_context;
+    $results{'MES-SWA_donor_alt_context'} = $donor_alt_context;
 
     if ($donor_alt_context  =~ /^[ACGT]+$/) {
       my ($seq, $frame, $score) = @{$self->get_max_donor($donor_alt_context)};
-      $results->{'MES-SWA_donor_alt_seq'} = $seq;
-      $results->{'MES-SWA_donor_alt_frame'} = $frame;
-      $results->{'MES-SWA_donor_alt'} = $score;
+      $results{'MES-SWA_donor_alt_seq'} = $seq;
+      $results{'MES-SWA_donor_alt_frame'} = $frame;
+      $results{'MES-SWA_donor_alt'} = $score;
 
-      if (defined(my $ref_comp_seq = $results->{'MES-SWA_donor_ref_seq'})) {
+      if (defined(my $ref_comp_seq = $results{'MES-SWA_donor_ref_seq'})) {
 
         if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
           # for SNVs, compare to the same frame as the highest scoring ALT k-mer
           $ref_comp_seq = substr($donor_ref_context, $frame - 1, 9);
         }
 
-        $results->{'MES-SWA_donor_ref_comp_seq'} = $ref_comp_seq;
-        $results->{'MES-SWA_donor_ref_comp'} = $self->score5($ref_comp_seq);
+        $results{'MES-SWA_donor_ref_comp_seq'} = $ref_comp_seq;
+        $results{'MES-SWA_donor_ref_comp'} = $self->score5($ref_comp_seq);
 
-        $results->{'MES-SWA_donor_diff'} = $results->{'MES-SWA_donor_ref_comp'} - $score;
+        $results{'MES-SWA_donor_diff'} = $results{'MES-SWA_donor_ref_comp'} - $score;
       }
     }
   }
@@ -380,41 +380,41 @@ sub run_SWA {
   my ($acceptor_ref_context, $acceptor_alt_context) = @{$self->get_seqs($tva, $vf->start - 22, $vf->end + 22)};
 
   if (defined($acceptor_ref_context)) {
-    $results->{'MES-SWA_acceptor_ref_context'} = $acceptor_ref_context;
+    $results{'MES-SWA_acceptor_ref_context'} = $acceptor_ref_context;
 
     if ($acceptor_ref_context  =~ /^[ACGT]+$/) {
       my ($seq, $frame, $score) = @{$self->get_max_acceptor($acceptor_ref_context)};
-      $results->{'MES-SWA_acceptor_ref_seq'} = $seq;
-      $results->{'MES-SWA_acceptor_ref_frame'} = $frame;
-      $results->{'MES-SWA_acceptor_ref'} = $score;
+      $results{'MES-SWA_acceptor_ref_seq'} = $seq;
+      $results{'MES-SWA_acceptor_ref_frame'} = $frame;
+      $results{'MES-SWA_acceptor_ref'} = $score;
     }
   }
 
   if (defined($acceptor_alt_context)) {
-    $results->{'MES-SWA_acceptor_alt_context'} = $acceptor_alt_context;
+    $results{'MES-SWA_acceptor_alt_context'} = $acceptor_alt_context;
 
     if ($acceptor_alt_context  =~ /^[ACGT]+$/) {
       my ($seq, $frame, $score) = @{$self->get_max_acceptor($acceptor_alt_context)};
-      $results->{'MES-SWA_acceptor_alt_seq'} = $seq;
-      $results->{'MES-SWA_acceptor_alt_frame'} = $frame;
-      $results->{'MES-SWA_acceptor_alt'} = $score;
+      $results{'MES-SWA_acceptor_alt_seq'} = $seq;
+      $results{'MES-SWA_acceptor_alt_frame'} = $frame;
+      $results{'MES-SWA_acceptor_alt'} = $score;
 
-      if (defined(my $ref_comp_seq = $results->{'MES-SWA_acceptor_ref_seq'})) {
+      if (defined(my $ref_comp_seq = $results{'MES-SWA_acceptor_ref_seq'})) {
 
         if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
           # for SNVs, compare to the same frame as the highest scoring ALT k-mer
           $ref_comp_seq = substr($acceptor_ref_context, $frame - 1, 23);
         }
 
-        $results->{'MES-SWA_acceptor_ref_comp_seq'} = $ref_comp_seq;
-        $results->{'MES-SWA_acceptor_ref_comp'} = $self->score3($ref_comp_seq);
+        $results{'MES-SWA_acceptor_ref_comp_seq'} = $ref_comp_seq;
+        $results{'MES-SWA_acceptor_ref_comp'} = $self->score3($ref_comp_seq);
 
-        $results->{'MES-SWA_acceptor_diff'} = $results->{'MES-SWA_acceptor_ref_comp'} - $score;
+        $results{'MES-SWA_acceptor_diff'} = $results{'MES-SWA_acceptor_ref_comp'} - $score;
       }
     }
   }
 
-  return $results;
+  return \%results;
 }
 
 sub run_NCSS {
@@ -423,7 +423,7 @@ sub run_NCSS {
   my $tv = $tva->transcript_variation;
   my $tr = $tva->transcript;
 
-  my $results = {};
+  my %results;
 
   if ($tv->intron_number) {
 
@@ -436,13 +436,13 @@ sub run_NCSS {
     my $intron = $introns->[$intron_idx];
 
     if (defined(my $seq = $self->get_donor_seq_from_intron($intron))) {
-      $results->{'MES-NCSS_upstream_donor_seq'} = $seq;
-      $results->{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+      $results{'MES-NCSS_upstream_donor_seq'} = $seq;
+      $results{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
     }
 
     if (defined(my $seq = $self->get_acceptor_seq_from_intron($intron))) {
-      $results->{'MES-NCSS_downstream_acceptor_seq'} = $seq;
-      $results->{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+      $results{'MES-NCSS_downstream_acceptor_seq'} = $seq;
+      $results{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
     }
 
     # don't calculate an upstream acceptor score if the intron is the first in the transcript
@@ -450,8 +450,8 @@ sub run_NCSS {
       my $upstream_intron = $introns->[$intron_idx - 1];
 
       if (defined(my $seq = $self->get_acceptor_seq_from_intron($upstream_intron))) {
-        $results->{'MES-NCSS_upstream_acceptor_seq'} = $seq;
-        $results->{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+        $results{'MES-NCSS_upstream_acceptor_seq'} = $seq;
+        $results{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
 
@@ -460,8 +460,8 @@ sub run_NCSS {
       my $downstream_intron = $introns->[$intron_idx + 1];
 
       if (defined(my $seq = $self->get_donor_seq_from_intron($downstream_intron))) {
-        $results->{'MES-NCSS_downstream_donor_seq'} = $seq;
-        $results->{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+        $results{'MES-NCSS_downstream_donor_seq'} = $seq;
+        $results{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
   }
@@ -481,13 +481,13 @@ sub run_NCSS {
       my $upstream_exon = $exons->[$exon_idx - 1];
 
       if (defined(my $seq = $self->get_donor_seq_from_exon($upstream_exon))) {
-        $results->{'MES-NCSS_upstream_donor_seq'} = $seq;
-        $results->{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+        $results{'MES-NCSS_upstream_donor_seq'} = $seq;
+        $results{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
 
       if (defined(my $seq = $self->get_acceptor_seq_from_exon($exon))) {
-        $results->{'MES-NCSS_upstream_acceptor_seq'} = $seq;
-        $results->{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+        $results{'MES-NCSS_upstream_acceptor_seq'} = $seq;
+        $results{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
 
@@ -496,18 +496,18 @@ sub run_NCSS {
       my $downstream_exon = $exons->[$exon_idx + 1];
 
       if (defined(my $seq = $self->get_donor_seq_from_exon($exon))) {
-        $results->{'MES-NCSS_downstream_donor_seq'} = $seq;
-        $results->{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+        $results{'MES-NCSS_downstream_donor_seq'} = $seq;
+        $results{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
       }
 
       if (defined(my $seq = $self->get_acceptor_seq_from_exon($downstream_exon))) {
-        $results->{'MES-NCSS_downstream_acceptor_seq'} = $seq;
-        $results->{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+        $results{'MES-NCSS_downstream_acceptor_seq'} = $seq;
+        $results{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
       }
     }
   }
 
-  return $results;
+  return \%results;
 }
 
 
