@@ -90,7 +90,7 @@ limitations under the License.
 
  To run PROVEAN and incorporate the scores into the VEP output:
 
- > git clone https://github.com/stekaz/PROVEAN_scripts.git
+ > git clone https://github.com/stekaz/PROVEAN.git
 
  Then:
 
