@@ -28,7 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv MaxEntScan.pm ~/.vep/Plugins
- ./vep -i variants.vcf --plugin MaxEntScan,[path_to_maxentscan_dir]
+ ./vep -i variants.vcf --plugin MaxEntScan,/path/to/maxentscan/fordownload
+ ./vep -i variants.vcf --plugin MaxEntScan,/path/to/maxentscan/fordownload,SWA,NCSS
 
 =head1 DESCRIPTION
 
@@ -49,6 +50,22 @@ limitations under the License.
 
  The plugin reports the reference, alternate and difference (REF - ALT) maximum
  entropy scores.
+
+ If 'SWA' is specified as a command-line argument, a sliding window algorithm
+ is applied to subsequences containing the reference and alternate alleles to
+ identify k-mers with the highest donor and acceptor splice site scores. To assess
+ the impact of variants, reference comparison scores are also provided. For SNVs,
+ the comparison scores are derived from sequence in the same frame as the highest
+ scoring k-mers containing the alternate allele. For all other variants, the
+ comparison scores are derived from the highest scoring k-mers containing the
+ reference allele. The difference between the reference comparison and alternate
+ scores (SWA_REF_COMP - SWA_ALT) are also provided.
+
+ If 'NCSS' is specified as a command-line argument, scores for the nearest
+ upstream and downstream canonical splice sites are also included.
+
+ By default, only scores are reported. Add 'verbose' to the list of command-
+ line arguments to include the sequence output associated with those scores.
 
 =cut
 
@@ -90,6 +107,13 @@ sub new {
   ## setup from score3.pl
   $self->{'score3_metables'} = $self->score3_makemaxentscores;
 
+  my %opts = map { $_ => undef } @$params;
+
+  $self->{'run_SWA'} = 1 if exists $opts{'SWA'};
+  $self->{'run_NCSS'} = 1 if exists $opts{'NCSS'};
+
+  $self->{'verbose'} = 1 if exists $opts{'verbose'};
+
   return $self;
 }
 
@@ -98,14 +122,138 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return {
+  my $self = shift;
+
+  my $v = $self->{'verbose'};
+  my $headers = $self->get_MES_header_info($v);
+
+  if ($self->{'run_SWA'}) {
+    my $swa_headers = $self->get_SWA_header_info($v);
+    $headers = {%$headers, %$swa_headers};
+  }
+
+  if ($self->{'run_NCSS'}) {
+    my $ncss_headers = $self->get_NCSS_header_info($v);
+    $headers = {%$headers, %$ncss_headers};
+  }
+
+  return $headers;
+}
+
+sub get_MES_header_info {
+  my ($self, $verbose) = @_;
+
+  my $headers = {
     MaxEntScan_ref => "MaxEntScan reference sequence score",
     MaxEntScan_alt => "MaxEntScan alternate sequence score",
     MaxEntScan_diff => "MaxEntScan score difference",
   };
+
+  if ($verbose) {
+
+    $headers->{'MaxEntScan_ref_seq'} = "MaxEntScan reference sequence";
+    $headers->{'MaxEntScan_alt_seq'} = "MaxEntScan alternate sequence";
+  }
+
+  return $headers;
+}
+
+sub get_SWA_header_info {
+  my ($self, $verbose) = @_;
+
+  my $headers = {
+    "MES-SWA_donor_ref" => "Highest splice donor reference sequence score",
+    "MES-SWA_donor_alt" => "Highest splice donor alternate sequence score",
+    "MES-SWA_donor_ref_comp" => "Donor reference comparison sequence score",
+    "MES-SWA_donor_diff" => "Difference between the donor reference comparison and alternate sequence scores",
+
+    "MES-SWA_acceptor_ref" => "Highest splice acceptor reference sequence score",
+    "MES-SWA_acceptor_alt" => "Highest splice acceptor alternate sequence score",
+    "MES-SWA_acceptor_ref_comp" => "Acceptor reference comparison sequence score",
+    "MES-SWA_acceptor_diff" => "Difference between the acceptor reference comparison and alternate sequence scores",
+  };
+
+  if ($verbose) {
+
+    $headers->{'MES-SWA_donor_ref_seq'} = "Highest splice donor reference sequence";
+    $headers->{'MES-SWA_donor_ref_frame'} = "Position of the highest splice donor reference sequence";
+    $headers->{'MES-SWA_donor_ref_context'} = "Selected donor sequence context containing the reference allele";
+    $headers->{'MES-SWA_donor_alt_seq'} = "Highest splice donor alternate sequence";
+    $headers->{'MES-SWA_donor_alt_frame'} = "Position of the highest splice donor alternate sequence";
+    $headers->{'MES-SWA_donor_alt_context'} = "Selected donor sequence context containing the alternate allele";
+    $headers->{'MES-SWA_donor_ref_comp_seq'} = "Donor reference comparison sequence";
+
+    $headers->{'MES-SWA_acceptor_ref_seq'} = "Highest splice acceptor reference sequence";
+    $headers->{'MES-SWA_acceptor_ref_frame'} = "Position of the highest splice acceptor reference sequence";
+    $headers->{'MES-SWA_acceptor_ref_context'} = "Selected acceptor sequence context containing the reference allele";
+    $headers->{'MES-SWA_acceptor_alt_seq'} = "Highest splice acceptor alternate sequence";
+    $headers->{'MES-SWA_acceptor_alt_frame'} = "Position of the highest splice acceptor alternate sequence";
+    $headers->{'MES-SWA_acceptor_alt_context'} = "Selected acceptor sequence context containing the alternate allele";
+    $headers->{'MES-SWA_acceptor_ref_comp_seq'} = "Acceptor reference comparison sequence";
+  }
+
+  return $headers;
+}
+
+sub get_NCSS_header_info {
+  my ($self, $verbose) = @_;
+
+  my $headers = {
+    "MES-NCSS_upstream_acceptor" => "Nearest upstream canonical splice acceptor sequence score",
+    "MES-NCSS_upstream_donor" => "Nearest upstream canonical splice donor sequence score",
+
+    "MES-NCSS_downstream_acceptor" => "Nearest downstream canonical splice acceptor sequence score",
+    "MES-NCSS_downstream_donor" => "Nearest downstream canonical splice donor sequence score",
+  };
+
+  if ($verbose) {
+
+    $headers->{'MES-NCSS_upstream_acceptor_seq'} = "Nearest upstream canonical splice acceptor sequence";
+    $headers->{'MES-NCSS_upstream_donor_seq'} = "Nearest upstream canonical splice donor sequence";
+
+    $headers->{'MES-NCSS_downstream_acceptor_seq'} = "Nearest downstream canonical splice acceptor sequence";
+    $headers->{'MES-NCSS_downstream_donor_seq'} = "Nearest downstream canonical splice donor sequence";
+  }
+
+  return $headers;
 }
 
 sub run {
+  my ($self, $tva) = @_;
+
+  my $seq_headers = $self->get_MES_header_info();
+  my $results = $self->run_MES($tva);
+
+  if ($self->{'run_SWA'}) {
+    my $swa_seq_headers = $self->get_SWA_header_info();
+    $seq_headers = {%$seq_headers, %$swa_seq_headers};
+    my $swa_results = $self->run_SWA($tva);
+    $results = {%$results, %$swa_results};
+  }
+
+  if ($self->{'run_NCSS'}) {
+    my $ncss_seq_headers = $self->get_NCSS_header_info();
+    $seq_headers = {%$seq_headers, %$ncss_seq_headers};
+    my $ncss_results = $self->run_NCSS($tva);
+    $results = {%$results, %$ncss_results};
+  }
+
+  my %data;
+
+  # add the scores
+  my @scores = grep { exists $results->{$_} } keys %$seq_headers;
+  @data{@scores} = map { sprintf('%.3f', $_) } @{$results}{@scores};
+
+  if ($self->{'verbose'}) {
+    # add any remaining results
+    my @non_scores = grep { ! exists $data{$_} } keys %$results;
+    @data{@non_scores} = @{$results}{@non_scores};
+  }
+
+  return \%data;
+}
+
+sub run_MES {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
@@ -144,33 +292,37 @@ sub run {
     }
 
     if(overlap($vf->start, $vf->end, $five_start, $five_end)) {
-      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $five_start, $five_end)};
 
-      return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
+      return {} unless defined($ref_seq) && $ref_seq =~ /^[ACGT]+$/;
+      return {} unless defined($alt_seq) && $alt_seq =~ /^[ACGT]+$/;
 
       my $ref_score = $self->score5($ref_seq);
       my $alt_score = $self->score5($alt_seq);
 
       return {
         MaxEntScan_ref => $ref_score,
+        MaxEntScan_ref_seq => $ref_seq,
         MaxEntScan_alt => $alt_score,
+        MaxEntScan_alt_seq => $alt_seq,
         MaxEntScan_diff => $ref_score - $alt_score,
       }
     }
 
     if(overlap($vf->start, $vf->end, $three_start, $three_end)) {
-      $DB::single = 1;
       my ($ref_seq, $alt_seq) = @{$self->get_seqs($tva, $three_start, $three_end)};
 
-      return {} unless $ref_seq =~ /^[ACGT]+$/ && $alt_seq =~ /^[ACGT]+$/;
+      return {} unless defined($ref_seq) && $ref_seq =~ /^[ACGT]+$/;
+      return {} unless defined($alt_seq) && $alt_seq =~ /^[ACGT]+$/;
 
       my $ref_score = $self->score3($ref_seq);
       my $alt_score = $self->score3($alt_seq);
 
       return {
         MaxEntScan_ref => $ref_score,
+        MaxEntScan_ref_seq => $ref_seq,
         MaxEntScan_alt => $alt_score,
+        MaxEntScan_alt_seq => $alt_seq,
         MaxEntScan_diff => $ref_score - $alt_score,
       }
     }
@@ -179,21 +331,333 @@ sub run {
   return {};
 }
 
+sub run_SWA {
+  my ($self, $tva) = @_;
+
+  my $vf = $tva->variation_feature;
+
+  my %results;
+
+  # get the donor reference and alternate sequence contexts
+  my ($donor_ref_context, $donor_alt_context) = @{$self->get_seqs($tva, $vf->start - 8, $vf->end + 8)};
+
+  if (defined($donor_ref_context)) {
+    $results{'MES-SWA_donor_ref_context'} = $donor_ref_context;
+
+    if ($donor_ref_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_donor($donor_ref_context)};
+      $results{'MES-SWA_donor_ref_seq'} = $seq;
+      $results{'MES-SWA_donor_ref_frame'} = $frame;
+      $results{'MES-SWA_donor_ref'} = $score;
+    }
+  }
+
+  if (defined($donor_alt_context)) {
+    $results{'MES-SWA_donor_alt_context'} = $donor_alt_context;
+
+    if ($donor_alt_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_donor($donor_alt_context)};
+      $results{'MES-SWA_donor_alt_seq'} = $seq;
+      $results{'MES-SWA_donor_alt_frame'} = $frame;
+      $results{'MES-SWA_donor_alt'} = $score;
+
+      if (defined(my $ref_comp_seq = $results{'MES-SWA_donor_ref_seq'})) {
+
+        if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
+          # for SNVs, compare to the same frame as the highest scoring ALT k-mer
+          $ref_comp_seq = substr($donor_ref_context, $frame - 1, 9);
+        }
+
+        $results{'MES-SWA_donor_ref_comp_seq'} = $ref_comp_seq;
+        $results{'MES-SWA_donor_ref_comp'} = $self->score5($ref_comp_seq);
+
+        $results{'MES-SWA_donor_diff'} = $results{'MES-SWA_donor_ref_comp'} - $score;
+      }
+    }
+  }
+
+  # get the acceptor reference and alternate sequence contexts
+  my ($acceptor_ref_context, $acceptor_alt_context) = @{$self->get_seqs($tva, $vf->start - 22, $vf->end + 22)};
+
+  if (defined($acceptor_ref_context)) {
+    $results{'MES-SWA_acceptor_ref_context'} = $acceptor_ref_context;
+
+    if ($acceptor_ref_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_acceptor($acceptor_ref_context)};
+      $results{'MES-SWA_acceptor_ref_seq'} = $seq;
+      $results{'MES-SWA_acceptor_ref_frame'} = $frame;
+      $results{'MES-SWA_acceptor_ref'} = $score;
+    }
+  }
+
+  if (defined($acceptor_alt_context)) {
+    $results{'MES-SWA_acceptor_alt_context'} = $acceptor_alt_context;
+
+    if ($acceptor_alt_context  =~ /^[ACGT]+$/) {
+      my ($seq, $frame, $score) = @{$self->get_max_acceptor($acceptor_alt_context)};
+      $results{'MES-SWA_acceptor_alt_seq'} = $seq;
+      $results{'MES-SWA_acceptor_alt_frame'} = $frame;
+      $results{'MES-SWA_acceptor_alt'} = $score;
+
+      if (defined(my $ref_comp_seq = $results{'MES-SWA_acceptor_ref_seq'})) {
+
+        if ($vf->{start} == $vf->{end} && $tva->feature_seq =~ /^[ACGT]$/) {
+          # for SNVs, compare to the same frame as the highest scoring ALT k-mer
+          $ref_comp_seq = substr($acceptor_ref_context, $frame - 1, 23);
+        }
+
+        $results{'MES-SWA_acceptor_ref_comp_seq'} = $ref_comp_seq;
+        $results{'MES-SWA_acceptor_ref_comp'} = $self->score3($ref_comp_seq);
+
+        $results{'MES-SWA_acceptor_diff'} = $results{'MES-SWA_acceptor_ref_comp'} - $score;
+      }
+    }
+  }
+
+  return \%results;
+}
+
+sub run_NCSS {
+  my ($self, $tva) = @_;
+
+  my $tv = $tva->transcript_variation;
+  my $tr = $tva->transcript;
+
+  my %results;
+
+  if ($tv->intron_number) {
+
+    my ($intron_numbers, $total_introns) = split(/\//, $tv->intron_number);
+    my $intron_number = (split(/-/, $intron_numbers))[0];
+
+    my $introns = $tr->get_all_Introns;
+
+    my $intron_idx = $intron_number - 1;
+    my $intron = $introns->[$intron_idx];
+
+    if (defined(my $seq = $self->get_donor_seq_from_intron($intron))) {
+      $results{'MES-NCSS_upstream_donor_seq'} = $seq;
+      $results{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+    }
+
+    if (defined(my $seq = $self->get_acceptor_seq_from_intron($intron))) {
+      $results{'MES-NCSS_downstream_acceptor_seq'} = $seq;
+      $results{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+    }
+
+    # don't calculate an upstream acceptor score if the intron is the first in the transcript
+    unless ($intron_number == 1) {
+      my $upstream_intron = $introns->[$intron_idx - 1];
+
+      if (defined(my $seq = $self->get_acceptor_seq_from_intron($upstream_intron))) {
+        $results{'MES-NCSS_upstream_acceptor_seq'} = $seq;
+        $results{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+      }
+    }
+
+    # don't calculate a downstream donor score if the intron is the last in the transcript
+    unless ($intron_number == $total_introns) {
+      my $downstream_intron = $introns->[$intron_idx + 1];
+
+      if (defined(my $seq = $self->get_donor_seq_from_intron($downstream_intron))) {
+        $results{'MES-NCSS_downstream_donor_seq'} = $seq;
+        $results{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+      }
+    }
+  }
+
+  elsif ($tv->exon_number) {
+
+    my ($exon_numbers, $total_exons) = split(/\//, $tv->exon_number);
+    my $exon_number = (split(/-/, $exon_numbers))[0];
+
+    my $exons = $tr->get_all_Exons;
+
+    my $exon_idx = $exon_number - 1;
+    my $exon = $exons->[$exon_idx];
+
+    # don't calculate upstream scores if the exon is the first in the transcript
+    unless ($exon_number == 1) {
+      my $upstream_exon = $exons->[$exon_idx - 1];
+
+      if (defined(my $seq = $self->get_donor_seq_from_exon($upstream_exon))) {
+        $results{'MES-NCSS_upstream_donor_seq'} = $seq;
+        $results{'MES-NCSS_upstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+      }
+
+      if (defined(my $seq = $self->get_acceptor_seq_from_exon($exon))) {
+        $results{'MES-NCSS_upstream_acceptor_seq'} = $seq;
+        $results{'MES-NCSS_upstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+      }
+    }
+
+    # don't calculate downstream scores if the exon is the last exon in the transcript
+    unless ($exon_number == $total_exons) {
+      my $downstream_exon = $exons->[$exon_idx + 1];
+
+      if (defined(my $seq = $self->get_donor_seq_from_exon($exon))) {
+        $results{'MES-NCSS_downstream_donor_seq'} = $seq;
+        $results{'MES-NCSS_downstream_donor'} = $self->score5($seq) if $seq =~ /^[ACGT]+$/;
+      }
+
+      if (defined(my $seq = $self->get_acceptor_seq_from_exon($downstream_exon))) {
+        $results{'MES-NCSS_downstream_acceptor_seq'} = $seq;
+        $results{'MES-NCSS_downstream_acceptor'} = $self->score3($seq) if $seq =~ /^[ACGT]+$/;
+      }
+    }
+  }
+
+  return \%results;
+}
+
+
+## Sliding window approach methods
+##################################
+
+sub get_max_donor {
+  my ($self, $sequence) = @_;
+
+  my ($seq, $frame, $max);
+  my @kmers = @{$self->sliding_window($sequence, 9)};
+
+  for my $i (0 .. $#kmers) {
+    my $kmer = $kmers[$i];
+    my $score = $self->score5($kmer);
+    if(!$max || $score > $max) {
+      $seq = $kmer;
+      $frame = $i + 1;
+      $max = $score;
+    }
+  }
+  return [$seq, $frame, $max];
+}
+
+sub get_max_acceptor {
+  my ($self, $sequence) = @_;
+
+  my ($seq, $frame, $max);
+  my @kmers = @{$self->sliding_window($sequence, 23)};
+
+  for my $i (0 .. $#kmers) {
+    my $kmer = $kmers[$i];
+    my $score = $self->score3($kmer);
+    if(!$max || $score > $max) {
+      $seq = $kmer;
+      $frame = $i + 1;
+      $max = $score;
+    }
+  }
+  return [$seq, $frame, $max];
+}
+
+sub sliding_window {
+  my ($self, $sequence, $winsize) = @_;
+  my @seqs;
+  for (my $i = 1; $i <= length($sequence) - $winsize + 1; $i++) {
+    push @seqs, substr($sequence, $i - 1, $winsize);
+  }
+  return \@seqs;
+}
+
+
+## Nearest canonical splice site methods
+########################################
+
+sub get_donor_seq_from_exon {
+  my ($self, $exon) = @_;
+
+  my ($start, $end);
+
+  if ($exon->strand > 0) {
+    ($start, $end) = ($exon->end - 2, $exon->end + 6);
+  }
+  else {
+    ($start, $end) = ($exon->start - 6, $exon->start + 2);
+  }
+
+  my $slice = $exon->slice()->sub_Slice($start, $end, $exon->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
+}
+
+sub get_acceptor_seq_from_exon {
+  my ($self, $exon) = @_;
+
+  my ($start, $end);
+
+  if ($exon->strand > 0) {
+    ($start, $end) = ($exon->start - 20, $exon->start + 2);
+  }
+  else {
+    ($start, $end) = ($exon->end - 2, $exon->end + 20);
+  }
+
+  my $slice = $exon->slice()->sub_Slice($start, $end, $exon->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
+}
+
+sub get_donor_seq_from_intron {
+  my ($self, $intron) = @_;
+
+  my ($start, $end);
+
+  if ($intron->strand > 0) {
+    ($start, $end) = ($intron->start - 3, $intron->start + 5);
+  }
+  else {
+    ($start, $end) = ($intron->end - 5, $intron->end + 3);
+  }
+
+  my $slice = $intron->slice()->sub_Slice($start, $end, $intron->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
+}
+
+sub get_acceptor_seq_from_intron {
+  my ($self, $intron) = @_;
+
+  my ($start, $end);
+
+  if ($intron->strand > 0) {
+    ($start, $end) = ($intron->end - 19, $intron->end + 3);
+  }
+  else {
+    ($start, $end) = ($intron->start - 3, $intron->start + 19);
+  }
+
+  my $slice = $intron->slice()->sub_Slice($start, $end, $intron->strand);
+  my $seq = $slice->seq() if defined($slice);
+
+  return $seq;
+}
+
+
+## Common methods
+#################
+
 sub get_seqs {
   my ($self, $tva, $start, $end) = @_;
   my $vf = $tva->variation_feature;
 
   my $tr_strand = $tva->transcript->strand;
 
-  my $ref_seq = $vf->{slice}->sub_Slice(
-    $start,
-    $end,
-    $tr_strand
-  )->seq;
+  my $ref_slice = $vf->{slice}->sub_Slice($start, $end, $tr_strand);
 
-  my $alt_seq = $ref_seq;
-  my $substr_start = $tr_strand > 0 ? $vf->{start} - $start : $end - $vf->{end};
-  substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $tva->feature_seq;
+  my ($ref_seq, $alt_seq);
+
+  if (defined $ref_slice) {
+
+    $ref_seq = $alt_seq = $ref_slice->seq();
+
+    my $substr_start = $tr_strand > 0 ? $vf->{start} - $start : $end - $vf->{end};
+    my $feature_seq = $tva->seq_length > 0 ? $tva->feature_seq : '';
+
+    substr($alt_seq, $substr_start, ($vf->{end} - $vf->{start}) + 1) = $feature_seq;
+  }
 
   return [$ref_seq, $alt_seq];
 }
