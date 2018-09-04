@@ -227,7 +227,7 @@ sub get_header_info {
       }
     }
 
-    $self->{_header_info} = {map {$_ => $rm_descs{$_} || ($_.' from dbNSFP file '.$self->{file})} keys %{$self->{cols}}};
+    $self->{_header_info} = {map {$_ => $rm_descs{$_} || ($_.' from dbNSFP file')} keys %{$self->{cols}}};
   }
   
   return $self->{_header_info};
