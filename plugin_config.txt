@@ -679,20 +679,6 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
 
-    ## IDENTIFIERS
-    ##############
-
-    # CSN
-    {
-      "key" => "CSN",
-      "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Identifiers",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/94/CSN.pm",
-    },
-    
-
     ## FREQUENCY DATA
     #################
 
@@ -717,6 +703,15 @@ my $VEP_PLUGIN_CONFIG = {
 
     ## OTHER
     ########
+
+    # CSN
+    {
+      "key" => "CSN",
+      "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/94/CSN.pm",
+    },
 
     # miRNA
     {
