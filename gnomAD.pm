@@ -39,7 +39,15 @@ limitations under the License.
  http://gnomad.broadinstitute.org/downloads
 
  The genome or exome VCF files must be downloaded and tabix indexed before
- using this plugin.
+ using this plugin:
+
+ > release="2.0.2"
+
+ > genomes="https://storage.googleapis.com/gnomad-public/release/${release}/vcf/genomes"
+ > wget -x "${genomes}"/gnomad.genomes.r${release}.sites.chr{{1..22},X}.vcf.bgz{,.tbi}
+
+ > exomes="https://storage.googleapis.com/gnomad-public/release/${release}/vcf/exomes"
+ > wget -x "${exomes}"/gnomad.exomes.r${release}.sites.vcf.bgz{,.tbi}
 
  When running the plugin you must list at least one column to retrieve from the
  gnomAD VCF files, specified as parameters to the plugin e.g.

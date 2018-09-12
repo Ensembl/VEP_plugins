@@ -39,10 +39,20 @@ limitations under the License.
  http://gnomad.broadinstitute.org/downloads
 
  The coverage files must be downloaded and tabix indexed before using this
- plugin. To tabix index the coverage files:
+ plugin:
 
- > for i in gnomad.{genomes,exomes}.r2.0.2.chr{{1..22},X,Y}.coverage.txt.gz; do
- >   [ -f "${i}" ] && tabix -s 1 -b 2 -e 2 "${i}"
+ > release="2.0.2"
+
+ > genomes="https://storage.googleapis.com/gnomad-public/release/${release}/coverage/genomes"
+ > wget -x "${genomes}"/gnomad.genomes.r${release}.chr{{1..22},X}.coverage.txt.gz
+ > for i in "${genomes#*//}"/gnomad.genomes.r${release}.chr{{1..22},X}.coverage.txt.gz; do
+ >   tabix -s 1 -b 2 -e 2 "${i}"
+ > done
+
+ > exomes="https://storage.googleapis.com/gnomad-public/release/${release}/coverage/exomes"
+ > wget -x "${exomes}"/gnomad.exomes.r${release}.chr{{1..22},X,Y}.coverage.txt.gz
+ > for i in "${exomes#*//}"/gnomad.exomes.r${release}.chr{{1..22},X,Y}.coverage.txt.gz; do
+ >   tabix -s 1 -b 2 -e 2 "${i}"
  > done
 
  The parent directory's basename is used to set the output field prefix. This
