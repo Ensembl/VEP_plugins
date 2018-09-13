@@ -23,20 +23,21 @@ limitations under the License.
 
 =head1 NAME
 
- IntronicDistance
+ HGVSIntronOffset
 
 =head1 SYNOPSIS
 
- mv IntronicDistance.pm ~/.vep/Plugins
- ./vep -i variants.vcf --plugin IntronicDistance
+ mv HGVSIntronOffset.pm ~/.vep/Plugins
+ ./vep -i variants.vcf --plugin HGVSIntronOffset
 
 =head1 DESCRIPTION
 
- A VEP plugin that just returns the HGVS intron start and end offsets.
+ A VEP plugin for the Ensembl Variant Effect Predictor (VEP) that returns
+ HGVS intron start and end offsets. To be used with --hgvs option.
 
 =cut
 
-package IntronicDistance;
+package HGVSIntronOffset;
 
 use strict;
 use warnings;
@@ -51,24 +52,24 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    IntronStartOffset => "HGVS intron start offset",
-    IntronEndOffset => "HGVS intron end offset",
+    HGVS_IntronStartOffset => "HGVS intron start offset",
+    HGVS_IntronEndOffset => "HGVS intron end offset",
   };
 }
 
 sub run {
   my ($self, $tva) = @_;
 
-  my $hgvs_c = $tva->hgvs_transcript;
-
-  return {} unless $hgvs_c;
+  return {} unless $tva->hgvs_transcript;
 
   my $start_offset = $tva->hgvs_intron_start_offset;
   my $end_offset = $tva->hgvs_intron_end_offset;
 
+  return {} unless defined($start_offset) && defined($end_offset);
+
   return {
-    "IntronStartOffset" => $start_offset,
-    "IntronEndOffset" => $end_offset,
+    HGVS_IntronStartOffset => $start_offset,
+    HGVS_IntronEndOffset => $end_offset,
   };
 }
 
