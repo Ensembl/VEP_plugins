@@ -123,34 +123,51 @@ sub new {
 
   die("ERROR: Could not find any $prefix VCF files\n") unless @files;
 
-  my %headers;
+  my %all_headers;
 
   for my $file (@files) {
     my $info_fields = $self->parse_info_fields($file);
-    die("ERROR: Could not read $prefix column headers from $file\n") unless scalar keys %$info_fields > 1;
-    $headers{$_} = $info_fields->{$_} for keys %$info_fields;
+    my @info_field_headers = keys %$info_fields;
+
+    die("ERROR: Could not read $prefix column headers from $file\n") unless scalar @info_field_headers > 1;
+
+    @all_headers{@info_field_headers} = @{$info_fields}{@info_field_headers};
   }
+
+  my $available_columns = join(',', sort keys %all_headers);
 
   my %required_headers = map { $_ => undef } @$params;
 
-  if (exists $required_headers{ALL} && scalar keys %required_headers == 1) {
-    $self->{headers} = \%headers;
+  if (exists $required_headers{CSQ}) {
+    die("ERROR: Will not retrieve redundant CSQ annotations. Available $prefix columns are:\n$available_columns\n");
   }
   else {
-    # check that all required headers exist in the list of VCF headers
-    for (keys %required_headers) {
-      if (defined(my $desc = $headers{$_})) {
-        $required_headers{$_} = $desc;
-      }
-      else {
-        my $available_columns = join(',', sort keys %headers);
-        die("ERROR: $_ column not found. Available $prefix columns are: $available_columns\n");
-      }
+    delete $all_headers{CSQ};
+  }
+
+  my %return_headers;
+
+  if (exists $required_headers{ALL}) {
+    delete $required_headers{ALL};
+
+    %return_headers = %all_headers;
+  }
+
+  for (keys %required_headers) {
+    if (defined(my $desc = $all_headers{$_})) {
+      $return_headers{$_} = $desc;
     }
-    $self->{headers} = \%required_headers;
+    else {
+      die("ERROR: $_ column not found. Available $prefix columns are:\n$available_columns\n");
+    }
+  }
+
+  unless (keys %return_headers) {
+    die("ERROR: No columns selected to fetch. Available $prefix columns are:\n$available_columns\n");
   }
 
   $self->{prefix} = $prefix;
+  $self->{headers} = \%return_headers;
 
   return $self;
 }
@@ -192,8 +209,6 @@ sub get_header_info {
 
   my $prefix = $self->{prefix};
   my %headers = %{ $self->{headers} };
-
-  delete $headers{CSQ};
 
   my %header_info;
 
