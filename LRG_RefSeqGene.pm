@@ -65,7 +65,7 @@ sub new {
 
   my $file = shift @$params;
 
-  die("ERROR: LRG_RefSeqGene values file $file not found\n") unless $file && -e $file;
+  die("ERROR: LRG_RefSeqGene $file not found\n") unless $file && -e $file;
 
   $self->{file} = $file;
 
@@ -100,8 +100,7 @@ sub run {
     my %data;
 
     while (my $href = $tsv->getline_hr($fh)) {
-      my ($gene_id, $transcript_id, $protein_id) = @{$href}{qw(GeneID RNA Protein)};
-      my $category = $href->{'Category'};
+      my ($gene_id, $transcript_id, $protein_id, $category) = @{$href}{qw(GeneID RNA Protein Category)};
 
       $data{$gene_id,$transcript_id,$protein_id}{$category} = undef;
     }
