@@ -134,6 +134,8 @@ package PROVEAN;
 use strict;
 use warnings;
 
+use feature 'say';
+
 use Fcntl qw(:flock :DEFAULT);
 
 use Bio::SeqIO;
@@ -205,7 +207,7 @@ sub run {
   my $var_file = "$dir/$protein_id.var";
   my $output_file = "$dir/$protein_id.out";
 
-  # create a FASTQ file if it doesn't exist
+  # create a FASTA file if it doesn't already exist
   if (sysopen(my $fasta_fh, $fasta_file, O_CREAT | O_EXCL | O_WRONLY)) {
 
     my $seqIO = Bio::SeqIO->new(-fh => $fasta_fh, -format => "fasta");
@@ -217,9 +219,38 @@ sub run {
     close $fasta_fh;
   }
 
+  # now try to add any novel variations to the variations file
+  if (sysopen(my $var_fh, $var_file, O_CREAT | O_RDWR)) {
+    flock($var_fh, LOCK_EX);
+
+    # read a set of all existing variations from the variations file
+    my %existing_vars = map { chomp; $_ => undef } <$var_fh>;
+
+    # if the variation doesn't exist in the set of existing variations
+    unless (exists $existing_vars{$variation}) {
+
+      # write the variation to the variations file
+      say $var_fh $variation;
+
+      # add a job to our list of jobs, so that we can keep track of which PROVEAN jobs need to be re-run
+      if (sysopen(my $job_fh, $self->{job_file}, O_CREAT | O_RDWR)) {
+        flock($job_fh, LOCK_EX);
+
+        my %jobs = map { chomp; $_ => undef } <$job_fh>;
+
+        say $job_fh $protein_id unless exists $jobs{$protein_id};
+
+        close $job_fh;
+      }
+    }
+
+    close $var_fh;
+  }
+
+  # hash to store any variations and scores
   my %provean_scores;
 
-  # try to read any PROVEAN results 
+  # try to add any PROVEAN scores present in the PROVEAN output file to our hash
   if (sysopen(my $output_fh, $output_file, O_RDONLY)) {
 
     while (<$output_fh>) {
@@ -235,58 +266,12 @@ sub run {
     close $output_fh;
   }
 
-  my $f;
-
-  # try to add any novel variations to the variations file
-  if (sysopen(my $var_fh, $var_file, O_CREAT | O_RDWR)) {
-
-    flock($var_fh, LOCK_EX);
-
-    my %vars = map { chomp; $_ => 1 } <$var_fh>;
-
-    my %h;
-
-    for ($variation, keys %provean_scores) {
-
-      $h{$_} = 1 unless exists $vars{$_};
-    }
-
-    if (%h) {
-
-      %vars = (%vars, %h);
-
-      seek($var_fh, 0, 0);
-
-      truncate($var_fh, 0);
-
-      print $var_fh "$_\n" for sort keys %vars;
-
-      $f = 1;
-    }
-
-    close $var_fh;
+  # if our variation has a score, return it
+  if (defined(my $score = $provean_scores{$variation})) {
+    return { PROVEAN => $score };
   }
 
-  # if we added new variations, add a job to our job list
-  if ($f) {
-
-    my $job_file = $self->{job_file};
-
-    if (sysopen(my $job_fh, $job_file, O_CREAT | O_RDWR)) {
-
-      flock($job_fh, LOCK_EX);
-
-      my %jobs = map { chomp; $_ => 1 } <$job_fh>;
-
-      print $job_fh "$protein_id\n" unless exists $jobs{$protein_id};
-
-      close $job_fh;
-    }
-  }
-
-  my $score = $provean_scores{$variation};
-
-  return $score ? { PROVEAN => $score } : {};
+  return {};
 }
 
 1;
