@@ -42,15 +42,10 @@ limitations under the License.
  disk cache since it's not practical to pre-calculate all possible scores
  for insertions/deletions etc.
 
- Ideally, you'll need a HPC cluster running PBS Pro, a bunch of installs,
- a non-redundant protein BLAST database and some magic (and/or coffee).
 
+ 1. Install the tools needed to run PROVEAN.
 
-
- To be able to run PROVEAN:
-
-
- 1. Install NCBI-BLAST:
+ 1a. Install NCBI-BLAST:
 
  > wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.7.1+-src.tar.gz
  > tar -xvf ncbi-blast-2.7.1+-src.tar.gz
@@ -59,7 +54,7 @@ limitations under the License.
  > make
  > make install
 
- 2. Install CD-HIT:
+ 1b. Install CD-HIT:
 
  > wget https://github.com/weizhongli/cdhit/releases/download/V4.6.8/cd-hit-v4.6.8-2017-1208-source.tar.gz
  > mkdir -p /software/cd-hit/cd-hit-v4.6.8-2017-1208
@@ -67,7 +62,7 @@ limitations under the License.
  > cd /software/cd-hit/cd-hit-v4.6.8-2017-1208
  > make
 
- 3. Install PROVEAN:
+ 1c. Install PROVEAN:
 
  > wget https://downloads.sourceforge.net/project/provean/provean-1.1.5.tar.gz
  > tar -xvf provean-1.1.5.tar.gz
@@ -76,45 +71,60 @@ limitations under the License.
  > make
  > make install
 
- 4. Download the NCBI NR BLAST database:
+ 1d. Download the NCBI NR BLAST database:
 
  > wget --recursive --no-parent --accept 'nr.*' ftp://ftp.ncbi.nih.gov/blast/db
  > cd ftp.ncbi.nih.gov/blast/db
  > tar -xvf *.tar.gz
 
- 5. Create a set of inputs and list of jobs to run:
 
- > ./vep -i variants.vcf --plugin PROVEAN,/path/to/cache_dir,/path/to/jobs.txt
+ 2. Run VEP with the PROVEAN plugin for each of your samples. This will create the PROVEAN inputs:
 
+ > mkdir -p /path/to/PROVEAN/cache_dir
+ > vep -i variants.vcf --plugin PROVEAN,/path/to/PROVEAN/cache_dir,/path/to/PROVEAN/jobs.txt
 
-
- To run PROVEAN and incorporate the scores into the VEP output:
-
- > git clone https://github.com/stekaz/PROVEAN.git
-
- Then:
-
- 1. Edit the config file to point to the installed software, database, cache
- and job files:
-
- > vim /path/to/PROVEAN.sh
-
- 2. Create a job array by submitting the PBS script for execution:
-
- > qsub -J 1-N -v config=/path/to/PROVEAN.sh -l select=1:ncpus=1:mem=4GB \
-   -l walltime=48:00:00 /path/to/PROVEAN.pbs
-
- 3. After the job array has finished, just re-run VEP to incorporate the results:
-
- > ./vep -i variants.vcf --plugin PROVEAN,/path/to/cache_dir,/path/to/new_jobs.txt
-
- 4. Unless the 'new_jobs.txt' file is empty (and it should be empty unless
- the cache directory was updated), repeat steps 1 and 2 with the new list
- of jobs.
+ Note:
+  * `cache_dir`: will contain subdirectories comprising a FASTA file and list of variants for each peptide.
+  * `jobs.txt`: will contain a list of peptides that we will need to run PROVEAN for.
 
 
+ 3. Run the PROVEAN jobs and save the output into the cache.
 
- YMMV.
+ This example uses GNU Parallel on a single machine, but you may need to scale up if you have
+ hundreds of thousands of peptides to analyse.
+
+ 3a. Install GNU Parallel if you don't already have it:
+
+ > (wget -O - pi.dk/3 || curl pi.dk/3/) | bash
+
+ 3b. Run PROVEAN using GNU Parallel:
+
+ > run_PROVEAN() {
+ >   peptide="${1}"
+ >   cache_dir="/path/to/PROVEAN/cache_dir"
+ >
+ >   query="${cache_dir}/${peptide}/${peptide}.fasta"
+ >   variation="${cache_dir}/${peptide}/${peptide}.var"
+ >   output="${cache_dir}/${peptide}/${peptide}.out"
+ >
+ >   provean.sh -q "${query}" -v "${variation}" > "${output}"
+ > }
+ > export -f run_PROVEAN
+ > cat /path/to/PROVEAN/jobs.txt | parallel run_PROVEAN
+
+ It is recommended that you also use the `--save_supporting_set` and `--supporting_set` options
+ to skip subsequent BLAST searches / clustering steps. There's also a `--num_threads` option to
+ reduce the BLAST search time.
+
+ Please ensure all PROVEAN jobs have completed successfully.
+
+
+ 4. Re-run VEP to incorporate the scores from the cache directory:
+
+ > vep -i variants.vcf --plugin PROVEAN,/path/to/PROVEAN/cache_dir,/path/to/PROVEAN/new_jobs.txt
+
+
+ 5. Repeat steps 3 and 4 if a file called `new_jobs.txt` was created.
 
 
 =cut
