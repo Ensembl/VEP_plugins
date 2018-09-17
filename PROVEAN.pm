@@ -187,7 +187,7 @@ sub run {
   my $ref_seq = $tva->transcript_variation->_peptide;
 
   # ignore silent changes
-  return { PROVEAN => "0.000" } if $variation =~ /=$/;
+  return { PROVEAN => 0 } if $variation =~ /=$/;
 
   my %onecode = %Bio::SeqUtils::ONECODE;
 
