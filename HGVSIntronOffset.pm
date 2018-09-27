@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv HGVSIntronOffset.pm ~/.vep/Plugins
- ./vep -i variants.vcf --plugin HGVSIntronOffset
+ ./vep -i variants.vcf --hgvs --plugin HGVSIntronOffset
 
 =head1 DESCRIPTION
 
