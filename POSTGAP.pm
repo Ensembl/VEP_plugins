@@ -1,6 +1,7 @@
 =head1 LICENSE
 
-Copyright [2018] EMBL-European Bioinformatics Institute
+Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
+Copyright [2016-2018] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +27,7 @@ Questions may also be sent to the Ensembl help desk at
 
 =head1 NAME
 
- POSTGAP - Add postgap fields to the VEP output
+ POSTGAP - Add POSTGAP data fields to the VEP output
 
 =head1 SYNOPSIS
 
@@ -45,18 +46,18 @@ to use this plugin. The POSTGAP data file can be downloaded from
 https://storage.googleapis.com/postgap-data.
 
 The file must be processed and indexed by tabix before use by this plugin.
-postgap has coordinates for both GRCh38 and GRCh37; the file must be
+POSTGAP has coordinates for both GRCh38 and GRCh37; the file must be
 processed differently according to the assembly you use.
 
-> wget https://storage.googleapis.com/postgap-data/postgap.20180324.txt.gz
-> gunzip postgap.20180324.txt.gz
+> wget https://storage.googleapis.com/postgap-data/postgap.txt.gz
+> gunzip postgap.txt.gz
 
 # GRCh38
-> (grep ^"ld_snp_rsID" postgap.20180324.txt; grep -v ^"ld_snp_rsID" postgap.20180324.txt | sort -k4,4 -k5,5n ) | bgzip > postgap_GRCh38.txt.gz
+> (grep ^"ld_snp_rsID" postgap.txt; grep -v ^"ld_snp_rsID" postgap.txt | sort -k4,4 -k5,5n ) | bgzip > postgap_GRCh38.txt.gz
 > tabix -s 4 -b 5 -e 5 -c l postgap_GRCh38.txt.gz
 
 # GRCh37
-> (grep ^"ld_snp_rsID" postgap.20180324.txt; grep -v ^"ld_snp_rsID" postgap.20180324.txt | sort -k2,2 -k3,3n ) | bgzip > postgap_GRCh37.txt.gz
+> (grep ^"ld_snp_rsID" postgap.txt; grep -v ^"ld_snp_rsID" postgap.txt | sort -k2,2 -k3,3n ) | bgzip > postgap_GRCh37.txt.gz
 > tabix -s 2 -b 3 -e 3 -c l postgap_GRCh37.txt.gz
 
 Note that in the last command we tell tabix that the header line starts with "l";
@@ -88,7 +89,6 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 my @fields_order;
 
-my $fields_O;
 my $out_txt = 1;
 my $out_vcf = 0;
 my $out_json = 0;
@@ -110,7 +110,7 @@ sub new {
 
   # get output format
   $out_vcf  = 1 if ($self->{config}->{output_format} eq "vcf");
-  $out_json  = 1 if ($self->{config}->{output_format} eq "json");
+  $out_json = 1 if ($self->{config}->{output_format} eq "json");
   $out_txt = 0 if ($out_vcf || $out_json);
 
   $char_sep = "+" if $out_vcf;
@@ -147,18 +147,16 @@ sub new {
   $self->{cols}->{'disease_name'} = 2;
   $self->{cols}->{'score'} = 3;
 
+  # get the order of the output fields into an array, $i is the total number of columns +1
   @fields_order = map { $_ }
   sort {
-    (defined($self->{cols}->{$a}) ? $self->{cols}->{$a} : 100)
+    (defined($self->{cols}->{$a}) ? $self->{cols}->{$a} : $i)
     <=>
-    (defined($self->{cols}->{$b}) ? $self->{cols}->{$b} : 100)
+    (defined($self->{cols}->{$b}) ? $self->{cols}->{$b} : $i)
     ||
     $a cmp $b
   }
   keys %{$self->{cols}};
-
-  $self->{fields_order}= $self->{cols};
-  $fields_O = $self->{cols};
 
   return $self;
 }
@@ -202,22 +200,15 @@ sub run {
       grep {defined($self->{cols}->{$_})}  # only include selected cols
       keys %$tmp_data;
 
+      # get only 3 significant digits
+      $tmp_return{score} = sprintf("%.3f", $tmp_return{score}) if defined $tmp_return{score};
+
+      # report only unique set of fields
       my $record_line = join(",", values %tmp_return);
       next if defined $result_uniq{$record_line};
       $result_uniq{$record_line} = 1;
 
-      push(@result_str, $vf->allele_string.$char_sep.
-          join($char_sep, 
-          map {convert_arrayref($tmp_return{$_})}
-          sort {
-            (defined($fields_O->{$a}) ? $fields_O->{$a} : 100)
-            <=>
-            (defined($fields_O->{$b}) ? $fields_O->{$b} : 100)
-            ||
-            $a cmp $b
-          }
-          keys %tmp_return
-          ) || '-');      
+      push(@result_str, $vf->allele_string.$char_sep.join($char_sep, @tmp_return{@fields_order}));
       push(@result, \%tmp_return);
   }
   
