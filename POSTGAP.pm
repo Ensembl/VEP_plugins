@@ -126,11 +126,10 @@ sub new {
 
   # get required columns
   my $all =0;
-  my $i = 1;
+  my $i = 4;
   while(defined($self->params->[$i])) {
     my $col = $self->params->[$i];
     if($col eq 'ALL') {
-      $i =4;
       $self->{cols} = {map {$_ => $i++}
           grep {!defined($self->{cols}->{$_})} #only the extra columns
           @{$self->{headers}}};
@@ -138,7 +137,7 @@ sub new {
     }
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
 
-    $self->{cols}->{$self->params->[$i]} = 3+ $i;
+    $self->{cols}->{$self->params->[$i]} = $i;
     $i++;
   }
 
