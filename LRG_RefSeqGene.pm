@@ -68,8 +68,13 @@ sub new {
 
   open(my $fh, $file) or die $!;
 
+  chomp(my $header_line = <$fh>);
+  $header_line =~ s/^#\s*//;
+
   my $tsv = Text::CSV->new({ binary => 1, auto_diag => 1, sep_char => "\t" });
-  $tsv->column_names($tsv->getline($fh));
+
+  $tsv->parse($header_line);
+  $tsv->column_names($tsv->fields);
 
   my %data;
 
