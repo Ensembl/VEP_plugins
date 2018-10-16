@@ -66,7 +66,22 @@ sub new {
 
   die("ERROR: LRG_RefSeqGene $file not found\n") unless $file && -e $file;
 
-  $self->{file} = $file;
+  open(my $fh, $file) or die $!;
+
+  my $tsv = Text::CSV->new({ binary => 1, auto_diag => 1, sep_char => "\t" });
+  $tsv->column_names($tsv->getline($fh));
+
+  my %data;
+
+  while (my $href = $tsv->getline_hr($fh)) {
+    my ($gene_id, $transcript_id, $protein_id, $category) = @{$href}{qw(GeneID RNA Protein Category)};
+
+    $data{$gene_id,$transcript_id,$protein_id}{$category} = undef;
+  }
+
+  close $fh;
+
+  $self->{cache} = \%data;
 
   return $self;
 }
@@ -89,24 +104,6 @@ sub run {
   my $gene_id = $tr->{_gene_stable_id} || $tr->{_gene}->stable_id;
   my $transcript_id = $tr->stable_id;
   my $protein_id = $tr->{_protein} || '';
-
-  unless (defined($self->{cache})) {
-
-    open(my $fh, $self->{file}) or die $!;
-    my $tsv = Text::CSV->new({ binary => 1, auto_diag => 1, sep_char => "\t" });
-    $tsv->column_names($tsv->getline($fh));
-
-    my %data;
-
-    while (my $href = $tsv->getline_hr($fh)) {
-      my ($gene_id, $transcript_id, $protein_id, $category) = @{$href}{qw(GeneID RNA Protein Category)};
-
-      $data{$gene_id,$transcript_id,$protein_id}{$category} = undef;
-    }
-    close $fh;
-
-    $self->{cache} = \%data;
-  }
 
   if (defined(my $categories = $self->{cache}{$gene_id,$transcript_id,$protein_id})) {
 
