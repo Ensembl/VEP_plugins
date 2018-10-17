@@ -134,7 +134,7 @@ sub new {
       $self->{cols} = {map {$_ => $i++}
           grep {!defined($self->{cols}->{$_})} #only the extra columns
           @{$self->{headers}}};
-      last;
+      last; #if ALL is used, then the loop will exit after all existing header elements have been selected
     }
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
 
