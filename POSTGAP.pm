@@ -126,10 +126,11 @@ sub new {
 
   # get required columns
   my $all =0;
-  my $i = 4;
+  my $i = 1;
   while(defined($self->params->[$i])) {
     my $col = $self->params->[$i];
     if($col eq 'ALL') {
+      $i = 4;
       $self->{cols} = {map {$_ => $i++}
           grep {!defined($self->{cols}->{$_})} #only the extra columns
           @{$self->{headers}}};
@@ -137,9 +138,10 @@ sub new {
     }
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
 
-    $self->{cols}->{$self->params->[$i]} = $i;
+    $self->{cols}->{$self->params->[$i]} = 3 + $i;
     $i++;
   }
+  $i += 3; #ensure that $i is higher than the number of selected columns
 
   #default columns always reported
   $self->{cols}->{'disease_efo_id'} = 1;
@@ -167,8 +169,8 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   
-  my $header = '"POSTGAP data for variation - phenotype association. Format: Allele';
-  $header .= $char_sep.join($char_sep, @fields_order ).'">';
+  my $header = 'POSTGAP data for variation - phenotype association. Format: Allele';
+  $header .= $char_sep.join($char_sep, @fields_order );
 
   return { 
     POSTGAP => $header,
