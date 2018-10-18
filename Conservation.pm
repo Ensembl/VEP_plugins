@@ -55,6 +55,8 @@ package Conservation;
 use strict;
 use warnings;
 
+use Bio::EnsEMBL::Registry;
+use Bio::EnsEMBL::Slice;
 use Bio::EnsEMBL::IO::Parser::BigWig;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use Net::FTP;
@@ -290,5 +292,5 @@ sub db_run {
         return {};
     }
 }
-
+ 
 1;
