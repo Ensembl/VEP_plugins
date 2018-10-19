@@ -33,7 +33,8 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- assesses the quality of the reference genome at the location of your variants.
+ reports on the quality of the reference genome using GRC data at the location of your variants.
+ More information can be found at: https://www.ncbi.nlm.nih.gov/grc/human/issues
 
  The following steps are necessary before running this plugin:
  
@@ -41,9 +42,9 @@ limitations under the License.
  
  Download
  ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/GRCh38/MISC/annotated_clone_assembly_problems_GCF_000001405.38.gff3
- ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh38.p9_issues.gff3
+ ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh38.p12_issues.gff3
  
- cat annotated_clone_assembly_problems_GCF_000001405.38.gff3 GRCh38.p9_issues.gff3 > GRCh38_quality_mergedfile.gff3
+ cat annotated_clone_assembly_problems_GCF_000001405.38.gff3 GRCh38.p12_issues.gff3 > GRCh38_quality_mergedfile.gff3
  sort -k 1,1 -k 4,4n -k 5,5n GRCh38_quality_mergedfile.gff3 > sorted_GRCh38_quality_mergedfile.gff3
  bgzip sorted_GRCh38_quality_mergedfile.gff3
  tabix -p gff sorted_GRCh38_quality_mergedfile.gff3.gz
@@ -54,10 +55,10 @@ limitations under the License.
  GRCh37:
  
  Download
- ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/GRCh37/MISC/annotated_clone_assembly_problems_GCF_000001405.24.gff3
- ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh37.p9_issues.gff3
+ ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/GRCh37/MISC/annotated_clone_assembly_problems_GCF_000001405.25.gff3
+ ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh37.p13_issues.gff3
  
- cat annotated_clone_assembly_problems_GCF_000001405.24.gff3 GRCh37.p9_issues.gff3 > GRCh37_quality_mergedfile.gff3
+ cat annotated_clone_assembly_problems_GCF_000001405.25.gff3 GRCh37.p13_issues.gff3 > GRCh37_quality_mergedfile.gff3
  sort -k 1,1 -k 4,4n -k 5,5n GRCh37_quality_mergedfile.gff3 > sorted_GRCh37_quality_mergedfile.gff3
  bgzip sorted_GRCh37_quality_mergedfile.gff3
  tabix -p gff sorted_GRCh37_quality_mergedfile.gff3.gz
@@ -90,6 +91,7 @@ sub new {
   $self->expand_right(0);
 
   $self->get_user_params();
+    
 
   return $self;
 }
@@ -111,37 +113,55 @@ sub run {
 
   my $chr_syn;
   my @new_chr_array;
+  my $new_chr;
   
-  #The NC_ chromosome synonym is found differently is we have database access
-  if($self->config->{database})
+  $self->parse_chromosome_synonyms($self->config->{'synonyms'}) if $self->config->{cache} && (not defined($self->{config}->{_chromosome_synonyms}));
+  
+  if(defined($self->{syn_cache}->{$chr}))
   {
-    my $srs_adaptor = $vf->slice->adaptor->db->get_SeqRegionSynonymAdaptor();
-    $chr_syn = $srs_adaptor->get_synonyms( $vf->slice->get_seq_region_id($vf->slice) );
-    @new_chr_array = map {$_->{name}} (grep {$_->{name} =~ 'NC_'} @{$chr_syn});
+    $new_chr = $self->{syn_cache}->{$chr};
   }
-  elsif($self->config->{cache})
+  else
   {
-    $self->parse_chromosome_synonyms($self->config->{'synonyms'});
-    $chr_syn = $self->config->{_chromosome_synonyms}->{($vf->{chr})};
-    @new_chr_array = grep(/NC_/, keys($chr_syn))
+    #The NC_ chromosome synonym is found differently if we have database access
+    if($self->config->{database})
+    {
+      my $srs_adaptor = $vf->slice->adaptor->db->get_SeqRegionSynonymAdaptor();
+      $chr_syn = $srs_adaptor->get_synonyms( $vf->slice->get_seq_region_id($vf->slice) );
+      @new_chr_array = map {$_->{name}} (grep {$_->{name} =~ 'NC_'} @{$chr_syn});
+    }
+    elsif($self->config->{cache})
+    {
+      $chr_syn = $self->config->{_chromosome_synonyms}->{($vf->{chr})};
+      @new_chr_array = grep(/NC_/, keys($chr_syn))
+    }
+
+    $new_chr = shift(@new_chr_array);
+    $self->{syn_cache}->{$chr} = $new_chr;
   }
-
-  my $new_chr = shift(@new_chr_array);
-
   my @data = @{$self->get_data($new_chr, $vf->{start}, $vf->{end})};
-  my $result_string = "";
-  my $seperator = "&";
-  #In case of multiple issue reports, we combine the output strings
+
+  #In case of multiple issue reports, we combine the output hashes
+  my $combined_result_hash = {};
+  my $counter = 1;
   foreach my $result (@data)
   {
     if($result->{result}){
-      $result_string .= $seperator unless $result_string eq "";
-      #Returns the string with the Note= removed if Note= exists
-      $result_string .= index($result->{result}, 'Note=') eq 0 ? substr($result->{result}, 5, length($result->{result}) - 5) : $result->{result};
+      my $single_result_hash = {split /[;=]/, $result->{result}};
+      if ((not defined($single_result_hash->{status})) || (defined($single_result_hash->{status}) && $single_result_hash->{status} ne 'Resolved'))
+      {
+        delete($single_result_hash->{chr});
+        delete($single_result_hash->{status});
+        delete($single_result_hash->{affectVersion});
+        delete($single_result_hash->{fixVersion});
+        $single_result_hash->{url} = 'https://www.ncbi.nlm.nih.gov/grc/human/issues/' . $single_result_hash->{Name} if defined($single_result_hash->{Name});
+        $single_result_hash = {map { +"ReferenceQuality_Issue$counter\_$_" => $single_result_hash->{$_} } keys %$single_result_hash};
+        $combined_result_hash = {%$combined_result_hash, %$single_result_hash};
+        $counter++;
+      }
     }
   }
-  
-  return $result_string ? { ReferenceQuality => $result_string} : {};
+  return $combined_result_hash;
 }
 
 sub parse_data {
