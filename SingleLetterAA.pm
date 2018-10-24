@@ -81,12 +81,13 @@ sub run {
   $hgvs_notation->{'numbering'} = 'p';
 
   $hgvs_notation = $tva->_get_hgvs_protein_type($hgvs_notation);
-  my @split =  split(/:p./, $tva->_get_hgvs_protein_format($hgvs_notation));
-  if (scalar(@split) eq 2)
+  my $separator = ':p.';
+  my @split =  split(/$separator/, $tva->_get_hgvs_protein_format($hgvs_notation));
+  if (scalar(@split) == 2)
   {
     $split[1] =~ s/Ter|X/*/g;
     return {
-        HGVSp  => $split[0] . ':p.' . $split[1],
+        HGVSp  => $split[0] . $separator . $split[1],
     };
   }
   #else something has gone wrong and our HGVSp string doesn't contain :p.
