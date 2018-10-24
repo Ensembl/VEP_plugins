@@ -58,7 +58,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { HGVSp_Single_Letter => 'HGVSp with single amino acid letter codes '};
+  return { HGVSp => 'Altered to provide HGVSp with single amino acid letter codes '};
 }
 
 sub run {
@@ -69,7 +69,7 @@ sub run {
   my $hgvs_full_string = $tva->hgvs_protein();
 
   return {} unless defined($hgvs_full_string);
-  
+
   my $hgvs_notation;
   $hgvs_notation->{start}   = $tva_tv->translation_start();
   $hgvs_notation->{end}     = $tva_tv->translation_end();  
@@ -79,10 +79,18 @@ sub run {
   my @hgvs_array = split(':', $hgvs_full_string);
   $hgvs_notation->{ref_name} = $hgvs_array[0];
   $hgvs_notation->{'numbering'} = 'p';
+
   $hgvs_notation = $tva->_get_hgvs_protein_type($hgvs_notation);
-  return {
-      HGVSp_Single_Letter   => $tva->_get_hgvs_protein_format($hgvs_notation),
-  };
+  my @split =  split(/:p./, $tva->_get_hgvs_protein_format($hgvs_notation));
+  if (scalar(@split) eq 2)
+  {
+    $split[1] =~ s/Ter|X/*/g;
+    return {
+        HGVSp  => $split[0] . ':p.' . $split[1],
+    };
+  }
+  #else something has gone wrong and our HGVSp string doesn't contain :p.
+  return {};
 }
 
 1;
