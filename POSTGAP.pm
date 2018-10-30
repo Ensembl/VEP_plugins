@@ -38,8 +38,10 @@ Questions may also be sent to the Ensembl help desk at
 
 A VEP plugin that retrieves data for variants from a tabix-indexed POSTGAP file.
 
-Please refer to the POSTGAP github for more information:
+Please refer to the POSTGAP github and wiki for more information:
 https://github.com/Ensembl/postgap
+https://github.com/Ensembl/postgap/wiki
+https://github.com/Ensembl/postgap/wiki/algorithm-pseudo-code
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
 to use this plugin. The POSTGAP data file can be downloaded from
@@ -124,13 +126,14 @@ sub new {
   close HEAD;
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
 
+  my $nDefaultColumns = 4;
   # get required columns
   my $all =0;
   my $i = 1;
   while(defined($self->params->[$i])) {
     my $col = $self->params->[$i];
     if($col eq 'ALL') {
-      $i = 4;
+      $i = $nDefaultColumns + 1;
       $self->{cols} = {map {$_ => $i++}
           grep {!defined($self->{cols}->{$_})} #only the extra columns
           @{$self->{headers}}};
@@ -138,15 +141,16 @@ sub new {
     }
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
 
-    $self->{cols}->{$self->params->[$i]} = 3 + $i;
+    $self->{cols}->{$self->params->[$i]} = $nDefaultColumns + $i;
     $i++;
   }
-  $i += 3; #ensure that $i is higher than the number of selected columns
+  $i += $nDefaultColumns; #ensure that $i is higher than the number of selected columns
 
   #default columns always reported
   $self->{cols}->{'disease_efo_id'} = 1;
   $self->{cols}->{'disease_name'} = 2;
-  $self->{cols}->{'score'} = 3;
+  $self->{cols}->{'gene_id'} = 3;
+  $self->{cols}->{'score'} = 4;
 
   # get the order of the output fields into an array, $i is the total number of columns +1
   @fields_order = map { $_ }
