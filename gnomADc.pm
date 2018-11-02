@@ -146,9 +146,7 @@ sub run {
   my $vf = $vfoa->variation_feature;
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
 
-  if ($vf_start > $vf_end) {
-    ($vf_start, $vf_end) = ($vf_end, $vf_start);
-  }
+  $vf_end = $vf_start if $vf_start > $vf_end;
 
   my @results = @{ $self->get_data($vf->{chr}, $vf_start, $vf_end) };
 
