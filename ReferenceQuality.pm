@@ -161,7 +161,18 @@ sub run {
       }
     }
   }
-  return $combined_result_hash;
+  
+  return $combined_result_hash unless $self->config->{vcf} || $self->config->{tab};
+  
+  #If VCF or Tab format, combine into one string
+  my @sorted_keys = sort(keys($combined_result_hash));
+  my $single_result_string = "";
+  my $separator = "~";
+  foreach my $key (@sorted_keys){
+    $single_result_string .= $key . "=" .$combined_result_hash->{$key} . $separator;
+  }
+  chop($single_result_string);
+  return { "ReferenceQuality" => $single_result_string};
 }
 
 sub parse_data {
