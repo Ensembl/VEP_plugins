@@ -101,7 +101,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { ReferenceQuality => 'Indicates quality of reference genome at input position'};
+  return { ReferenceQuality => 'Indicates quality of reference genome at input position - https://www.ncbi.nlm.nih.gov/grc/human/issues'};
 }
 
 sub run {
@@ -154,7 +154,6 @@ sub run {
         delete($single_result_hash->{status});
         delete($single_result_hash->{affectVersion});
         delete($single_result_hash->{fixVersion});
-        $single_result_hash->{url} = 'https://www.ncbi.nlm.nih.gov/grc/human/issues/' . $single_result_hash->{Name} if defined($single_result_hash->{Name});
         $single_result_hash = {map { +"ReferenceQuality_Issue$counter\_$_" => $single_result_hash->{$_} } keys %$single_result_hash};
         $combined_result_hash = {%$combined_result_hash, %$single_result_hash};
         $counter++;
