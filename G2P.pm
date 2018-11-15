@@ -187,7 +187,9 @@ sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
-  
+# suppress warnings that the FeatureAdpators spit if using no_slice_cache
+  Bio::EnsEMBL::Utils::Exception::verbose(1999);
+
   my $supported_af_keys = { map {$_ => 1} @population_wide }; 
 
   my $params = $self->params_to_hash();
@@ -327,6 +329,8 @@ sub new {
   $self->{config}->{vca} = $vca;
   my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
   $self->{config}->{ta} = $ta;
+
+  $self->{config}->{can_use_hts_pm} = eval q{ require Bio::DB::HTS::Tabix; 1 };
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -529,7 +533,7 @@ sub read_gene_data_from_file {
   my $assembly =  $self->{config}->{assembly};
   die("ERROR: No file specified or could not read from file ".($file || '')."\n") unless $file && -e $file;
 
-  my @confidence_levels = @{$self->{user_params}->{confidence_levels}}, "\n";
+  my @confidence_levels = @{$self->{user_params}->{confidence_levels}};
 
   # determine file type
   my $file_type;
@@ -579,7 +583,7 @@ sub read_gene_data_from_file {
             push @ars, 'biallelic';
           } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, biallelic mutations in females') {
             push @ars, 'hemizygous';
-          } elsif ($allelic_requirement_panel_all eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
+          } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
             push @ars, 'x-linked dominant';
           } else {
             $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
@@ -815,6 +819,7 @@ sub frequencies_from_VCF {
   my $vf_allele = shift;
   my $ars = shift;
   my $failed_ars = shift;
+  return 1 if (!$self->{config}->{can_use_hts_pm});
   my $vca = $self->{config}->{vca};
   my $collections = $vca->fetch_all;
   foreach my $vc (@$collections) {
