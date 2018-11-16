@@ -139,7 +139,11 @@ sub run {
     $new_chr = shift(@new_chr_array);
     $self->{syn_cache}->{$chr} = $new_chr;
   }
-  my @data = @{$self->get_data($new_chr, $vf->{start}, $vf->{end})};
+  my $end = $vf->{end};
+  my $start = $vf->{start};
+  ($start, $end) = ($end, $start) if $start > $end;
+  
+  my @data = @{$self->get_data($new_chr, $start, $end)};
 
   #In case of multiple issue reports, we combine the output hashes
   my $combined_result_hash = {};
