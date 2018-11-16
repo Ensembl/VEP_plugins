@@ -107,6 +107,15 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+our $CAN_USE_HTS_PM;
+
+BEGIN {
+  if (eval { require Bio::DB::HTS::Tabix; 1 }) {
+    $CAN_USE_HTS_PM = 1;
+  }
+}
+
+
 my %DEFAULTS = (
 
   # vars must have a frequency <= to this to pass
@@ -330,7 +339,7 @@ sub new {
   my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
   $self->{config}->{ta} = $ta;
 
-  $self->{config}->{can_use_hts_pm} = eval q{ require Bio::DB::HTS::Tabix; 1 };
+  $self->{config}->{can_use_hts_pm} = $CAN_USE_HTS_PM;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
