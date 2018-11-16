@@ -285,20 +285,10 @@ sub new {
   my $cwd_dir = getcwd;
   my $new_log_dir = "$cwd_dir/g2p_log_dir\_$stamp";
   my $log_dir = $params->{log_dir} || $new_log_dir;
-  if (-d $log_dir) {
-    my @files = <$log_dir/*>;
-    if (scalar @files > 0) {
-      unlink glob "'$log_dir/*.*'";
-    }
-    @files = <$log_dir/*>;
-    if (scalar @files > 0) {
-      mkdir $new_log_dir, 0755;
-      $params->{log_dir} = $new_log_dir;
-    }
-  } else {
+  if (!-d $log_dir) {
     mkdir $log_dir, 0755;
     $params->{log_dir} = $log_dir;
-  }
+  } 
 
   foreach my $report_type (qw/txt_report html_report/) {
     if (!$params->{$report_type}) {
