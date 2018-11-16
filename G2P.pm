@@ -107,6 +107,15 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+our $CAN_USE_HTS_PM;
+
+BEGIN {
+  if (eval { require Bio::DB::HTS::Tabix; 1 }) {
+    $CAN_USE_HTS_PM = 1;
+  }
+}
+
+
 my %DEFAULTS = (
 
   # vars must have a frequency <= to this to pass
@@ -274,20 +283,10 @@ sub new {
   my $cwd_dir = getcwd;
   my $new_log_dir = "$cwd_dir/g2p_log_dir\_$stamp";
   my $log_dir = $params->{log_dir} || $new_log_dir;
-  if (-d $log_dir) {
-    my @files = <$log_dir/*>;
-    if (scalar @files > 0) {
-      unlink glob "'$log_dir/*.*'";
-    }
-    @files = <$log_dir/*>;
-    if (scalar @files > 0) {
-      mkdir $new_log_dir, 0755;
-      $params->{log_dir} = $new_log_dir;
-    }
-  } else {
+  if (!-d $log_dir) {
     mkdir $log_dir, 0755;
     $params->{log_dir} = $log_dir;
-  }
+  } 
 
   foreach my $report_type (qw/txt_report html_report/) {
     if (!$params->{$report_type}) {
@@ -318,7 +317,7 @@ sub new {
   }
 
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
-  $va->db->use_vcf(1);
+  $va->db->use_vcf(1) if ($CAN_USE_HTS_PM);
   $va->db->include_failed_variations(1);
   $self->{config}->{va} = $va;
   my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
@@ -529,7 +528,7 @@ sub read_gene_data_from_file {
   my $assembly =  $self->{config}->{assembly};
   die("ERROR: No file specified or could not read from file ".($file || '')."\n") unless $file && -e $file;
 
-  my @confidence_levels = @{$self->{user_params}->{confidence_levels}}, "\n";
+  my @confidence_levels = @{$self->{user_params}->{confidence_levels}};
 
   # determine file type
   my $file_type;
@@ -579,7 +578,7 @@ sub read_gene_data_from_file {
             push @ars, 'biallelic';
           } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, biallelic mutations in females') {
             push @ars, 'hemizygous';
-          } elsif ($allelic_requirement_panel_all eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
+          } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
             push @ars, 'x-linked dominant';
           } else {
             $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
@@ -815,6 +814,7 @@ sub frequencies_from_VCF {
   my $vf_allele = shift;
   my $ars = shift;
   my $failed_ars = shift;
+  return 1 if (!$CAN_USE_HTS_PM);
   my $vca = $self->{config}->{vca};
   my $collections = $vca->fetch_all;
   foreach my $vc (@$collections) {
