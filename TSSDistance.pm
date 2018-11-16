@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv TSSDistance.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CCDSFilter
+ ./vep -i variations.vcf --plugin TSSDistance
 
 =head1 DESCRIPTION
 
