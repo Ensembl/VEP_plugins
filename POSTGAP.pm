@@ -173,8 +173,8 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   
-  my $header = 'POSTGAP data for variation - phenotype association. Format: Allele';
-  $header .= $char_sep.join($char_sep, @fields_order );
+  my $header = 'POSTGAP data for variation - phenotype association. Format: ';
+  $header .= join($char_sep, @fields_order );
 
   return { 
     POSTGAP => $header,
@@ -213,7 +213,7 @@ sub run {
       next if defined $result_uniq{$record_line};
       $result_uniq{$record_line} = 1;
 
-      push(@result_str, $vf->allele_string.$char_sep.join($char_sep, @tmp_return{@fields_order}));
+      push(@result_str, join($char_sep, @tmp_return{@fields_order}));
       push(@result, \%tmp_return);
   }
   
