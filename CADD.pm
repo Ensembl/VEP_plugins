@@ -50,6 +50,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
@@ -91,31 +92,46 @@ sub run {
   
   return {} unless $allele =~ /^[ACGT-]+$/;
 
-  my ($res) = grep {
-    $_->{alt}   eq $allele &&
-    $_->{start} eq $vf->{start} &&
-    $_->{end}   eq $vf->{end}
-  } @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+  my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
 
-  return $res ? $res->{result} : {};
+  foreach (@data) {
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => $vf->alt_alleles,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $_->{ref},
+       alts => [$_->{alt}],
+       pos  => $_->{start},
+      }
+    );
+    return $_->{result} if (@$matches);
+  }
+  return {};
 }
 
 sub parse_data {
   my ($self, $line) = @_;
-
   my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/, $line;
 
   # do VCF-like coord adjustment for mismatched subs
   my $e = ($s + length($ref)) - 1;
   if(length($alt) != length($ref)) {
-    $s++;
-    $ref = substr($ref, 1);
-    $alt = substr($alt, 1);
-    $ref ||= '-';
-    $alt ||= '-';
+    my $first_ref = substr($ref, 0, 1);
+    my $first_alt = substr($alt, 0, 1);
+    if ($first_ref eq $first_alt) {
+      $s++;
+      $ref = substr($ref, 1);
+      $alt = substr($alt, 1);
+      $ref ||= '-';
+      $alt ||= '-';
+    }
   }
-
   return {
+    ref => $ref,
     alt => $alt,
     start => $s,
     end => $e,
