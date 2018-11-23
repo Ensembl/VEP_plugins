@@ -318,8 +318,10 @@ sub new {
     $self->{config}->{reg} = $reg;
   }
 
+  $self->{config}->{can_use_hts_pm} = $CAN_USE_HTS_PM;
+
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
-  $va->db->use_vcf(1);
+  $va->db->use_vcf(1) if ($CAN_USE_HTS_PM);
   $va->db->include_failed_variations(1);
   $self->{config}->{va} = $va;
   my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
@@ -328,8 +330,6 @@ sub new {
   $self->{config}->{vca} = $vca;
   my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
   $self->{config}->{ta} = $ta;
-
-  $self->{config}->{can_use_hts_pm} = $CAN_USE_HTS_PM;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -682,7 +682,7 @@ sub get_freq {
     return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
   }
 
-  if (!$vf->{existing}) {
+  if (!$vf->{existing} || ! scalar @{$vf->{existing}}) {
     my $failed_ars = {};
     my $freqs = {};
     my $passed = $self->frequencies_from_VCF($freqs, $vf, $allele, $ars, $failed_ars);
@@ -818,7 +818,8 @@ sub frequencies_from_VCF {
   my $vf_allele = shift;
   my $ars = shift;
   my $failed_ars = shift;
-  return 1 if (!$self->{config}->{can_use_hts_pm});
+  return 1 if (!defined $self->{user_params}->{af_from_vcf});
+  return 1 if (!$CAN_USE_HTS_PM);
   my $vca = $self->{config}->{vca};
   my $collections = $vca->fetch_all;
   foreach my $vc (@$collections) {
