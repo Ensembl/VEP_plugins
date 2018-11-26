@@ -318,8 +318,6 @@ sub new {
     $self->{config}->{reg} = $reg;
   }
 
-  $self->{config}->{can_use_hts_pm} = $CAN_USE_HTS_PM;
-
   my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
   $va->db->use_vcf(1) if ($CAN_USE_HTS_PM);
   $va->db->include_failed_variations(1);
