@@ -196,7 +196,9 @@ sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
-  
+# suppress warnings that the FeatureAdpators spit if using no_slice_cache
+  Bio::EnsEMBL::Utils::Exception::verbose(1999);
+
   my $supported_af_keys = { map {$_ => 1} @population_wide }; 
 
   my $params = $self->params_to_hash();
@@ -678,7 +680,7 @@ sub get_freq {
     return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
   }
 
-  if (!$vf->{existing}) {
+  if (!$vf->{existing} || ! scalar @{$vf->{existing}}) {
     my $failed_ars = {};
     my $freqs = {};
     my $passed = $self->frequencies_from_VCF($freqs, $vf, $allele, $ars, $failed_ars);
@@ -814,6 +816,7 @@ sub frequencies_from_VCF {
   my $vf_allele = shift;
   my $ars = shift;
   my $failed_ars = shift;
+  return 1 if (!defined $self->{user_params}->{af_from_vcf});
   return 1 if (!$CAN_USE_HTS_PM);
   my $vca = $self->{config}->{vca};
   my $collections = $vca->fetch_all;
