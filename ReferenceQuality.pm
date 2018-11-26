@@ -71,6 +71,7 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin.
 
 =cut
+
 package ReferenceQuality;
 
 use strict;
@@ -181,7 +182,7 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
 
-  my ($c, $grc, , $feat, $s, $e, $n, $str, $n2, $note) = split /\t/, $line;
+  my ($c, $grc, $feat, $s, $e, $n, $str, $n2, $note) = split /\t/, $line;
 
   return {
     start => $s,
