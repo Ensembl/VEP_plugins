@@ -81,10 +81,6 @@ package POSTGAP;
 use strict;
 use warnings;
 
-use DBI;
-use POSIX;
-
-use Bio::EnsEMBL::VEP::Utils qw(convert_arrayref);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
