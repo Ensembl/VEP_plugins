@@ -43,10 +43,10 @@ limitations under the License.
  A typical installation could consist of:
  
  > wget https://raw.github.com/HAShihab/fathmm/master/cgi-bin/fathmm.py
- > wget ftp://supfam2.cs.bris.ac.uk/FATHMM/database/fathmm.v2.1.SQL
+ > wget http://fathmm.biocompute.org.uk/database/fathmm.v2.3.SQL.gz
  > mysql -h[host] -P[port] -u[user] -p[pass] -e"CREATE DATABASE fathmm"
- > mysql -h[host] -P[port] -u[user] -p[pass] -Dfathmm < fathmm.v2.1.SQL
- > echo "[DATABASE]\nHOST = [host]\nPORT = [port]\nUSER = [user]\nPASSWD = [pass]\nDB = fathmm\n" > config.ini
+ > mysql -h[host] -P[port] -u[user] -p[pass] -Dfathmm < fathmm.v2.3.SQL
+ > echo -e "[DATABASE]\nHOST = [host]\nPORT = [port]\nUSER = [user]\nPASSWD = [pass]\nDB = fathmm\n" > config.ini
 
 =cut
 
