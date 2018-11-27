@@ -44,6 +44,7 @@ limitations under the License.
  
  > wget https://raw.github.com/HAShihab/fathmm/master/cgi-bin/fathmm.py
  > wget http://fathmm.biocompute.org.uk/database/fathmm.v2.3.SQL.gz
+ > gunzip fathmm.v2.3.SQL.gz
  > mysql -h[host] -P[port] -u[user] -p[pass] -e"CREATE DATABASE fathmm"
  > mysql -h[host] -P[port] -u[user] -p[pass] -Dfathmm < fathmm.v2.3.SQL
  > echo -e "[DATABASE]\nHOST = [host]\nPORT = [port]\nUSER = [user]\nPASSWD = [pass]\nDB = fathmm\n" > config.ini
