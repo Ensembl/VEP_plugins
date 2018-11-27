@@ -130,9 +130,10 @@ sub feature_types {
 sub get_header_info {
 
   my $self = shift;
-  
+  my $pop_abbr =  $self->{pop}->name;
+  $pop_abbr = (split /:/, $pop_abbr)[2];
   return {
-    LinkedVariants => "Variants in LD (r2 >= ".$self->{r2_cutoff}.
+    "LinkedVariants_$pop_abbr" => "Variants in LD (r2 >= ".$self->{r2_cutoff}.
       ") with overlapping existing variants from the ".
       $self->{pop}->name." population",
   };
@@ -269,8 +270,9 @@ sub run {
 
     push @linked, @{$res->{linked}};
   }
-
-  return scalar @linked ? {LinkedVariants => join(',', @linked)} : {};
+  my $pop_abbr =  $self->{pop}->name;
+  $pop_abbr = (split /:/, $pop_abbr)[2];
+  return scalar @linked ? {"LinkedVariants_$pop_abbr" => join(',', @linked)} : {};
 }
 
 1;
