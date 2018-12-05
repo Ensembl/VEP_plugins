@@ -29,6 +29,8 @@ limitations under the License.
 
  mv LD.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin LD,1000GENOMES:phase_3:CEU,0.8
+ ./vep -i variations.vcf --plugin LD,'populations=1000GENOMES:phase_3:CEU&1000GENOMES:phase_3:PUR&1000GENOMES:phase_3:STU',0.8
+
 
 =head1 DESCRIPTION
 
@@ -128,14 +130,16 @@ sub feature_types {
 }
 
 sub get_header_info {
-
   my $self = shift;
-  
-  return {
-    LinkedVariants => "Variants in LD (r2 >= ".$self->{r2_cutoff}.
-      ") with overlapping existing variants from the ".
-      $self->{pop}->name." population",
-  };
+  my $header = {};
+  my $population_count = scalar @{$self->{populations}};  
+  foreach my $population (@{$self->{populations}}) {
+    my $population_name = $population->name;
+    my $key = ($population_count > 1) ? "LinkedVariants_$population_name" : "LinkedVariants"; 
+    $header->{$key} = "Variants in LD (r2 >= ".$self->{r2_cutoff}.
+      ") with overlapping existing variants from the $population_name population"; 
+  }
+  return $header;
 }
 
 sub new {
@@ -161,16 +165,30 @@ sub new {
 
   $pop_name ||= '1000GENOMES:phase_3:CEU';
 
+  my @pop_names = ();
+
+  if ($pop_name =~ /^populations=/) {
+    $pop_name =~ s/populations=//;  
+    push @pop_names, split('&', $pop_name);
+  } else {
+    push @pop_names, $pop_name;
+  }
+
+
   $r2_cutoff = 0.8 unless defined $r2_cutoff;
 
   my $pop_adap = $reg->get_adaptor('human', 'variation', 'population')
     || die "Failed to get population adaptor\n";
 
   my $valid_pops = $pop_adap->fetch_all_LD_Populations();
-  my ($pop) = grep {$_->name eq $pop_name} @$valid_pops;
-  die "Invalid population '$pop_name'; valid populations are:\n".join(", ", map {$_->name} @$valid_pops)."\n" unless $pop;
+  my @populations = ();
+  foreach my $pop_name (@pop_names) {
+    my ($pop) = grep {$_->name eq $pop_name} @$valid_pops;
+    die "Invalid population '$pop_name'; valid populations are:\n".join(", ", map {$_->name} @$valid_pops)."\n" unless $pop;
+    push @populations, $pop;
+  }
 
-  $self->{pop} = $pop;
+  $self->{populations} = \@populations;
   $self->{r2_cutoff} = $r2_cutoff;
   
   # prefetch the necessary adaptors
@@ -203,74 +221,75 @@ sub run {
   return {} unless $line_hash->{Existing_variation};
 
   my @vars = ref($line_hash->{Existing_variation}) eq 'ARRAY' ? @{$line_hash->{Existing_variation}} : split(',', $line_hash->{Existing_variation});
-
-  my @linked;
-
-
+  my @ld_results = ();
   for my $var (@vars) {
-
     # check cache
     my $res;
-
     if($self->{cache}) {
       ($res) = grep {$_->{var} eq $var} @{$self->{cache}};
     }
-    
     unless($res) {
-      my @this_linked;
-    
-      # fetch a variation for each overlapping variant ID
+      my $all_ld_variants_by_population = {};
       if (my $v = $self->{var_adap}->fetch_by_name($var)) {
-
-        # and fetch the associated variation features
-
         for my $vf (@{ $self->{var_feat_adap}->fetch_all_by_Variation($v) }) {
 
           # we're only interested in variation features that overlap our variant
+          my $vep_input_vf = $vfoa->variation_feature;
+          
+          my $vep_input_alt_allele = shift @{$vep_input_vf->alt_alleles};
+          if ($vf->seq_region_name eq $vep_input_vf->seq_region_name && grep {$vep_input_alt_allele eq $_} @{$vf->alt_alleles} ) {
 
-          if ($vf->slice->name eq $vfoa->variation_feature->slice->name) {
-
-            # fetch an LD feature container for this variation feature and our preconfigured population
-            if (my $ldfc = $self->{ld_adap}->fetch_by_VariationFeature($vf, $self->{pop})) {
-            
-              # loop over all the linked variants
-              # we pass 1 to get_all_ld_values() so that it doesn't lazy load
-              # VariationFeature objects - we only need the name here anyway
-              for my $result (@{ $ldfc->get_all_ld_values(1) }) {
+            foreach my $population (@{$self->{populations}}) {
+              my @this_linked;
+              # fetch an LD feature container for this variation feature and our preconfigured population
+              if (my $ldfc = $self->{ld_adap}->fetch_by_VariationFeature($vf, $population)) {
               
-                # apply our r2 cutoff
-
-                if ($result->{r2} >= $self->{r2_cutoff}) {
-
-                  my $v1 = $result->{variation_name1};
-                  my $v2 = $result->{variation_name2};
-
-                  # I'm not sure which of these are the query variant, so just check the names
-                    
-                  my $linked = $v1 eq $var ? $v2 : $v1;
-                  
-                  push @this_linked, sprintf("%s:%.3f", $linked, $result->{r2});
+                # loop over all the linked variants
+                # we pass 1 to get_all_ld_values() so that it doesn't lazy load
+                # VariationFeature objects - we only need the name here anyway
+                for my $result (@{ $ldfc->get_all_ld_values(1) }) {
+                  # apply our r2 cutoff
+                  if ($result->{r2} >= $self->{r2_cutoff}) {
+                    my $v1 = $result->{variation_name1};
+                    my $v2 = $result->{variation_name2};
+                    # I'm not sure which of these are the query variant, so just check the names
+                    my $linked = $v1 eq $var ? $v2 : $v1;
+                    push @this_linked, sprintf("%s:%.3f", $linked, $result->{r2});
+                  }
                 }
               }
+              $all_ld_variants_by_population->{$population->name} = \@this_linked if (scalar @this_linked);
             }
+          }
+          if (scalar keys %$all_ld_variants_by_population) {
+            # cache it
+            $res = {
+              var => $var,
+              linked => $all_ld_variants_by_population,
+            };
+            push @ld_results, $res;
+            push @{$self->{cache}}, $res;
+            shift @{$self->{cache}} while scalar @{$self->{cache}} > 50;
           }
         }
       }
-
-      # cache it
-      $res = {
-        var => $var,
-        linked => \@this_linked
-      };
-
-      push @{$self->{cache}}, $res;
-      shift @{$self->{cache}} while scalar @{$self->{cache}} > 50;
+    } else { # end unless 
+      push @ld_results, $res;
     }
-
-    push @linked, @{$res->{linked}};
+    last if (scalar @ld_results);
+  } # end foreach variation
+  if (scalar @ld_results) {
+    my $res = $ld_results[0];
+    my $results = {};
+    my $population_count = scalar keys %{$res->{linked}};  
+    foreach my $population_name (keys %{$res->{linked}}) {
+      my @linked_variants = @{$res->{linked}->{$population_name}};
+      my $key = ($population_count > 1) ? "LinkedVariants_$population_name" : "LinkedVariants"; 
+      $results->{$key} = join(',', @linked_variants);
+    }
+    return $results;
   }
-
-  return scalar @linked ? {LinkedVariants => join(',', @linked)} : {};
+  return {};
 }
 
 1;
