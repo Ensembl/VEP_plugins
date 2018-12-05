@@ -29,8 +29,8 @@ limitations under the License.
 
  mv dbNSFP.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin dbNSFP,/path/to/dbNSFP.gz,col1,col2
- ./vep -i variations.vcf --plugin dbNSFP,consequence=ALL,/path/to/dbNSFP.gz,col1,col2
- ./vep -i variations.vcf --plugin dbNSFP,consequence=3_prime_UTR_variant&intron_variant,/path/to/dbNSFP.gz,col1,col2
+ ./vep -i variations.vcf --plugin dbNSFP,'consequence=ALL',/path/to/dbNSFP.gz,col1,col2
+ ./vep -i variations.vcf --plugin dbNSFP,'consequence=3_prime_UTR_variant&intron_variant',/path/to/dbNSFP.gz,col1,col2
 
 =head1 DESCRIPTION
 
