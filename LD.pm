@@ -166,10 +166,10 @@ sub new {
   $pop_name ||= '1000GENOMES:phase_3:CEU';
 
   my @pop_names = ();
-
   if ($pop_name =~ /^populations=/) {
     $pop_name =~ s/populations=//;  
-    push @pop_names, split('&', $pop_name);
+    my %unique_populations = map { $_ => 1 } split('&', $pop_name);
+    push @pop_names, keys %unique_populations;
   } else {
     push @pop_names, $pop_name;
   }
