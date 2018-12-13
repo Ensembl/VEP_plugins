@@ -102,7 +102,11 @@ sub new {
   my $params_hash = $self->params_to_hash();
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
 
-  unless($DEFAULTS{file}) {
+  #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
+  my $refresh = 0;
+  $refresh = 1 if (exists $DEFAULTS{species} && $DEFAULTS{species} ne $self->{config}{species});
+
+  unless($DEFAULTS{file} && !$refresh) {
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
 
@@ -112,7 +116,19 @@ sub new {
     my $version = $config->{db_version} || 'Bio::EnsEMBL::Registry'->software_version;
     my $assembly = $config->{assembly};
 
-    $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+    my $dir = $self->params->[0];
+    if(defined $dir && -d $dir){
+      if( $species eq 'homo_sapiens' || $species eq 'human'){
+        my $assembly = $config->{human_assembly};
+        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $dir.$pkg, $species, $version, $assembly);
+      } else {
+        $DEFAULTS{file} = sprintf("%s_%s_%i.bed.gz", $dir.$pkg, $species, $version);
+      }
+    } else { #assembly value will be automatically populated by VEP script but not by REST server
+      my $assembly = $config->{assembly};
+      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+    }
+    $DEFAULTS{species} = $species;
   }
 
   $self->generate_phenotype_gff($DEFAULTS{file}) if !(-e $DEFAULTS{file}) || (-e $DEFAULTS{file}.'.lock');
