@@ -29,6 +29,8 @@ limitations under the License.
 
  mv dbNSFP.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin dbNSFP,/path/to/dbNSFP.gz,col1,col2
+ ./vep -i variations.vcf --plugin dbNSFP,'consequence=ALL',/path/to/dbNSFP.gz,col1,col2
+ ./vep -i variations.vcf --plugin dbNSFP,'consequence=3_prime_UTR_variant&intron_variant',/path/to/dbNSFP.gz,col1,col2
 
 =head1 DESCRIPTION
 
@@ -113,9 +115,23 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
+  my $index = 0;
+  $self->{consequence} = 'filter';
+  if ($self->params->[$index] =~ /^consequence=/) {
+    # parse consequences
+    my $consequences = $self->params->[$index];  
+    $consequences =~ s/consequence=//;
+    if (uc $consequences eq 'ALL') {
+      $self->{consequence} = 'ALL';
+    } else {
+      %INCLUDE_SO = map {$_ => 1} split/&/, $consequences;
+    }
+    $index++;
+  }
+  print STDERR "Include SO ", join(' ', keys %INCLUDE_SO), "\n";
   
   # get dbNSFP file
-  my $file = $self->params->[0];
+  my $file = $self->params->[$index];
   $self->add_file($file);
   
   # get headers
@@ -134,28 +150,28 @@ sub new {
     die "ERROR: Could not find required column $h in $file\n" unless grep {$_ eq $h} @{$self->{headers}};
   }
 
-  my $i = 1; 
   # check if 2nd argument is a file that specifies replacement logic
   # read replacement logic 
-  my $replacement_file = $self->params->[$i];
+  $index++;
+  my $replacement_file = $self->params->[$index];
   if (defined $replacement_file && -e $replacement_file) {
     $self->add_replacement_logic($replacement_file);  
-    $i++;
+    $index++;
   } else {
     $self->add_replacement_logic();  
   } 
  
   # get required columns
-  while(defined($self->params->[$i])) {
-    my $col = $self->params->[$i];
+  while(defined($self->params->[$index])) {
+    my $col = $self->params->[$index];
     if($col eq 'ALL') {
       $self->{cols} = {map {$_ => 1} @{$self->{headers}}};
       last;
     }
     die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
     
-    $self->{cols}->{$self->params->[$i]} = 1;
-    $i++;
+    $self->{cols}->{$self->params->[$index]} = 1;
+    $index++;
   }
   
   die "ERROR: No columns selected to fetch. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless defined($self->{cols}) && scalar keys %{$self->{cols}};
@@ -237,7 +253,9 @@ sub run {
   my ($self, $tva) = @_;
   
   # only for missense variants
-  return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+  if ($self->{consequence} eq 'filter') {
+    return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+  }
   
   my $vf = $tva->variation_feature;
   
