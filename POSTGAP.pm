@@ -65,6 +65,26 @@ processed differently according to the assembly you use.
 Note that in the last command we tell tabix that the header line starts with "l";
 this may change to the default of "#" in future versions of POSTGAP.
 
+When running the plugin by default 'disease_efo_id', 'disease_name', 'gene_id'
+and 'score' information is returned e.g.
+
+--plugin POSTGAP,/path/to/PostGap.gz
+
+You may include all columns with ALL; this fetches a large amount of data per
+variant!:
+
+--plugin POSTGAP,/path/to/PostGap.gz,ALL
+
+You may want to select only a specific subset of additional information to be
+reported, you can do this by specifying the columns as parameters to the plugin e.g.
+
+--plugin POSTGAP,/path/to/PostGap.gz,gwas_pmid,gwas_size
+
+If a requested column is not found, the error message will report the
+complete list of available columns in the POSTGAP file. For a brief description
+of the available information please refer to the 'How do I use POSTGAP output?'
+section in the POSTGAP wiki.
+
 Tabix also allows the data file to be hosted on a remote server. This plugin is
 fully compatible with such a setup - simply use the URL of the remote file:
 
