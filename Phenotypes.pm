@@ -125,6 +125,7 @@ sub new {
 
     my $dir = $DEFAULTS{dir};
     if(defined $dir && -d $dir){
+      $dir =~ s/\/?$/\//; #ensure dir path string ends in slash
       if( $species eq 'homo_sapiens' || $species eq 'human'){
         $assembly ||= $config->{human_assembly};
         $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $dir.$pkg, $species, $version, $assembly);
