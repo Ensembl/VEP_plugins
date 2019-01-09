@@ -49,6 +49,9 @@ limitations under the License.
 
  Several paramters can be set using a key=value system:
 
+ dir            : provide a dir path, where either to create anew the species
+                  specific file from the download or to look for an existing file
+
  file           : provide a file path, either to create anew from the download
                   or to point to an existing file
 
@@ -73,6 +76,7 @@ limitations under the License.
  Example:
 
  --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
+ --plugin Phenotypes,dir=${HOME},include_types=Gene
  
 =cut
 
@@ -106,6 +110,9 @@ sub new {
   my $refresh = 0;
   $refresh = 1 if (exists $DEFAULTS{species} && $DEFAULTS{species} ne $self->{config}{species});
 
+  #for REST calls report all data (use json output flag)
+  $self->{config}->{output_format} ||= $DEFAULTS{output_format};
+
   unless($DEFAULTS{file} && !$refresh) {
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
@@ -116,16 +123,16 @@ sub new {
     my $version = $config->{db_version} || 'Bio::EnsEMBL::Registry'->software_version;
     my $assembly = $config->{assembly};
 
-    my $dir = $self->params->[0];
+    my $dir = $DEFAULTS{dir};
     if(defined $dir && -d $dir){
+      $dir =~ s/\/?$/\//; #ensure dir path string ends in slash
       if( $species eq 'homo_sapiens' || $species eq 'human'){
-        my $assembly = $config->{human_assembly};
+        $assembly ||= $config->{human_assembly};
         $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $dir.$pkg, $species, $version, $assembly);
       } else {
         $DEFAULTS{file} = sprintf("%s_%s_%i.bed.gz", $dir.$pkg, $species, $version);
       }
     } else { #assembly value will be automatically populated by VEP script but not by REST server
-      my $assembly = $config->{assembly};
       $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
     }
     $DEFAULTS{species} = $species;
@@ -246,7 +253,7 @@ sub run {
   return {} unless $data && scalar @$data;
 
   return {
-    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;/\_\_/; $_->{phenotype}} @$data)
+    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data)
   };
 }
 
