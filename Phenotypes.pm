@@ -253,7 +253,7 @@ sub run {
   return {} unless $data && scalar @$data;
 
   return {
-    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;/\_\_/; $_->{phenotype}} @$data)
+    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data)
   };
 }
 
