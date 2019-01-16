@@ -136,7 +136,7 @@ sub run {
   return db_run($self, $tva) if $self->{use_database};
   my $filename;
   return {} if (scalar(@{$self->params}) eq 0);
-
+  
   #if it doesn't look like the user has given an FTP link or a file, try and find the correct data
   if(@{$self->params}[0] !~ /ftp.ensembl.org/ && not -f @{$self->params}[0])
   {
@@ -150,9 +150,10 @@ sub run {
     foreach my $sub(split /\//, $3) {
       $ftp->cwd($sub) or die "ERROR: Could not change directory to $sub\n$@\n";
     }
+    
     my @files = $ftp->ls;
     my @dir_to_enter = grep(/@{$self->params}[0]/, @files);
-    if(scalar(@dir_to_enter) ne 1)
+    if(scalar(@dir_to_enter) != 1)
     {
       warn('Unable to find matching data on FTP site');
       return {};
@@ -162,8 +163,10 @@ sub run {
     my $group = shift(@dir_to_enter);
     $ftp->cwd($group);
     @files = $ftp->ls;
-    @dir_to_enter = grep(/$species/, @files);
-    if(scalar(@dir_to_enter) ne 1)
+  
+    my $assembly = $self->{config}->{assembly};
+    @dir_to_enter = grep(/$assembly/, grep(/$species/, @files));
+    if(scalar(@dir_to_enter) != 1)
     {
       warn('Unable to find matching data on FTP site');
       return {};
