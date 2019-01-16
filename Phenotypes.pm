@@ -189,7 +189,8 @@ sub generate_phenotype_gff {
       CONCAT_WS('; ',
         CONCAT('id=', pf.object_id),
         CONCAT('phenotype="', REPLACE(p.description, '"', ''), '"'),
-        GROUP_CONCAT(at.code, "=", concat('"', pfa.value, '"') SEPARATOR '; ')
+        GROUP_CONCAT(at.code, "=", concat('"', pfa.value, '"') SEPARATOR '; '),
+        GROUP_CONCAT('submitter_name="', sub.description, '"')
       ) AS attribute
 
       FROM
@@ -198,11 +199,16 @@ sub generate_phenotype_gff {
         phenotype p,
         phenotype_feature pf
 
-      LEFT JOIN (phenotype_feature_attrib pfa, attrib_type `at`)
-      ON (
-        pf.phenotype_feature_id = pfa.phenotype_feature_id
-        AND pfa.attrib_type_id = at.attrib_type_id
-      )
+      LEFT JOIN phenotype_feature_attrib pfa
+        ON pf.phenotype_feature_id = pfa.phenotype_feature_id
+      LEFT JOIN attrib_type `at`
+        ON pfa.attrib_type_id = at.attrib_type_id
+      LEFT JOIN submitter sub
+        ON (
+          pfa.value = sub.submitter_id
+          AND pfa.attrib_type_id = at.attrib_type_id
+          AND at.code = 'submitter_id'
+        )
 
       WHERE sr.seq_region_id = pf.seq_region_id
       AND s.source_id = pf.source_id
@@ -295,6 +301,7 @@ sub parse_data {
       my ($key, $value) = split /\=/, $pair;
 
       next unless defined($key) and defined($value);
+      next if $key eq 'submitter_id'; # if submitter_id exists, submitter_name should also exist and displayed
       
       # remove quote marks
       $value =~ s/\"//g;
