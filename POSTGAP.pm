@@ -76,7 +76,7 @@ scores retrieved from other sources.
 
 =cut
 
-package POSTGAP;
+package PostGAP;
 
 use strict;
 use warnings;
@@ -173,7 +173,7 @@ sub get_header_info {
   $header .= join($char_sep, @fields_order );
 
   return { 
-    POSTGAP => $header,
+    PostGAP => $header,
   }
 }
 
@@ -214,7 +214,7 @@ sub run {
   }
   
   return {
-    POSTGAP => $self->{config}->{output_format} eq "json" ? \@result : \@result_str
+    PostGAP => $self->{config}->{output_format} eq "json" ? \@result : \@result_str
   }
 }
 
