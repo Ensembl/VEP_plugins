@@ -27,28 +27,28 @@ Questions may also be sent to the Ensembl help desk at
 
 =head1 NAME
 
- POSTGAP - Add POSTGAP data fields to the VEP output
+ Ensembl Post-GWAS analysis pipeline (PostGAP) - Add PostGAP data fields to the VEP output
 
 =head1 SYNOPSIS
 
- mv POSTGAP.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin POSTGAP,/path/to/PostGap.gz,col1,col2
+ mv PostGAP.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin PostGAP,/path/to/PostGap.gz,col1,col2
 
 =head1 DESCRIPTION
 
-A VEP plugin that retrieves data for variants from a tabix-indexed POSTGAP file.
+A VEP plugin that retrieves data for variants from a tabix-indexed PostGAP file.
 
-Please refer to the POSTGAP github and wiki for more information:
+Please refer to the PostGAP github and wiki for more information:
 https://github.com/Ensembl/postgap
 https://github.com/Ensembl/postgap/wiki
 https://github.com/Ensembl/postgap/wiki/algorithm-pseudo-code
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
-to use this plugin. The POSTGAP data file can be downloaded from
+to use this plugin. The PostGAP data file can be downloaded from
 https://storage.googleapis.com/postgap-data.
 
 The file must be processed and indexed by tabix before use by this plugin.
-POSTGAP has coordinates for both GRCh38 and GRCh37; the file must be
+PostGAP has coordinates for both GRCh38 and GRCh37; the file must be
 processed differently according to the assembly you use.
 
 > wget https://storage.googleapis.com/postgap-data/postgap.txt.gz
@@ -63,7 +63,7 @@ processed differently according to the assembly you use.
 > tabix -s 2 -b 3 -e 3 -c l postgap_GRCh37.txt.gz
 
 Note that in the last command we tell tabix that the header line starts with "l";
-this may change to the default of "#" in future versions of POSTGAP.
+this may change to the default of "#" in future versions of PostGAP.
 
 When running the plugin by default 'disease_efo_id', 'disease_name', 'gene_id'
 and 'score' information is returned e.g.
@@ -88,15 +88,15 @@ section in the POSTGAP wiki.
 Tabix also allows the data file to be hosted on a remote server. This plugin is
 fully compatible with such a setup - simply use the URL of the remote file:
 
---plugin POSTGAP,http://my.files.com/postgap.txt.gz
+--plugin PostGAP,http://my.files.com/postgap.txt.gz
 
-Note that gene sequences referred to in POSTGAP may be out of sync with
+Note that gene sequences referred to in PostGAP may be out of sync with
 those in the latest release of Ensembl; this may lead to discrepancies with
 scores retrieved from other sources.
 
 =cut
 
-package POSTGAP;
+package PostGAP;
 
 use strict;
 use warnings;
@@ -122,7 +122,7 @@ sub new {
 
   my $params_hash = $self->params_to_hash();
 
-  # get POSTGAP file
+  # get PostGAP file
   my $file = $self->params->[0];
   $self->add_file($file);
 
@@ -189,11 +189,11 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   
-  my $header = 'POSTGAP data for variation - phenotype association. Format: ';
+  my $header = 'PostGAP data for variation - phenotype association. Format: ';
   $header .= join($char_sep, @fields_order );
 
   return { 
-    POSTGAP => $header,
+    PostGAP => $header,
   }
 }
 
@@ -234,7 +234,7 @@ sub run {
   }
   
   return {
-    POSTGAP => $self->{config}->{output_format} eq "json" ? \@result : \@result_str
+    PostGAP => $self->{config}->{output_format} eq "json" ? \@result : \@result_str
   }
 }
 
