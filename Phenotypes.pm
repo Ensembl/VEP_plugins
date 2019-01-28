@@ -73,6 +73,10 @@ limitations under the License.
  expand_right   : sets cache size in bp. By default annotations 100000bp (100kb)
                   downstream of the initial lookup are cached
 
+phenotype_feature : remport the specific gene or variation the phenotype is
+                  linked to, this can be an overlapping gene or structural variation,
+                  and the available phenotye ontology accession. (default 0)
+
  Example:
 
  --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
@@ -94,7 +98,16 @@ my %DEFAULTS = (
   exclude_sources => 'HGMD_PUBLIC&COSMIC',
   exclude_types => 'StructuralVariation&SupportingStructuralVariation',
   expand_right => 100000,
+  phenotype_feature => 0,
 );
+
+my $out_txt = 1;
+my $out_vcf = 0;
+my $out_json = 0;
+my $char_sep = "|";
+
+my %cols = (phenotype => 1, source => 1, id => 1);
+my @fields_order = ("phenotype", "source", "id");
 
 my @FIELDS = qw(seq_region_name source type start end score strand frame attributes comments);
 
@@ -105,6 +118,13 @@ sub new {
   
   my $params_hash = $self->params_to_hash();
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
+
+  # get output format
+  $out_vcf  = 1 if ($self->{config}->{output_format} eq "vcf");
+  $out_json = 1 if ($self->{config}->{output_format} eq "json");
+  $out_txt = 0 if ($out_vcf || $out_json);
+
+  $char_sep = "+" if $out_vcf;
 
   #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
   my $refresh = 0;
@@ -257,6 +277,28 @@ sub run {
   my $data = $self->get_data($vf->{chr}, $s, $e);
 
   return {} unless $data && scalar @$data;
+
+  if ($DEFAULTS{phenotype_feature}){
+    my %result_uniq;
+    my @result_str = ();
+
+    foreach my $tmp_data(@{$data}) {
+      # get required data
+      my %tmp_return =
+        map {$_ => $tmp_data->{$_}}
+        grep {defined($cols{$_})}  # only include selected cols
+        keys %$tmp_data;
+
+        # report only unique set of fields
+        my $record_line = join(",", values %tmp_return);
+        next if defined $result_uniq{$record_line};
+        $result_uniq{$record_line} = 1;
+
+        push(@result_str, join($char_sep, @tmp_return{@fields_order}));
+    }
+
+    return { PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : \@result_str }
+  }
 
   return {
     PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", keys { map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data} )
