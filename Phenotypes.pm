@@ -73,9 +73,9 @@ limitations under the License.
  expand_right   : sets cache size in bp. By default annotations 100000bp (100kb)
                   downstream of the initial lookup are cached
 
-phenotype_feature : remport the specific gene or variation the phenotype is
+phenotype_feature : remport also the specific gene or variation the phenotype is
                   linked to, this can be an overlapping gene or structural variation,
-                  and the available phenotye ontology accession. (default 0)
+                  and the source of the annotation (default 0)
 
  Example:
 
