@@ -95,7 +95,7 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 # default config
 my %DEFAULTS = (
-  exclude_sources => 'HGMD_PUBLIC&COSMIC',
+  exclude_sources => 'HGMD-PUBLIC&COSMIC',
   exclude_types => 'StructuralVariation&SupportingStructuralVariation',
   expand_right => 100000,
   phenotype_feature => 0,
