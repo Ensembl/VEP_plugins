@@ -278,6 +278,8 @@ sub run {
 
   return {} unless $data && scalar @$data;
 
+  return { PHENOTYPES =>  $data } if $self->{config}->{output_format} eq "json";
+
   if ($DEFAULTS{phenotype_feature}){
     my %result_uniq;
     my @result_str = ();
@@ -289,19 +291,24 @@ sub run {
         grep {defined($cols{$_})}  # only include selected cols
         keys %$tmp_data;
 
-        # report only unique set of fields
-        my $record_line = join(",", values %tmp_return);
-        next if defined $result_uniq{$record_line};
-        $result_uniq{$record_line} = 1;
+      # replace link characters with _
+      $tmp_return{phenotype} =~ tr/ ;,/\_\_\_/;
 
-        push(@result_str, join($char_sep, @tmp_return{@fields_order}));
+      # report only unique set of fields
+      my $record_line = join(",", values %tmp_return);
+      next if defined $result_uniq{$record_line};
+      $result_uniq{$record_line} = 1;
+
+      push(@result_str, join($char_sep, @tmp_return{@fields_order}));
     }
 
-    return { PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : \@result_str }
+    return { PHENOTYPES => \@result_str }
   }
 
+  my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data;
+
   return {
-    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", keys { map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data} )
+    PHENOTYPES => join(",", keys %result_uniq )
   };
 }
 
