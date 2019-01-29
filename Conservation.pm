@@ -140,7 +140,7 @@ sub run {
   #if it doesn't look like the user has given an FTP link or a file, try and find the correct data
   if(@{$self->params}[0] !~ /ftp.ensembl.org/ && not -f @{$self->params}[0])
   {
-    my $FTP_URL  ||= "ftp://ftp.ensembl.org/pub/current_compara/conservation_scores/";
+    my $FTP_URL = "ftp://ftp.ensembl.org/pub/current_compara/conservation_scores/";
     my $FTP_USER = 'anonymous';  
 
     $FTP_URL =~ m/(ftp:\/\/)?(.+?)\/(.+)/;  
