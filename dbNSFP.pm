@@ -136,6 +136,8 @@ sub new {
     $version = '2.9';
   } elsif ($file =~ /4\.0/) {
     $version = '4.0';
+  } elsif ($file =~ /3\./) {
+    $version = 3;
   } else {
     die "ERROR: Could not retrieve dbNSFP version from filename $file\n";
   }
