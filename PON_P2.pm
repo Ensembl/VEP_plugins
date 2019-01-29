@@ -5,6 +5,10 @@
  mv PON_P2.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
  
+=head1 CONTACT
+Abhishek Niroula <abhishek.niroula@med.lu.se>
+Mauno Vihinen <mauno.vihinen@med.lu.se>
+
 =head1 DESCRIPTION
  This plugin for Ensembl Variant Effect Predictor (VEP) computes the predictions of PON-P2
  for amino acid substitutions in human proteins. PON-P2 is developed and maintained by
@@ -14,10 +18,6 @@
  To run this plugin, you will require a python script and its dependencies (Python,
  python suds). The python file can be downloaded from http://structure.bmc.lu.se/PON-P2/vep.html/
  and the complete path to this file must be supplied while using this plugin.
- 
-=head1 CONTACT
-Abhishek Niroula <abhishek.niroula@med.lu.se>
-Mauno Vihinen <mauno.vihinen@med.lu.se>
 
 =cut
 

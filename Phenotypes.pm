@@ -49,6 +49,9 @@ limitations under the License.
 
  Several paramters can be set using a key=value system:
 
+ dir            : provide a dir path, where either to create anew the species
+                  specific file from the download or to look for an existing file
+
  file           : provide a file path, either to create anew from the download
                   or to point to an existing file
 
@@ -73,6 +76,7 @@ limitations under the License.
  Example:
 
  --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
+ --plugin Phenotypes,dir=${HOME},include_types=Gene
  
 =cut
 
@@ -102,7 +106,14 @@ sub new {
   my $params_hash = $self->params_to_hash();
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
 
-  unless($DEFAULTS{file}) {
+  #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
+  my $refresh = 0;
+  $refresh = 1 if (exists $DEFAULTS{species} && $DEFAULTS{species} ne $self->{config}{species});
+
+  #for REST calls report all data (use json output flag)
+  $self->{config}->{output_format} ||= $DEFAULTS{output_format};
+
+  unless($DEFAULTS{file} && !$refresh) {
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
 
@@ -112,7 +123,19 @@ sub new {
     my $version = $config->{db_version} || 'Bio::EnsEMBL::Registry'->software_version;
     my $assembly = $config->{assembly};
 
-    $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+    my $dir = $DEFAULTS{dir};
+    if(defined $dir && -d $dir){
+      $dir =~ s/\/?$/\//; #ensure dir path string ends in slash
+      if( $species eq 'homo_sapiens' || $species eq 'human'){
+        $assembly ||= $config->{human_assembly};
+        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $dir.$pkg, $species, $version, $assembly);
+      } else {
+        $DEFAULTS{file} = sprintf("%s_%s_%i.bed.gz", $dir.$pkg, $species, $version);
+      }
+    } else { #assembly value will be automatically populated by VEP script but not by REST server
+      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+    }
+    $DEFAULTS{species} = $species;
   }
 
   $self->generate_phenotype_gff($DEFAULTS{file}) if !(-e $DEFAULTS{file}) || (-e $DEFAULTS{file}.'.lock');
@@ -166,7 +189,8 @@ sub generate_phenotype_gff {
       CONCAT_WS('; ',
         CONCAT('id=', pf.object_id),
         CONCAT('phenotype="', REPLACE(p.description, '"', ''), '"'),
-        GROUP_CONCAT(at.code, "=", concat('"', pfa.value, '"') SEPARATOR '; ')
+        GROUP_CONCAT(at.code, "=", concat('"', pfa.value, '"') SEPARATOR '; '),
+        GROUP_CONCAT('submitter_name="', sub.description, '"')
       ) AS attribute
 
       FROM
@@ -175,11 +199,16 @@ sub generate_phenotype_gff {
         phenotype p,
         phenotype_feature pf
 
-      LEFT JOIN (phenotype_feature_attrib pfa, attrib_type `at`)
-      ON (
-        pf.phenotype_feature_id = pfa.phenotype_feature_id
-        AND pfa.attrib_type_id = at.attrib_type_id
-      )
+      LEFT JOIN phenotype_feature_attrib pfa
+        ON pf.phenotype_feature_id = pfa.phenotype_feature_id
+      LEFT JOIN attrib_type `at`
+        ON pfa.attrib_type_id = at.attrib_type_id
+      LEFT JOIN submitter sub
+        ON (
+          pfa.value = sub.submitter_id
+          AND pfa.attrib_type_id = at.attrib_type_id
+          AND at.code = 'submitter_id'
+        )
 
       WHERE sr.seq_region_id = pf.seq_region_id
       AND s.source_id = pf.source_id
@@ -230,7 +259,7 @@ sub run {
   return {} unless $data && scalar @$data;
 
   return {
-    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;/\_\_/; $_->{phenotype}} @$data)
+    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data)
   };
 }
 
@@ -272,6 +301,7 @@ sub parse_data {
       my ($key, $value) = split /\=/, $pair;
 
       next unless defined($key) and defined($value);
+      next if $key eq 'submitter_id'; # if submitter_id exists, submitter_name should also exist and displayed
       
       # remove quote marks
       $value =~ s/\"//g;
