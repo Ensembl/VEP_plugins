@@ -292,7 +292,7 @@ sub run {
         keys %$tmp_data;
 
       # replace link characters with _
-      $tmp_return{phenotype} =~ tr/ ;,/\_\_\_/;
+      $tmp_return{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/;
 
       # report only unique set of fields
       my $record_line = join(",", values %tmp_return);
@@ -305,7 +305,7 @@ sub run {
     return { PHENOTYPES => \@result_str }
   }
 
-  my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data;
+  my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/; $_->{phenotype}} @$data;
 
   return {
     PHENOTYPES => join(",", keys %result_uniq )
