@@ -101,9 +101,7 @@ my %DEFAULTS = (
   phenotype_feature => 0,
 );
 
-my $out_txt = 1;
-my $out_vcf = 0;
-my $out_json = 0;
+my %output_format;
 my $char_sep = "|";
 
 my %cols = (phenotype => 1, source => 1, id => 1);
@@ -120,11 +118,10 @@ sub new {
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
 
   # get output format
-  $out_vcf  = 1 if ($self->{config}->{output_format} eq "vcf");
-  $out_json = 1 if ($self->{config}->{output_format} eq "json");
-  $out_txt = 0 if ($out_vcf || $out_json);
-
-  $char_sep = "+" if $out_vcf;
+  if ($self->{config}->{output_format}) {
+    $output_format{$self->{config}->{output_format}} = 1;
+  }
+  $char_sep = "+" if ($output_format{'vcf'});
 
   #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
   my $refresh = 0;
@@ -278,7 +275,7 @@ sub run {
 
   return {} unless $data && scalar @$data;
 
-  return { PHENOTYPES =>  $data } if $self->{config}->{output_format} eq "json";
+  return { PHENOTYPES =>  $data } if ($output_format{'json'});
 
   if ($DEFAULTS{phenotype_feature}){
     my %result_uniq;
@@ -302,7 +299,7 @@ sub run {
       push(@result_str, join($char_sep, @tmp_return{@fields_order}));
     }
 
-    return { PHENOTYPES => \@result_str }
+    return { PHENOTYPES => \@result_str };
   }
 
   my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/; $_->{phenotype}} @$data;
