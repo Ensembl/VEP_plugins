@@ -128,10 +128,21 @@ sub new {
     }
     $index++;
   }
-  print STDERR "Include SO ", join(' ', keys %INCLUDE_SO), "\n";
   
   # get dbNSFP file
   my $file = $self->params->[$index];
+  my $version;
+  if ($file =~ /2\.9/) {
+    $version = '2.9';
+  } elsif ($file =~ /4\.0/) {
+    $version = '4.0';
+  } elsif ($file =~ /3\./) {
+    $version = 3;
+  } else {
+    die "ERROR: Could not retrieve dbNSFP version from filename $file\n";
+  }
+  $self->{dbNSFP_version} = $version;
+
   $self->add_file($file);
   
   # get headers
@@ -278,7 +289,7 @@ sub run {
   foreach my $tmp_data(@{$self->get_data($chr, $vf->{start} - 1, $vf->{end})}) {
     # compare allele and transcript
     if ($assembly eq 'GRCh37') {
-      if (exists $tmp_data->{'pos(1-coor)'}) {
+      if (exists $tmp_data->{'pos(1-coor)'} && $self->{dbNSFP_version} eq '2.9') {
         # for dbNSFP version 2.9.1
         $pos = $tmp_data->{'pos(1-coor)'}
       } elsif (exists $tmp_data->{'hg19_pos(1-based)'}) {
@@ -290,16 +301,16 @@ sub run {
     } else {
       if (exists $tmp_data->{'pos(1-based)'}) {
         $pos = $tmp_data->{'pos(1-based)'}
+      } elsif (exists $tmp_data->{'pos(1-coor)'} && $self->{dbNSFP_version} eq '4.0' ) {
+        $pos = $tmp_data->{'pos(1-coor)'};
       } else {
-        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38";
+        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38 or pos(1-coor) for dbNSFP version 4.0";
       }
     }
-
     next unless
       $pos == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele;
-    
     # make a clean copy as we're going to edit it
     %$data = %$tmp_data;
 
