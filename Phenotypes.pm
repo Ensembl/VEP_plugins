@@ -73,6 +73,10 @@ limitations under the License.
  expand_right   : sets cache size in bp. By default annotations 100000bp (100kb)
                   downstream of the initial lookup are cached
 
+phenotype_feature : remport also the specific gene or variation the phenotype is
+                  linked to, this can be an overlapping gene or structural variation,
+                  and the source of the annotation (default 0)
+
  Example:
 
  --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
@@ -91,10 +95,17 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 # default config
 my %DEFAULTS = (
-  exclude_sources => 'HGMD_PUBLIC&COSMIC',
+  exclude_sources => 'HGMD-PUBLIC&COSMIC',
   exclude_types => 'StructuralVariation&SupportingStructuralVariation',
   expand_right => 100000,
+  phenotype_feature => 0,
 );
+
+my %output_format;
+my $char_sep = "|";
+
+my %cols = (phenotype => 1, source => 1, id => 1);
+my @fields_order = ("phenotype", "source", "id");
 
 my @FIELDS = qw(seq_region_name source type start end score strand frame attributes comments);
 
@@ -105,6 +116,12 @@ sub new {
   
   my $params_hash = $self->params_to_hash();
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
+
+  # get output format
+  if ($self->{config}->{output_format}) {
+    $output_format{$self->{config}->{output_format}} = 1;
+  }
+  $char_sep = "+" if ($output_format{'vcf'});
 
   #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
   my $refresh = 0;
@@ -258,8 +275,37 @@ sub run {
 
   return {} unless $data && scalar @$data;
 
+  return { PHENOTYPES =>  $data } if ($output_format{'json'});
+
+  if ($DEFAULTS{phenotype_feature}){
+    my %result_uniq;
+    my @result_str = ();
+
+    foreach my $tmp_data(@{$data}) {
+      # get required data
+      my %tmp_return =
+        map {$_ => $tmp_data->{$_}}
+        grep {defined($cols{$_})}  # only include selected cols
+        keys %$tmp_data;
+
+      # replace link characters with _
+      $tmp_return{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/;
+
+      # report only unique set of fields
+      my $record_line = join(",", values %tmp_return);
+      next if defined $result_uniq{$record_line};
+      $result_uniq{$record_line} = 1;
+
+      push(@result_str, join($char_sep, @tmp_return{@fields_order}));
+    }
+
+    return { PHENOTYPES => \@result_str };
+  }
+
+  my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/; $_->{phenotype}} @$data;
+
   return {
-    PHENOTYPES => $self->{config}->{output_format} eq "json" ? $data : join(",", map {$_->{phenotype} =~ tr/ ;,/\_\_\_/; $_->{phenotype}} @$data)
+    PHENOTYPES => join(",", keys %result_uniq )
   };
 }
 
