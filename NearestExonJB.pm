@@ -36,9 +36,9 @@ limitations under the License.
  finds the nearest exon junction boundary to a variant. More than one boundary
  may be reported if the boundaries are equidistant.
 
- The plugin will report the Ensembl identifier of the exon, the distance of the
- to the exon boundary, the boundary type (start or end of exon) and the total
- length in nucleotides of the exon.
+ The plugin will report the Ensembl identifier of the exon, the distance to the
+ exon boundary, the boundary type (start or end of exon) and the total
+ length in nucleotides of the exon. This plugin does not run in offline mode.
 
  Various parameters can be altered by passing them to the plugin command:
 
@@ -81,6 +81,8 @@ sub new {
     $CONFIG{$key} = $val;
   }
 
+  die("ERROR: This plugin does not work in --offline mode\n") if $self->{config}->{offline};
+
   return $self;
 }
 
@@ -102,12 +104,11 @@ sub run {
 
   my $vf = $tva->base_variation_feature;
   my $trv = $tva->base_transcript_variation;
-  my $loc_string = sprintf("%s:%i-%i", $vf->{chr} || $vf->seq_region_name, $vf->{start}, $vf->{end});
 
   if(!exists($self->{_cache}) || !exists($self->{_cache}->{$trv->transcript_stable_id})) {
     $self->{config}->{ea} = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, $self->{config}->{core_type}, 'Exon');
     $self->{ea} ||= $self->{config}->{ea};
-    die("ERROR: Could not get exon adaptor; this plugin does not work in --offline mode\n") unless $self->{ea};
+    die("ERROR: Could not get exon adaptor;\n") unless $self->{ea};
 
     my @exons = @{$trv->transcript->get_all_Exons};
     my %dists;
