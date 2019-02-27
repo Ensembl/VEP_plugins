@@ -38,7 +38,7 @@ limitations under the License.
 
  The plugin will report the Ensembl identifier of the exon, the distance to the
  exon boundary, the boundary type (start or end of exon) and the total
- length in nucleotides of the exon. This plugin does not run in offline mode.
+ length in nucleotides of the exon.
 
  Various parameters can be altered by passing them to the plugin command:
 
@@ -81,8 +81,6 @@ sub new {
     $CONFIG{$key} = $val;
   }
 
-  die("ERROR: This plugin does not work in --offline mode\n") if $self->{config}->{offline};
-
   return $self;
 }
 
@@ -105,12 +103,10 @@ sub run {
   my $vf = $tva->base_variation_feature;
   my $trv = $tva->base_transcript_variation;
 
-  if(!exists($self->{_cache}) || !exists($self->{_cache}->{$trv->transcript_stable_id})) {
-    $self->{config}->{ea} = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, $self->{config}->{core_type}, 'Exon');
-    $self->{ea} ||= $self->{config}->{ea};
-    die("ERROR: Could not get exon adaptor;\n") unless $self->{ea};
+  my $loc_string = sprintf("%s:%s-%i-%i", $trv->transcript_stable_id, $vf->{chr} || $vf->seq_region_name, $vf->{start}, $vf->{end});
 
-    my @exons = @{$trv->transcript->get_all_Exons};
+  if(!exists($self->{_cache}) || !exists($self->{_cache}->{$loc_string})) {
+    my @exons = @{$trv->_exons};
     my %dists;
     my $min = $CONFIG{max_range};
 
@@ -118,7 +114,7 @@ sub run {
       my @tmp = split('/',$trv->exon_number);
       my $exon = $exons[$tmp[0]-1];
       my $startD = abs ($vf->start - $exon->seq_region_start);
-      my $endD = abs ($vf->start - $exon->seq_region_end);
+      my $endD = abs ($vf->end - $exon->seq_region_end);
       if ($startD < $endD){
         $dists{$exon->stable_id}{$startD} = 'start';
         $dists{$exon->stable_id}{len} = $exon->length;
@@ -141,9 +137,9 @@ sub run {
       }
     }
 
-    $self->{_cache}->{$trv->transcript_stable_id} = scalar @finalRes ? join(",", @finalRes) : undef;
+    $self->{_cache}->{$loc_string} = scalar @finalRes ? join(",", @finalRes) : undef;
   }
-  return $self->{_cache}->{$trv->transcript_stable_id} ? { NearestExonJB => $self->{_cache}->{$trv->transcript_stable_id} } : {};
+  return $self->{_cache}->{$loc_string} ? { NearestExonJB => $self->{_cache}->{$loc_string} } : {};
 }
 
 1;
