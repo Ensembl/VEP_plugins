@@ -106,13 +106,10 @@ sub run {
   my $loc_string = sprintf("%s:%s-%i-%i", $trv->transcript_stable_id, $vf->{chr} || $vf->seq_region_name, $vf->{start}, $vf->{end});
 
   if(!exists($self->{_cache}) || !exists($self->{_cache}->{$loc_string})) {
-    my @exons = @{$trv->_exons};
+    my $exons = $trv->_overlapped_exons;
     my %dists;
     my $min = $CONFIG{max_range};
-
-    if (defined $trv->exon_number){
-      my @tmp = split('/',$trv->exon_number);
-      my $exon = $exons[$tmp[0]-1];
+    foreach my $exon (@$exons) {
       my $startD = abs ($vf->start - $exon->seq_region_start);
       my $endD = abs ($vf->end - $exon->seq_region_end);
       if ($startD < $endD){
