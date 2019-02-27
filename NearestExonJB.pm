@@ -33,8 +33,8 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- finds the nearest exon junction boundary to a variant. More than one boundary
- may be reported if the boundaries are equidistant.
+ finds the nearest exon junction boundary to a coding sequence variant. More than 
+ one boundary may be reported if the boundaries are equidistant.
 
  The plugin will report the Ensembl identifier of the exon, the distance to the
  exon boundary, the boundary type (start or end of exon) and the total
@@ -89,7 +89,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  my $header = 'Nearest Exon Junction Boundary. Format:';
+  my $header = 'Nearest Exon Junction Boundary (coding sequence variants only). Format:';
   $header .= join($char_sep, qw(ExonID distance start/end length) );
 
   return {
