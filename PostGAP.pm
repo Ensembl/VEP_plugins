@@ -27,7 +27,7 @@ Questions may also be sent to the Ensembl help desk at
 
 =head1 NAME
 
- Ensembl Post-GWAS analysis pipeline (PostGAP) - Add PostGAP data fields to the VEP output
+ PostGAP - Ensembl Post-GWAS analysis pipeline (PostGAP) - Add PostGAP data fields to the VEP output
 
 =head1 SYNOPSIS
 
