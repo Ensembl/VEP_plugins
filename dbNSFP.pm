@@ -134,8 +134,10 @@ sub new {
   my $version;
   if ($file =~ /2\.9/) {
     $version = '2.9';
-  } elsif ($file =~ /4\.0/) {
-    $version = '4.0';
+  } elsif ($file =~ /4\.0b1/) {
+    $version = '4.0.1';
+  } elsif ($file =~ /4\.0b2/) {
+    $version = '4.0.2';
   } elsif ($file =~ /3\./) {
     $version = 3;
   } else {
@@ -301,7 +303,7 @@ sub run {
     } else {
       if (exists $tmp_data->{'pos(1-based)'}) {
         $pos = $tmp_data->{'pos(1-based)'}
-      } elsif (exists $tmp_data->{'pos(1-coor)'} && $self->{dbNSFP_version} eq '4.0' ) {
+      } elsif (exists $tmp_data->{'pos(1-coor)'} && $self->{dbNSFP_version} eq '4.0.1' ) {
         $pos = $tmp_data->{'pos(1-coor)'};
       } else {
         die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38 or pos(1-coor) for dbNSFP version 4.0";
