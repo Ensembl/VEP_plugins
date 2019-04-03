@@ -76,7 +76,7 @@ sub new {
     $self->{use_database} = $self->params->[0] eq 'database';
 
     if($self->{use_database}){
-      shift($self->params);
+      shift(@{$self->params});
       my $params = $self->params;
 
       # REST API passes 1 as first param
