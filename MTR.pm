@@ -80,6 +80,7 @@ sub new {
   while(<HEAD>) {
     next unless /^\#/;
     chomp;
+    $_ =~ s/^\#//;
     $self->{headers} = [split];
   }
   close HEAD;
