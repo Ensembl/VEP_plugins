@@ -117,6 +117,9 @@ sub new {
   my $params_hash = $self->params_to_hash();
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
 
+  #for REST calls report all data (use json output flag)
+  $self->{config}->{output_format} ||= $DEFAULTS{output_format};
+
   # get output format
   if ($self->{config}->{output_format}) {
     $output_format{$self->{config}->{output_format}} = 1;
@@ -126,9 +129,6 @@ sub new {
   #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
   my $refresh = 0;
   $refresh = 1 if (exists $DEFAULTS{species} && $DEFAULTS{species} ne $self->{config}{species});
-
-  #for REST calls report all data (use json output flag)
-  $self->{config}->{output_format} ||= $DEFAULTS{output_format};
 
   unless($DEFAULTS{file} && !$refresh) {
     my $pkg = __PACKAGE__;
