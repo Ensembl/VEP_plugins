@@ -93,9 +93,11 @@ sub run {
 
     if (my $mut_aa = $tva->peptide) {
         
-        # get the peptide coordinates
-
-        my $tl_start = $tva->transcript_variation->translation_start;
+	return {} if !defined($tva->hgvs_protein);
+        
+	# get the peptide coordinates
+	
+	my $tl_start = $tva->transcript_variation->translation_start;
         my $tl_end = $tva->transcript_variation->translation_end;
 
         # and our reference sequence
