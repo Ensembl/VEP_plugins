@@ -59,7 +59,6 @@ use strict;
 use warnings;
  
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp); 
-use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line); 
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
@@ -89,7 +88,7 @@ sub get_header_info {
   
   my %header = (); 
   
-  $header{'Mastermind'} = '<Reports genomic variants that have been cited in the medical literature. URL - https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key, MMCNT1=Count of Mastermind articles with cDNA matches for this specific variant,MMCNT2=Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level, MMCNT3=Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change,MMID3=Mastermind variant identifiers, as gene:key, for MMCNT3>'; 
+  $header{'Mastermind'} = 'Reports genomic variants that have been cited in the medical literature. URL - https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key; MMCNT1=Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2=Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3=Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change; MMID3=Mastermind variant identifiers, as gene:key, for MMCNT3>'; 
 
   return \%header; 
 }
@@ -132,13 +131,14 @@ sub run {
   my $end = $vf->{end};
   my $start = $vf->{start};
   ($start, $end) = ($end, $start) if $start > $end;
+  my $consequence = $vf->consequence_type;  
 
   my @data = @{$self->get_data($new_chr, $start, $end)}; 
   
   my $result_data = '';  
   
   foreach my $data_value (@data) {
-     
+
     if($data_value->{data}) {
       my $ref_allele_comp = $ref_allele; 
       my $alt_allele_comp = $alt_allele; 
@@ -148,16 +148,22 @@ sub run {
       my $mm_ref = $data_value->{ref};
       my $mm_alt = $data_value->{alt};
 
-      if( ($ref_allele eq $mm_ref && $alt_allele eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ){ 
+      if( ($ref_allele eq $mm_ref && $alt_allele eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) { 
         
         my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;  
         my $aa_alterations = $data_value->{aa};
- 
-        foreach my $aa_alteration (@$aa_alterations){  
+
+        foreach my $aa_alteration (@$aa_alterations) {
           $aa_alteration =~ s/.*\:[A-Za-z]+//;
-          $aa_alteration =~ s/[A-Za-z]+|\*//; 
-          
-          if(defined($aa_alteration) && defined($peptide_start) && $peptide_start == $aa_alteration){
+          $aa_alteration =~ s/[A-Za-z]+|\*//;
+
+          # checks if citation refers to an UTR variant 
+          my $mm_utr = $aa_alteration =~/UTR/;
+          if($mm_utr) { 
+            $result_data = $data_value->{data};
+          }
+          # If there's a protein alteration then it only adds citations for the exact alteration cited  
+          elsif(defined($aa_alteration) && defined($peptide_start) && $peptide_start == $aa_alteration) {
             $result_data = $data_value->{data};
           } 
         } 
