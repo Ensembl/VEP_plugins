@@ -45,7 +45,7 @@ limitations under the License.
  
  vcf:
  bgzip mastermind_cited_variants_reference-XXXX.XX.XX.vcf
- tabix -p gff mastermind_cited_variants_reference-XXXX.XX.XX.vcf.gz
+ tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.vcf.gz
  
  The plugin can then be run with:
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.vcf.gz
