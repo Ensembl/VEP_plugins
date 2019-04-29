@@ -88,7 +88,7 @@ sub get_header_info {
   
   my %header = (); 
   
-  $header{'Mastermind'} = 'Reports genomic variants that have been cited in the medical literature. URL - https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key; MMCNT1=Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2=Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3=Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change; MMID3=Mastermind variant identifiers, as gene:key, for MMCNT3>'; 
+  $header{'Mastermind'} = 'Reports genomic variants that have been cited in the medical literature. URL - https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key; MMCNT1=Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2=Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3=Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change; MMID3=Mastermind variant identifiers, as gene:key, for MMCNT3'; 
 
   return \%header; 
 }
