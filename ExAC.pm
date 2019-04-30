@@ -171,7 +171,6 @@ sub run {
   
   # get allele, reverse comp if needed
   my $allele;
-  
   $allele = $tva->variation_feature_seq;
   reverse_comp(\$allele) if $vf->{strand} < 0;
   
@@ -191,6 +190,7 @@ sub run {
     !defined($self->{cache}->{$pos_string}->{$allele});
   
   my $data = {};
+  #my $matched_allele_string;
   
   # cached?
   if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
@@ -209,7 +209,7 @@ sub run {
       
       # check parsed OK
       next unless $vcf_vf && $vcf_vf->isa('Bio::EnsEMBL::Variation::VariationFeature');
-
+      
       my @vcf_alleles = split /\//, $vcf_vf->allele_string;
       my $ref_allele  = shift @vcf_alleles;
       my $vcf_vf_start = $vcf_vf->{start};
@@ -256,16 +256,21 @@ sub run {
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
               $an = shift @an if @an;
-
+              my $matched_allele_string = minimise_allele_string($ref_allele, $a);
+                  
               $total_ac += $ac;
               if ($self->{display_ac}){
                 $data->{$a}->{'ExAC_'.$ach} = $ac;
+                $data->{$matched_allele_string}->{'ExAC_'.$ach} = $ac if defined($matched_allele_string) && ($matched_allele_string eq $vf->allele_string);
               }
               if ($self->{display_an}){
                 $data->{$a}->{'ExAC_'.$anh} = $an;
+                $data->{$matched_allele_string}->{'ExAC_'.$anh} = $an if defined($matched_allele_string) && ($matched_allele_string eq $vf->allele_string);
               }
 
               $data->{$a}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an) if $an;
+              $data->{$matched_allele_string}->{'ExAC_'.$afh} = sprintf("%.3g", $ac / $an) if $an && defined($matched_allele_string) && ($matched_allele_string eq $vf->allele_string);
+              
             }
             
             # use total to get ref allele freq
@@ -286,8 +291,31 @@ sub run {
   
   # overwrite cache
   $self->{cache} = {$pos_string => $data};
-  return defined($data->{$allele}) ? $data->{$allele} : {};
+  return defined($data->{$vf->allele_string}) ? $data->{$vf->allele_string} : (defined($data->{$allele}) ? $data->{$allele} : {});
 }
+
+sub minimise_allele_string{
+  
+  my $ref = shift;
+  my $alt = shift;
+  
+  # trim from left
+  while($ref && $alt && substr($ref, 0, 1) eq substr($alt, 0, 1)) {
+    $ref = substr($ref, 1);
+    $alt = substr($alt, 1);
+  }
+  # trim from right
+  while($ref && $alt && substr($ref, -1, 1) eq substr($alt, -1, 1)) {
+    $ref = substr($ref, 0, length($ref) - 1);
+    $alt = substr($alt, 0, length($alt) - 1);
+  }
+
+  $ref ||= '-';
+  $alt ||= '-';
+  
+  return $ref . '/' . $alt;
+}
+
 
 1;
 
