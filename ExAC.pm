@@ -60,7 +60,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles trim_sequences);
 
 use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line get_slice);
 
@@ -256,7 +256,11 @@ sub run {
             foreach my $a(@vcf_alleles) {
               my $ac = shift @ac;
               $an = shift @an if @an;
-              my $matched_allele_string = minimise_allele_string($ref_allele, $a);
+              my $matched_allele_string;
+              my $trimmed_seq_hash = trim_sequences($ref_allele, $a);
+              $trimmed_seq_hash->[0] ||= '-';
+              $trimmed_seq_hash->[1] ||= '-';
+              $matched_allele_string = $trimmed_seq_hash->[0] . '/' . $trimmed_seq_hash->[1] if scalar(@{$trimmed_seq_hash}) > 2;
                   
               $total_ac += $ac;
               if ($self->{display_ac}){
@@ -293,29 +297,6 @@ sub run {
   $self->{cache} = {$pos_string => $data};
   return defined($data->{$vf->allele_string}) ? $data->{$vf->allele_string} : (defined($data->{$allele}) ? $data->{$allele} : {});
 }
-
-sub minimise_allele_string{
-  
-  my $ref = shift;
-  my $alt = shift;
-  
-  # trim from left
-  while($ref && $alt && substr($ref, 0, 1) eq substr($alt, 0, 1)) {
-    $ref = substr($ref, 1);
-    $alt = substr($alt, 1);
-  }
-  # trim from right
-  while($ref && $alt && substr($ref, -1, 1) eq substr($alt, -1, 1)) {
-    $ref = substr($ref, 0, length($ref) - 1);
-    $alt = substr($alt, 0, length($alt) - 1);
-  }
-
-  $ref ||= '-';
-  $alt ||= '-';
-  
-  return $ref . '/' . $alt;
-}
-
 
 1;
 
