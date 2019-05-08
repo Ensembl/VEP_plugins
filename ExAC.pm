@@ -190,7 +190,6 @@ sub run {
     !defined($self->{cache}->{$pos_string}->{$allele});
   
   my $data = {};
-  #my $matched_allele_string;
   
   # cached?
   if(defined($self->{cache}) && defined($self->{cache}->{$pos_string})) {
@@ -209,7 +208,7 @@ sub run {
       
       # check parsed OK
       next unless $vcf_vf && $vcf_vf->isa('Bio::EnsEMBL::Variation::VariationFeature');
-      
+
       my @vcf_alleles = split /\//, $vcf_vf->allele_string;
       my $ref_allele  = shift @vcf_alleles;
       my $vcf_vf_start = $vcf_vf->{start};
