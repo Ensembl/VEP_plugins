@@ -32,9 +32,19 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
+ This plugin is only available for GRCh37.
+
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  reports variants that have clinical evidence cited in the medical literature. 
+ 
+ The output includes three unique numbers for each variant (MMCNT1, MMCNT2, MMCNT3)
+ and one value (MMID3) to be used to build an URL which shows all articles
+ from MMCNT3. To build the URL, substitute the 'gene:key' in the following link with the
+ value from MMID3:  
+ https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key 
+  
  More information can be found at: https://www.genomenon.com/cvr/
+
 
  The following steps are necessary before running this plugin:
  
@@ -62,6 +72,8 @@ use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
+use Data::Dumper; 
+
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin); 
 
 sub new {
@@ -85,12 +97,14 @@ sub feature_types {
 }
 
 sub get_header_info {
-  
-  my %header = (); 
-  
-  $header{'Mastermind'} = 'Reports genomic variants that have been cited in the medical literature. URL - https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key; MMCNT1=Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2=Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3=Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change; MMID3=Mastermind variant identifiers, as gene:key, for MMCNT3'; 
 
-  return \%header; 
+  return{
+    'MMCNT1' => 'Count of Mastermind articles with cDNA matches for this specific variant',
+    'MMCNT2' => 'Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level',
+    'MMCNT3' => 'Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change',
+    'MMID3'  => 'Mastermind variant identifiers, as gene:key, for MMCNT3',
+  };
+
 }
 
 sub run {
@@ -135,7 +149,7 @@ sub run {
 
   my @data = @{$self->get_data($new_chr, $start, $end)}; 
   
-  my $result_data = '';  
+  my $result_data;  
   
   foreach my $data_value (@data) {
 
@@ -144,7 +158,8 @@ sub run {
       my $alt_allele_comp = $alt_allele; 
       reverse_comp(\$ref_allele_comp); 
       reverse_comp(\$alt_allele_comp);  
-      
+     
+      # Ref and alt alleles from mastermind file  
       my $mm_ref = $data_value->{ref};
       my $mm_alt = $data_value->{alt};
 
@@ -160,11 +175,11 @@ sub run {
           # checks if citation refers to an UTR variant 
           my $mm_utr = $aa_alteration =~/UTR/;
           if($mm_utr) { 
-            $result_data = $data_value->{data};
+            $result_data = $data_value->{result};
           }
           # If there's a protein alteration then it only adds citations for the exact alteration cited  
           elsif(defined($aa_alteration) && defined($peptide_start) && $peptide_start == $aa_alteration) {
-            $result_data = $data_value->{data};
+            $result_data = $data_value->{result};
           } 
         } 
       } 
@@ -173,9 +188,9 @@ sub run {
 
   }
 
-  my $result = defined($result_data) ? { 'Mastermind' => $result_data } : {}; 
-  
-  return $result;   
+  my $result = defined($result_data) ? $result_data : {};
+ 
+  return $result; 
 } 
 
 sub parse_data {
@@ -186,7 +201,18 @@ sub parse_data {
   my ($hgvs, $gene, $mmcnt1, $mmcnt2, $mmcnt3, $mmid3, $mmuri3) = split /;/, $data; 
   
   my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3; 
-  
+
+  $mmcnt1 =~ s/MMCNT1=//;
+  $mmcnt2  =~ s/MMCNT2=//;
+  $mmcnt3  =~ s/MMCNT3=//;
+  $mmid3 =~ s/MMID3=//;
+
+  my %mm_hash;
+  $mm_hash{'MMCNT1'} = $mmcnt1;
+  $mm_hash{'MMCNT2'} = $mmcnt2;
+  $mm_hash{'MMCNT3'} = $mmcnt3;
+  $mm_hash{'MMID3'}  = $mmid3;
+
   my @aa_alteration = split /,/, $mmid3;   
 
   return {
@@ -195,7 +221,8 @@ sub parse_data {
     ref    => $ref,
     alt    => $alt,
     aa     => \@aa_alteration,  
-    data   => $mm_data, 
+    data   => $mm_data,
+    result => \%mm_hash, 
   };
 }
 
