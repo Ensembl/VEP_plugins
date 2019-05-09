@@ -72,8 +72,6 @@ use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
-use Data::Dumper; 
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin); 
 
 sub new {
