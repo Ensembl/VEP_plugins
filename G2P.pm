@@ -318,15 +318,20 @@ sub new {
     $self->{config}->{reg} = $reg;
   }
 
-  my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
+  my $vdba = $self->{config}->{reg}->get_DBAdaptor($self->{config}->{species}, 'variation');
+  $vdba->dbc->reconnect_when_lost(1);
+  my $va = $vdba->get_VariationAdaptor;
   $va->db->use_vcf(1) if ($CAN_USE_HTS_PM);
   $va->db->include_failed_variations(1);
+
   $self->{config}->{va} = $va;
-  my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
+  my $pa = $vdba->get_PopulationAdaptor; 
   $self->{config}->{pa} = $pa;
-  my $vca = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'VCFCollection');
+  my $vca = $vdba->get_VCFCollectionAdaptor;
   $self->{config}->{vca} = $vca;
-  my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
+  my $cdba = $self->{config}->{reg}->get_DBAdaptor($self->{config}->{species}, 'core');
+  $cdba->dbc->reconnect_when_lost(1);
+  my $ta = $cdba->get_TranscriptAdaptor;
   $self->{config}->{ta} = $ta;
 
   # read data from file
@@ -589,7 +594,7 @@ sub read_gene_data_from_file {
             push @{$gene_data{$ensembl_gene_id}->{"allelic requirement"}}, $ar;
           }
         } else {
-          $self->write_report('log', "no ensembl gene id for $gene_symbol");
+          $self->write_report('log', "no ensembl gene id for " . join(' ', @$row));
         }
       }
     }
