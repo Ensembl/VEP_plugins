@@ -90,12 +90,13 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
 
-  my $filetype = 'individual';
   my $params = $self->params;
   
-  if(scalar(@$params) > 2 && $params->[1] eq 'all'){
-    $filetype = 'all';
+  if(scalar(@{$self->params}) < 3){
+    return $self;
   }
+  
+  my $filetype = ($params->[1] eq 'all') ? 'all' : 'individual';
   
   my $output_prefix = 'FM';
   
@@ -112,7 +113,9 @@ sub run {
 
   my ($res) = @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
-  shift $params;
+  shift $params; #Removes filename
+  
+  
   my %col_head_hash = map { $_ => 1 } @{$column_headers->{$filetype}};
   my $col_head_hashref = \%col_head_hash;
   my $output_hash = {};
