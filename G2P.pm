@@ -40,9 +40,9 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
- file                  : Path to G2P data file, as found at http://www.ebi.ac.uk/gene2phenotype/downloads
-                         The G2P data file needs to be uncompressed.
-                           
+ file                  : Path to G2P data file. The file needs to be uncompressed.
+                         - Download from http://www.ebi.ac.uk/gene2phenotype/downloads
+                         - Download from PanelApp  
 
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
@@ -95,7 +95,7 @@ limitations under the License.
  
 =cut
 
-package AF_FROM_VCF;
+package G2P;
 
 use strict;
 use warnings;
@@ -306,30 +306,39 @@ sub new {
     push @{$params->{confidence_levels}}, 'possible', @{$DEFAULTS{confidence_levels}};
   }
 
+  if ($params->{af_from_vcf}) {
+    if ($CAN_USE_HTS_PM) {
+      my $assembly =  $self->{config}->{assembly};
+      my $species =  $self->{config}->{species};
+      my $reg = $self->{config}->{reg};
+      my $vca = $reg->get_adaptor($species, 'variation', 'VCFCollection');
+      $vca->db->use_vcf(2);
+      my $vcf_collections = $vca->fetch_all;
+      my $vcf_collection_ids = {
+        GRCh37 => [qw/gnomADg_GRCh37 topmed_GRCh37 uk10k_GRCh37/],
+        GRCh38 => [qw/gnomADg_GRCh38 topmed_GRCh38 uk10k_GRCh38/],
+      };
+      my @collections = ();
+      foreach my $vcf_collection (@$vcf_collections) {
+        if ($vcf_collection->assembly eq $assembly && grep {$_ eq $vcf_collection->id} @{$vcf_collection_ids->{$assembly}}) {
+          delete $vcf_collection->adaptor->{collections};
+          delete $vcf_collection->adaptor->{config};
+          push @collections, $vcf_collection;
+        }
+      }
+      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
+      $self->{config}->{vcf_collections} = \@collections;
+      $self->{config}->{use_vcf} = 1;
+    } else {
+      warn "Cannot get data from VCF without Bio::DB::HTS::Tabix";
+    } 
+  }
+
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
 
-  my $assembly =  $self->{config}->{assembly};
-  my $species =  $self->{config}->{species};
-  my $reg = $self->{config}->{reg};
-
-  my $vca = $reg->get_adaptor($species, 'variation', 'VCFCollection');
-  $vca->db->use_vcf(2) if ($CAN_USE_HTS_PM);
-  my $vcf_collections = $vca->fetch_all;
-
-  my @grch37_vcf_collections = qw/gnomADg_GRCh37 topmed_GRCh37 uk10k_GRCh37/;
-  my @collections = ();
-  foreach my $vcf_collection (@$vcf_collections) {
-    if ($vcf_collection->assembly eq $assembly && grep {$_ eq $vcf_collection->id} @grch37_vcf_collections) {
-      push @collections, $vcf_collection;
-    }
-  }
-
-  $self->{config}->{vca} = $vca;
-  $self->{config}->{vcf_collections} = \@collections;
   $self->{config}->{frequency_threshold} = 0.005; # highest
-  $self->{config}->{use_vcf} = 1;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -350,6 +359,7 @@ sub new {
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
   $self->{cache}->{g2p_in_vcf} = {};
+
 
   return $self;
 }
