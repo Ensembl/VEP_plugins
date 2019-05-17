@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv G2P.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin G2P,file=/path/to/G2P.csv.gz
+ ./vep -i variations.vcf --plugin G2P,file=/path/to/G2P.csv
 
 =head1 DESCRIPTION
 
@@ -40,13 +40,16 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
- file                  : path to G2P data file, as found at http://www.ebi.ac.uk/gene2phenotype/downloads
+ file                  : Path to G2P data file, as found at http://www.ebi.ac.uk/gene2phenotype/downloads
+                         The G2P data file needs to be uncompressed.
+                           
 
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
  all_confidence_levels : set value to 1 to include all confidence levels: confirmed, probable and possible. 
                          Default levels are confirmed and probable. 
+                         
  af_keys               : reference populations used for annotating variant alleles with observed
                          allele frequencies. Allele frequencies are stored in VEP cache files. 
                          Default populations are:
@@ -92,11 +95,12 @@ limitations under the License.
  
 =cut
 
-package G2P;
+package AF_FROM_VCF;
 
 use strict;
 use warnings;
 
+use Data::Dumper;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
@@ -104,6 +108,7 @@ use Text::CSV;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
@@ -305,29 +310,26 @@ sub new {
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
 
-  if (!defined($self->{config}->{reg})) {
-    my $reg = 'Bio::EnsEMBL::Registry';
-    $reg->load_registry_from_db(
-      -host       => $self->config->{host},
-      -user       => $self->config->{user},
-      -port       => $self->config->{port},
-      -db_version => $self->config->{db_version},
-      -species    => $self->config->{species},
-      -no_cache   => $self->config->{no_slice_cache},
-    );
-    $self->{config}->{reg} = $reg;
+  my $assembly =  $self->{config}->{assembly};
+  my $species =  $self->{config}->{species};
+  my $reg = $self->{config}->{reg};
+
+  my $vca = $reg->get_adaptor($species, 'variation', 'VCFCollection');
+  $vca->db->use_vcf(2) if ($CAN_USE_HTS_PM);
+  my $vcf_collections = $vca->fetch_all;
+
+  my @grch37_vcf_collections = qw/gnomADg_GRCh37 topmed_GRCh37 uk10k_GRCh37/;
+  my @collections = ();
+  foreach my $vcf_collection (@$vcf_collections) {
+    if ($vcf_collection->assembly eq $assembly && grep {$_ eq $vcf_collection->id} @grch37_vcf_collections) {
+      push @collections, $vcf_collection;
+    }
   }
 
-  my $va = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'variation');
-  $va->db->use_vcf(1) if ($CAN_USE_HTS_PM);
-  $va->db->include_failed_variations(1);
-  $self->{config}->{va} = $va;
-  my $pa = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'population');
-  $self->{config}->{pa} = $pa;
-  my $vca = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'VCFCollection');
   $self->{config}->{vca} = $vca;
-  my $ta = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'core', 'transcript');
-  $self->{config}->{ta} = $ta;
+  $self->{config}->{vcf_collections} = \@collections;
+  $self->{config}->{frequency_threshold} = 0.005; # highest
+  $self->{config}->{use_vcf} = 1;
 
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
@@ -336,17 +338,14 @@ sub new {
   # force some config params
   $self->{config}->{individual} //= ['all'];
   $self->{config}->{symbol} = 1;
-
   $self->{config}->{check_existing} = 1;
   $self->{config}->{failed} = 1;
   $self->{config}->{af} = 1;
   $self->{config}->{af_1kg} = 1;
   $self->{config}->{af_esp} = 1;
   $self->{config}->{af_gnomad} = 1;
-#  $self->{config}->{sift} = 'b';
-#  $self->{config}->{polyphen} = 'b';
-#  $self->{config}->{hgvsc} = 1;
-#  $self->{config}->{hgvsp} = 1;
+  $self->{config}->{sift} = 'b';
+  $self->{config}->{polyphen} = 'b';
 
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
@@ -375,41 +374,296 @@ sub run {
   # only interested if we know the zygosity
   my $zyg = $line->{Extra}->{ZYG} || $line->{ZYG};
   return {} unless $zyg;
-
-  # only interested in given gene set
-  my $tr = $tva->transcript;
-
-  my $ensembl_gene_id = $tr->{_gene}->stable_id;
-  my $gene_symbol = $tr->{_gene_symbol} || $tr->{_gene_hgnc};
-  return {} unless $gene_symbol;
-  my $gene_data = $self->gene_data($gene_symbol);
-  if (! defined $gene_data) {
-    my $ensembl_gene_id = $tr->{_gene}->stable_id;
-    $gene_data = $self->gene_data($ensembl_gene_id);
-  }
-
-  if (!$self->{cache}->{g2p_in_vcf}->{$gene_symbol}) {
-    $self->write_report('G2P_in_vcf', $gene_symbol);
-    $self->{cache}->{g2p_in_vcf}->{$gene_symbol} = 1;
-  }
-  return {} unless defined $gene_data;
-
-  my @ars = ($gene_data->{'allelic requirement'}) ? @{$gene_data->{'allelic requirement'}} : ();
-  my %seen;
-  @ars = grep { !$seen{$_}++ } @ars;
-
-  return {} unless (@ars && ( grep { exists($allelic_requirements->{$_}) } @ars));
-  # limit by type
-  my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
-
+  return {} if (!$self->gene_overlap_filtering($tva));
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+  return {} if (!$self->frequency_filtering($tva));
 
-  # limit by MAF
-  my $threshold = 0; 
-  my ($freqs, $existing_variant, $ar_passed) = @{$self->get_freq($tva, \@ars)};
+  $self->dump_vf_annotations($tva);      
+  $self->dump_individual_annotations($tva, $zyg);
+  my $G2P_complete = $self->is_g2p_complete($tva, $zyg);
+  my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
+  my $results = {};
+  $results->{G2P_complete} = $G2P_complete if ($G2P_complete); 
+  $results->{G2P_flag} = $G2P_flag if ($G2P_flag);
+  return $results;
+}
 
-  return {} if (!keys %$ar_passed);
+sub is_valid_g2p_variant {
+  my $self = shift;
+  my $tva = shift;
+  my $zyg = shift;
+  my $transcript = $tva->transcript;
+  my $gene_stable_id = $transcript->{_gene}->stable_id;
+  my @allelic_requirements = keys %{$self->{ar}->{$gene_stable_id}};
+  my @results = ();
+  foreach my $ar (@allelic_requirements) {
+    my $ar_rules = $allelic_requirements->{$ar};
+    my $af_threshold = $ar_rules->{af};
+    if ($self->exceeds_threshold($af_threshold, [$self->{vf_cache_name}])) {
+      push @results, "$ar=$zyg";
+    }
+  }
+  return join(',', @results);
+}
 
+sub is_g2p_complete {
+  my $self = shift;
+  my $tva = shift;
+  my $zyg = shift;
+  my $vf = $tva->base_variation_feature;
+  my $individual = $vf->{individual};
+  my $transcript = $tva->transcript;
+  my $gene_stable_id = $transcript->{_gene}->stable_id;
+  my $transcript_stable_id = $transcript->stable_id; 
+  $self->{per_individual}->{$individual}->{$transcript_stable_id}->{$zyg}->{$self->{vf_cache_name}} = 1;
+  my @allelic_requirements = keys %{$self->{ar}->{$gene_stable_id}};
+  my $G2P_complete;
+  foreach my $ar (@allelic_requirements) {
+    my $zyg2var = $self->{per_individual}->{$individual}->{$transcript_stable_id};
+    my $fulfils_ar = $self->obeys_rule($ar, $zyg2var);
+    if (scalar keys %$fulfils_ar > 0) {
+      $G2P_complete .= "$ar=";
+      my @passed_variants = ();
+      foreach my $zyg (keys %$fulfils_ar) {
+        my @tmp = ();
+        foreach my $var (@{$fulfils_ar->{$zyg}}) {
+          push @tmp, "$zyg:$var";
+        }
+        push @passed_variants, join('&', @tmp);
+      }
+      $G2P_complete = "$ar=" . join(',', @passed_variants);
+    }
+  }
+  return $G2P_complete;
+} 
+
+sub obeys_rule {
+  my $self = shift;
+  my $ar = shift;
+  my $zyg2variants = shift;
+  my $ar_rules = $allelic_requirements->{$ar};
+  my $af_threshold = $ar_rules->{af};
+  my $zyg2counts = $ar_rules->{rules};
+  my $results = {};
+  foreach my $zyg (keys %$zyg2counts) {
+    my $count = $zyg2counts->{$zyg};
+    my @all_variants = keys %{$zyg2variants->{$zyg}};
+    my $variants = $self->exceeds_threshold($af_threshold, \@all_variants);
+    if (scalar @$variants >= $count) {
+      $results->{$zyg} = $variants;
+    }
+  }
+  return $results;
+}
+
+sub exceeds_threshold {
+  my $self = shift;
+  my $af_threshold = shift;
+  my $variants = shift;
+  my @pass_variants = ();
+  foreach my $variant (@$variants) {
+    if (!defined $self->{highest_frequencies}->{$variant} || $self->{highest_frequencies}->{$variant} <= $af_threshold) {
+      push @pass_variants, $variant;
+    }
+  }
+  return \@pass_variants;
+}
+
+sub gene_overlap_filtering {
+  my $self = shift;
+  my $tva = shift;
+  my $transcript = $tva->transcript;
+  my $gene = $transcript->{_gene};
+  my $gene_stable_id = $gene->stable_id;
+
+  my $pass_gene_overlap_filter = $self->{g2p_gene_cache}->{$gene_stable_id};
+  my @gene_xrefs = ();
+  if (! defined $pass_gene_overlap_filter) {
+    my $gene_symbol = $transcript->{_gene_symbol} || $transcript->{_gene_hgnc};
+    $pass_gene_overlap_filter = 0;
+    foreach my $gene_id ($gene_symbol, $gene_stable_id) {
+      my $gene_data = $self->gene_data($gene_id) if (defined $gene_id);
+      if (defined $gene_data) {
+        if (defined $gene_data->{'allelic requirement'} && scalar @{$gene_data->{'allelic requirement'}}) {
+          foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
+            $self->{ar}->{$gene_stable_id}->{$ar} = 1;
+          } 
+          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'});
+        } 
+        $self->write_report('G2P_in_vcf', $gene_stable_id);
+        $pass_gene_overlap_filter = 1;
+        last;
+      } 
+    }
+    $self->{g2p_gene_cache}->{$gene_stable_id} = $pass_gene_overlap_filter;
+  }
+  $self->_dump_transcript_annotations($transcript) if ($pass_gene_overlap_filter);
+  return $self->{g2p_gene_cache}->{$gene_stable_id};
+}
+
+sub _dump_transcript_annotations {
+  my $self = shift;
+  my $transcript = shift;
+  my $transcript_stable_id = $transcript->stable_id;
+  if (!defined $self->{g2p_transcript_cache}->{$transcript_stable_id}) {
+    my $gene = $transcript->{_gene};
+    my $gene_stable_id = $gene->stable_id;
+    if ($transcript->is_canonical) {
+      $self->write_report('G2P_transcript_data', "$gene_stable_id\t$transcript_stable_id\tis_canonical");
+    }
+    $self->{g2p_transcript_cache}->{$transcript_stable_id} = 1;
+  }
+}
+
+sub get_cache_name {
+  my $self = shift;
+  my $vf = shift;
+  my $cache_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
+  return $cache_name;
+}
+
+sub frequency_filtering {
+  my $self = shift;
+  my $tva = shift;
+
+  my $vf = $tva->base_variation_feature;
+  my $vf_cache_name = $self->get_cache_name($vf);
+  $self->{vf_cache_name} = $vf_cache_name;
+  $self->{g2p_vf_cache} = {} if (!defined $self->{g2p_vf_cache}->{$vf_cache_name});
+
+  my $pass_frequency_filter = $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
+  return $pass_frequency_filter if (defined $pass_frequency_filter);
+
+  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva);
+  if ($pass_frequency_filter && $self->{config}->{use_vcf}) {
+    $pass_frequency_filter = $self->_vcf_frequency_filtering($tva);
+  } 
+
+  $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter} = $pass_frequency_filter;
+  return $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
+}
+
+sub _vep_cache_frequency_filtering {
+  my $self = shift;
+  my $tva = shift;
+  my $allele = $tva->variation_feature_seq;
+  my $vf     = $tva->base_variation_feature;
+  my $frequency_threshold = $self->{config}->{frequency_threshold}; 
+  my $existing = $vf->{existing};
+  my @keys = @{$self->{user_params}->{af_keys}};
+  my $dumped_annotations = 0; 
+  foreach my $existing_var (@$existing) {
+    my @frequencies = grep defined, @{$existing_var}{@keys};
+    next if (!@frequencies);
+    if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold)) { 
+      return 0;
+    } else {
+      $self->_dump_existing_vf_frequencies($existing_var, $allele);
+      $self->_dump_existing_vf_annotations($existing_var);
+      $dumped_annotations = 1;
+    }
+  }
+  $self->_dump_existing_vf_annotations() if (!$dumped_annotations);
+  return 1;
+}
+
+sub _dump_existing_vf_frequencies {
+  my $self = shift;
+  my $existing_var = shift;
+  my $allele = shift;
+  my @keys = @{$self->{user_params}->{af_keys}};
+  my @frequencies = ();
+  my $higest_frequency = 0;
+  foreach my $population_name (@keys) {
+    my $af = $existing_var->{$population_name};
+    next if (!defined $af);
+    foreach my $pair (split(',', $af)) {
+      my ($a, $f) = split(':', $pair);
+      if(($a || '') eq $allele && defined($f)) {
+        push @frequencies, "$population_name=$f";
+        $higest_frequency = $f if ($f > $higest_frequency);
+      }
+    }
+  }
+  $self->store_highest_frequency($higest_frequency);
+  $self->write_report('G2P_frequencies', $self->{vf_cache_name}, \@frequencies);
+}
+
+sub _dump_existing_vf_annotations {
+  my $self = shift;
+  my $existing_var = shift;
+
+  my $data = {
+    'clin_sig' => 'NA',
+    'failed' => 'NA',
+    'existing_name' => 'NA',
+    'novel' => 'yes',
+  };
+  if ($existing_var) { 
+    $data = {
+      'clin_sig' => $existing_var->{clin_sig} || 'NA',
+      'failed' => ($existing_var->{failed}) ? 'yes' : 'no',
+      'existing_name' => $existing_var->{variation_name} || 'NA',
+      'novel' => 'no',
+    };
+  }
+  $self->write_report('G2P_existing_vf_annotations', $self->{vf_cache_name}, $data);
+}
+
+
+sub _exceeds_frequency_threshold {
+  my $self = shift;
+  my $vep_cache_frequencies = shift;
+  my $allele = shift;
+  my $threshold = shift;
+  foreach my $vep_cache_frequency (@$vep_cache_frequencies) {
+    foreach my $pair (split(',', $vep_cache_frequency)) {
+      my ($a, $f) = split(':', $pair);
+      if(($a || '') eq $allele && defined($f)) {
+        return 1 if ($f > $threshold);
+      }
+    }
+  }
+  return 0;
+}
+
+sub _vcf_frequency_filtering {
+  my $self = shift;
+  my $tva = shift;
+  my $allele = $tva->variation_feature_seq;
+  my $vf = $tva->base_variation_feature;
+  my $frequency_threshold = $self->{config}->{frequency_threshold}; 
+  foreach my $vcf_collection (@{$self->{config}->{vcf_collections}}) {
+    my @alleles = grep {$_->allele eq $allele} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
+    my @frequencies = grep {$_->frequency > $frequency_threshold} @alleles;
+    if (scalar @frequencies > 0) {
+      return 0;
+    } else {
+      $self->_dump_existing_vf_vcf(\@alleles) if (scalar @alleles); 
+    }
+  }
+  return 1;
+}
+
+sub _dump_existing_vf_vcf {
+  my $self = shift;
+  my $alleles = shift;
+  my @frequencies = map {$_->population->name . '=' . $_->frequency} @$alleles;
+  my @sorted_frequencies = sort { $a->frequency <=> $b->frequency } @$alleles;
+  $self->store_highest_frequency($sorted_frequencies[-1]->frequency);
+  $self->write_report('G2P_frequencies', $self->{vf_cache_name}, \@frequencies);
+}
+
+sub store_highest_frequency {
+  my $self = shift;
+  my $f = shift;
+  $self->{highest_frequency}->{$self->{vf_cache_name}} = $f;
+}
+
+sub dump_vf_annotations {
+  my $self = shift;
+  my $tva = shift;
+  my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   my $vf = $tva->base_variation_feature;
   my $allele = $tva->variation_feature_seq;
   my $start = $vf->{start};
@@ -417,50 +671,28 @@ sub run {
 
   my $individual = $vf->{individual};
   my $vf_name = $vf->variation_name;
-  if ($vf_name || $vf_name eq '.') {
-    $vf_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
-  }
+  my $vf_cache_name = $self->{vf_cache_name};
   my $allele_string = $vf->{allele_string};
   my @alleles = split('/', $allele_string);
-  my $ref = $alleles[0]; 
+  my $ref = $alleles[0];
   my $seq_region_name = $vf->{chr};
 
   my $params = $self->{user_params};
+  my $tr = $tva->transcript;
   my $refseq = $tr->{_refseq} || 'NA';
-  my $tr_stable_id = $tr->stable_id;
   my $hgvs_t = $tva->hgvs_transcript || 'NA';
   my $hgvs_p = $tva->hgvs_protein || 'NA';
-  
-  my ($clin_sig, $novel, $failed, $frequencies, $existing_name) = ('NA', 'yes', 'NA', 'NA', 'NA');
-  if ($existing_variant) {
-    $clin_sig = $existing_variant->{clin_sig} || 'NA';
-    $failed = ($existing_variant->{failed}) ? 'yes' : 'no';
-    $existing_name = $existing_variant->{variation_name} || 'NA';
-    $novel = 'no';
-  }
 
   my $pph_score   = (defined $tva->polyphen_score) ? $tva->polyphen_score : 'NA';
   my $pph_pred    = (defined $tva->polyphen_prediction) ? $tva->polyphen_prediction : 'NA';
   my $sift_score  = (defined $tva->sift_score) ? $tva->sift_score : 'NA';
   my $sift_pred   = (defined $tva->sift_prediction) ? $tva->sift_prediction : 'NA';
- 
-  if (scalar keys %$freqs > 0) {
-    $frequencies = join(',', map {"$_=$freqs->{$_}"} keys %$freqs);
-  }   
- 
-  my $ar = join(',', sort keys %$ar_passed);
-  my $ar_in_g2pdb = join(',', sort @ars);
+
   my $g2p_data = {
-    'zyg' => $zyg,
-    'allele_requirement' => $ar,
-    'ar_in_g2pdb' => $ar_in_g2pdb,
-    'frequencies' => $frequencies,
+    'vf_name' => $vf_name,
+    'transcript_stable_id' => $tr->stable_id,
     'consequence_types' => join(',', @consequence_types),
     'refseq' => $refseq,
-    'failed' => $failed,
-    'clin_sig' => $clin_sig, 
-    'novel' => $novel,
-    'existing_name' => $existing_name,
     'hgvs_t' => $hgvs_t,
     'hgvs_p' => $hgvs_p,
     'vf_location' => "$seq_region_name:$start-$end $ref/$allele",
@@ -469,54 +701,20 @@ sub run {
     'polyphen_score' => "$pph_score",
     'polyphen_prediction' => $pph_pred,
   };
+  $self->write_report('G2P_tva_annotations', $vf_cache_name, $tr->stable_id, $g2p_data);
+}
 
-  my %return = (
-    G2P_flag => $zyg
-  );
-
-
-  $self->write_report('G2P_flag', $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data);
-
-  $self->write_report('G2P_complete', $gene_symbol, $tr_stable_id, $individual, $vf_name, $ar, $zyg);
-
-  my $cache = $self->{cache}->{$individual}->{$tr->stable_id} ||= {};
-
-  delete $cache->{$vf_name} if exists($cache->{$vf_name});
-
-  # biallelic genes require >=1 hom or >=2 hets
-
-  my $gene_reqs = {};
-
-  foreach my $ar (keys %$ar_passed) { 
-    if($ar eq 'biallelic') {
-      # homozygous, report complete
-      if(uc($zyg) eq 'HOM') {
-        $return{G2P_complete} = 1;
-        $gene_reqs->{BI} = 1;
-      }
-      # heterozygous
-      # we need to cache that we've observed one
-      elsif(uc($zyg) eq 'HET') {
-        if(scalar keys %$cache) {
-          $return{G2P_complete} = 1;
-        }
-        $cache->{$vf_name} = 1;
-      }
-    }
-    # monoallelic genes require only one allele
-    elsif($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'hemizygous' || $ar eq 'x-linked over-dominance') {
-      $return{G2P_complete} = 1;
-      $gene_reqs->{MONO} = 1;
-    }
-    else {
-      return {};
-    }
-  }
-  if ($return{G2P_complete}) {
-    $return{G2P_gene_req} = join(',', sort keys %$gene_reqs);
-  }
-
-  return \%return;
+sub dump_individual_annotations {
+  my $self = shift;
+  my $tva = shift;
+  my $zyg = shift;
+  my $vf = $tva->base_variation_feature;
+  my $individual = $vf->{individual};
+  my $vf_cache_name = $self->{vf_cache_name};
+  my $transcript = $tva->transcript;
+  my $transcript_stable_id = $transcript->stable_id;
+  my $gene_stable_id = $transcript->{_gene_stable_id};
+  $self->write_report('G2P_individual_annotations', join("\t", $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual));
 }
 
 # read G2P CSV dump
@@ -589,7 +787,7 @@ sub read_gene_data_from_file {
             push @{$gene_data{$ensembl_gene_id}->{"allelic requirement"}}, $ar;
           }
         } else {
-          $self->write_report('log', "no ensembl gene id for $gene_symbol");
+          $self->write_report('log', "no ensembl gene id");
         }
       }
     }
@@ -622,7 +820,8 @@ sub read_gene_data_from_file {
         my $confidence_value = $tmp{"DDD category"};
         next if (!grep{$_ eq $confidence_value} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
-        $gene_data{$gene_symbol}->{"prev symbols"} = $tmp{"prev symbols"};
+        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
+        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
       }
@@ -649,211 +848,12 @@ sub synonym_mappings {
   my $gene_data = $self->{gene_data};
   my $synonym_mappings = {};
   foreach my $gene_symbol (keys %$gene_data) {
-    my $prev_symbols = $gene_data->{$gene_symbol}->{'prev symbols'};
-    if ($prev_symbols) {
-      foreach my $prev_symbol (split(';', $prev_symbols)) {
-        $synonym_mappings->{$prev_symbol} = $gene_symbol;
-      }
+    foreach my $prev_symbol (@{$gene_data->{$gene_symbol}->{'gene_xrefs'}}) {
+      $synonym_mappings->{$prev_symbol} = $gene_symbol;
     }
   }
   $self->{prev_symbol_mappings} = $synonym_mappings;
 }
-
-sub get_freq {
-  my $self = shift;
-  my $tva = shift;
-  my $ars = shift;
-  my $allele = $tva->variation_feature_seq;
-  my $vf     = $tva->base_variation_feature;
-  reverse_comp(\$allele) if $vf->{strand} < 0;
-  my $vf_name = $vf->variation_name;
-  if ($vf_name || $vf_name eq '.') {
-    $vf_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
-  }
-  my $cache = $self->{cache}->{$vf_name}->{_g2p_freqs} ||= {};
-
-  if (exists $cache->{$allele}->{failed}) {
-    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, {}];
-  }
-
-  if (exists $cache->{$allele}->{freq}) {
-    return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
-  }
-
-  if (!$vf->{existing} || ! scalar @{$vf->{existing}}) {
-    my $failed_ars = {};
-    my $freqs = {};
-    my $passed = $self->frequencies_from_VCF($freqs, $vf, $allele, $ars, $failed_ars);
-    if (!$passed) {
-      $cache->{$allele}->{failed} = 1;
-      return [{}, {}, {}];
-    } else {
-     $cache->{$allele}->{freq} = $freqs;
-     $cache->{$allele}->{ex_variant} = undef;
-     # if we get to here return all allelic requirements that passed threshold filtering
-     my $passed_ar = {};
-     foreach my $ar (@$ars) {
-      if (!$failed_ars->{$ar}) {
-        $passed_ar->{$ar} = 1;
-      }
-     }
-     $cache->{$allele}->{passed_ar} = $passed_ar;
-     return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
-    }
-  }
-
-  my @existing_variants = @{$vf->{existing}};
-  # favour dbSNP variants
-  my @dbSNP_variants = grep {$_->{variation_name} =~ /^rs/} @existing_variants;
-  if (@dbSNP_variants) {
-    @existing_variants = @dbSNP_variants;
-  }
-  foreach my $ex (@existing_variants) {
-    my $existing_allele_string = $ex->{allele_string};
-    my $variation_name = $ex->{variation_name};
-    my $freqs = {};
-    my $failed_ars = {};
-    foreach my $af_key (@{$self->{user_params}->{af_keys}}) {
-      my $freq = $self->{user_params}->{default_af};
-      if ($af_key eq 'minor_allele_freq') {
-        if (defined $ex->{minor_allele_freq}) {
-          if (($ex->{minor_allele} || '') eq $allele ) {
-            $freq = $ex->{minor_allele_freq};
-          } else {
-            $freq = $self->correct_frequency($tva, $existing_allele_string, $ex->{minor_allele}, $ex->{minor_allele_freq}, $allele, $variation_name, $af_key, $vf_name) || $freq;
-          }
-        }
-      }
-      else {
-        my @pairs = split(',', $ex->{$af_key} || '');
-        my $found = 0;
-        if (scalar @pairs == 0) {
-          $found = 1; # no allele frequency for this population/af_key available
-        }
-        foreach my $pair (@pairs) {
-          my ($a, $f) = split(':', $pair);
-          if(($a || '') eq $allele && defined($f)) {
-            $freq = $f;
-            $found = 1;
-          }
-        }
-        if (!$found) {
-          $freq = $self->correct_frequency($tva, $existing_allele_string, undef, undef, $allele, $variation_name, $af_key, $vf_name) || $freq;
-        }
-      }
-      if (!$self->continue_af_annotation($ars, $failed_ars, $freq)) {
-        # cache failed results
-        $cache->{$allele}->{failed} = 1;
-        return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, {}];
-      }
-      $freqs->{$af_key} = $freq if ($freq);
-    }
-    if ($self->{user_params}->{af_from_vcf}) {
-      my $passed = $self->frequencies_from_VCF($freqs, $vf, $allele, $ars, $failed_ars);
-      if (!$passed) {
-        $cache->{$allele}->{failed} = 1;
-        return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, {}];
-      }
-    }
-    $cache->{$allele}->{freq} = $freqs;
-    $cache->{$allele}->{ex_variant} = $ex;
-
-    # if we get to here return all allelic requirements that passed threshold filtering
-    my $passed_ar = {};
-    foreach my $ar (@$ars) {
-      if (!$failed_ars->{$ar}) {
-        $passed_ar->{$ar} = 1;
-      }
-    }
-    $cache->{$allele}->{passed_ar} = $passed_ar;
-
-  }
-
-  return [$cache->{$allele}->{freq}, $cache->{$allele}->{ex_variant}, $cache->{$allele}->{passed_ar}];
-}
-
-sub correct_frequency {
-  my ($self, $tva, $allele_string, $minor_allele, $af, $allele, $variation_name, $af_key, $vf_name) = @_;
-
-  my @existing_alleles = split('/', $allele_string);
-  if (!grep( /^$allele$/, @existing_alleles)) {
-    return 0.0;  
-  } 
-
-  if ($af_key eq 'minor_allele_freq' && (scalar @existing_alleles == 2)) {
-    my $existing_ref_allele = $existing_alleles[0];
-    my $existing_alt_allele = $existing_alleles[1];
-    if ( ($minor_allele eq $existing_ref_allele && ($allele eq $existing_alt_allele)) || 
-         ($minor_allele eq $existing_alt_allele && ($allele eq $existing_ref_allele)) ) {
-      return (1.0 - $af);
-    } 
-  } else {
-    my $va = $self->{config}->{va};
-    my $pa = $self->{config}->{pa};
-    my $variation = $va->fetch_by_name($variation_name);
-    my $af_key = $self->{user_params}->{af_keys};
-    my $population_name = $af_key_2_population_name->{$af_key};
-    if ($population_name) {
-      my $population = $self->{config}->{$population_name};
-      if (!$population) {
-        $population = $pa->fetch_by_name($population_name);
-        $self->{config}->{$population_name} = $population;
-      }
-      foreach (@{$variation->get_all_Alleles($population)}) {
-        if ($_->allele eq $allele) {
-          return $_->frequency;
-        }
-      }
-    }
-  }     
-  return 0.0;
-}
-
-sub frequencies_from_VCF {
-  my $self = shift;
-  my $freqs = shift;
-  my $vf = shift;
-  my $vf_allele = shift;
-  my $ars = shift;
-  my $failed_ars = shift;
-  return 1 if (!defined $self->{user_params}->{af_from_vcf});
-  return 1 if (!$CAN_USE_HTS_PM);
-  my $vca = $self->{config}->{vca};
-  my $collections = $vca->fetch_all;
-  foreach my $vc (@$collections) {
-    next if (! $self->{user_params}->{vcf_collection_ids}->{$vc->id});
-    my $alleles = $vc->get_all_Alleles_by_VariationFeature($vf);
-    foreach my $allele (@$alleles) {
-      if ($allele->allele eq $vf_allele) {
-        my $af_key = $allele->population->name;
-        my $freq = $allele->frequency;
-        return 0 if (!$self->continue_af_annotation($ars, $failed_ars, $freq));
-        $freqs->{$af_key} = $freq;
-      }
-    }
-  }
-  return 1;
-}
-
-sub continue_af_annotation {
-  my $self = shift;
-  my $ars = shift;
-  my $failed_ars = shift;
-  my $freq = shift;
-  foreach my $ar (@$ars) {
-    if (!$failed_ars->{$ar})  {
-      if (defined $allelic_requirements->{$ar}) {
-        my $threshold = $allelic_requirements->{$ar}->{af};
-        if ($freq > $threshold) {
-          $failed_ars->{$ar} = 1;
-        }
-      }
-    } 
-  }
-  return (scalar @$ars != scalar keys %$failed_ars);
-} 
-
-
 
 sub write_report {
   my $self = shift;
@@ -872,10 +872,30 @@ sub write_report {
     print $fh join("\t", $flag, @_), "\n";
   } elsif ($flag eq 'log') {
     print $fh join("\t", $flag, @_), "\n";
-  } else {
-    my ($gene_symbol, $tr_stable_id, $individual, $vf_name, $data) = @_;
+  } elsif ($flag eq 'G2P_gene_data') {
+    my ($gene_id, $gene_data, $gene_xrefs) = @_;
+    my $ar = join(',', @{$gene_data->{'allelic requirement'}});
+    my %seen;
+    my @unique = keys { map { $_ => 1 } @$gene_xrefs };
+    my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
+  } elsif ($flag eq 'G2P_frequencies') {
+    my ($vf_name, $frequencies) = @_;
+    print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
+  } elsif ($flag eq 'G2P_tva_annotations') {
+    my ($vf_name, $transcript_stable_id, $data) = @_;
     $data = join(';', map {"$_=$data->{$_}"} sort keys %$data);
-    print $fh join("\t", $flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $data), "\n";
+    print $fh join("\t", $flag, $vf_name, $transcript_stable_id, $data), "\n";
+  } elsif ($flag eq 'G2P_existing_vf_annotations') {
+    my ($vf_name, $data) = @_;
+    $data = join(';', map {"$_=$data->{$_}"} sort keys %$data);
+    print $fh join("\t", $flag, $vf_name, $data), "\n";
+  } elsif ($flag eq 'G2P_transcript_data') {
+    print $fh join("\t", $flag, @_), "\n";
+  } elsif ($flag eq 'G2P_individual_annotations') { 
+    print $fh join("\t", $flag, @_), "\n";
+  } else {
+    print $fh "Did not recognize flag, @_\n";
   }
   close $fh;
 }
@@ -891,9 +911,8 @@ sub generate_report {
   my $chart_txt_data = $self->chart_and_txt_data($result_summary);
   my $chart_data = $chart_txt_data->{chart_data};
   my $txt_data = $chart_txt_data->{txt_data};
-  my $canonical_transcripts = $chart_txt_data->{canonical_transcripts};
   $self->write_txt_output($txt_data);
-  $self->write_charts($result_summary, $chart_data, $canonical_transcripts);
+  $self->write_charts($result_summary, $chart_data, $result_summary->{canonical_transcripts}, $result_summary->{gene_xrefs});
 }
 
 sub write_txt_output {
@@ -922,6 +941,7 @@ sub write_charts {
   my $result_summary = shift;
   my $chart_data = shift;
   my $canonical_transcripts = shift;
+  my $gene_xrefs = shift;
 
   my $count_g2p_genes = keys %{$result_summary->{g2p_list}};
   my $count_in_vcf_file = keys %{$result_summary->{in_vcf_file}};
@@ -930,8 +950,8 @@ sub write_charts {
   my @charts = ();
   my @frequencies_header = (); 
 
-  foreach my $short_name (sort @{$self->{user_params}->{af_keys}}) {
-    my $text = $af_key_2_population_name->{$short_name};
+  foreach my $short_name (sort keys %{$self->{population_names}}) {
+    my $text = $af_key_2_population_name->{$short_name} || 'No description';
     push @frequencies_header, "<a style=\"cursor: pointer\" data-placement=\"top\" data-toggle=\"tooltip\" data-container=\"body\" title=\"$text\">$short_name</a>";
   }
 
@@ -1016,12 +1036,13 @@ SHTML
   print $fh_out $switch;
 
   foreach my $individual (sort keys %$chart_data) {
-    foreach my $gene_symbol (keys %{$chart_data->{$individual}}) {
-      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_symbol}}) {
+    foreach my $gene_id (keys %{$chart_data->{$individual}}) {
+      my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
+      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_id}}) {
         print $fh_out "<ul>\n";
-        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
+        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_id}->{$ar}}) {
           my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
-          print $fh_out "<li><a class=\"$class\" href=\"#$individual\_$gene_symbol\_$ar\_$transcript_stable_id\">" . "$individual &gt; $gene_symbol &gt; $ar &gt; $transcript_stable_id" . "</a> </li>\n";
+          print $fh_out "<li><a class=\"$class\" href=\"#$individual\_$gene_id_title\_$ar\_$transcript_stable_id\">" . "$individual &gt; $gene_id_title &gt; $ar &gt; $transcript_stable_id" . "</a> </li>\n";
         }
         print $fh_out "</ul>\n";
       }
@@ -1029,13 +1050,14 @@ SHTML
   }
 
   foreach my $individual (sort keys %$chart_data) {
-    foreach my $gene_symbol (keys %{$chart_data->{$individual}}) {
-      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_symbol}}) {
-        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_symbol}->{$ar}}) {
+    foreach my $gene_id (keys %{$chart_data->{$individual}}) {
+      my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
+      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_id}}) {
+        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_id}->{$ar}}) {
           my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
           print $fh_out "<div class=\"$class\">";
-          my $name = "$individual\_$gene_symbol\_$ar\_$transcript_stable_id";
-          my $title = "$individual &gt; $gene_symbol &gt; $ar &gt; $transcript_stable_id";
+          my $name = "$individual\_$gene_id_title\_$ar\_$transcript_stable_id";
+          my $title = "$individual &gt; $gene_id_title &gt; $ar &gt; $transcript_stable_id";
           print $fh_out "<h3><a name=\"$name\"></a>$title <a title=\"Back to Top\" data-toggle=\"tooltip\" href='#top'><span class=\"glyphicon glyphicon-arrow-up\" aria-hidden=\"true\"></span></a></h3>\n";
           print $fh_out "<div class=\"table-responsive\" style=\"width:100%\">\n";
           print $fh_out "<TABLE  class=\"table table-bordered table-condensed\" style=\"margin-left: 2em\">";
@@ -1043,7 +1065,7 @@ SHTML
           print $fh_out "<tr>" . join('', map {"<th>$_</th>"} @new_header) . "</tr>\n";
           print $fh_out "</thead>\n";
           print $fh_out "<tbody>\n";
-          foreach my $vf_data (@{$chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
+          foreach my $vf_data (@{$chart_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}) {
             my $data_row = $vf_data->[0];
             my @tds = ();
             foreach my $cell (@$data_row) {
@@ -1071,18 +1093,18 @@ SHTML
 sub chart_and_txt_data {
   my $self = shift;
   my $result_summary = shift;
-  my $individuals = $result_summary->{individuals};
   my $complete_genes = $result_summary->{complete_genes};
-  my $acting_ars = $result_summary->{acting_ars};
   my $new_order = $result_summary->{new_order};
 
-#  my @frequencies_header = sort keys $af_key_2_population_name;
-  my @frequencies_header = sort @{$self->{user_params}->{af_keys}};
+  my $tva_annotation_data = $result_summary->{tva_annotation_data};
+  my $vf_annotation_data = $result_summary->{vf_annotation_data};
+  my $frequency_data = $result_summary->{frequency_data};
+  my $canonical_transcripts = $result_summary->{canonical_transcripts};
+  my $gene2ar = $result_summary->{gene2ar};
+
+  my @frequencies_header = sort keys %{$self->{population_names}};
 
   my $assembly = $self->{config}->{assembly};
-  my $transcripts = {};
-  my $canonical_transcripts = {};
-  my $transcript_adaptor = $self->{config}->{ta};
   my $chart_data = {};
   my $txt_output_data = {};
 
@@ -1095,114 +1117,106 @@ sub chart_and_txt_data {
     'tolerated' => 'success',
   };
 
-  foreach my $individual (sort keys %$new_order) {
-    foreach my $gene_symbol (keys %{$new_order->{$individual}}) {
-      foreach my $ar (keys %{$new_order->{$individual}->{$gene_symbol}}) {
-        foreach my $transcript_stable_id (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}}) {
-          foreach my $vf_name (keys %{$new_order->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}) {
-            my $data = $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$transcript_stable_id};
 
-            my $hash = {};
-            foreach my $pair (split/;/, $data) {
-              my ($key, $value) = split('=', $pair, 2);
-              $value ||= '';
-              $hash->{$key} = $value;
-            }
-            my $vf_location = $hash->{vf_location};
-            my $existing_name = $hash->{existing_name};
-            if ($existing_name ne 'NA') {
-              $existing_name = "<a href=\"http://$assembly.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
-            }
-            my $refseq = $hash->{refseq};
-            my $failed = $hash->{failed};
-            my $clin_sign = $hash->{clin_sig};
-            my $novel = $hash->{novel};
-            my $hgvs_t = $hash->{hgvs_t};
-            my $hgvs_p = $hash->{hgvs_p};
-            my $allelic_requirement = $hash->{allele_requirement};
-            my $observed_allelic_requirement = $hash->{ar_in_g2pdb};
-            my $consequence_types = $hash->{consequence_types};
-            my $zygosity = $hash->{zyg};
-            my $sift_score = $hash->{sift_score} || '0.0';
-            my $sift_prediction = $hash->{sift_prediction};
-            my $sift = 'NA';
-            my $sift_class = '';
-            if ($sift_prediction ne 'NA') {
-              $sift = "$sift_prediction(" . "$sift_score)";
-              $sift_class = $prediction2bgcolor->{$sift_prediction};
-            }
-            my $polyphen_score = $hash->{polyphen_score} || '0.0';
-            my $polyphen_prediction = $hash->{polyphen_prediction};
-            my $polyphen = 'NA';
-            my $polyphen_class = '';
-            if ($polyphen_prediction ne 'NA') {
-              $polyphen = "$polyphen_prediction($polyphen_score)";
-              $polyphen_class =  $prediction2bgcolor->{$polyphen_prediction};
-            }
-            
-            my %frequencies_hash = ();
-            if ($hash->{frequencies} ne 'NA') {
-              %frequencies_hash = split /[,=]/, $hash->{frequencies};
-            }
-            my @frequencies = ();
-            my @txt_output_frequencies = ();
-            foreach my $population (@frequencies_header) {
-              my $frequency = $frequencies_hash{$population} || '';
-              push @frequencies, ["$frequency"];
-              if ($frequency) {
-                push @txt_output_frequencies, "$population=$frequency";
+  foreach my $individual (sort keys %$new_order) {
+
+    foreach my $gene_id (keys %{$new_order->{$individual}}) {
+      my $observed_allelic_requirement = join(',', keys %{$gene2ar->{$gene_id}});
+      foreach my $ar (keys %{$new_order->{$individual}->{$gene_id}}) {
+        foreach my $transcript_stable_id (keys %{$new_order->{$individual}->{$gene_id}->{$ar}}) {
+          my $zyg2vf = $new_order->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}; 
+          foreach my $zygosity (keys %$zyg2vf) {
+            foreach my $vf_name (@{$zyg2vf->{$zygosity}}) {
+              my $tva_data = $tva_annotation_data->{$vf_name}->{$transcript_stable_id};
+              my $vf_data = $vf_annotation_data->{$vf_name}; 
+              if (!$vf_data) {
+                print STDERR $vf_name, "\n"; 
+              } 
+              my $hash = {};
+              foreach my $pair (split/;/, "$tva_data;$vf_data") {
+                my ($key, $value) = split('=', $pair, 2);
+                $value ||= '';
+                $hash->{$key} = $value;
               }
-            }
-            my $is_canonical = 0;
-            if ($hash->{is_canonical}) {
-              $is_canonical = ($hash->{is_canonical} eq 'yes') ? 1 : 0;
-            } else {
-              if ($transcripts->{$transcript_stable_id}) {
-                $is_canonical = 1 if ($canonical_transcripts->{$transcript_stable_id});
-              } else {
-                my $transcript = $transcript_adaptor->fetch_by_stable_id($transcript_stable_id);
-                if ($transcript) {
-                  $is_canonical = $transcript->is_canonical();
-                  $transcripts->{$transcript_stable_id} = 1;
-                  $canonical_transcripts->{$transcript_stable_id} = 1 if ($is_canonical);
+              my $vf_location = $hash->{vf_location};
+              my $existing_name = $hash->{existing_name};
+              if ($existing_name ne 'NA') {
+                $existing_name = "<a href=\"http://$assembly.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
+              }
+              my $refseq = $hash->{refseq};
+              my $failed = $hash->{failed};
+              my $clin_sign = $hash->{clin_sig};
+              my $novel = $hash->{novel};
+              my $hgvs_t = $hash->{hgvs_t};
+              my $hgvs_p = $hash->{hgvs_p};
+              my $consequence_types = $hash->{consequence_types};
+              my $sift_score = $hash->{sift_score} || '0.0';
+              my $sift_prediction = $hash->{sift_prediction};
+              my $sift = 'NA';
+              my $sift_class = '';
+              if ($sift_prediction ne 'NA') {
+                $sift = "$sift_prediction(" . "$sift_score)";
+                $sift_class = $prediction2bgcolor->{$sift_prediction};
+              }
+              my $polyphen_score = $hash->{polyphen_score} || '0.0';
+              my $polyphen_prediction = $hash->{polyphen_prediction};
+              my $polyphen = 'NA';
+              my $polyphen_class = '';
+              if ($polyphen_prediction ne 'NA') {
+                $polyphen = "$polyphen_prediction($polyphen_score)";
+                $polyphen_class =  $prediction2bgcolor->{$polyphen_prediction};
+              }
+              
+              $hash->{frequencies} = join(',', keys %{$frequency_data->{$vf_name}}) || 'NA';
+              my %frequencies_hash = ();
+              if ($hash->{frequencies} ne 'NA') {
+                %frequencies_hash = split /[,=]/, $hash->{frequencies};
+              }
+              my @frequencies = ();
+              my @txt_output_frequencies = ();
+              foreach my $population (@frequencies_header) {
+                my $frequency = $frequencies_hash{$population} || '';
+                push @frequencies, ["$frequency"];
+                if ($frequency) {
+                  push @txt_output_frequencies, "$population=$frequency";
                 }
               }
-            }
-            my ($location, $alleles) = split(' ', $vf_location);
-            $location =~ s/\-/:/;
-            $alleles =~ s/\//:/;
+              my $is_canonical = ($canonical_transcripts->{$transcript_stable_id}) ? 1 : 0;
+              my ($location, $alleles) = split(' ', $vf_location);
+              $location =~ s/\-/:/;
+              $alleles =~ s/\//:/;
+              push @{$chart_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}, [[
+                [$vf_location], 
+                [$vf_name], 
+                [$existing_name], 
+                [$zygosity], 
+                [$observed_allelic_requirement],
+                [$consequence_types], 
+                [$clin_sign], 
+                [$sift, $sift_class], 
+                [$polyphen, $polyphen_class], 
+                [$novel], 
+                [$failed], 
+                @frequencies,
+                [$hgvs_t], 
+                [$hgvs_p], 
+                [$refseq] 
+              ], $is_canonical];
 
-            push @{$chart_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}}, [[
-              [$vf_location], 
-              [$vf_name], 
-              [$existing_name], 
-              [$zygosity], 
-              [$observed_allelic_requirement],
-              [$consequence_types], 
-              [$clin_sign], 
-              [$sift, $sift_class], 
-              [$polyphen, $polyphen_class], 
-              [$novel], 
-              [$failed], 
-              @frequencies,
-              [$hgvs_t], 
-              [$hgvs_p], 
-              [$refseq] 
-            ], $is_canonical];
-
-            my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
-            if (@txt_output_frequencies) {
-              $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
+              my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
+              if (@txt_output_frequencies) {
+                $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
+              }
+              $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{is_canonical} = $is_canonical;
+              $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{REQ} = $observed_allelic_requirement;
+              push @{$txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{variants}}, $txt_output_variant;
             }
-            $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{is_canonical} = $is_canonical;
-            $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{REQ} = $observed_allelic_requirement;
-            push @{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$transcript_stable_id}->{variants}}, $txt_output_variant;
           }
         }
       }
     }
   }
-  return {txt_data => $txt_output_data, chart_data => $chart_data, canonical_transcripts => $canonical_transcripts};
+  return {txt_data => $txt_output_data, chart_data => $chart_data};
 }
 
 sub parse_log_files {
@@ -1210,80 +1224,112 @@ sub parse_log_files {
 
   my $log_dir = $self->{user_params}->{log_dir}; 
   my @files = <$log_dir/*>;
-
-  my $genes = {};
-  my $individuals = {};
-  my $complete_genes = {};
-  my $g2p_list = {};
-  my $in_vcf_file = {};
-  my $cache = {};
-  my $acting_ars = {};
-
-  my $new_order = {};
+  my $individual_data = {};
+  my $frequency_data = {};
+  my $vf_annotation_data = {};
+  my $tva_annotation_data = {};
+  my $canonical_transcripts = {};
+  my $all_g2p_genes = {};
+  my $vcf_g2p_genes = {};
+  my $ar_data = {};
+  my $g2p_transcripts = {};
+  my $gene_xrefs = {};
 
   foreach my $file (@files) {
     my $fh = FileHandle->new($file, 'r');
     while (<$fh>) {
-      chomp;
-      if (/^G2P_list/) {
-        my ($flag, $gene_symbol, $DDD_category) = split/\t/;
-        $g2p_list->{$gene_symbol} = 1;
-      } elsif (/^G2P_in_vcf/) {
-        my ($flag, $gene_symbol) = split/\t/;
-        $in_vcf_file->{$gene_symbol} = 1;
-      } elsif (/^G2P_complete/) {
-        my ($flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $ars, $zyg) = split/\t/;
-        foreach my $ar (split(',', $ars)) {
-          if ($ar eq 'biallelic') {
-            # homozygous, report complete
-            if (uc($zyg) eq 'HOM') {
-              $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
-              $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
-              $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
-            }
-            # heterozygous
-            # we need to cache that we've observed one
-            elsif (uc($zyg) eq 'HET') {
-              if (scalar keys %{$cache->{$individual}->{$tr_stable_id}} >= 1) {
-                $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
-                $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
-                $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
-                # add first observed het variant to the list
-                foreach my $vf (keys %{$cache->{$individual}->{$tr_stable_id}}) {
-                  $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf} = 1;
-                }
-              }
-              $cache->{$individual}->{$tr_stable_id}->{$vf_name}++;
-            }
-          }
-          # monoallelic genes require only one allele
-          elsif ($ar eq 'monoallelic' || $ar eq 'x-linked dominant' || $ar eq 'hemizygous' || $ar eq 'x-linked over-dominance') {
-            $complete_genes->{$gene_symbol}->{$individual}->{$tr_stable_id} = 1;
-            $acting_ars->{$gene_symbol}->{$individual}->{$ar} = 1;
-            $new_order->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{$vf_name} = 1;
-          }
-        }
-      } elsif (/^G2P_flag/) {
-        my ($flag, $gene_symbol, $tr_stable_id, $individual, $vf_name, $g2p_data) = split/\t/;
-        $genes->{$gene_symbol}->{"$individual\t$vf_name"}->{$tr_stable_id} = $g2p_data;
-        $individuals->{$individual}->{$gene_symbol}->{$vf_name}->{$tr_stable_id} = $g2p_data;
-      } else {
+     chomp;
+      next if /^log/;
+      #G2P_individual_annotations  ENSG00000091140 ENST00000450038 7_107545113_T/C HOM P10
+      if (/^G2P_individual_annotations/) {
+        my ($flag, $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual) = split/\t/;
+        $individual_data->{$individual}->{$gene_stable_id}->{$transcript_stable_id}->{$zyg}->{$vf_cache_name} = 1;
+      }
 
+      elsif (/^G2P_frequencies/) {
+        my ($flag, $vf_cache_name, $frequencies) = split/\t/;
+        $frequency_data->{$vf_cache_name}->{$frequencies} = 1;
+        $self->store_population_names($frequencies);
+        my $highest_frequency = get_highest_frequency($frequencies);
+        $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
+      }
+
+      elsif (/^G2P_tva_annotations/) {
+        my ($flag, $vf_cache_name, $transcript_stable_id, $annotations) = split/\t/;
+        $tva_annotation_data->{$vf_cache_name}->{$transcript_stable_id} = $annotations;
+      }
+
+      elsif (/^G2P_existing_vf_annotations/) {
+        my ($flag, $vf_cache_name, $annotations) = split/\t/;
+        $vf_annotation_data->{$vf_cache_name} = $annotations;
+      }
+
+      elsif (/^G2P_gene_data/) {
+        my ($flag, $gene_id, $ars, $xrefs) = split/\t/;
+        foreach my $ar (split(',', $ars)) {
+          $ar_data->{$gene_id}->{$ar} = 1;
+        }
+        $gene_xrefs->{$gene_id} = $xrefs;
+      }
+
+      elsif (/^G2P_in_vcf/) {
+        my ($flag, $gene_id) = split/\t/;
+        $vcf_g2p_genes->{$gene_id} = 1;
+      }
+
+      elsif (/^G2P_transcript_data/) {
+        my ($flag, $gene_id, $transcript_id, $is_canonical) = split/\t/;
+        $canonical_transcripts->{$transcript_id} = 1;
       }
     }
-    $fh->close();
+    $fh->close;
   }
+  my $new_order = {};
+  foreach my $individual (keys %$individual_data) {
+    foreach my $gene_id (keys %{$individual_data->{$individual}}) {
+      foreach my $transcript_id (keys %{$individual_data->{$individual}->{$gene_id}}) {
+        foreach my $ar (keys %{$ar_data->{$gene_id}}) {
+          my $zyg2var = $individual_data->{$individual}->{$gene_id}->{$transcript_id};
+          my $fulfils_ar = $self->obeys_rule($ar, $zyg2var);
+          if (scalar keys %$fulfils_ar > 0) {
+            $new_order->{$individual}->{$gene_id}->{$ar}->{$transcript_id} = $fulfils_ar;
+          }
+        }
+      }
+    }
+  }
+
   return {
-    genes => $genes,
-    individuals => $individuals,
-    complete_genes => $complete_genes,
-    g2p_list => $g2p_list,
-    in_vcf_file => $in_vcf_file,
-    acting_ars => $acting_ars,
+    frequency_data => $frequency_data,
+    vf_annotation_data => $vf_annotation_data,
+    tva_annotation_data => $tva_annotation_data,
+    canonical_transcripts => $canonical_transcripts,
     new_order => $new_order,
+    gene2ar => $ar_data,
+    gene_xrefs => $gene_xrefs,
   };
 }
 
+sub get_highest_frequency {
+  my $frequencies = shift;
+  my $highest_frequency = 0;
+  foreach my $frequency_annotation (split(',', $frequencies)) {
+    my $frequency = (split('=', $frequency_annotation))[-1];
+    if ($frequency > $highest_frequency) {
+      $highest_frequency = $frequency;
+    }
+  }
+  return $highest_frequency;
+}
+
+sub store_population_names {
+  my $self = shift;
+  my $frequencies = shift;
+  foreach my $frequency_annotation (split(',', $frequencies)) {
+    my $population_name = (split('=', $frequency_annotation))[0];
+    $self->{population_names}->{$population_name} = 1;
+  }
+}
 
 sub stats_html_head {
     my $charts = shift;
@@ -1326,31 +1372,6 @@ sub stats_html_tail {
   </script>
 SHTML
   return "\n</div>\n$script\n</body>\n</html>\n";
-}
-
-sub sort_keys {
-  my $data = shift;
-  my $sort = shift;
-  print $data, "\n";
-  my @keys;
-
-  # sort data
-  if(defined($sort)) {
-    if($sort eq 'chr') {
-      @keys = sort {($a !~ /^\d+$/ || $b !~ /^\d+/) ? $a cmp $b : $a <=> $b} keys %{$data};
-    }
-    elsif($sort eq 'value') {
-      @keys = sort {$data->{$a} <=> $data->{$b}} keys %{$data};
-    }
-    elsif(ref($sort) eq 'HASH') {
-      @keys = sort {$sort->{$a} <=> $sort->{$b}} keys %{$data};
-    }
-  }
-  else {
-    @keys = keys %{$data};
-  }
-
-  return \@keys;
 }
 
 1;
