@@ -227,6 +227,9 @@ sub new {
         die("ERROR: Invalid value for af: ".$params->{$af} . "\n") unless
           looks_like_number($params->{$af}) && ($params->{$af} >= 0 && $params->{$af} <= 1)
       }
+      my $ar = $af;
+      $ar =~ s/af_//;
+      $allelic_requirements->{$ar}->{af} = $params->{$af} if (defined $params->{$af});
     }
 
     my $assembly =  $self->{config}->{assembly};
@@ -338,8 +341,7 @@ sub new {
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
 
-  $self->{config}->{frequency_threshold} = 0.005; # highest
-
+  $self->{config}->{frequency_threshold} = _get_highest_frequency_threshold();
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
   $self->synonym_mappings();
@@ -362,6 +364,16 @@ sub new {
 
 
   return $self;
+}
+
+sub _get_highest_frequency_threshold {
+  my $highest_frequency = 0.0;
+  foreach my $ar (keys %$allelic_requirements) {
+    if ($allelic_requirements->{$ar}->{af} > $highest_frequency) {
+      $highest_frequency = $allelic_requirements->{$ar}->{af};
+    }
+  }
+  return $highest_frequency;
 }
 
 sub feature_types {
