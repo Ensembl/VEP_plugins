@@ -289,7 +289,7 @@ sub new {
   my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
   $year += 1900;
   $mon++;
-  my $stamp = join('_', ($year, $mon, $mday, $hour, $min));
+  my $stamp = join('_', ($year, $mon, $mday, $hour, $min, $sec));
   my $cwd_dir = getcwd;
   my $new_log_dir = "$cwd_dir/g2p_log_dir\_$stamp";
   my $log_dir = $params->{log_dir} || $new_log_dir;
@@ -839,13 +839,13 @@ sub read_gene_data_from_file {
       else {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
+        $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
         my $confidence_value = $tmp{"DDD category"};
         next if (!grep{$_ eq $confidence_value} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
-        $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
       }
     }
     $fh->close;
@@ -933,24 +933,26 @@ sub generate_report {
   my $chart_txt_data = $self->chart_and_txt_data($result_summary);
   my $chart_data = $chart_txt_data->{chart_data};
   my $txt_data = $chart_txt_data->{txt_data};
-  $self->write_txt_output($txt_data);
+  $self->write_txt_output($txt_data, $result_summary->{gene_xrefs});
   $self->write_charts($result_summary, $chart_data, $result_summary->{canonical_transcripts}, $result_summary->{gene_xrefs});
 }
 
 sub write_txt_output {
   my $self = shift;
   my $txt_output_data = shift; 
+  my $gene_xrefs = shift;
   my $txt_output_file = $self->{user_params}->{txt_report};
   my $fh_txt = FileHandle->new($txt_output_file, 'w');
   foreach my $individual (sort keys %$txt_output_data) {
-    foreach my $gene_symbol (keys %{$txt_output_data->{$individual}}) {
-      foreach my $ar (keys %{$txt_output_data->{$individual}->{$gene_symbol}}) {
-        foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}}) {
-          my $is_canonical = $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{is_canonical};
+    foreach my $gene_id (keys %{$txt_output_data->{$individual}}) {
+      my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
+      foreach my $ar (keys %{$txt_output_data->{$individual}->{$gene_id}}) {
+        foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_id}->{$ar}}) {
+          my $is_canonical = $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$tr_stable_id}->{is_canonical};
           my $canonical_tag = ($is_canonical) ? 'is_canonical' : 'not_canonical';
-          my $req =  $txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{REQ};
-          my $variants = join(';', @{$txt_output_data->{$individual}->{$gene_symbol}->{$ar}->{$tr_stable_id}->{variants}});
-          print $fh_txt join("\t", $individual, $gene_symbol, $tr_stable_id, $canonical_tag, "OBS=$ar", "REQ=$req", $variants), "\n";
+          my $req =  $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$tr_stable_id}->{REQ};
+          my $variants = join(';', @{$txt_output_data->{$individual}->{$gene_id}->{$ar}->{$tr_stable_id}->{variants}});
+          print $fh_txt join("\t", $individual, $gene_id_title, $tr_stable_id, $canonical_tag, "OBS=$ar", "REQ=$req", $variants), "\n";
         }
       }
     }
@@ -1253,6 +1255,7 @@ sub parse_log_files {
   my $canonical_transcripts = {};
   my $all_g2p_genes = {};
   my $vcf_g2p_genes = {};
+  my $complete_genes = {};
   my $ar_data = {};
   my $g2p_transcripts = {};
   my $gene_xrefs = {};
@@ -1262,8 +1265,12 @@ sub parse_log_files {
     while (<$fh>) {
      chomp;
       next if /^log/;
+      if (/^G2P_list/) {
+        my ($flag, $gene_id, $DDD_category) = split/\t/;
+        $all_g2p_genes->{$gene_id} = 1;
+      }
       #G2P_individual_annotations  ENSG00000091140 ENST00000450038 7_107545113_T/C HOM P10
-      if (/^G2P_individual_annotations/) {
+      elsif (/^G2P_individual_annotations/) {
         my ($flag, $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual) = split/\t/;
         $individual_data->{$individual}->{$gene_stable_id}->{$transcript_stable_id}->{$zyg}->{$vf_cache_name} = 1;
       }
@@ -1314,6 +1321,7 @@ sub parse_log_files {
           my $zyg2var = $individual_data->{$individual}->{$gene_id}->{$transcript_id};
           my $fulfils_ar = $self->obeys_rule($ar, $zyg2var);
           if (scalar keys %$fulfils_ar > 0) {
+            $complete_genes->{$gene_id} = 1;
             $new_order->{$individual}->{$gene_id}->{$ar}->{$transcript_id} = $fulfils_ar;
           }
         }
@@ -1329,6 +1337,9 @@ sub parse_log_files {
     new_order => $new_order,
     gene2ar => $ar_data,
     gene_xrefs => $gene_xrefs,
+    in_vcf_file => $vcf_g2p_genes,
+    complete_genes => $complete_genes,
+    g2p_list => $all_g2p_genes,
   };
 }
 
