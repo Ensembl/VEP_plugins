@@ -327,7 +327,7 @@ sub new {
   $self->{config}->{va} = $va;
   my $pa = $vdba->get_PopulationAdaptor; 
   $self->{config}->{pa} = $pa;
-  my $vca = $vdba->get_VCFCollectionAdaptor;
+  my $vca = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, 'variation', 'vcfcollection');
   $self->{config}->{vca} = $vca;
   my $cdba = $self->{config}->{reg}->get_DBAdaptor($self->{config}->{species}, 'core');
   $cdba->dbc->reconnect_when_lost(1);
