@@ -100,7 +100,6 @@ package G2P;
 use strict;
 use warnings;
 
-use Data::Dumper;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
@@ -108,7 +107,6 @@ use Text::CSV;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
