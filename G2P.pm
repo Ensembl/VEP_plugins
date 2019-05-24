@@ -327,8 +327,7 @@ sub new {
   $self->{config}->{va} = $va;
   my $pa = $vdba->get_PopulationAdaptor; 
   $self->{config}->{pa} = $pa;
-  my $vca = $vdba->get_VCFCollectionAdaptor;
-  $self->{config}->{vca} = $vca;
+  $self->{config}->{vca} = $vdba->get_VCFCollectionAdaptor if ($CAN_USE_HTS_PM);
   my $cdba = $self->{config}->{reg}->get_DBAdaptor($self->{config}->{species}, 'core');
   $cdba->dbc->reconnect_when_lost(1);
   my $ta = $cdba->get_TranscriptAdaptor;
