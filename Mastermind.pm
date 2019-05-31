@@ -50,12 +50,18 @@ limitations under the License.
  Download and Registry (free):  
  https://www.genomenon.com/cvr/ 
  
- Prepare vcf:
- bgzip mastermind_cited_variants_reference-XXXX.XX.XX.vcf
- tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.vcf.gz
+ GRCh37 VCF:
+ unzip mastermind_cited_variants_reference-XXXX.XX.XX-grch37-vcf.zip
+ bgzip mastermind_cited_variants_reference-XXXX.XX.XX-GRCh37-vcf
+ tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.GRCh37-vcf.gz
+
+ GRCh38 VCF:
+ unzip mastermind_cited_variants_reference-XXXX.XX.XX-grch38-vcf.zip
+ bgzip mastermind_cited_variants_reference-XXXX.XX.XX-GRCh38-vcf
+ tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.GRCh38-vcf.gz
  
  The plugin can then be run with:
- ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.vcf.gz
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
 
 
 =cut
