@@ -203,8 +203,9 @@ sub run {
 
   my $vf = $tva->variation_feature;
 
+  my ($start, $end) = ($vf->{start}, $vf->{end});
   # adjust coords for tabix
-  my ($start, $end) = ($vf->{start} - 1, $vf->{end});
+  ($start, $end) = ($vf->{start} - 1 , $vf->{end}) if ($vf->{start} > $vf->{end});
 
   my $data = $self->get_data($vf->{chr}, $start, $end);
 
