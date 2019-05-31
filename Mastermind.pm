@@ -32,10 +32,9 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- This plugin is only available for GRCh37.
-
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- reports variants that have clinical evidence cited in the medical literature. 
+ reports variants that have clinical evidence cited in the medical literature.
+ It is available for both GRCh37 and GRCh38. 
  
  The output includes three unique numbers for each variant (MMCNT1, MMCNT2, MMCNT3)
  and one value (MMID3) to be used to build an URL which shows all articles
@@ -47,13 +46,11 @@ limitations under the License.
 
 
  The following steps are necessary before running this plugin:
- 
- GRCh37:
- 
- Download and Registry (free) 
+  
+ Download and Registry (free):  
  https://www.genomenon.com/cvr/ 
  
- vcf:
+ Prepare vcf:
  bgzip mastermind_cited_variants_reference-XXXX.XX.XX.vcf
  tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.vcf.gz
  
