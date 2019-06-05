@@ -249,11 +249,7 @@ sub generate_phenotype_gff {
 
   while(my $row = $sth->fetchrow_arrayref()) {
     # swap start end for insertions
-    if (@$row[3] > @$row[4]) {
-      my $tmp = @$row[3];
-      @$row[3] = @$row[4];
-      @$row[4] = $tmp;
-    }
+    @$row[3,4] = @$row[4,3] if (@$row[3] > @$row[4]);
     print OUT join("\t", map {defined($_) ? $_ : '.'} @$row)."\n";
   }
 
