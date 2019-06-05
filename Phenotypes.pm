@@ -145,12 +145,12 @@ sub new {
       $dir =~ s/\/?$/\//; #ensure dir path string ends in slash
       if( $species eq 'homo_sapiens' || $species eq 'human'){
         $assembly ||= $config->{human_assembly};
-        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $dir.$pkg, $species, $version, $assembly);
+        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.gvf.gz", $dir.$pkg, $species, $version, $assembly);
       } else {
-        $DEFAULTS{file} = sprintf("%s_%s_%i.bed.gz", $dir.$pkg, $species, $version);
+        $DEFAULTS{file} = sprintf("%s_%s_%i.gvf.gz", $dir.$pkg, $species, $version);
       }
     } else { #assembly value will be automatically populated by VEP script but not by REST server
-      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.gvf.gz", $INC{$pkg}, $species, $version, $assembly);
     }
     $DEFAULTS{species} = $species;
   }
@@ -245,8 +245,15 @@ sub generate_phenotype_gff {
   close LOCK;
 
   open OUT, " | bgzip -c > $file" or die "ERROR: Unable to write to file $file\n";
+  print OUT "##gvf-version 1.10\n"; #HEADER
 
   while(my $row = $sth->fetchrow_arrayref()) {
+    # swap start end for insertions
+    if (@$row[3] > @$row[4]) {
+      my $tmp = @$row[3];
+      @$row[3] = @$row[4];
+      @$row[4] = $tmp;
+    }
     print OUT join("\t", map {defined($_) ? $_ : '.'} @$row)."\n";
   }
 
@@ -269,8 +276,9 @@ sub run {
   my $vf = $tva->variation_feature;
   
   # adjust coords for tabix
-  my ($s, $e) = ($vf->{start} - 1, $vf->{end});
-  
+  my ($s, $e) = ($vf->{start}, $vf->{end});
+  ($s, $e) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end}); # swap for insertions
+
   my $data = $self->get_data($vf->{chr}, $s, $e);
 
   return {} unless $data && scalar @$data;
