@@ -238,6 +238,8 @@ sub generate_phenotype_gff {
   $sth->execute();
 
   print STDERR "### Phenotypes plugin: Writing to file\n" unless $config->{quiet};
+  my $file_sorted = $file;
+  $file .= ".tmp";
 
   my $lock = "$file\.lock";
   open LOCK, ">$lock" or die "ERROR: Unable to write to lock file $lock\n";
@@ -259,9 +261,13 @@ sub generate_phenotype_gff {
 
   $sth->finish();
 
+  print STDERR "### Phenotypes plugin: Sorting file with sort\n" unless $config->{quiet};
+
+  system("(zgrep '^#' $file;  zgrep -v '^#' $file | sort -k1,1 -k4,4n ) | bgzip -c > $file_sorted") and die("ERROR: sort failed\n");
+
   print STDERR "### Phenotypes plugin: Indexing file with tabix\n" unless $config->{quiet};
 
-  system("tabix -p gff $file") and die("ERROR: tabix failed\n");
+  system("tabix -p gff $file_sorted") and die("ERROR: tabix failed\n");
 
   print STDERR "### Phenotypes plugin: All done!\n" unless $config->{quiet};
 }
