@@ -715,7 +715,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/97/Phenotypes.pm",
       "params" => [
-        #"/path/to/Phenotypes_data_files/phenotypes_dir_with_dumps_for_all_species.bed.gz"
+        #"/path/to/Phenotypes_data_files/phenotypes_dir_with_dumps_for_all_species.gvf.gz"
       ]
     },
 
