@@ -145,12 +145,12 @@ sub new {
       $dir =~ s/\/?$/\//; #ensure dir path string ends in slash
       if( $species eq 'homo_sapiens' || $species eq 'human'){
         $assembly ||= $config->{human_assembly};
-        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $dir.$pkg, $species, $version, $assembly);
+        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.gvf.gz", $dir.$pkg, $species, $version, $assembly);
       } else {
-        $DEFAULTS{file} = sprintf("%s_%s_%i.bed.gz", $dir.$pkg, $species, $version);
+        $DEFAULTS{file} = sprintf("%s_%s_%i.gvf.gz", $dir.$pkg, $species, $version);
       }
     } else { #assembly value will be automatically populated by VEP script but not by REST server
-      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.bed.gz", $INC{$pkg}, $species, $version, $assembly);
+      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.gvf.gz", $INC{$pkg}, $species, $version, $assembly);
     }
     $DEFAULTS{species} = $species;
   }
@@ -238,6 +238,8 @@ sub generate_phenotype_gff {
   $sth->execute();
 
   print STDERR "### Phenotypes plugin: Writing to file\n" unless $config->{quiet};
+  my $file_sorted = $file;
+  $file .= ".tmp";
 
   my $lock = "$file\.lock";
   open LOCK, ">$lock" or die "ERROR: Unable to write to lock file $lock\n";
@@ -245,8 +247,11 @@ sub generate_phenotype_gff {
   close LOCK;
 
   open OUT, " | bgzip -c > $file" or die "ERROR: Unable to write to file $file\n";
+  print OUT "##gvf-version 1.10\n"; #HEADER
 
   while(my $row = $sth->fetchrow_arrayref()) {
+    # swap start end for insertions
+    @$row[3,4] = @$row[4,3] if (@$row[3] > @$row[4]);
     print OUT join("\t", map {defined($_) ? $_ : '.'} @$row)."\n";
   }
 
@@ -256,9 +261,13 @@ sub generate_phenotype_gff {
 
   $sth->finish();
 
+  print STDERR "### Phenotypes plugin: Sorting file with sort\n" unless $config->{quiet};
+
+  system("(zgrep '^#' $file;  zgrep -v '^#' $file | sort -k1,1 -k4,4n ) | bgzip -c > $file_sorted") and die("ERROR: sort failed\n");
+
   print STDERR "### Phenotypes plugin: Indexing file with tabix\n" unless $config->{quiet};
 
-  system("tabix -p gff $file") and die("ERROR: tabix failed\n");
+  system("tabix -p gff $file_sorted") and die("ERROR: tabix failed\n");
 
   print STDERR "### Phenotypes plugin: All done!\n" unless $config->{quiet};
 }
@@ -269,8 +278,9 @@ sub run {
   my $vf = $tva->variation_feature;
   
   # adjust coords for tabix
-  my ($s, $e) = ($vf->{start} - 1, $vf->{end});
-  
+  my ($s, $e) = ($vf->{start}, $vf->{end});
+  ($s, $e) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end}); # swap for insertions
+
   my $data = $self->get_data($vf->{chr}, $s, $e);
 
   return {} unless $data && scalar @$data;
