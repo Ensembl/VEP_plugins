@@ -392,7 +392,7 @@ sub run {
   my ($self, $tva, $line) = @_;
 
   # only interested if we know the zygosity
-  my $zyg = $line->{Extra}->{ZYG} || $line->{ZYG};
+  my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
   return {} if (!$self->gene_overlap_filtering($tva));
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
