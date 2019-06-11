@@ -73,7 +73,7 @@ limitations under the License.
  expand_right   : sets cache size in bp. By default annotations 100000bp (100kb)
                   downstream of the initial lookup are cached
 
-phenotype_feature : remport also the specific gene or variation the phenotype is
+ phenotype_feature : report the specific gene or variation the phenotype is
                   linked to, this can be an overlapping gene or structural variation,
                   and the source of the annotation (default 0)
 
@@ -166,6 +166,10 @@ sub new {
 
 sub feature_types {
   return ['Feature','Intergenic'];
+}
+
+sub variant_feature_types {
+  return ['BaseVariationFeature'];
 }
 
 sub get_header_info {
@@ -273,9 +277,9 @@ sub generate_phenotype_gff {
 }
 
 sub run {
-  my ($self, $tva) = @_;
+  my ($self, $bvfo) = @_;
   
-  my $vf = $tva->variation_feature;
+  my $vf = $bvfo->base_variation_feature;
   
   # adjust coords for tabix
   my ($s, $e) = ($vf->{start}, $vf->{end});
