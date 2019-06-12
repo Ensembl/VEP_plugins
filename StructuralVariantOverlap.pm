@@ -94,6 +94,9 @@ sub new {
 
 
   ## get/set optional parameters
+  die "ERROR: StructuralVariantOverlap match type : ". $params_hash->{match_type} . "not recognised . Select within or surrounding\n"
+    if defined  $params_hash->{match_type} && $params_hash->{match_type} !~/^within$|^surrounding$/;
+
   $self->{distance}   = $params_hash->{distance} ? $params_hash->{distance} : undef;
   $self->{match_type} = $params_hash->{match_type} ? $params_hash->{match_type} : undef ;
   $self->{required_percent_olap} = $params_hash->{percentage} ? $params_hash->{percentage} : 80;
