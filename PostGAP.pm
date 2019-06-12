@@ -36,7 +36,7 @@ Questions may also be sent to the Ensembl help desk at
 
 =head1 DESCRIPTION
 
-A VEP plugin that retrieves data for variants from a tabix-indexed PostGAP file.
+A VEP plugin that retrieves data for variants from a tabix-indexed PostGAP file (1-based file).
 
 Please refer to the PostGAP github and wiki for more information:
 https://github.com/Ensembl/postgap
@@ -204,8 +204,8 @@ sub run {
   my $vf = $tva->variation_feature;
 
   my ($start, $end) = ($vf->{start}, $vf->{end});
-  # adjust coords for tabix
-  ($start, $end) = ($vf->{start} - 1 , $vf->{end}) if ($vf->{start} > $vf->{end});
+  # adjust coords for insertions
+  ($start, $end) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end});
 
   my $data = $self->get_data($vf->{chr}, $start, $end);
 
