@@ -289,31 +289,36 @@ sub run {
 
   return {} unless $data && scalar @$data;
 
-  return { PHENOTYPES =>  $data } if ($output_format{'json'});
+  return { PHENOTYPES =>  $data } if ($output_format{'json'} && !$DEFAULTS{phenotype_feature});
 
   if ($DEFAULTS{phenotype_feature}){
-    my %result_uniq;
+    my %tmp_res_uniq;
     my @result_str = ();
+    my @result_data = ();
 
     foreach my $tmp_data(@{$data}) {
-      # get required data
-      my %tmp_return =
-        map {$_ => $tmp_data->{$_}}
-        grep {defined($cols{$_})}  # only include selected cols
-        keys %$tmp_data;
+      # delete not selected columns
+      map {delete $tmp_data->{$_}} grep {!defined($cols{$_})} keys %$tmp_data;
 
-      # replace link characters with _
-      $tmp_return{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/;
+      if (!$output_format{'json'}) {
+        # replace link characters with _
+        $tmp_data->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/;
 
-      # report only unique set of fields
-      my $record_line = join(",", values %tmp_return);
-      next if defined $result_uniq{$record_line};
-      $result_uniq{$record_line} = 1;
+        # report only unique set of fields
+        my $record_line = join(",", values %$tmp_data);
+        next if defined $tmp_res_uniq{$record_line};
+        $tmp_res_uniq{$record_line} = 1;
 
-      push(@result_str, join($char_sep, @tmp_return{@fields_order}));
+        push(@result_str, join($char_sep, @$tmp_data{@fields_order}));
+      }
+
+      push @result_data, $tmp_data;
     }
 
-    return { PHENOTYPES => \@result_str };
+    # output options: phenotype_feature + json OR phenotype_feature + vep|vcf|tab
+    return {
+      PHENOTYPES => defined($output_format{'json'}) ? \@result_data : \@result_str
+    };
   }
 
   my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/; $_->{phenotype}} @$data;
