@@ -242,6 +242,7 @@ sub fasta_db {
 sub get_sr_name {
   my $self = shift;
   my $sr_name = shift;
+  my $new_sr_name = $sr_name;
 
   my $map = $self->fasta_name_map;
   my $fasta_db = $self->fasta_db;
@@ -252,13 +253,13 @@ sub get_sr_name {
     ) {
       if($map->{$alt}) {
         print STDERR "USING SYNONYM $alt FOR $sr_name\n" if $DEBUG;
-        $sr_name = $alt;
+        $new_sr_name = $alt;
         last;
       }
     }
   }
 
-  return $map->{$sr_name} || undef;
+  return $map->{$new_sr_name} || undef;
 }
 
 sub fasta_name_map {
