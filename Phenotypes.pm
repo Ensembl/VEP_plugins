@@ -190,6 +190,7 @@ sub generate_phenotype_gff {
   }
 
   my $pfa = $self->{config}->{reg}->get_adaptor($config->{species}, 'variation', 'phenotypefeature');
+  die ("ERROR: no variation db found, please check that it exists for this release \n") unless defined $pfa;
 
   print STDERR "### Phenotypes plugin: Querying database\n" unless $config->{quiet};
 
