@@ -1212,7 +1212,9 @@ sub parse_log_files {
         $frequency_data->{$vf_cache_name}->{$frequencies} = 1;
         $self->store_population_names($frequencies);
         my $highest_frequency = get_highest_frequency($frequencies);
-        $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
+        if (!defined  $self->{highest_frequencies}->{$vf_cache_name} || $self->{highest_frequencies}->{$vf_cache_name} <= $highest_frequency) {
+          $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
+        }
       }
 
       elsif (/^G2P_tva_annotations/) {
