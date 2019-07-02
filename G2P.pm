@@ -50,24 +50,19 @@ limitations under the License.
  all_confidence_levels : set value to 1 to include all confidence levels: confirmed, probable and possible. 
                          Default levels are confirmed and probable. 
                          
- af_keys               : reference populations used for annotating variant alleles with observed
-                         allele frequencies. Allele frequencies are stored in VEP cache files. 
-                         Default populations are:
-                         ESP: AA, EA
-                         1000 Genomes: AFR, AMR, EAS, EUR, SAS 
-                         gnomAD exomes: gnomAD, gnomAD_AFR, gnomAD_AMR, gnomAD_ASJ, gnomAD_EAS, gnomAD_FIN, gnomAD_NFE, gnomAD_OTH, gnomAD_SAS 
-                         Separate multiple values with '&'
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
                          Specifiy the list of reference populations to include with --af_from_vcf_keys    
- af_from_vcf_keys      : reference populations used for annotating variant alleles with observed
+ af_from_vcf_keys      : VCF collections used for annotating variant alleles with observed
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
-                         af_from_vcf is set to 1 but no populations specified with --af_from_vcf_keys
-                         all available reference populations are included. 
-                         TOPmed: TOPMed
-                         UK10K: ALSPAC, TWINSUK
-                         gnomAD exomes: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
-                         gnomAD genomes: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                         af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
+                         all available VCF collections are included. 
+                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg
                          Separate multiple values with '&'
+                         VCF collections contain the following populations: 
+                         topmed: TOPMed
+                         uk10k: ALSPAC, TWINSUK
+                         gnomADe: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
+                         gnomADg: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
@@ -88,9 +83,9 @@ limitations under the License.
 
  Example:
 
- --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_keys=AA&gnomAD_ASJ,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
  --plugin G2P,file=G2P.csv
  
 =cut
@@ -122,13 +117,12 @@ BEGIN {
 my %DEFAULTS = (
 
   # vars must have a frequency <= to this to pass
-  af => 0.001,
   af_monoallelic => 0.0001,
   af_biallelic => 0.005, 
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
-  af_from_vcf_keys => [qw(ALSPAC TOPMed TWINSUK gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -153,34 +147,14 @@ my $af_key_2_population_name = {
   AA => 'Exome Sequencing Project 6500:African_American',
   EA => 'Exome Sequencing Project 6500:European_American',
   gnomAD => 'Genome Aggregation Database:Total',
-  gnomAD_AFR => 'Genome Aggregation Database exomes:African/African American',
-  gnomAD_AMR => 'Genome Aggregation Database exomes:Latino',
-  gnomAD_ASJ => 'Genome Aggregation Database exomes:Ashkenazi Jewish',
-  gnomAD_EAS => 'Genome Aggregation Database exomes:East Asian',
-  gnomAD_FIN => 'Genome Aggregation Database exomes:Finnish',
-  gnomAD_NFE => 'Genome Aggregation Database exomes:Non-Finnish European',
-  gnomAD_OTH => 'Genome Aggregation Database exomes:Other (population not assigned)',
-  gnomAD_SAS => 'Genome Aggregation Database exomes:South Asian',
-  ALSPAC => 'UK10K:ALSPAC cohort',
-  TOPMed => 'Trans-Omics for Precision Medicine (TOPMed) Program',
-  TWINSUK => 'UK10K:TWINSUK cohort',
-  'gnomADe:AFR' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:ALL' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:AMR' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:ASJ' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:EAS' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:FIN' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:NFE' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:OTH' => 'Genome Aggregation Database exomes v170228',
-  'gnomADe:SAS' => 'Genome Aggregation Database exomes v170228',
-  'gnomADg:AFR' => 'Genome Aggregation Database genomes v170228:African/African American',
-  'gnomADg:ALL' => 'Genome Aggregation Database genomes v170228:All gnomAD genomes individuals',
-  'gnomADg:AMR' => 'Genome Aggregation Database genomes v170228:Latino',
-  'gnomADg:ASJ' => 'Genome Aggregation Database genomes v170228:Ashkenazi Jewish',
-  'gnomADg:EAS' => 'Genome Aggregation Database genomes v170228:East Asian',
-  'gnomADg:FIN' => 'Genome Aggregation Database genomes v170228:Finnish',
-  'gnomADg:NFE' => 'Genome Aggregation Database genomes v170228:Non-Finnish European',
-  'gnomADg:OTH' => 'Genome Aggregation Database genomes v170228:Other (population not assigned)',
+  gnomAD_AFR => 'Genome Aggregation Database exomes v2.1:African/African American',
+  gnomAD_AMR => 'Genome Aggregation Database exomes v2.1:Latino/Admixed American',
+  gnomAD_ASJ => 'Genome Aggregation Database exomes v2.1:Ashkenazi Jewish',
+  gnomAD_EAS => 'Genome Aggregation Database exomes v2.1:East Asian',
+  gnomAD_FIN => 'Genome Aggregation Database exomes v2.1:Finnish',
+  gnomAD_NFE => 'Genome Aggregation Database exomes v2.1:Non-Finnish European',
+  gnomAD_OTH => 'Genome Aggregation Database exomes v2.1:Other (population not assigned)',
+  gnomAD_SAS => 'Genome Aggregation Database exomes v2.1:South Asian',
 };
 
 my $allelic_requirements = {
@@ -193,16 +167,12 @@ my $allelic_requirements = {
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
 
-my @population_wide = qw(minor_allele_freq AA AFR ALSPAC AMR EA EAS EUR SAS TOPMed TWINSUK gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS gnomADe:AFR gnomADe:ALL gnomADe:AMR gnomADe:ASJ gnomADe:EAS gnomADe:FIN gnomADe:NFE gnomADe:OTH gnomADe:SAS gnomADg:AFR gnomADg:ALL gnomADg:AMR gnomADg:ASJ gnomADg:EAS gnomADg:FIN gnomADg:NFE gnomADg:OTH);
-
 sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
 # suppress warnings that the FeatureAdpators spit if using no_slice_cache
   Bio::EnsEMBL::Utils::Exception::verbose(1999);
-
-  my $supported_af_keys = { map {$_ => 1} @population_wide }; 
 
   my $params = $self->params_to_hash();
   my $file = '';
@@ -230,58 +200,7 @@ sub new {
       $allelic_requirements->{$ar}->{af} = $params->{$af} if (defined $params->{$af});
     }
 
-    my $assembly =  $self->{config}->{assembly};
-    my $af_from_vcf_key_2_collection_id = {
-      ALSPAC => {GRCh37 => 'uk10k_GRCh37', GRCh38 => 'uk10k_GRCh38'},
-      TOPMed => {GRCh37 => 'topmed_GRCh37', GRCh38 => 'topmed_GRCh38'},
-      TWINSUK =>  {GRCh37 => 'uk10k_GRCh37', GRCh38 => 'uk10k_GRCh38'},
-      'gnomADe:AFR' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:ALL' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:AMR' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:ASJ' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:EAS' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:FIN' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:NFE' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:OTH' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADe:SAS' => {GRCh37 => 'gnomADe_GRCh37', GRCh38 => 'gnomADe_GRCh38'},
-      'gnomADg:AFR' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:ALL' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:AMR' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:ASJ' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:EAS' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:FIN' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:NFE' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-      'gnomADg:OTH' => {GRCh37 => 'gnomADg_GRCh37', GRCh38 => 'gnomADg_GRCh38'},
-    };
-
-    my @keys = ();
-    my $vcf_collection_ids = {};
-    if ($params->{af_keys}) {
-      push @keys, $params->{af_keys};
-    } else {
-      push @keys, @{$DEFAULTS{af_keys}};
-    }
-    if ($params->{af_from_vcf}) {
-      if ($params->{af_from_vcf_keys}) {
-        push @keys, $params->{af_from_vcf_keys};
-      } else {
-        push @keys, @{$DEFAULTS{af_from_vcf_keys}};
-      }
-    }
-    
-    my @af_keys = ();
-    foreach my $af_key_set (@keys) {
-      foreach my $af_key (split(/[\;\&\|]/, $af_key_set)) {
-        die("ERROR: af_key: " . $af_key . " not supported. Check plugin documentation for supported af_keys.\n") unless $supported_af_keys->{$af_key};
-        push @af_keys, $af_key;
-        if ($af_from_vcf_key_2_collection_id->{$af_key}) {
-          
-          $vcf_collection_ids->{$af_from_vcf_key_2_collection_id->{$af_key}->{$assembly}} = 1;
-        }
-      }
-    }
-    $params->{af_keys} = \@af_keys;
-    $params->{vcf_collection_ids} = $vcf_collection_ids;
+    $params->{af_keys} = \@{$DEFAULTS{af_keys}};
   }
 
   my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
@@ -309,21 +228,36 @@ sub new {
 
   if ($params->{af_from_vcf}) {
     if ($CAN_USE_HTS_PM) {
+      my @vcf_collection_ids = ();
       my $assembly =  $self->{config}->{assembly};
+      if ($params->{af_from_vcf_keys}) {
+        foreach my $key (split(/[\;\&\|]/, @{$params->{af_from_vcf_keys}})) {
+          push @vcf_collection_ids, $key;
+          push @vcf_collection_ids, "$key\_$assembly";
+        }
+      } else {
+        foreach my $key (@{$DEFAULTS{af_from_vcf_keys}}) {
+          push @vcf_collection_ids, "$key\_$assembly";
+        }
+      }
+
       my $species =  $self->{config}->{species};
       my $reg = $self->{config}->{reg};
       my $vca = $reg->get_adaptor($species, 'variation', 'VCFCollection');
       $vca->db->use_vcf(2);
       my $vcf_collections = $vca->fetch_all;
-      my $vcf_collection_ids = {
-        GRCh37 => [qw/gnomADg_GRCh37 topmed_GRCh37 uk10k_GRCh37/],
-        GRCh38 => [qw/gnomADg_GRCh38 topmed_GRCh38 uk10k_GRCh38/],
-      };
       my @collections = ();
       foreach my $vcf_collection (@$vcf_collections) {
-        if ($vcf_collection->assembly eq $assembly && grep {$_ eq $vcf_collection->id} @{$vcf_collection_ids->{$assembly}}) {
+        my $vcf_collection_id = $vcf_collection->id;
+        if ($vcf_collection->assembly eq $assembly && grep {$_ =~ /$vcf_collection_id/i} @vcf_collection_ids) {
           delete $vcf_collection->adaptor->{collections};
           delete $vcf_collection->adaptor->{config};
+          my $description = $vcf_collection->description || $vcf_collection_id;
+          foreach my $population (@{$vcf_collection->get_all_Populations})  {
+            my $population_name = $population->name;
+            my $population_description = $population->description;    
+            $af_key_2_population_name->{$population_name} = "$description $population_name $population_description";
+          }
           push @collections, $vcf_collection;
         }
       }
@@ -1278,7 +1212,9 @@ sub parse_log_files {
         $frequency_data->{$vf_cache_name}->{$frequencies} = 1;
         $self->store_population_names($frequencies);
         my $highest_frequency = get_highest_frequency($frequencies);
-        $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
+        if (!defined  $self->{highest_frequencies}->{$vf_cache_name} || $self->{highest_frequencies}->{$vf_cache_name} <= $highest_frequency) {
+          $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
+        }
       }
 
       elsif (/^G2P_tva_annotations/) {
