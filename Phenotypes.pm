@@ -57,7 +57,7 @@ limitations under the License.
 
  exclude_sources: exclude sources of phenotype information. By default
                   HGMD and COSMIC annotations are excluded. See
-                  http://www.ensembl.org/info/genome/variation/sources_phenotype_documentation.html
+                  http://www.ensembl.org/info/genome/variation/phenotype/sources_phenotype_documentation.html
                   Separate multiple values with '&'
 
  include_sources: force include sources, as exclude_sources
