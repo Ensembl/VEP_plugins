@@ -830,7 +830,8 @@ sub write_report {
     my ($gene_id, $gene_data, $gene_xrefs) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
     my %seen;
-    my @unique = keys { map { $_ => 1 } @$gene_xrefs };
+    $seen{$_} = 1 foreach @{$gene_xrefs};
+    my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
   } elsif ($flag eq 'G2P_frequencies') {
