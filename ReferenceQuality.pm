@@ -134,7 +134,7 @@ sub run {
     elsif($self->config->{cache})
     {
       $chr_syn = $self->config->{_chromosome_synonyms}->{($vf->{chr})};
-      @new_chr_array = grep(/NC_/, keys($chr_syn))
+      @new_chr_array = grep(/NC_/, keys %{$chr_syn})
     }
 
     $new_chr = shift(@new_chr_array);
@@ -169,7 +169,7 @@ sub run {
   return $combined_result_hash unless $self->config->{vcf} || $self->config->{tab};
   
   #If VCF or Tab format, combine into one string
-  my @sorted_keys = sort(keys($combined_result_hash));
+  my @sorted_keys = sort(keys %{$combined_result_hash});
   my $single_result_string = "";
   my $separator = "~";
   foreach my $key (@sorted_keys){
