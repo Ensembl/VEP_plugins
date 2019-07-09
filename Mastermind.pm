@@ -133,7 +133,7 @@ sub run {
     }
     elsif($self->config->{cache}) {
       $chr_syn = $self->config->{_chromosome_synonyms}->{($vf->{chr})};
-      @new_chr_array = grep(/NC_/, keys($chr_syn))
+      @new_chr_array = grep(/NC_/, keys %{$chr_syn})
     }
 
     $new_chr = shift(@new_chr_array);
