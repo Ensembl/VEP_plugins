@@ -180,6 +180,7 @@ sub new {
   # user only supplied file as first param?
   if (!keys %$params) {
     $file = $self->params->[0];
+    $params->{file} = $file;
   }
   else {
     $file = $params->{file};
