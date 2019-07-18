@@ -262,7 +262,7 @@ sub new {
           push @collections, $vcf_collection;
         }
       }
-      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
+      warn "Could not find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
     } else {
