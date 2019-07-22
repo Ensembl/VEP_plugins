@@ -47,7 +47,7 @@ limitations under the License.
 
  The following steps are necessary before running this plugin:
  
- Download and Registry (free): 
+ Download and register (free):
  https://www.genomenon.com/cvr/ 
  
  GRCh37 VCF:

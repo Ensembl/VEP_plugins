@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -87,7 +87,7 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
  --plugin G2P,file=G2P.csv
- 
+
 =cut
 
 package G2P;
@@ -262,7 +262,7 @@ sub new {
           push @collections, $vcf_collection;
         }
       }
-      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
+      warn "Could not find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
     } else {

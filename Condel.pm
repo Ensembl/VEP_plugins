@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
