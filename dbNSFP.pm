@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -99,7 +99,7 @@ limitations under the License.
  If the dbNSFP README file is found in the same directory as the data file,
  column descriptions will be read from this and incorporated into the VEP output
  file header.
- 
+
 =cut
 
 package dbNSFP;

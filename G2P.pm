@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -87,7 +87,7 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
  --plugin G2P,file=G2P.csv
- 
+
 =cut
 
 package G2P;
@@ -180,6 +180,7 @@ sub new {
   # user only supplied file as first param?
   if (!keys %$params) {
     $file = $self->params->[0];
+    $params->{file} = $file;
   }
   else {
     $file = $params->{file};
@@ -261,7 +262,7 @@ sub new {
           push @collections, $vcf_collection;
         }
       }
-      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
+      warn "Could not find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
     } else {
@@ -830,7 +831,8 @@ sub write_report {
     my ($gene_id, $gene_data, $gene_xrefs) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
     my %seen;
-    my @unique = keys { map { $_ => 1 } @$gene_xrefs };
+    $seen{$_} = 1 foreach @{$gene_xrefs};
+    my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
   } elsif ($flag eq 'G2P_frequencies') {
