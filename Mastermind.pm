@@ -133,7 +133,13 @@ sub run {
     }
     elsif($self->config->{cache}) {
       $chr_syn = $self->config->{_chromosome_synonyms}->{($vf->{chr})};
-      @new_chr_array = grep(/NC_/, keys %{$chr_syn})
+      @new_chr_array = grep(/NC_/, keys %{$chr_syn});
+      if (! @new_chr_array && ($vf->{chr} =~ /^chr/)) {
+        my $tmp_chr = $vf->{chr};
+        $tmp_chr =~ s/^chr//i;
+        $chr_syn = $self->config->{_chromosome_synonyms}->{$tmp_chr};
+        @new_chr_array = grep(/NC_/, keys %{$chr_syn});
+      }
     }
 
     $new_chr = shift(@new_chr_array);
