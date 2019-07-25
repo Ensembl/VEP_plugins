@@ -27,85 +27,85 @@ Questions may also be sent to the Ensembl help desk at
 
 =head1 NAME
 
-MPRA - massively parallel reporter assays (MPRA) saturation mutagenesis on 21 regulatory elements (11 enhancers, 10 promoters) - Add MPRA data fields to the VEP output
+satMutMPRA - saturation mutagenesis-based massively parallel reporter assays (satMutMPRA) for 21 regulatory elements (11 enhancers, 10 promoters) - Add satMutMPRA data fields to the VEP output
 
 =head1 SYNOPSIS
 
- mv MPRA.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin MPRA,file=/path/to/MPRA_data.gz,cols=col1:col2
+ mv satMutMPRA.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin satMutMPRA,file=/path/to/satMutMPRA_data.gz,cols=col1:col2
 
 =head1 DESCRIPTION
 
-A VEP plugin that retrieves data for variants from a tabix-indexed MPRA file (1-based file).
+A VEP plugin that retrieves data for variants from a tabix-indexed satMutMPRA file (1-based file).
 
 Parameters can be set using a key=value system:
- file           : required - a tabix indexed file of the MPRA data corresponding to desired assembly.
+ file           : required - a tabix indexed file of the satMutMPRA data corresponding to desired assembly.
 
  pvalue         : p-value threshold  (default: 0.00001)
 
- cols           : colon delimited list of additional data types to be returned from the MPRA data
+ cols           : colon delimited list of additional data types to be returned from the satMutMPRA data
                 (only 'Value', 'P-Value', and 'Element' reported by default)
 
-MPRA data was obtained for 20 disease-associated regulatory elements and one ultraconserved enhancer in different cell lines:
+satMutMPRA data was obtained for 20 disease-associated regulatory elements and one ultraconserved enhancer in different cell lines:
  - ten promoters (of TERT, LDLR, HBB, HBG, HNF4A, MSMB, PKLR, F9, FOXE1 and GP1BB) and
  - ten enhancers (of SORT1, ZRS, BCL11A, IRF4, IRF6, MYC (2x), RET, TCF7L2 and ZFAND3) and
  - one ultraconserved enhancer (UC88).
 
-Please refer to the MPRA web server and biorxiv manuscript for more information:
+Please refer to the satMutMPRA web server and biorxiv manuscript for more information:
 https://mpra.gs.washington.edu/satMutMPRA/
 https://www.biorxiv.org/content/10.1101/505362v1.full
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
-to use this plugin. The MPRA data file can be downloaded from
+to use this plugin. The satMutMPRA data file can be downloaded from
 https://mpra.gs.washington.edu/satMutMPRA/
 
-MPRA data can be downloaded for both GRCh38 and GRCh37 from the web server (https://mpra.gs.washington.edu/satMutMPRA/):
+satMutMPRA data can be downloaded for both GRCh38 and GRCh37 from the web server (https://mpra.gs.washington.edu/satMutMPRA/):
 'Download' section, select 'GRCh37' or 'GRCh38' for 'Genome release' and 'Download All Elements'.
 
 The file must be processed and indexed by tabix before use by this plugin.
 
 # GRCh38
- > (grep ^Chr GRCh38_ALL.tsv; grep -v ^Chr GRCh38_ALL.tsv | sort -k1,1 -k2,2n ) | bgzip > MPRA_GRCh38_ALL.gz
- > tabix -s 1 -b 2 -e 2 -c C MPRA_GRCh38_ALL.gz
+ > (grep ^Chr GRCh38_ALL.tsv; grep -v ^Chr GRCh38_ALL.tsv | sort -k1,1 -k2,2n ) | bgzip > satMutMPRA_GRCh38_ALL.gz
+ > tabix -s 1 -b 2 -e 2 -c C satMutMPRA_GRCh38_ALL.gz
 
 # GRCh37
- > (grep ^Chr GRCh37_ALL.tsv; grep -v ^Chr GRCh37_ALL.tsv | sort -k1,1 -k2,2n ) | bgzip > MPRA_GRCh37_ALL.gz
- > tabix -s 1 -b 2 -e 2 -c C MPRA_GRCh37_ALL.gz
+ > (grep ^Chr GRCh37_ALL.tsv; grep -v ^Chr GRCh37_ALL.tsv | sort -k1,1 -k2,2n ) | bgzip > satMutMPRA_GRCh37_ALL.gz
+ > tabix -s 1 -b 2 -e 2 -c C satMutMPRA_GRCh37_ALL.gz
 
 Note that in the last command we tell tabix that the header line starts with "Chr";
-this may change to the default of "#" in future versions of MPRA.
+this may change to the default of "#" in future versions of satMutMPRA.
 
 When running the plugin by default 'Value', 'P-Value', and 'Element'
 information is returned e.g.
 
---plugin MPRA,file=/path/to/MPRA_GRCh38_ALL.gz
+--plugin satMutMPRA,file=/path/to/satMutMPRA_GRCh38_ALL.gz
 
 You may include all columns with ALL; this fetches all data per variant
 (e.g. Tags, DNA, RNA, Value, P-Value, Element):
 
---plugin MPRA,file=/path/to/MPRA_GRCh38_ALL.gz,cols=ALL
+--plugin satMutMPRA,file=/path/to/satMutMPRA_GRCh38_ALL.gz,cols=ALL
 
 You may want to select only a specific subset of additional information to be
 reported, you can do this by specifying the extra columns as parameters to the plugin e.g.
 
---plugin MPRA,file=/path/to/MPRA_GRCh38_ALL.gz,cols=Tags:DNA
+--plugin satMutMPRA,file=/path/to/satMutMPRA_GRCh38_ALL.gz,cols=Tags:DNA
 
 If a requested column is not found, the error message will report the
-complete list of available columns in the MPRA file. For a detailed description
+complete list of available columns in the satMutMPRA file. For a detailed description
 of the available information please refer to the manuscript or online web server.
 
 Tabix also allows the data file to be hosted on a remote server. This plugin is
 fully compatible with such a setup - simply use the URL of the remote file:
 
---plugin MPRA,file=http://my.files.com/mpra.gz
+--plugin satMutMPRA,file=http://my.files.com/satMutMPRA.gz
 
-Note that gene sequences referred to in MPRA may be out of sync with
+Note that gene sequences referred to in satMutMPRA may be out of sync with
 those in the latest release of Ensembl; this may lead to discrepancies with
 information retrieved from other sources.
 
 =cut
 
-package MPRA;
+package satMutMPRA;
 
 use strict;
 use warnings;
@@ -137,7 +137,7 @@ sub new {
   my $params_hash = $self->params_to_hash();
   $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
 
-  # get MPRA file
+  # get satMutMPRA file
   my $file = $DEFAULTS{file};
   $self->add_file($file);
 
@@ -206,11 +206,11 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  my $header = 'MPRA data for variation in 21 regulatory features. Format: ';
+  my $header = 'satMutMPRA data for variation in 21 regulatory features. Format: ';
   $header .= join($char_sep, @fields_order );
 
   return {
-    MPRA => $header,
+    satMutMPRA => $header,
   }
 }
 
@@ -255,7 +255,7 @@ sub run {
 
   if (scalar @result > 0){
     return {
-      MPRA => $self->{config}->{output_format} eq "json" ? \@result : \@result_str
+      satMutMPRA => $self->{config}->{output_format} eq "json" ? \@result : \@result_str
     }
   } else {
     return {};
