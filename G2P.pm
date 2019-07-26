@@ -228,6 +228,7 @@ sub new {
   }
 
   if ($params->{af_from_vcf}) {
+    die "option 'af_from_vcf' cannot be run in --offline mode" if (defined $self->{config}->{offline});
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
       my $assembly =  $self->{config}->{assembly};
