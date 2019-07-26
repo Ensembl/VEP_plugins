@@ -145,15 +145,25 @@ sub run {
     $new_chr = shift(@new_chr_array);
     $self->{syn_cache}->{$chr} = $new_chr;
   }
-  
-  my @alleles = split /\//, $vf->allele_string;  
-  my $ref_allele = shift @alleles; 
-  my $alt_allele = shift @alleles; 
-  
+
+  my $ref_allele;
+  my $alt_allele;
+
+  # convert to vcf format to compare the alleles 
+  if($vf->allele_string =~ /-/){
+    my $convert_to_vcf = $vf->to_VCF_record;
+    $ref_allele = ${$convert_to_vcf}[3];
+    $alt_allele = ${$convert_to_vcf}[4]; 
+  }
+  else{ 
+    my @alleles = split /\//, $vf->allele_string;  
+    $ref_allele = shift @alleles; 
+    $alt_allele = shift @alleles; 
+  }
+
   my $end = $vf->{end};
   my $start = $vf->{start};
   ($start, $end) = ($end, $start) if $start > $end;
-  my $consequence = $vf->consequence_type;  
 
   my @data = @{$self->get_data($new_chr, $start, $end)}; 
   
@@ -174,22 +184,32 @@ sub run {
       if( ($ref_allele eq $mm_ref && $alt_allele eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) { 
         
         my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;  
+        my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
         my $aa_alterations = $data_value->{aa};
+        my $aa_string = $tv->pep_allele_string; 
+        my $is_intron = $tv->intron_number();
+        my $has_cdna = $tv->cdna_start();  
+        my $is_5utr = $tv->_five_prime_utr(); 
+        my $is_3utr = $tv->_three_prime_utr();
 
         foreach my $aa_alteration (@$aa_alterations) {
-          $aa_alteration =~ s/.*\:[A-Za-z]+//;
-          $aa_alteration =~ s/[A-Za-z]+|\*//;
 
           # checks if citation refers to an UTR variant 
-          my $mm_utr = $aa_alteration =~/UTR/;
-          if($mm_utr) { 
+          if($data_value->{is_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) { 
             $result_data = $data_value->{result};
           }
-          # If there's a protein alteration then it only adds citations for the exact alteration cited  
-          elsif(defined($aa_alteration) && defined($peptide_start) && $peptide_start == $aa_alteration) {
+          # checks if it is a frameshift 
+          if($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
+            $result_data = $data_value->{result};
+          }
+          # If mastermind aa change is UTR then skips aa verification
+          next unless $aa_alteration !~ /UTR/; 
+
+          # If there's a protein alteration then it only adds citations for the exact alteration cited
+          if(defined($aa_alteration) && defined($peptide_start) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
             $result_data = $data_value->{result};
           } 
-        } 
+        }
       } 
 
     } 
@@ -210,6 +230,15 @@ sub parse_data {
   
   my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3; 
 
+  my $is_fs = 0;
+  my $is_utr = 0; 
+  if($mmid3 =~ /fs/) {
+    $is_fs = 1;
+  }
+  elsif($mmid3 =~ /UTR/) {
+    $is_utr = 1; 
+  }
+
   $mmcnt1 =~ s/MMCNT1=//;
   $mmcnt2  =~ s/MMCNT2=//;
   $mmcnt3  =~ s/MMCNT3=//;
@@ -221,16 +250,25 @@ sub parse_data {
   $mm_hash{'MMCNT3'} = $mmcnt3;
   $mm_hash{'MMID3'}  = $mmid3;
 
-  my @aa_alteration = split /,/, $mmid3;   
+  my @aa_alterations = split /,/, $mmid3;
+
+  my @aa_alterations_new;
+  foreach my $aa_alteration (@aa_alterations){
+    $aa_alteration =~ s/.*\:[A-Za-z]+//;
+    $aa_alteration =~ s/[A-Za-z]+|\*//;
+    push @aa_alterations_new, $aa_alteration; 
+  }
 
   return {
     chr    => $chr, 
     start  => $start, 
     ref    => $ref,
     alt    => $alt,
-    aa     => \@aa_alteration,  
+    aa     => \@aa_alterations, 
     data   => $mm_data,
-    result => \%mm_hash, 
+    result => \%mm_hash,
+    is_fs  => $is_fs,
+    is_utr => $is_utr, 
   };
 }
 
