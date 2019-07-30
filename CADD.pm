@@ -41,6 +41,11 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin. The CADD
  data files can be downloaded from
  http://cadd.gs.washington.edu/download
+
+ The plugin works with all versions of available CADD files. The plugin only
+ reports scores and does not consider any additional annotations from a CADD
+ file. It is therefore sufficient to use CADD files without the additional
+ annotations. 
  
 =cut
 
