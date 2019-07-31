@@ -247,7 +247,6 @@ sub parse_data {
     $is_utr = 1; 
   }
   elsif($mmid3 =~ /sa|sd|int/){
-    print "YES!!\n"; 
     $is_other = 1; 
   }
 
