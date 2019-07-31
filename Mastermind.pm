@@ -202,6 +202,9 @@ sub run {
           if($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
             $result_data = $data_value->{result};
           }
+          if($data_value->{is_other} == 1 && !defined($has_cdna)) {
+            $result_data = $data_value->{result};
+          }
           # If mastermind aa change is UTR then skips aa verification
           next unless $aa_alteration !~ /UTR/; 
 
@@ -229,14 +232,23 @@ sub parse_data {
   my ($hgvs, $gene, $mmcnt1, $mmcnt2, $mmcnt3, $mmid3, $mmuri3) = split /;/, $data; 
   
   my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3; 
-
+  
+  # Frameshift 
   my $is_fs = 0;
-  my $is_utr = 0; 
+  # UTR 
+  my $is_utr = 0;
+  # Intronic or splice
+  my $is_other = 0; 
+ 
   if($mmid3 =~ /fs/) {
     $is_fs = 1;
   }
   elsif($mmid3 =~ /UTR/) {
     $is_utr = 1; 
+  }
+  elsif($mmid3 =~ /sa|sd|int/){
+    print "YES!!\n"; 
+    $is_other = 1; 
   }
 
   $mmcnt1 =~ s/MMCNT1=//;
@@ -268,7 +280,8 @@ sub parse_data {
     data   => $mm_data,
     result => \%mm_hash,
     is_fs  => $is_fs,
-    is_utr => $is_utr, 
+    is_utr => $is_utr,
+    is_other => $is_other, 
   };
 }
 
