@@ -18,9 +18,9 @@ limitations under the License.
 =head1 CONTACT
 
 Please email comments or questions to the public Ensembl
-developers list at <http://lists.ensembl.org/mailman/listinfo/dev>.
+developers list at <https://lists.ensembl.org/mailman/listinfo/dev>.
 
-Questions may also be sent to the Ensembl help desk at
+Questions may also be sent to the Ensembl helpdesk at
 <https://www.ensembl.org/Help/Contact>.
 
 =cut
@@ -159,21 +159,21 @@ sub new {
 
   my $nDefaultColumns = 3;
   # get required columns
-  my $i = 1;
+  my $i = $nDefaultColumns + 1;
   ## allow specific columns to be retrieved from the VCF
   if($params_hash->{cols}){
     my @cols = split/\:/, $params_hash->{cols};
     foreach my $col (@cols){
+      next if $col eq ''; # skip if by mistake empty column was present eg. DNA::ALL
       if($col eq 'ALL') {
         $i = $nDefaultColumns + 1;
         $self->{cols} = {map {$_ => $i++}
-            grep {!defined($self->{cols}->{$_})} #only the extra columns
             @{$self->{headers}}};
         last; #if ALL is used, then the loop will exit after all existing header elements have been selected
       }
       die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
 
-      $self->{cols}->{$col} = $nDefaultColumns + $i;
+      $self->{cols}->{$col} = $i;
       $i++;
     }
   }
@@ -186,13 +186,10 @@ sub new {
   $i += $nDefaultColumns; #ensure that $i is higher than the number of selected columns
 
   # get the order of the output fields into an array, $i is the total number of columns +1
-  @fields_order = map { $_ }
-  sort {
-    (defined($self->{cols}->{$a}) ? $self->{cols}->{$a} : $i)
+  @fields_order = sort {
+    $self->{cols}->{$a}
     <=>
-    (defined($self->{cols}->{$b}) ? $self->{cols}->{$b} : $i)
-    ||
-    $a cmp $b
+    $self->{cols}->{$b}
   }
   keys %{$self->{cols}};
 
@@ -269,7 +266,7 @@ sub parse_data {
   my @split = split /\t/, $line;
 
   # parse data into hash of col names and values
-  my %data = map {$self->{headers}->[$_] => $split[$_]} (0..(scalar @{$self->{headers}} - 1));
+  my %data = map {$self->{headers}->[$_] => $split[$_]} (0..$#{$self->{headers}});
 
   return \%data;
 }
