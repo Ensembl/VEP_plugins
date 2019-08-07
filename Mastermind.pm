@@ -35,7 +35,7 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  reports variants that have clinical evidence cited in the medical literature. 
  It is available for both GRCh37 and GRCh38.
- 
+
  The output includes three unique numbers for each variant (MMCNT1, MMCNT2, MMCNT3)
  and one value (MMID3) to be used to build an URL which shows all articles
  from MMCNT3. To build the URL, substitute the 'gene:key' in the following link with the
@@ -63,6 +63,15 @@ limitations under the License.
  
  The plugin can then be run with:
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
+
+
+ Note: If a variant doesn't affect the protein sequence, the mastermind data can be appended to a 
+       transcript with different consequence.
+ Example
+  VEP: upstream_gene_variant
+  Mastermind: intronic
+  VEP output: var_1|1:154173185-154173187|C|ENSG00000143549|ENST00000368545|Transcript|upstream_gene_variant|
+              -|-|-|-|-|-|IMPACT=MODIFIER;DISTANCE=508;STRAND=-1;MMCNT1=1;MMCNT2=1;MMCNT3=1;MMID3=TPM3:E62int
 
 
 =cut
@@ -205,6 +214,7 @@ sub run {
           if($data_value->{is_other} == 1 && !defined($has_cdna)) {
             $result_data = $data_value->{result};
           }
+
           # If mastermind aa change is UTR then skips aa verification
           next unless $aa_alteration !~ /UTR/; 
 
@@ -224,6 +234,7 @@ sub run {
   return $result; 
 } 
 
+# Parse data from mastermind file 
 sub parse_data {
   my ($self, $line) = @_;
 
@@ -232,15 +243,15 @@ sub parse_data {
   my ($hgvs, $gene, $mmcnt1, $mmcnt2, $mmcnt3, $mmid3, $mmuri3) = split /;/, $data; 
   
   my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3; 
-  
-  # Frameshift 
+ 
+  # Frameshift or nonsense  
   my $is_fs = 0;
   # UTR 
   my $is_utr = 0;
   # Intronic or splice
   my $is_other = 0; 
- 
-  if($mmid3 =~ /fs/) {
+
+  if($mmid3 =~ /fs|([0-9]+X)/) {
     $is_fs = 1;
   }
   elsif($mmid3 =~ /UTR/) {
