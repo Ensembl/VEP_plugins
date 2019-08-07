@@ -29,6 +29,7 @@ limitations under the License.
 
  mv Mastermind.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,1
 
 =head1 DESCRIPTION
 
@@ -36,6 +37,11 @@ limitations under the License.
  reports variants that have clinical evidence cited in the medical literature. 
  It is available for both GRCh37 and GRCh38.
 
+ Running options:
+ (Option 1) By default, this plugin matches the citation data with the specific mutation.
+ (Option 2) It can be run with the flag '1' to return the citations for all mutations/transcripts.   
+
+ Output: 
  The output includes three unique numbers for each variant (MMCNT1, MMCNT2, MMCNT3)
  and one value (MMID3) to be used to build an URL which shows all articles
  from MMCNT3. To build the URL, substitute the 'gene:key' in the following link with the
@@ -61,12 +67,15 @@ limitations under the License.
  tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.GRCh38-vcf.gz
   
  
- The plugin can then be run with:
+ The plugin can then be run as default (Option 1):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
 
+ or with an option to not filter by mutations (Option 2): 
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,1 
 
- Note: If a variant doesn't affect the protein sequence, the mastermind data can be appended to a 
-       transcript with different consequence.
+
+ Note: While running this plugin as default, i.e. filtering by mutation, if a variant doesn't affect 
+       the protein sequence, the citation data can be appended to a transcript with different consequence.
  Example
   VEP: upstream_gene_variant
   Mastermind: intronic
@@ -96,9 +105,11 @@ sub new {
   $self->expand_right(0);
 
   $self->get_user_params();
-  
+
   my $file = $self->params->[0]; 
+  my $mutation_off = $self->params->[1];
   $self->{file} = $file; 
+  $self->{mutation_off} = $mutation_off;
     
   return $self;
 }
@@ -159,12 +170,12 @@ sub run {
   my $alt_allele;
 
   # convert to vcf format to compare the alleles 
-  if($vf->allele_string =~ /-/){
+  if($vf->allele_string =~ /-/) {
     my $convert_to_vcf = $vf->to_VCF_record;
     $ref_allele = ${$convert_to_vcf}[3];
     $alt_allele = ${$convert_to_vcf}[4]; 
   }
-  else{ 
+  else { 
     my @alleles = split /\//, $vf->allele_string;  
     $ref_allele = shift @alleles; 
     $alt_allele = shift @alleles; 
@@ -191,7 +202,14 @@ sub run {
       my $mm_alt = $data_value->{alt};
 
       if( ($ref_allele eq $mm_ref && $alt_allele eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) { 
-        
+
+        # Only checks the genomic location - appends data for all transcripts   
+        if($self->{mutation_off}){
+          $result_data = $data_value->{result};
+          next; 
+        }
+       
+        # checks by mutation  
         my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;  
         my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
         my $aa_alterations = $data_value->{aa};
@@ -207,7 +225,7 @@ sub run {
           if($data_value->{is_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) { 
             $result_data = $data_value->{result};
           }
-          # checks if it is a frameshift 
+          # checks if it is a frameshift or nonsense  
           if($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
             $result_data = $data_value->{result};
           }
@@ -257,7 +275,7 @@ sub parse_data {
   elsif($mmid3 =~ /UTR/) {
     $is_utr = 1; 
   }
-  elsif($mmid3 =~ /sa|sd|int/){
+  elsif($mmid3 =~ /sa|sd|int/) {
     $is_other = 1; 
   }
 
@@ -275,7 +293,7 @@ sub parse_data {
   my @aa_alterations = split /,/, $mmid3;
 
   my @aa_alterations_new;
-  foreach my $aa_alteration (@aa_alterations){
+  foreach my $aa_alteration (@aa_alterations) {
     $aa_alteration =~ s/.*\:[A-Za-z]+//;
     $aa_alteration =~ s/[A-Za-z]+|\*//;
     push @aa_alterations_new, $aa_alteration; 
