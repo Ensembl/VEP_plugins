@@ -60,12 +60,12 @@ limitations under the License.
  > cat dbNSFP3.5a_variant.chr* | grep -v ^#chr | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP.gz
  > tabix -s 1 -b 2 -e 2 dbNSFP.gz
  
- For release 4.0b2 with GRCh38/hg38 data:
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.0b2a.zip
- > unzip dbNSFP4.0b2a.zip
- > zcat dbNSFP4.0b2a_variant.chr1.gz | head -n1 > h
- > zgrep -h -v ^#chr dbNSFP4.0b2a_variant.chr* | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.0b2a.gz
- > tabix -s 1 -b 2 -e 2 dbNSFP4.0b2a.gz
+ For release 4.0a with GRCh38/hg38 data:
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.0a.zip
+ > unzip dbNSFP4.0a.zip
+ > zcat dbNSFP4.0a_variant.chr1.gz | head -n1 > h
+ > zgrep -h -v ^#chr dbNSFP4.0a_variant.chr* | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.0a.gz
+ > tabix -s 1 -b 2 -e 2 dbNSFP4.0a.gz
 
  When running the plugin you must list at least one column to retrieve from the
  dbNSFP file, specified as parameters to the plugin e.g.
@@ -143,8 +143,8 @@ sub new {
     $version = '2.9';
   } elsif ($file =~ /4\.0b1/) {
     $version = '4.0.1';
-  } elsif ($file =~ /4\.0b2/) {
-    $version = '4.0.2';
+  } elsif ($file =~ /4\.0/) {
+    $version = '4.0';
   } elsif ($file =~ /3\./) {
     $version = 3;
   } else {
@@ -306,7 +306,7 @@ sub run {
         # for dbNSFP version 3.5c indexed for hg19/(=GRCh37)
         $pos =  $tmp_data->{'hg19_pos(1-based)'}
       } else {
-        die "dbNSFP file does not contain required columns (pos(1-coor) for version 2.9.1 or hg19_pos(1-based) for version 3.5c) to use with GRCh37";
+        die "dbNSFP file does not contain required columns (pos(1-coor) for version 2.9.1 or hg19_pos(1-based) for the other versions) to use with GRCh37";
       }
     } else {
       if (exists $tmp_data->{'pos(1-based)'}) {
@@ -314,7 +314,7 @@ sub run {
       } elsif (exists $tmp_data->{'pos(1-coor)'} && $self->{dbNSFP_version} eq '4.0.1' ) {
         $pos = $tmp_data->{'pos(1-coor)'};
       } else {
-        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38 or pos(1-coor) for dbNSFP version 4.0";
+        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38 or pos(1-coor) for dbNSFP version 4.0b1";
       }
     }
     next unless
