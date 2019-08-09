@@ -42,11 +42,18 @@ limitations under the License.
  (Option 2) It can be run with the flag '1' to return the citations for all mutations/transcripts.   
 
  Output: 
- The output includes three unique numbers for each variant (MMCNT1, MMCNT2, MMCNT3)
- and one value (MMID3) to be used to build an URL which shows all articles
- from MMCNT3. To build the URL, substitute the 'gene:key' in the following link with the
- value from MMID3:  
- https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key 
+ The output includes three unique counts 'MMCNT1, MMCNT2, MMCNT3' and one identifier 'MMID3'
+ to be used to build an URL which shows all articles from MMCNT3.
+
+ 'MMCNT1' is the count of Mastermind articles with cDNA matches for a specific variant;
+ 'MMCNT2' is the count of Mastermind articles with variants either explicitly matching at
+ the cDNA level or given only at protein level;
+ 'MMCNT3' is the count of Mastermind articles including other DNA-level variants resulting
+ in the same amino acid change;
+ 'MMID3' is the Mastermind variant identifier(s), as gene:key, for MMCNT3;
+
+ To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
+ https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key
   
  More information can be found at: https://www.genomenon.com/cvr/
 
@@ -80,7 +87,7 @@ limitations under the License.
   VEP: upstream_gene_variant
   Mastermind: intronic
   VEP output: var_1|1:154173185-154173187|C|ENSG00000143549|ENST00000368545|Transcript|upstream_gene_variant|
-              -|-|-|-|-|-|IMPACT=MODIFIER;DISTANCE=508;STRAND=-1;MMCNT1=1;MMCNT2=1;MMCNT3=1;MMID3=TPM3:E62int
+    -|-|-|-|-|-|IMPACT=MODIFIER;DISTANCE=508;STRAND=-1;Mastermind_MMID3=TPM3:E62int;Mastermind_counts=1|1|1;
 
 
 =cut
@@ -93,6 +100,7 @@ use warnings;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp); 
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
+use Data::Dumper; 
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin); 
 
@@ -106,11 +114,14 @@ sub new {
 
   $self->get_user_params();
 
-  my $file = $self->params->[0]; 
-  my $mutation_off = $self->params->[1];
-  $self->{file} = $file; 
-  $self->{mutation_off} = $mutation_off;
-    
+  die("ERROR: Mastermind input file not specified!") unless defined($self->params->[0]);
+
+  $self->{file} = $self->params->[0];
+
+  if(defined($self->params->[1])) {
+    $self->{mutation_off} = $self->params->[1];
+  }
+
   return $self;
 }
 
@@ -121,10 +132,8 @@ sub feature_types {
 sub get_header_info {
 
   return{
-    'MMCNT1' => 'Count of Mastermind articles with cDNA matches for this specific variant',
-    'MMCNT2' => 'Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level',
-    'MMCNT3' => 'Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change',
-    'MMID3'  => 'Mastermind variant identifiers, as gene:key, for MMCNT3',
+     'Mastermind_counts'  => 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.',
+     'Mastermind_MMID3'  => 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3',
   };
 
 }
@@ -139,9 +148,9 @@ sub run {
   my $chr_syn;
   my @new_chr_array;
   my $new_chr;
-  
+ 
   $self->parse_chromosome_synonyms($self->config->{'synonyms'}) if $self->config->{cache} && (not defined($self->{config}->{_chromosome_synonyms}));
-  
+
   if(defined($self->{syn_cache}->{$chr})) {
     $new_chr = $self->{syn_cache}->{$chr}; 
   }
@@ -185,10 +194,12 @@ sub run {
   my $start = $vf->{start};
   ($start, $end) = ($end, $start) if $start > $end;
 
-  my @data = @{$self->get_data($new_chr, $start, $end)}; 
-  
-  my $result_data;  
-  
+  my @data = @{$self->get_data($new_chr, $start, $end)} if(defined $new_chr);
+
+  return {} unless(@data); 
+
+  my $result_data;
+ 
   foreach my $data_value (@data) {
 
     if($data_value->{data}) {
@@ -280,15 +291,13 @@ sub parse_data {
   }
 
   $mmcnt1 =~ s/MMCNT1=//;
-  $mmcnt2  =~ s/MMCNT2=//;
-  $mmcnt3  =~ s/MMCNT3=//;
-  $mmid3 =~ s/MMID3=//;
+  $mmcnt2 =~ s/MMCNT2=//;
+  $mmcnt3 =~ s/MMCNT3=//;
+  $mmid3  =~ s/MMID3=//;
 
   my %mm_hash;
-  $mm_hash{'MMCNT1'} = $mmcnt1;
-  $mm_hash{'MMCNT2'} = $mmcnt2;
-  $mm_hash{'MMCNT3'} = $mmcnt3;
-  $mm_hash{'MMID3'}  = $mmid3;
+  $mm_hash{'Mastermind_counts'} = $mmcnt1.'|'.$mmcnt2.'|'.$mmcnt3;
+  $mm_hash{'Mastermind_MMID3'} = $mmid3;
 
   my @aa_alterations = split /,/, $mmid3;
 
