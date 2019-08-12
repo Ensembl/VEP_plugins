@@ -180,7 +180,9 @@ sub new {
   my $pop_adap = $reg->get_adaptor('human', 'variation', 'population')
     || die "Failed to get population adaptor\n";
 
-  my $valid_pops = $pop_adap->fetch_all_LD_Populations();
+  $pop_adap->db->use_vcf(1);
+  my $valid_pops = $pop_adap->fetch_all_vcf_Populations();
+
   my @populations = ();
   foreach my $pop_name (@pop_names) {
     my ($pop) = grep {$_->name eq $pop_name} @$valid_pops;
