@@ -306,7 +306,7 @@ sub run {
         # for dbNSFP version 3.5c indexed for hg19/(=GRCh37)
         $pos =  $tmp_data->{'hg19_pos(1-based)'}
       } else {
-        die "dbNSFP file does not contain required columns (pos(1-coor) for version 2.9.1 or hg19_pos(1-based) for the other versions) to use with GRCh37";
+        die "dbNSFP file does not contain required columns (pos(1-coor) for version 2.9.1 or hg19_pos(1-based) for the other versions) to use with GRCh37\n";
       }
     } else {
       if (exists $tmp_data->{'pos(1-based)'}) {
@@ -314,7 +314,7 @@ sub run {
       } elsif (exists $tmp_data->{'pos(1-coor)'} && $self->{dbNSFP_version} eq '4.0.1' ) {
         $pos = $tmp_data->{'pos(1-coor)'};
       } else {
-        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38 or pos(1-coor) for dbNSFP version 4.0b1";
+        die "dbNSFP file does not contain required column pos(1-based) to use with GRCh38 or pos(1-coor) for dbNSFP version ".$self->{dbNSFP_version} ."\n" ;
       }
     }
     next unless
