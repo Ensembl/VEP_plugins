@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv CADD.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
+ ./vep -i variations.vcf --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
 
 =head1 DESCRIPTION
 
@@ -41,6 +41,11 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin. The CADD
  data files can be downloaded from
  http://cadd.gs.washington.edu/download
+
+ The plugin works with all versions of available CADD files. The plugin only
+ reports scores and does not consider any additional annotations from a CADD
+ file. It is therefore sufficient to use CADD files without the additional
+ annotations. 
  
 =cut
 
