@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv CADD.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz
+ ./vep -i variations.vcf --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
 
 =head1 DESCRIPTION
 
