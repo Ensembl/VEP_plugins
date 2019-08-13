@@ -27,7 +27,7 @@ Questions may also be sent to the Ensembl helpdesk at
 
 =head1 NAME
 
-satMutMPRA - saturation mutagenesis-based massively parallel reporter assays (satMutMPRA) for 21 regulatory elements (11 enhancers, 10 promoters) - Add satMutMPRA data fields to the VEP output
+satMutMPRA
 
 =head1 SYNOPSIS
 
@@ -37,16 +37,10 @@ satMutMPRA - saturation mutagenesis-based massively parallel reporter assays (sa
 =head1 DESCRIPTION
 
 A VEP plugin that retrieves data for variants from a tabix-indexed satMutMPRA file (1-based file).
+The saturation mutagenesis-based massively parallel reporter assays (satMutMPRA) measures variant
+effects on gene RNA expression for 21 regulatory elements (11 enhancers, 10 promoters).
 
-Parameters can be set using a key=value system:
- file           : required - a tabix indexed file of the satMutMPRA data corresponding to desired assembly.
-
- pvalue         : p-value threshold  (default: 0.00001)
-
- cols           : colon delimited list of additional data types to be returned from the satMutMPRA data
-                (only 'Value', 'P-Value', and 'Element' reported by default)
-
-satMutMPRA data was obtained for 20 disease-associated regulatory elements and one ultraconserved enhancer in different cell lines:
+The 20 disease-associated regulatory elements and one ultraconserved enhancer analysed in different cell lines are the following:
  - ten promoters (of TERT, LDLR, HBB, HBG, HNF4A, MSMB, PKLR, F9, FOXE1 and GP1BB) and
  - ten enhancers (of SORT1, ZRS, BCL11A, IRF4, IRF6, MYC (2x), RET, TCF7L2 and ZFAND3) and
  - one ultraconserved enhancer (UC88).
@@ -54,6 +48,15 @@ satMutMPRA data was obtained for 20 disease-associated regulatory elements and o
 Please refer to the satMutMPRA web server and biorxiv manuscript for more information:
 https://mpra.gs.washington.edu/satMutMPRA/
 https://www.biorxiv.org/content/10.1101/505362v1.full
+
+Parameters can be set using a key=value system:
+ file           : required - a tabix indexed file of the satMutMPRA data corresponding to desired assembly.
+
+ pvalue         : p-value threshold  (default: 0.00001)
+
+ cols           : colon delimited list of data types to be returned from the satMutMPRA data
+                (default: 'Value', 'P-Value', and 'Element')
+
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
 to use this plugin. The satMutMPRA data file can be downloaded from
@@ -72,8 +75,6 @@ The file must be processed and indexed by tabix before use by this plugin.
  > (grep ^Chr GRCh37_ALL.tsv; grep -v ^Chr GRCh37_ALL.tsv | sort -k1,1 -k2,2n ) | bgzip > satMutMPRA_GRCh37_ALL.gz
  > tabix -s 1 -b 2 -e 2 -c C satMutMPRA_GRCh37_ALL.gz
 
-Note that in the last command we tell tabix that the header line starts with "Chr";
-this may change to the default of "#" in future versions of satMutMPRA.
 
 When running the plugin by default 'Value', 'P-Value', and 'Element'
 information is returned e.g.
@@ -85,8 +86,8 @@ You may include all columns with ALL; this fetches all data per variant
 
 --plugin satMutMPRA,file=/path/to/satMutMPRA_GRCh38_ALL.gz,cols=ALL
 
-You may want to select only a specific subset of additional information to be
-reported, you can do this by specifying the extra columns as parameters to the plugin e.g.
+You may want to select only a specific subset of information to be
+reported, you can do this by specifying the specific columns as parameters to the plugin e.g.
 
 --plugin satMutMPRA,file=/path/to/satMutMPRA_GRCh38_ALL.gz,cols=Tags:DNA
 
@@ -99,7 +100,7 @@ fully compatible with such a setup - simply use the URL of the remote file:
 
 --plugin satMutMPRA,file=http://my.files.com/satMutMPRA.gz
 
-Note that gene sequences referred to in satMutMPRA may be out of sync with
+Note that gene locations referred to in satMutMPRA may be out of sync with
 those in the latest release of Ensembl; this may lead to discrepancies with
 information retrieved from other sources.
 
@@ -157,16 +158,14 @@ sub new {
   close HEAD;
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
 
-  my $nDefaultColumns = 3;
   # get required columns
-  my $i = $nDefaultColumns + 1;
+  my $i = 0;
   ## allow specific columns to be retrieved from the VCF
   if($params_hash->{cols}){
     my @cols = split/\:/, $params_hash->{cols};
     foreach my $col (@cols){
       next if $col eq ''; # skip if by mistake empty column was present eg. DNA::ALL
       if($col eq 'ALL') {
-        $i = $nDefaultColumns + 1;
         $self->{cols} = {map {$_ => $i++}
             @{$self->{headers}}};
         last; #if ALL is used, then the loop will exit after all existing header elements have been selected
@@ -176,14 +175,14 @@ sub new {
       $self->{cols}->{$col} = $i;
       $i++;
     }
+  } else { #default columns
+    $self->{cols}->{'Value'} = 1;
+    $self->{cols}->{'P-Value'} = 2;
+    $self->{cols}->{'Element'} = 3;
+    $i=3;
   }
 
-  #default columns always reported
-  $self->{cols}->{'Value'} = 1;
-  $self->{cols}->{'P-Value'} = 2;
-  $self->{cols}->{'Element'} = 3;
-
-  $i += $nDefaultColumns; #ensure that $i is higher than the number of selected columns
+  $i += 1; #ensure that $i is higher than the number of selected columns
 
   # get the order of the output fields into an array, $i is the total number of columns +1
   @fields_order = sort {
@@ -235,19 +234,19 @@ sub run {
     next unless $tmp_data->{'P-Value'} < $DEFAULTS{pvalue};
     next unless $ref_allele eq $tmp_data->{'Ref'} && exists($alt_alleles{$tmp_data->{'Alt'}});
 
-    # get required data
-    my %tmp_return =
-      map {$_ => $tmp_data->{$_}}
-      grep {defined($self->{cols}->{$_})}  # only include selected cols
-      keys %$tmp_data;
+  # get required data
+  my %tmp_return =
+    map {$_ => $tmp_data->{$_}}
+    grep {defined($self->{cols}->{$_})}  # only include selected cols
+    keys %$tmp_data;
 
-      # report only unique set of fields
-      my $record_line = join(",", values %tmp_return);
-      next if defined $result_uniq{$record_line};
-      $result_uniq{$record_line} = 1;
+    # report only unique set of fields
+    my $record_line = join(",", values %tmp_return);
+    next if defined $result_uniq{$record_line};
+    $result_uniq{$record_line} = 1;
 
-      push(@result_str, join($char_sep, @tmp_return{@fields_order}));
-      push(@result, \%tmp_return);
+    push(@result_str, join($char_sep, @tmp_return{@fields_order}));
+    push(@result, \%tmp_return);
   }
 
   if (scalar @result > 0){
