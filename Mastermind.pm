@@ -113,7 +113,7 @@ sub new {
 
   $self->get_user_params();
 
-  die("ERROR: Mastermind input file not specified or found!") unless defined($self->params->[0]) && -e $self->params->[0];
+  die("ERROR: Mastermind input file not specified or found!\n") unless defined($self->params->[0]) && -e $self->params->[0];
 
   $self->{file} = $self->params->[0];
 
@@ -132,7 +132,7 @@ sub get_header_info {
 
   return{
      'Mastermind_counts'  => 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.',
-     'Mastermind_MMID3'  => 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3',
+     'Mastermind_MMID3'  => 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.',
   };
 
 }
