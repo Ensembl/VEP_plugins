@@ -43,8 +43,8 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds tissue-specific transcription factor motifs from FunMotifs to VEP output.
 
- Please cite the FunMotifs publication alongside the VEP if you use this resource, which you can find on:
- http://bioinf.icm.uu.se:3838/funmotifs/
+ Please cite the FunMotifs publication alongside the VEP if you use this resource. 
+ The preprint can be found at: https://www.biorxiv.org/content/10.1101/683722v1
  
  FunMotifs files can be downloaded from: http://bioinf.icm.uu.se:3838/funmotifs/
 
@@ -76,6 +76,20 @@ sub new {
 
   my $file = $self->params->[0];
 
+  ## -s 10000 tells bgzip to only decompress the first 10000 bytes of the file
+  ## This should always be sufficient to obtain the headers from the input file
+  ## The current header file is approxmiately 800 bytes long    
+  my $headers = `bgzip -d -s 10000 $file | head -n 1`;
+
+  if ($headers){
+    my @array = split(/\t/,$headers);
+    my @new_array = grep(s/\s*$//g, @array);
+    $self->{headers} = \@new_array;
+  }
+  else{
+    warn('Unable to find header information within ' . $file);
+  }
+
   return $self;
 }
 
@@ -92,31 +106,18 @@ sub run {
 
   my $params = $self->params;
   
-  if(scalar(@{$self->params}) < 3){
+  if(scalar(@{$self->params}) < 1){
     return $self;
   }
   
-  my $filetype = ($params->[1] eq 'all') ? 'all' : 'individual';
-  
   my $output_prefix = 'FM';
   
-  $self->{motif_filetype} = $filetype;
-  
-  my $tissue_type = $params->[1];
-
-  my $vf = $tva->variation_feature;
-
-  my $column_headers = {
-                         all => [qw(name score pval strand blood brain breast cervix colon esophagus kidney liver lung myeloid pancreas prostate skin stomach uterus)],
-                         individual => [qw(name score pval strand fscore chromhmm contactingdomain dnase_seq fantom loopdomain numothertfbinding othertfbinding replidomain tfbinding tfexpr)],
-                       };
-
+  my $vf = $tva->variation_feature;  
   my ($res) = @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
-  shift $params; #Removes filename
+  shift $params if ($params->[0] =~ /.gz/i); #Removes filename
   
-  
-  my %col_head_hash = map { $_ => 1 } @{$column_headers->{$filetype}};
+  my %col_head_hash = map { $_ => 1 } @{$self->{headers}};
   my $col_head_hashref = \%col_head_hash;
   my $output_hash = {};
 
@@ -130,67 +131,11 @@ sub run {
 
 sub parse_data {
   my ($self, $line) = @_;
-
-  return $self->parse_data_all($line) if $self->{motif_filetype} eq 'all';
-  return $self->parse_data_individual($line) if $self->{motif_filetype} eq 'individual';
+  my %output_hash;
+  @output_hash{@{$self->{headers}}} = split(/\t/,$line);
+  return \%output_hash;
 }
 
-
-sub parse_data_all {
-  my ($self, $line) = @_;
-
-  my ($chr, $start, $end, $name, $score, $strand, $pval, $blood, $brain, $breast, $cervix, $colon, $esophagus, $kidney, $liver, $lung, $myeloid, $pancreas, $prostate, $skin, $stomach, $uterus) = split /\t/, $line;
-
-  return {
-    chr => $chr,
-    start => $start,
-    end => $end,
-    name => $name,
-    score => $score,
-    pval => $pval,
-    strand => $strand,
-    blood => $blood,
-    brain => $brain,
-    breast => $breast,
-    cervix => $cervix,
-    colon => $colon,
-    esophagus => $esophagus,
-    kidney => $kidney,
-    liver => $liver,
-    lung => $lung,
-    myeloid => $myeloid,
-    pancreas => $pancreas,
-    prostate => $prostate,
-    skin => $skin,
-    stomach => $stomach,
-    uterus  => $uterus,
-  };
-}
-
-
-sub parse_data_individual {
-  my ($self, $line) = @_;
-
-  my ($chr, $start, $end, $name, $score, $strand, $pval, $fscore, $chromhmm, $contactingdomain, $dnase_seq, $fantom, $loopdomain, $numothertfbinding, $othertfbinding, $replidomain, $tfbinding, $tfexpr) = split /\t/, $line;
-
-  return {
-    name => $name,
-    score => $score,
-    pval => $pval,
-    strand => $strand,
-    fscore => $fscore,
-    chromhmm => $chromhmm,
-    contactingdomain => $contactingdomain,
-    dnase_seq => $dnase_seq,
-    fantom => $fantom,
-    loopdomain => $loopdomain,
-    numothertfbinding => $numothertfbinding,
-    othertfbinding => $othertfbinding,
-    replidomain => $replidomain,
-    tfbinding => $tfbinding,
-    tfexpr => $tfexpr,    
-  };
-}
 
 sub get_start {
   return $_[1]->{start};
