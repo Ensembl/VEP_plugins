@@ -228,6 +228,7 @@ sub new {
   }
 
   if ($params->{af_from_vcf}) {
+    die "option 'af_from_vcf' cannot be run in --offline mode\n" if (defined $self->{config}->{offline});
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
       my $assembly =  $self->{config}->{assembly};
@@ -702,9 +703,9 @@ sub read_gene_data_from_file {
   $fh->close();
   if ($file_type eq 'unknown') {
     if ($file =~ /gz$/) { 
-      die("ERROR: G2P plugin can only read uncompressed data");
+      die("ERROR: G2P plugin can only read uncompressed data\n");
     } else {
-      die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin");
+      die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin\n");
     }
   }
 
@@ -815,7 +816,7 @@ sub write_report {
   my $flag = shift;
   my $log_dir = $self->{user_params}->{log_dir};
   my $log_file = "$log_dir/$$.txt";
-  open(my $fh, '>>', $log_file) or die "Could not open file '$flag $log_file' $!";
+  open(my $fh, '>>', $log_file) or die "Could not open file '$flag $log_file' $!\n";
   if ($flag eq 'G2P_list') {
     my ($gene_symbol, $DDD_category) = @_;
     $DDD_category ||= 'Not assigned';
