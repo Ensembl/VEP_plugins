@@ -311,6 +311,16 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
     
+    # FATHMM
+    {
+      "key" => "FATHMM",
+      "label" => "FATHMM",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/FATHMM.pm"
+    },
+
     # FATHMM-MKL
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/FATHMM_MKL.pm
     # Requires tabix-indexed data file as first param
@@ -525,6 +535,16 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # PON_P2
+    {
+      "key" => "PON_P2",
+      "label" => "PON_P2",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/PON_P2.pm"
+    },
+
 
     
     ## SPLICING PREDICTIONS
@@ -597,6 +617,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Splicing predictions",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/SpliceRegion.pm",
     },
+
 
 
     ## CONSERVATION
@@ -679,6 +700,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
 
+
     ## FREQUENCY DATA
     #################
 
@@ -700,9 +722,20 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # gnomADc
+    {
+      "key" => "gnomADc",
+      "label" => "gnomADc",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Frequency data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/gnomADc.pm"
+    },
+
+
 
     ## PHENOTYPES DATA
-    #################
+    ##################
 
     # Phenotypes
     {
@@ -713,46 +746,50 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "available" => 0,
       "enabled" => 0,
+      "section" => "Phenotype",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/Phenotypes.pm",
       "params" => [
         #"/path/to/Phenotypes_data_files/phenotypes_dir_with_dumps_for_all_species.gvf.gz"
       ]
     },
 
-
-    ## OTHER
-    ########
-
-    # CSN
+    # GO
     {
-      "key" => "CSN",
-      "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
+      "key" => "GO",
+      "label" => "Gene Ontology",
+      "helptip" => "Retrieves Gene Ontology terms associated with transcripts/translations via the Ensembl API",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/CSN.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/GO.pm",
+      "section" => "Phenotype",
     },
 
-    # miRNA
+    # G2P
     {
-      "key" => "miRNA",
-      "label" => "miRNA structure",
-      "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
+      "key" => "G2P",
+      "label" => "G2P",
+      "helptip" => "Assesses variants using G2P allelic requirements for potential phenotype involvement.",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/miRNA.pm",
+      "requires_data" => 1,
+      "section" => "Phenotype",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/G2P.pm",
     },
     
-
-
-    # NearestGene
+    # PostGAP
     {
-      "key" => "NearestGene",
-      "label" => "Nearest gene",
-      "helptip" => "Finds the nearest gene to non-genic variants",
+      "key" => "PostGAP",
+      "label" => "PostGAP",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/NearestGene.pm",
+      "section" => "Phenotype",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/PostGAP.pm"
     },
+
+
+
+    ## VARIANT DATA
+    ###############
 
     # LD
     {
@@ -820,6 +857,7 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/SameCodon.pm",
       "section" => "Variant data",
     },
+
     # LOVD
     {
       "key" => "LOVD",
@@ -831,15 +869,40 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Variant data",
     },
 
-    # GO
+    # SubsetVCF
     {
-      "key" => "GO",
-      "label" => "Gene Ontology",
-      "helptip" => "Retrieves Gene Ontology terms associated with transcripts/translations via the Ensembl API",
+      "key" => "SubsetVCF",
+      "label" => "SubsetVCF",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/GO.pm",
-      "section" => "Gene data",
+      "section" => "Variant data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/SubsetVCF.pm"
+    },
+
+
+
+    ## NEARBY FEATURES
+    ##################
+
+    # NearestGene
+    {
+      "key" => "NearestGene",
+      "label" => "Nearest gene",
+      "helptip" => "Finds the nearest gene to non-genic variants",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Nearby features",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/NearestGene.pm",
+    },
+
+    # NearestExonJB
+    {
+      "key" => "NearestExonJB",
+      "label" => "NearestExonJB",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Nearby features",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/NearestExonJB.pm"
     },
 
     # Downstream
@@ -849,17 +912,8 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Predicts the downstream effects of a frameshift variant on the protein sequence of a transcript",
       "available" => 0,
       "enabled" => 0,
+      "section" => "Nearby features",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/Downstream.pm",
-    },
-
-    # ProteinSeqs
-    {
-      "key" => "ProteinSeqs",
-      "label" => "Protein sequences",
-      "helptip" => "Prints out the reference and mutated protein sequences of any proteins found with non-synonymous mutations",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/ProteinSeqs.pm",
     },
 
     # TSSDistance
@@ -869,9 +923,41 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Calculates the distance from the transcription start site for upstream variants   ",
       "available" => 0,
       "enabled" => 0,
+      "section" => "Nearby features",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/TSSDistance.pm",
     },
-    
+
+
+
+    ## SEQUENCE
+    ###########
+
+    # ProteinSeqs
+    {
+      "key" => "ProteinSeqs",
+      "label" => "Protein sequences",
+      "helptip" => "Prints out the reference and mutated protein sequences of any proteins found with non-synonymous mutations",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Sequence",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/ProteinSeqs.pm",
+    },
+
+    # ReferenceQuality
+    {
+      "key" => "ReferenceQuality",
+      "label" => "ReferenceQuality",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Sequence",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/ReferenceQuality.pm"
+    },
+
+
+
+    ## VISUALISATION
+    ################
+
     # Draw
     {
       "key" => "Draw",
@@ -880,18 +966,14 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "requires_install" => 1,
+      "section" => "Visualisation",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/Draw.pm",
     },
-    # G2P
-    {
-      "key" => "G2P",
-      "label" => "G2P",
-      "helptip" => "Assesses variants using G2P allelic requirements for potential phenotype involvement.",
-      "available" => 0,
-      "enabled" => 0,
-      "requires_data" => 1,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/G2P.pm",
-    },
+
+
+
+    ## LOCAL ID
+    ###########
 
     # LocalID
     {
@@ -900,9 +982,117 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Allows you to use variant IDs as VEP input without making a database connection.",
       "available" => 0,
       "enabled" => 0,
+      "section" => "Look up",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/LocalID.pm",
     },
 
-    
+
+
+    ## EXTERNAL ID
+    ##############
+
+    # FlagLRG
+    {
+      "key" => "FlagLRG",
+      "label" => "FlagLRG",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "External ID",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/FlagLRG.pm"
+    },
+
+
+
+    ## MOTIF
+    ########
+
+    # FunMotifs
+    {
+      "key" => "FunMotifs",
+      "label" => "FunMotifs",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Motif",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/FunMotifs.pm"
+    },
+
+
+
+    ## PUBLICATION
+    ##############
+
+    # Mastermind
+    {
+      "key" => "Mastermind",
+      "label" => "Mastermind",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Publication",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/Mastermind.pm"
+    },
+
+
+
+    ## HGVS
+    #######
+
+    # HGVSIntronOffset
+    {
+      "key" => "HGVSIntronOffset",
+      "label" => "HGVSIntronOffset",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "HGVS",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/HGVSIntronOffset.pm"
+    },
+
+    # SingleLetterAA
+    {
+      "key" => "SingleLetterAA",
+      "label" => "SingleLetterAA",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "HGVS",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/SingleLetterAA.pm"
+    },
+
+
+
+    ## STRUCTURAL VARIANT DATA
+    ##########################
+
+    # StructuralVariantOverlap
+    {
+      "key" => "StructuralVariantOverlap",
+      "label" => "StructuralVariantOverlap",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Structural variant data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/StructuralVariantOverlap.pm"
+    },
+
+
+
+    ## OTHER
+    ########
+
+    # CSN
+    {
+      "key" => "CSN",
+      "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/CSN.pm",
+    },
+
+    # miRNA
+    {
+      "key" => "miRNA",
+      "label" => "miRNA structure",
+      "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/miRNA.pm",
+    }
   ]
 };
