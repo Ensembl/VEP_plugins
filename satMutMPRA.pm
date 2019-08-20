@@ -58,7 +58,7 @@ Parameters can be set using a key=value system:
                 (default: 'Value', 'P-Value', and 'Element')
 
  incl_repl       : include replicates (default: off):
-                  - full replicte for LDLR promoter (LDLR.2) and SORT1 enhancer (SORT1.2)
+                  - full replicate for LDLR promoter (LDLR.2) and SORT1 enhancer (SORT1.2)
                   - a reversed sequence orientation for SORT1 (SORT1-flip)
                   - other conditions: PKLR-48h, ZRSh-13h2, TERT-GAa, TERT-GBM, TERG-GSc
 
