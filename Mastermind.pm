@@ -170,6 +170,7 @@ sub run {
       }
     }
 
+    return {} unless scalar(@new_chr_array);
     $new_chr = shift(@new_chr_array);
     $self->{syn_cache}->{$chr} = $new_chr;
   }
