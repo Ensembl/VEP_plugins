@@ -68,7 +68,7 @@ sub new {
 
   my $self = $class->SUPER::new(@_);
   
-  die('Insufficient input parameters found for FunMotifs plugin') if(scalar(@{$self->params}) < 2);
+  die("Insufficient input parameters found for FunMotifs plugin\n") if(scalar(@{$self->params}) < 2);
   
   $self->expand_left(0);
   $self->expand_right(0);
