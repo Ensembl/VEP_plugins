@@ -790,7 +790,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "satMutMPRA",
       "helptip" => "Reports saturation mutagenesis MPRA measures of variant effects on gene RNA expression for 21 enhancers/promoters",
-      "section" => "Phenotype data",
+      "section" => "Phenotype",
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/satMutMPRA.pm",
