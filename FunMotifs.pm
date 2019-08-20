@@ -28,14 +28,13 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv FunMotifs.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin FunMotifs,/path/to/funmotifs/all_tissues.bed.gz,all,uterus
- ./vep -i variations.vcf --plugin FunMotifs,/path/to/funmotifs/blood.funmotifs_sorted.bed.gz,individual,fscore,dnase_seq
+ ./vep -i variations.vcf --plugin FunMotifs,/path/to/funmotifs/all_tissues.bed.gz,uterus
+ ./vep -i variations.vcf --plugin FunMotifs,/path/to/funmotifs/blood.funmotifs_sorted.bed.gz,fscore,dnase_seq
  
  Parameters Required:
  
  [0] : FunMotifs BED file
- [1] : Type of file provided ('all' or 'individual')
- [2]+ : List of columns to include within VEP output (e.g. fscore, skin, contactingdomain)
+ [1]+ : List of columns to include within VEP output (e.g. fscore, skin, contactingdomain)
  
 
 =head1 DESCRIPTION
@@ -47,6 +46,9 @@ limitations under the License.
  The preprint can be found at: https://www.biorxiv.org/content/10.1101/683722v1
  
  FunMotifs files can be downloaded from: http://bioinf.icm.uu.se:3838/funmotifs/
+ At the time of writing, all BED files found through this link support GRCh37, 
+ however other assemblies are supported by the plugin if an appropriate BED file
+ is supplied.
 
  The tabix utility must be installed in your path to use this plugin.
 
@@ -65,10 +67,9 @@ sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
-  if(scalar(@{$self->params}) < 3){
-    warn('Insufficient input parameters found for FunMotifs plugin');
-    return $self;
-  }
+  
+  die('Insufficient input parameters found for FunMotifs plugin') if(scalar(@{$self->params}) < 2);
+  
   $self->expand_left(0);
   $self->expand_right(0);
 
@@ -103,7 +104,6 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-
   my $params = $self->params;
   
   if(scalar(@{$self->params}) < 1){
@@ -113,7 +113,10 @@ sub run {
   my $output_prefix = 'FM';
   
   my $vf = $tva->variation_feature;  
-  my ($res) = @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+  my $end = $vf->{end};
+  my $start = $vf->{start};
+  ($start, $end) = ($end, $start) if $start > $end;
+  my ($res) = @{$self->get_data($vf->{chr}, $start, $end)};
 
   shift $params if ($params->[0] =~ /.gz/i); #Removes filename
   
