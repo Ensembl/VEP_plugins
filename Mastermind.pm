@@ -126,7 +126,6 @@ sub run {
     $new_chr = $self->{syn_cache}->{$chr}; 
   }
   else {
-    $DB::single = 1;
     if($self->config->{database}) {
       my $srs_adaptor = $vf->slice->adaptor->db->get_SeqRegionSynonymAdaptor();
       $chr_syn = $srs_adaptor->get_synonyms( $vf->slice->get_seq_region_id($vf->slice) );
