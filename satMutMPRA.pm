@@ -57,6 +57,10 @@ Parameters can be set using a key=value system:
  cols           : colon delimited list of data types to be returned from the satMutMPRA data
                 (default: 'Value', 'P-Value', and 'Element')
 
+ incl_repl       : include replicates (default: off):
+                  - full replicte for LDLR promoter (LDLR.2) and SORT1 enhancer (SORT1.2)
+                  - a reversed sequence orientation for SORT1 (SORT1-flip)
+                  - other conditions: PKLR-48h, ZRSh-13h2, TERT-GAa, TERT-GBM, TERG-GSc
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
 to use this plugin. The satMutMPRA data file can be downloaded from
@@ -122,9 +126,16 @@ my $out_vcf = 0;
 my $out_json = 0;
 my $char_sep = "|";
 
+my %repl = (
+"LDLR.2"=>1, "SORT1.2"=>1,
+"SORT1-flip" =>1,
+"PKLR-48h" => 1, "ZRSh-13h2" => 1,
+"TERT-GAa" =>1, "TERT-GBM" =>1, "TERT-GSc" => 1);
+
 # default config
 my %DEFAULTS = (
   pvalue => 0.00001,
+  incl_repl => 0,
 );
 
 sub new {
@@ -233,12 +244,13 @@ sub run {
   foreach my $tmp_data(@{$data}) {
     next unless $tmp_data->{'P-Value'} < $DEFAULTS{pvalue};
     next unless $ref_allele eq $tmp_data->{'Ref'} && exists($alt_alleles{$tmp_data->{'Alt'}});
+    next if (!$DEFAULTS{incl_repl} && exists ($repl{$tmp_data->{Element}}));
 
-  # get required data
-  my %tmp_return =
-    map {$_ => $tmp_data->{$_}}
-    grep {defined($self->{cols}->{$_})}  # only include selected cols
-    keys %$tmp_data;
+    # get required data
+    my %tmp_return =
+      map {$_ => $tmp_data->{$_}}
+      grep {defined($self->{cols}->{$_})}  # only include selected cols
+      keys %$tmp_data;
 
     # report only unique set of fields
     my $record_line = join(",", values %tmp_return);
