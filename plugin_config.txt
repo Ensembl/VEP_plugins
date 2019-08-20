@@ -794,7 +794,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/satMutMPRA.pm",
-    }
+    },
 
 
     ## VARIANT DATA
