@@ -133,7 +133,7 @@ my %repl = (
 "TERT-GAa" =>1, "TERT-GBM" =>1, "TERT-GSc" => 1);
 
 # default config
-my %DEFAULTS = (
+my %CONFIG = (
   pvalue => 0.00001,
   incl_repl => 0,
 );
@@ -147,10 +147,10 @@ sub new {
   $self->expand_right(0);
 
   my $params_hash = $self->params_to_hash();
-  $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
+  $CONFIG{$_} = $params_hash->{$_} for keys %$params_hash;
 
   # get satMutMPRA file
-  my $file = $DEFAULTS{file};
+  my $file = $CONFIG{file};
   $self->add_file($file);
 
   # get output format
@@ -242,9 +242,9 @@ sub run {
   my @result_str = ();
 
   foreach my $tmp_data(@{$data}) {
-    next unless $tmp_data->{'P-Value'} < $DEFAULTS{pvalue};
+    next unless $tmp_data->{'P-Value'} < $CONFIG{pvalue};
     next unless $ref_allele eq $tmp_data->{'Ref'} && exists($alt_alleles{$tmp_data->{'Alt'}});
-    next if (!$DEFAULTS{incl_repl} && exists ($repl{$tmp_data->{Element}}));
+    next if (!$CONFIG{incl_repl} && exists ($repl{$tmp_data->{Element}}));
 
     # get required data
     my %tmp_return =
