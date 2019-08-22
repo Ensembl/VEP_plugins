@@ -39,6 +39,8 @@ limitations under the License.
  file           : required - a VCF file of reference data. 
 
  overlap        : percentage overlap between SVs (default: 80)
+ reciprocal     : calculate reciprocal overlap, options:  0 or 1. (default: 0)
+                  (overlap is expressed as % of input SV by default)
 
  cols           : colon delimited list of data types to return from the INFO fields (only AF by default)
 
@@ -46,9 +48,11 @@ limitations under the License.
 
  distance       : the distance the ends of the overlapping SVs should be within.
 
- match_type     : only report SV completely within or surrounding the input SV
+ match_type     : only report reference SV which lie within or completely surround the input SV
                   options: within, surrounding
 
+ label          : annotation label that will appear in the output (default: "SV_overlap")
+                  Example- input: label=mydata, output: mydata_name=refSV,mydata_PC=80,mydata_AF=0.05
 
 Example reference data
 
@@ -101,6 +105,9 @@ sub new {
   $self->{match_type} = $params_hash->{match_type} ? $params_hash->{match_type} : undef ;
   $self->{required_percent_olap} = $params_hash->{percentage} ? $params_hash->{percentage} : 80;
   $self->{same_type}  = $params_hash->{same_type} ? $params_hash->{same_type} : 0 ;
+  $self->{label}  = $params_hash->{label} ? $params_hash->{label} : "SV_overlap";
+  $self->{reciprocal}  = $params_hash->{reciprocal} ? $params_hash->{reciprocal} : 0;
+
 
   ## allow specific columns to be rerieved from the VCF
   if($params_hash->{cols}){
@@ -132,14 +139,18 @@ sub get_header_info {
     $desc = $self->get_header_desc();
   }
 
-  my %headers = ( "SV_overlap_name" => "name of overlapping SV",
-                  "SV_overlap_AF"   => "frequency of overlapping SV",
-                  "SV_overlap_PC"   => "percent coverage by overlapping SV",
+  my $overlap_definition = $self->{reciprocal} == 1 ?
+                           "minimum reciprocal overlap as a percent" :
+                           "percent of input SV covered by reference SV";
+
+  my %headers = ( $self->{label}."_name" => "name of overlapping SV",
+                  $self->{label}."_AF"   => "frequency of overlapping SV",
+                  $self->{label}."_PC"   => $overlap_definition,
                 );
 
   ## add any specifically requested headers
   foreach my $info (keys %{$self->{cols}}){
-    $headers{"SV_overlap_" . $info} = $desc->{$info};
+    $headers{$self->{label} ."_". $info} = $desc->{$info};
   } 
 
   return \%headers;
@@ -186,6 +197,9 @@ sub run {
 
   my $svf = $bvfoa->base_variation_feature;
 
+  ## don't annotate breakends with overlapping SV data
+  return {} if $svf->class_SO_term() eq 'BND';
+
   ## read & filter reference VCF  
   my $overlaps = $self->get_data($svf);
 
@@ -196,8 +210,8 @@ sub run {
   foreach my $osv(@{$overlaps}){
 
     ## collect output types
-    push @{$save{SV_overlap_name}}, $osv->variation_name(); 
-    push @{$save{SV_overlap_PC}}, $osv->{_overlap_found};
+    push @{$save{$self->{label}."_name"}}, $osv->variation_name();
+    push @{$save{$self->{label}."_PC"}}, $osv->{_overlap_found};
 
     my %info;
     ## if any specific columns were requested; add them
@@ -210,12 +224,12 @@ sub run {
 
     if(scalar (keys %{$self->{cols}}) > 0){
       foreach my $info (keys %{$self->{cols}}){
-        push @{$save{"SV_overlap_" . $info}},  $info{$info};
+        push @{$save{$self->{label} . $info}},  $info{$info};
       }
     }
     else{
       ## add allele frequency as a default if available
-      push @{$save{SV_overlap_AF}}, defined  $info{AF} ?  $info{AF} : undef;
+      push @{$save{$self->{label}."_AF"}}, defined  $info{AF} ?  $info{AF} : undef;
     }
   }
   ## format
@@ -250,12 +264,12 @@ sub get_data{
 
     foreach my $olap_sv (@{$olap_svs}){
 
-      ## skip breakends - can be huge and hard to interpret here
+      ## skip breakends - hard to interpret here
       next if $olap_sv->class_SO_term() eq 'BND';
 
       ## match on SV class if required 
       ## confounded by different descriptions for the same event
-      next if $olap_sv->class_SO_term() eq $svf->class_SO_term() &&  $self->{same_type}  ==1;
+      next if $olap_sv->class_SO_term() ne $svf->class_SO_term() &&  $self->{same_type}  ==1;
 
 
       if( defined $self->{match_type}){
@@ -266,7 +280,7 @@ sub get_data{
         next if $self->{match_type} eq "surrounding" && ($start < $olap_sv->{start} ||  $end > $olap_sv->{end});
       }
 
-      ## check overlap is long enough - expressed as percentage of input SV
+      ## check overlap is long enough
       my $overlap_found; ## % overlap
       if( $self->{required_percent_olap} > 0){
 
@@ -274,8 +288,21 @@ sub get_data{
         my @overlap_end   = sort { $a <=> $b } ($end, $olap_sv->end());
 
         $overlap_found = 100 * (1+ $overlap_end[0]  - $overlap_start[1])/ $length;
+
+        ## overlap as percentage of input SV
         next unless $overlap_found  > $self->{required_percent_olap};
+
+        if ($self->{reciprocal} ==1){
+          ## check bi-directional overlap - percentage of ref SV covered
+          my $ref_sv_length = $olap_sv->end - $olap_sv->start +1;
+          my $ref_overlap_found = 100 * (1+ $overlap_end[0]  - $overlap_start[1])/ $ref_sv_length;
+
+          next unless $ref_overlap_found > $self->{required_percent_olap};
+          ## report minimum overlap if checking bidirectionally
+          $overlap_found = $ref_overlap_found if $ref_overlap_found < $overlap_found;
+        }
       }
+
 
       ## check breakpoint ends are within required distance
       if (defined $self->{distance}){
