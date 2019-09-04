@@ -268,7 +268,7 @@ sub generate_phenotype_gff {
 
   print STDERR "### Phenotypes plugin: Sorting file with sort\n" unless $config->{quiet};
 
-  system("(zgrep '^#' $file;  zgrep -v '^#' $file | sort -k1,1 -k4,4n ) | bgzip -c > $file_sorted") and die("ERROR: sort failed\n");
+  system("(zgrep '^#' $file; LC_ALL=C zgrep -v '^#' $file | sort -k1,1 -k4,4n ) | bgzip -c > $file_sorted") and die("ERROR: sort failed\n");
 
   print STDERR "### Phenotypes plugin: Indexing file with tabix\n" unless $config->{quiet};
 
