@@ -236,6 +236,10 @@ sub get_data{
   my $end   = $svf->{end};
 
   my $length = $end - $start +1;
+
+  ## no useful overlap can be calculated if there is no start/end available
+  return unless $length >0;
+
   my @overlaps;
 
   ## adjust coords for tabix
