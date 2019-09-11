@@ -233,7 +233,7 @@ sub new {
       my @vcf_collection_ids = ();
       my $assembly =  $self->{config}->{assembly};
       if ($params->{af_from_vcf_keys}) {
-        foreach my $key (split(/[\;\&\|]/, @{$params->{af_from_vcf_keys}})) {
+        foreach my $key (split(/[\;\&\|]/, $params->{af_from_vcf_keys})) {
           push @vcf_collection_ids, $key;
           push @vcf_collection_ids, "$key\_$assembly";
         }
@@ -245,7 +245,9 @@ sub new {
 
       my $species =  $self->{config}->{species};
       my $reg = $self->{config}->{reg};
-      my $vca = $reg->get_adaptor($species, 'variation', 'VCFCollection');
+      my $vdba = $reg->get_DBAdaptor($species, 'variation');
+      $vdba->dbc->reconnect_when_lost(1);
+      my $vca = $vdba->get_VCFCollectionAdaptor;
       $vca->db->use_vcf(2);
       my $vcf_collections = $vca->fetch_all;
       my @collections = ();
