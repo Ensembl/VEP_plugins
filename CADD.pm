@@ -103,7 +103,7 @@ sub run {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
-        alts   => $vf->alt_alleles,
+        alts   => [$allele],
         pos    => $vf->{start},
         strand => $vf->strand
       },
