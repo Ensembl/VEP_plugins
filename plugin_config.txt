@@ -760,7 +760,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/GO.pm",
-      "section" => "Phenotype",
+      "section" => "Phenotype data",
     },
 
     # G2P
@@ -771,7 +771,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "requires_data" => 1,
-      "section" => "Phenotype",
+      "section" => "Phenotype data",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/G2P.pm",
     },
     
@@ -781,7 +781,7 @@ my $VEP_PLUGIN_CONFIG = {
       "label" => "PostGAP",
       "available" => 0,
       "enabled" => 0,
-      "section" => "Phenotype",
+      "section" => "Phenotype data",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/PostGAP.pm"
     },
 
@@ -789,7 +789,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "satMutMPRA",
       "helptip" => "Reports saturation mutagenesis MPRA measures of variant effects on gene RNA expression for 21 enhancers/promoters",
-      "section" => "Phenotype",
+      "section" => "Phenotype data",
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/98/satMutMPRA.pm",
