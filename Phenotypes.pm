@@ -117,6 +117,8 @@ sub new {
   my $params_hash = $self->params_to_hash();
   $CONFIG{$_} = $params_hash->{$_} for keys %$params_hash;
 
+  die("ERROR: File not found (".$CONFIG{file}.") and unable to generate GFF file in offline mode\n") if $self->{config}{offline} && ($CONFIG{file} && !-e $CONFIG{file}) ;
+
   #for REST calls report all data (use json output flag)
   $self->{config}->{output_format} ||= $CONFIG{output_format};
 
@@ -131,6 +133,9 @@ sub new {
   $refresh = 1 if (exists $CONFIG{species} && $CONFIG{species} ne $self->{config}{species});
 
   unless($CONFIG{file} && !$refresh) {
+
+    die("ERROR: Unable to generate GFF file in offline mode\n") if $self->{config}->{offline};
+
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
 
