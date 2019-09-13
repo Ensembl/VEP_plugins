@@ -94,7 +94,7 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 # default config
-my %DEFAULTS = (
+my %CONFIG = (
   exclude_sources => 'HGMD-PUBLIC&COSMIC',
   exclude_types => 'StructuralVariation&SupportingStructuralVariation',
   expand_right => 100000,
@@ -115,10 +115,10 @@ sub new {
   my $self = $class->SUPER::new(@_);
   
   my $params_hash = $self->params_to_hash();
-  $DEFAULTS{$_} = $params_hash->{$_} for keys %$params_hash;
+  $CONFIG{$_} = $params_hash->{$_} for keys %$params_hash;
 
   #for REST calls report all data (use json output flag)
-  $self->{config}->{output_format} ||= $DEFAULTS{output_format};
+  $self->{config}->{output_format} ||= $CONFIG{output_format};
 
   # get output format
   if ($self->{config}->{output_format}) {
@@ -128,9 +128,9 @@ sub new {
 
   #DEFAULTS are not refreshed automatically by multiple REST calls unless forced
   my $refresh = 0;
-  $refresh = 1 if (exists $DEFAULTS{species} && $DEFAULTS{species} ne $self->{config}{species});
+  $refresh = 1 if (exists $CONFIG{species} && $CONFIG{species} ne $self->{config}{species});
 
-  unless($DEFAULTS{file} && !$refresh) {
+  unless($CONFIG{file} && !$refresh) {
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
 
@@ -140,24 +140,24 @@ sub new {
     my $version = $config->{db_version} || 'Bio::EnsEMBL::Registry'->software_version;
     my $assembly = $config->{assembly};
 
-    my $dir = $DEFAULTS{dir};
+    my $dir = $CONFIG{dir};
     if(defined $dir && -d $dir){
       $dir =~ s/\/?$/\//; #ensure dir path string ends in slash
       if( $species eq 'homo_sapiens' || $species eq 'human'){
         $assembly ||= $config->{human_assembly};
-        $DEFAULTS{file} = sprintf("%s_%s_%i_%s.gvf.gz", $dir.$pkg, $species, $version, $assembly);
+        $CONFIG{file} = sprintf("%s_%s_%i_%s.gvf.gz", $dir.$pkg, $species, $version, $assembly);
       } else {
-        $DEFAULTS{file} = sprintf("%s_%s_%i.gvf.gz", $dir.$pkg, $species, $version);
+        $CONFIG{file} = sprintf("%s_%s_%i.gvf.gz", $dir.$pkg, $species, $version);
       }
     } else { #assembly value will be automatically populated by VEP script but not by REST server
-      $DEFAULTS{file} = sprintf("%s_%s_%i_%s.gvf.gz", $INC{$pkg}, $species, $version, $assembly);
+      $CONFIG{file} = sprintf("%s_%s_%i_%s.gvf.gz", $INC{$pkg}, $species, $version, $assembly);
     }
-    $DEFAULTS{species} = $species;
+    $CONFIG{species} = $species;
   }
 
-  $self->generate_phenotype_gff($DEFAULTS{file}) if !(-e $DEFAULTS{file}) || (-e $DEFAULTS{file}.'.lock');
+  $self->generate_phenotype_gff($CONFIG{file}) if !(-e $CONFIG{file}) || (-e $CONFIG{file}.'.lock');
 
-  $self->add_file($DEFAULTS{file});
+  $self->add_file($CONFIG{file});
 
   $self->get_user_params();
 
@@ -290,9 +290,9 @@ sub run {
 
   return {} unless $data && scalar @$data;
 
-  return { PHENOTYPES =>  $data } if ($output_format{'json'} && !$DEFAULTS{phenotype_feature});
+  return { PHENOTYPES =>  $data } if ($output_format{'json'} && !$CONFIG{phenotype_feature});
 
-  if ($DEFAULTS{phenotype_feature}){
+  if ($CONFIG{phenotype_feature}){
     my %tmp_res_uniq;
     my @result_str = ();
     my @result_data = ();
@@ -416,7 +416,7 @@ sub _generic_inc_exc {
   my ($self, $key) = @_;
 
   if(!exists($self->{'_'.$key})) {
-    my %exc = map {$_ => 1} split('&', $DEFAULTS{$key} || '');
+    my %exc = map {$_ => 1} split('&', $CONFIG{$key} || '');
     $self->{'_'.$key} = \%exc;
   }
 
