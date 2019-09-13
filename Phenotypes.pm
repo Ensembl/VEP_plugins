@@ -18,12 +18,12 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
 
- Phenotypes
+Phenotypes
 
 =head1 SYNOPSIS
 
@@ -81,7 +81,7 @@ limitations under the License.
 
  --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
  --plugin Phenotypes,dir=${HOME},include_types=Gene
- 
+
 =cut
 
 package Phenotypes;
