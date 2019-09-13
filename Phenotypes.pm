@@ -189,6 +189,7 @@ sub generate_phenotype_gff {
 
   my $config = $self->{config};
   die("ERROR: Unable to generate GFF file in offline mode\n") if $config->{offline};
+  die("ERROR: Not allowed to generate GFF file in rest mode\n") if $config->{rest};
   
   # test bgzip
   die "ERROR: bgzip does not seem to be in your path\n" unless `which bgzip 2>&1` =~ /bgzip$/;
