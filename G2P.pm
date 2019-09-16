@@ -701,7 +701,7 @@ sub read_gene_data_from_file {
     chomp;
       if (/Model_Of_Inheritance/) {
         $file_type = 'panelapp';
-      } elsif (/"allelic requirement"/) {
+      } elsif (/allelic requirement/) {
         $file_type = 'g2p';
       } else {
         $file_type = 'unknown';
