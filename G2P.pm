@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-
+    
 =cut
 
 =head1 NAME
@@ -87,7 +87,7 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
  --plugin G2P,file=G2P.csv
-
+ 
 =cut
 
 package G2P;
@@ -100,7 +100,7 @@ use Scalar::Util qw(looks_like_number);
 use FileHandle;
 use Text::CSV;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-
+use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
@@ -228,12 +228,12 @@ sub new {
   }
 
   if ($params->{af_from_vcf}) {
-    die "option 'af_from_vcf' cannot be run in --offline mode\n" if (defined $self->{config}->{offline});
+#    die "option 'af_from_vcf' cannot be run in --offline mode\n" if (defined $self->{config}->{offline});
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
       my $assembly =  $self->{config}->{assembly};
       if ($params->{af_from_vcf_keys}) {
-        foreach my $key (split(/[\;\&\|]/, @{$params->{af_from_vcf_keys}})) {
+        foreach my $key (split(/[\;\&\|]/, $params->{af_from_vcf_keys})) {
           push @vcf_collection_ids, $key;
           push @vcf_collection_ids, "$key\_$assembly";
         }
@@ -245,11 +245,19 @@ sub new {
 
       my $species =  $self->{config}->{species};
       my $reg = $self->{config}->{reg};
-      my $vca = $reg->get_adaptor($species, 'variation', 'VCFCollection');
-      $vca->db->use_vcf(2);
+      my $vca;
+      if (defined $self->{config}->{offline}) {
+        $vca = Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor->new();
+      } else {
+        my $vdba = $reg->get_DBAdaptor($species, 'variation');
+        $vdba->dbc->reconnect_when_lost(1);
+        $vca = $vdba->get_VCFCollectionAdaptor;
+        $vca->db->use_vcf(2);
+      }
       my $vcf_collections = $vca->fetch_all;
       my @collections = ();
       foreach my $vcf_collection (@$vcf_collections) {
+        $vcf_collection->use_db(0) if (defined $self->{config}->{offline});
         my $vcf_collection_id = $vcf_collection->id;
         if ($vcf_collection->assembly eq $assembly && grep {$_ =~ /$vcf_collection_id/i} @vcf_collection_ids) {
           delete $vcf_collection->adaptor->{collections};
@@ -263,7 +271,7 @@ sub new {
           push @collections, $vcf_collection;
         }
       }
-      warn "Could not find VCF collection ids for assembly " . $assembly if (!@collections);
+      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
     } else {
@@ -693,7 +701,7 @@ sub read_gene_data_from_file {
     chomp;
       if (/Model_Of_Inheritance/) {
         $file_type = 'panelapp';
-      } elsif (/"allelic requirement"/) {
+      } elsif (/allelic requirement/) {
         $file_type = 'g2p';
       } else {
         $file_type = 'unknown';
