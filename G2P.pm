@@ -47,8 +47,11 @@ limitations under the License.
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
- all_confidence_levels : set value to 1 to include all confidence levels: confirmed, probable and possible. 
-                         Default levels are confirmed and probable. 
+ confidence_levels     : Confidence levels to include: confirmed, probable, possible, both RD and IF.
+                         Separate multiple values with '&'.
+                         https://www.ebi.ac.uk/gene2phenotype/terminology
+                         Default levels are confirmed and probable.
+ all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible.
                          
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
                          Specifiy the list of reference populations to include with --af_from_vcf_keys    
@@ -86,6 +89,7 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg,confidence_levels='confirmed&probable&both RD and IF'
  --plugin G2P,file=G2P.csv
  
 =cut
@@ -102,7 +106,6 @@ use Text::CSV;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 our $CAN_USE_HTS_PM;
@@ -163,6 +166,13 @@ my $allelic_requirements = {
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+};
+
+my $supported_confidence_levels = {
+  'confirmed' => 1,
+  'probable' => 1,
+  'possible' => 1,
+  'both RD and IF' => 1,
 };
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
@@ -226,9 +236,22 @@ sub new {
   if ($params->{all_confidence_levels}) {
     push @{$params->{confidence_levels}}, 'possible', @{$DEFAULTS{confidence_levels}};
   }
+  if ($params->{confidence_levels}) {
+    my @confidence_levels = ();
+    foreach my $confidence_level (split(/[\;\&\|]/, $params->{confidence_levels})) {
+      if (!$supported_confidence_levels->{$confidence_level}) {
+        die "$confidence_level is not a supported value for supported confidence levels. Supported values are: ", join(', ', keys %$supported_confidence_levels);
+      } else {
+        push @confidence_levels, $confidence_level;
+        push @confidence_levels, 'both DD and IF' if ($confidence_level eq 'both RD and IF'); # legacy support for using both DD and IF
 
+      }
+    }
+    if (scalar @confidence_levels > 0) {
+      $DEFAULTS{confidence_levels} = \@confidence_levels;
+    }
+  }
   if ($params->{af_from_vcf}) {
-#    die "option 'af_from_vcf' cannot be run in --offline mode\n" if (defined $self->{config}->{offline});
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
       my $assembly =  $self->{config}->{assembly};
@@ -782,7 +805,7 @@ sub read_gene_data_from_file {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
-        my $confidence_value = $tmp{"DDD category"};
+        my $confidence_value = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
         next if (!grep{$_ eq $confidence_value} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
