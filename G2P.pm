@@ -248,7 +248,7 @@ sub new {
       }
     }
     if (scalar @confidence_levels > 0) {
-      $DEFAULTS{confidence_levels} = \@confidence_levels;
+      $params->{confidence_levels} = \@confidence_levels;
     }
   }
   if ($params->{af_from_vcf}) {
