@@ -212,7 +212,12 @@ sub new {
   my $new_log_dir = "$cwd_dir/g2p_log_dir\_$stamp";
   my $log_dir = $params->{log_dir} || $new_log_dir;
   if (!-d $log_dir) {
-    mkdir $log_dir, 0755;
+    eval {
+      mkdir $log_dir, 0755;
+    };
+    if ($@) {
+      die("ERROR: Couldn't create log_dir $log_dir $@");
+    }
     $params->{log_dir} = $log_dir;
   } 
 
