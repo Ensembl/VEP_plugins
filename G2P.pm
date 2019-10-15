@@ -213,7 +213,7 @@ sub new {
   my $log_dir = $params->{log_dir} || $new_log_dir;
   if (!-d $log_dir) {
     my $return = mkdir $log_dir, 0755;
-    die("ERROR: Couldn't create log_dir $log_dir\n") if (!$return);
+    die("ERROR: Couldn't create log_dir $log_dir $!\n") if (!$return);
     $params->{log_dir} = $log_dir;
   } 
 
