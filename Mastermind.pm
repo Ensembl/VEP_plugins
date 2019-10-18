@@ -308,11 +308,9 @@ sub parse_data {
 
   my @aa_alterations = split /,/, $mmid3;
 
-  my @aa_alterations_new;
   foreach my $aa_alteration (@aa_alterations) {
     $aa_alteration =~ s/.*\:[A-Za-z]+//;
     $aa_alteration =~ s/[A-Za-z]+|\*//;
-    push @aa_alterations_new, $aa_alteration;
   }
 
   return {
