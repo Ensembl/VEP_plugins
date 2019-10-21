@@ -326,6 +326,11 @@ sub create_VariationFeatures {
 
   $sth->finish();
 
+  unless(@vfs) {
+    $self->warning_msg("WARNING: No mappings found for variant \'$id\'");
+    return $self->create_VariationFeatures();
+  }
+
   return $self->post_process_vfs(\@vfs);
 }
 
