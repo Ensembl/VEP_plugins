@@ -34,7 +34,8 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- reports variants that have clinical evidence cited in the medical literature. 
+ that uses the Mastermind Genomic Search Engine (https://www.genomenon.com/mastermind)
+ to report variants that have clinical evidence cited in the medical literature. 
  It is available for both GRCh37 and GRCh38.
 
  Running options:
