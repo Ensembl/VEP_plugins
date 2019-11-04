@@ -188,6 +188,10 @@ sub run {
     return {};
   }
 
+  if($vf->{chr} =~ /^chr/) {
+    $vf->{chr} =~ s/^chr//i;
+  }
+
   $parser->seek($vf->{chr}, $vf->{start} - 1, $vf->{end});
   $parser->next;  
 
