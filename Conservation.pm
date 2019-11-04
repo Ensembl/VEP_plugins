@@ -188,11 +188,10 @@ sub run {
     return {};
   }
 
-  if($vf->{chr} =~ /^chr/) {
-    my $tmp_chr =~ s/^chr//i;
-  }
+  my $chr = $vf->{chr};
+  $chr =~ s/^chr//i;
 
-  $parser->seek($vf->{chr}, $vf->{start} - 1, $vf->{end});
+  $parser->seek($chr, $vf->{start} - 1, $vf->{end});
   $parser->next;  
 
   return $parser->get_raw_score ? { Conservation => sprintf("%.3f", $parser->get_raw_score)} : {};
