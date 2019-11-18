@@ -45,8 +45,9 @@ The 20 disease-associated regulatory elements and one ultraconserved enhancer an
  - ten enhancers (of SORT1, ZRS, BCL11A, IRF4, IRF6, MYC (2x), RET, TCF7L2 and ZFAND3) and
  - one ultraconserved enhancer (UC88).
 
-Please refer to the satMutMPRA web server and biorxiv manuscript for more information:
+Please refer to the satMutMPRA web server and Kircher M et al. (2019) paper for more information:
 https://mpra.gs.washington.edu/satMutMPRA/
+http://www.ncbi.nlm.nih.gov/pubmed/31395865
 https://www.biorxiv.org/content/10.1101/505362v1.full
 
 Parameters can be set using a key=value system:
