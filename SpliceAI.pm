@@ -33,9 +33,17 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves pre-calculated annotations from SpliceAI.
- SpliceAI is a deep neural network, developed in partnership with Illumina, 
+ SpliceAI is a deep neural network, developed by Illumina, Inc 
  that predicts splice junctions from an arbitrary pre-mRNA transcript sequence.
- It is available for both GRCh37 and GRCh38.
+
+ Delta score of a variant, defined as the maximum of (DS_AG, DS_AL, DS_DG, DS_DL), 
+ ranges from 0 to 1 and can be interpreted as the probability of the variant being 
+ splice-altering. The author-suggested cutoffs are:
+   0.2 (high recall)
+   0.5 (recommended)
+   0.8 (high precision)
+
+ This plugin is available for both GRCh37 and GRCh38.
 
  More information can be found at:
  https://pypi.org/project/spliceai/
@@ -43,11 +51,18 @@ limitations under the License.
  Please cite the SpliceAI publication alongside VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/30661751
 
+ Running options:
+ (Option 1) By default, this plugin appends all scores from SpliceAI files.
+ (Option 2) It can be specified a score cutoff between 0 and 1.
+
  Output: 
  The output includes the alt allele, gene symbol, delta scores (DS) and delta positions (DP) 
  for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). 
  The output format is: ALLELE:SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
+ For VCF output files '|' is replaced by '&'.
 
+ If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
+ passes the cutoff, 'NO_PASS' otherwise. 
 
  The following steps are necessary before running this plugin:
 
@@ -67,6 +82,7 @@ limitations under the License.
 
  The plugin can then be run:
  ./vep -i variations.vcf --plugin SpliceAI,/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
+ ./vep -i variations.vcf --plugin SpliceAI,/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,0.5
 
 
 =cut
@@ -75,6 +91,7 @@ package SpliceAI;
 
 use strict;
 use warnings;
+use List::Util qw(max);
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
@@ -95,6 +112,13 @@ sub new {
   die("ERROR: SpliceAI scores input file not specified or found!\n") unless defined($self->params->[0]) && -e $self->params->[0];
 
   $self->{file} = $self->params->[0];
+  if(defined($self->params->[1])) {
+    my $cutoff = $self->params->[1];
+    if($cutoff < 0 || $cutoff > 1) {
+      die("ERROR: Cutoff score must be between 0 and 1!\n");
+    }
+    $self->{cutoff} = $cutoff;
+  }
 
   return $self;
 }
@@ -104,10 +128,16 @@ sub feature_types {
 }
 
 sub get_header_info {
+  my $self = shift;
 
-  return{
-     'SpliceAI_pred'  => 'SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: ALLELE:SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL',
-  };
+  my %header;
+  $header{'SpliceAI_pred'} = 'SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: ALLELE:SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL';
+
+  if($self->{cutoff}) {
+    $header{'SpliceAI_cutoff'} = 'Flag if delta score pass the cutoff (PASS) or if it does not (NO_PASS)'; 
+  }
+
+  return \%header;
 }
 
 sub run {
@@ -139,14 +169,15 @@ sub run {
   return {} unless(@data);
 
   my $result_data = '';
+  my $result_flag;
 
   foreach my $data_value (@data) {
 
     if($data_value->{result}) {
 
       # Ref and alt alleles from SpliceAI file
-      my $mm_ref = $data_value->{ref};
-      my $mm_alt = $data_value->{alt};
+      my $splice_ref = $data_value->{ref};
+      my $splice_alt = $data_value->{alt};
 
       my @alt_allele_list;
       # Multiple alt alleles
@@ -157,9 +188,21 @@ sub run {
         $alt_allele_list[0] = $alt_allele;
       }
 
-      foreach my $alt (@alt_allele_list) {
-        if($ref_allele eq $mm_ref && $alt eq $mm_alt) {
-          $result_data = $result_data . "," . $data_value->{result};
+      if($ref_allele eq $splice_ref) {
+        foreach my $alt (@alt_allele_list) {
+          if($alt eq $splice_alt) {
+            $result_data = $result_data . "," . $data_value->{result};
+
+            # Add a flag if cutoff is used
+            if($self->{cutoff}) {
+              if($data_value->{info} >= $self->{cutoff}) {
+                $result_flag = 'PASS';
+              }
+              else {
+                $result_flag = 'NO_PASS';
+              }
+            }
+          }
         }
       }
     }
@@ -171,6 +214,9 @@ sub run {
   if($result_data ne '') {
     $result_data =~ s/,//;
     $hash{'SpliceAI_pred'} = $result_data;
+    if($self->{cutoff}) {
+      $hash{'SpliceAI_cutoff'} = $result_flag;
+    }
     $result = \%hash;
   }
   else {
@@ -191,11 +237,25 @@ sub parse_data {
   my $allele = $info_splited[0];
   my $data = $info_splited[1];
 
+  my $max_score;
+  if($self->{cutoff}){
+    my @scores = split (qr/\|/,$data);
+
+    my @scores_list;
+    push @scores_list, $scores[1];
+    push @scores_list, $scores[2];
+    push @scores_list, $scores[3];
+    push @scores_list, $scores[4];
+
+    $max_score = max(@scores_list);
+  }
+
   return {
     chr    => $chr,
     start  => $start,
     ref    => $ref,
     alt    => $alt,
+    info   => $max_score,
     result => $allele . ":" . $data,
   };
 }
