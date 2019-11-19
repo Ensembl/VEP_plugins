@@ -61,8 +61,8 @@ limitations under the License.
  The output format is: ALLELE:SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
  For VCF output files '|' is replaced by '&'.
 
- If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
- passes the cutoff, 'NO_PASS' otherwise. 
+ If plugin is run with option 2, the output also contains a flag: 'CUTOFF_PASS' if delta score
+ passes the cutoff, 'CUTOFF_NO_PASS' otherwise. 
 
  The following steps are necessary before running this plugin:
 
@@ -134,7 +134,7 @@ sub get_header_info {
   $header{'SpliceAI_pred'} = 'SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: ALLELE:SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL';
 
   if($self->{cutoff}) {
-    $header{'SpliceAI_cutoff'} = 'Flag if delta score pass the cutoff (PASS) or if it does not (NO_PASS)'; 
+    $header{'SpliceAI_cutoff'} = 'Flag if delta score pass the cutoff (CUTOFF_PASS) or if it does not (CUTOFF_NO_PASS)'; 
   }
 
   return \%header;
@@ -196,10 +196,10 @@ sub run {
             # Add a flag if cutoff is used
             if($self->{cutoff}) {
               if($data_value->{info} >= $self->{cutoff}) {
-                $result_flag = 'PASS';
+                $result_flag = 'CUTOFF_PASS';
               }
               else {
-                $result_flag = 'NO_PASS';
+                $result_flag = 'CUTOFF_NO_PASS';
               }
             }
           }
