@@ -240,13 +240,7 @@ sub parse_data {
   my $max_score;
   if($self->{cutoff}){
     my @scores = split (qr/\|/,$data);
-
-    my @scores_list;
-    push @scores_list, $scores[1];
-    push @scores_list, $scores[2];
-    push @scores_list, $scores[3];
-    push @scores_list, $scores[4];
-
+    my @scores_list = @scores[1..4];
     $max_score = max(@scores_list);
   }
 
