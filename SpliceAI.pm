@@ -58,10 +58,16 @@ limitations under the License.
  cutoff between 0 and 1.
 
  Output: 
- The output includes the alt allele, gene symbol, delta scores (DS) and delta positions (DP) 
- for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). 
- The output format is: SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
- For VCF output files '|' is replaced by '&'.
+ The output includes the gene symbol, delta scores (DS) and delta positions (DP)
+ for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL).
+
+ For tab and JSON the output contains one header 'SpliceAI_pred' with all
+ the delta scores and positions. The format is:
+   SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
+
+ For VCF output the delta scores and positions are stored in different headers.
+ The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
+   Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
  If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
  passes the cutoff, 'FAIL' otherwise. 
@@ -103,6 +109,8 @@ use Bio::EnsEMBL::Variation::VariationFeature;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my $output_vcf;
+
 sub new {
   my $class = shift;
 
@@ -126,6 +134,10 @@ sub new {
     $self->{cutoff} = $cutoff;
   }
 
+  if($self->{config}->{output_format} eq "vcf") {
+    $output_vcf = 1;
+  }
+
   return $self;
 }
 
@@ -137,7 +149,22 @@ sub get_header_info {
   my $self = shift;
 
   my %header;
-  $header{'SpliceAI_pred'} = 'SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: ALLELE:SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL';
+
+  if($output_vcf) {
+    $header{'SpliceAI_pred_SYMBOL'} = 'SpliceAI gene symbol';
+    $header{'SpliceAI_pred_DS_AG'} = 'SpliceAI predicted effect on splicing. Delta score for acceptor gain';
+    $header{'SpliceAI_pred_DS_AL'} = 'SpliceAI predicted effect on splicing. Delta score for acceptor loss';
+    $header{'SpliceAI_pred_DS_DG'} = 'SpliceAI predicted effect on splicing. Delta score for donor gain';
+    $header{'SpliceAI_pred_DS_DL'} = 'SpliceAI predicted effect on splicing. Delta score for donor loss';
+    $header{'SpliceAI_pred_DP_AG'} = 'SpliceAI predicted effect on splicing. Delta position for acceptor gain';
+    $header{'SpliceAI_pred_DP_AL'} = 'SpliceAI predicted effect on splicing. Delta position for acceptor loss';
+    $header{'SpliceAI_pred_DP_DG'} = 'SpliceAI predicted effect on splicing. Delta position for donor gain';
+    $header{'SpliceAI_pred_DP_DL'} = 'SpliceAI predicted effect on splicing. Delta position for donor loss';
+  }
+
+  else {
+    $header{'SpliceAI_pred'} = 'SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL';
+  }
 
   if($self->{cutoff}) {
     $header{'SpliceAI_cutoff'} = 'Flag if delta score pass the cutoff (PASS) or if it does not (FAIL)';
@@ -206,7 +233,23 @@ sub run {
     if (@$matches) {
 
       my %hash;
-      $hash{'SpliceAI_pred'} = $data_value->{result};
+
+      if($output_vcf) {
+        my @data_values = split /\|/, $data_value->{result};
+        $hash{'SpliceAI_pred_SYMBOL'} = $data_values[0];
+        $hash{'SpliceAI_pred_DS_AG'} = $data_values[1];
+        $hash{'SpliceAI_pred_DS_AL'} = $data_values[2];
+        $hash{'SpliceAI_pred_DS_DG'} = $data_values[3];
+        $hash{'SpliceAI_pred_DS_DL'} = $data_values[4];
+        $hash{'SpliceAI_pred_DP_AG'} = $data_values[5];
+        $hash{'SpliceAI_pred_DP_AL'} = $data_values[6];
+        $hash{'SpliceAI_pred_DP_DG'} = $data_values[7];
+        $hash{'SpliceAI_pred_DP_DL'} = $data_values[8];
+      }
+
+      else {
+        $hash{'SpliceAI_pred'} = $data_value->{result};
+      }
 
       # Add a flag if cutoff is used
       if($self->{cutoff}) {
