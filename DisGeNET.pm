@@ -41,40 +41,53 @@ limitations under the License.
  https://academic.oup.com/nar/article/48/D1/D845/5611674
 
 
- Running options:
- (Option 1) By default, this plugin includes three values = pmid:rsid:DisGeNET score.
- (Option 2) It can be run with the option '1' to also include diseases/phenotypes
- names reporting the Variant-pmid association.
+ Options are passed to the plugin as key=value pairs:
+
+ file           : Path to DisGENET data file (mandatory).
+
+ disease        : Set value to 1 to include the diseases/phenotype names reporting
+                  the Variant-PMID association (optional).
+
+ rsid           : Set value to 1 to include the dbSNP variant Identifier (optional).
+
+ filter_score   : Only reports citations with score greater or equal than input value (optional).
+
+ filter_source  : Only reports citations from input sources (optional).
+                  Accepted sources are: UNIPROT, CLINVAR, GWASDB, GWASCAT, BEFREE
+                  Separate multiple values with '&'.
+
 
  Output:
- The output includes three values: 
-  - pmid of the publication reporting the Variant-Disease association
-  - dbSNP variant Identifier
-  - DisGENET score for the Variant-Disease association
-  Example '20054638:rs10012:0.01'
-
+ The output includes: 
+  - PMID of the publication reporting the Variant-Disease association (default)
+  - DisGENET score for the Variant-Disease association (default)
+  - dbSNP variant Identifier (optional)
+  - diseases/phenotype names (optional)
 
  The following steps are necessary before running this plugin:
- This plugin uses file 'all_gene_disease_pmid_associations.tsv.gz'
+ This plugin uses file 'all_variant_disease_pmid_associations.tsv.gz'
  File can be downloaded from: https://www.disgenet.org/downloads
 
- gunzip all_gene_disease_pmid_associations.tsv.gz
+ gunzip all_variant_disease_pmid_associations.tsv.gz
 
  awk '($1 ~ /^snpId/ || $2 ~ /NA/) {next} {print $0 | "sort -k2,2 -k3,3n"}' 
- all_gene_disease_pmid_associations.tsv > all_variant_disease_pmid_associations_sorted.tsv
+ all_variant_disease_pmid_associations.tsv > all_variant_disease_pmid_associations_sorted.tsv
 
  bgzip all_variant_disease_pmid_associations_sorted.tsv
  tabix -s 2 -b 3 -e 3 all_variant_disease_pmid_associations_sorted.tsv.gz
 
- The plugin can then be run as default (Option 1):
- ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet_file.tsv.gz
+ The plugin can then be run as default:
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations.tsv.gz
 
- or with an option to include disease/phenotype data (Option 2): 
- ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet_file.tsv.gz,1
+ or with an option to include optional data or/and filters: 
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations.tsv.gz,
+ disease=1
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations.tsv.gz,
+ disease=1,filter_source='GWASDB&GWASCAT'
 
  Of notice: this plugin only matches the chromosome and the position in the
   chromosome, the alleles are not taken into account to append the DisGENET data.
-  The rsid is provided in the output in order to help to filter the relevant data.
+  The rsid is provided (optional) in the output in order to help to filter the relevant data.
 
 
 =cut
@@ -83,9 +96,19 @@ package DisGeNET;
 use strict;
 use warnings;
 
+use List::MoreUtils qw(uniq);
+
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+
+my $valid_sources = {
+  UNIPROT => 1,
+  CLINVAR => 1,
+  GWASDB => 1,
+  GWASCAT => 1,
+  BEFREE => 1
+};
 
 sub new {
   my $class = shift;
@@ -95,10 +118,42 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
-  $self->get_user_params();
+  my $param_hash = $self->params_to_hash();
 
-  if(defined($self->params->[1])) {
-    $self->{disease} = $self->params->[1];
+  die("ERROR: DisGENET file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
+
+  $self->add_file($param_hash->{file});
+
+  if(defined($param_hash->{disease})) {
+    my $disease = $param_hash->{disease};
+    $self->{disease} = $disease;
+  }
+
+  if(defined($param_hash->{rsid})) {
+    my $rsid = $param_hash->{rsid};
+    $self->{rsid} = $rsid;
+  }
+
+  if(defined($param_hash->{filter_score})) {
+    my $filter_score = $param_hash->{filter_score};
+    if($filter_score < 0 || $filter_score > 1) {
+      die("ERROR: Score must be between 0 and 1!\n");
+    }
+    $self->{filter_score} = $filter_score;
+  }
+
+  if(defined($param_hash->{filter_source})) {
+    my @sources_filter;
+    foreach my $source (split(/[\;\&\|]/, $param_hash->{filter_source})) {
+      if (!$valid_sources->{$source}) {
+        die "$source is not a supported value. Supported sources are: ", join(', ', keys %$valid_sources);
+      } else {
+        push @sources_filter, $source;
+      }
+    }
+    if (scalar @sources_filter > 0) {
+      $self->{source_to_filter} = \@sources_filter;
+    }
   }
 
   return $self;
@@ -113,10 +168,14 @@ sub get_header_info {
 
   my %header;
 
-  $header{'DisGeNET'} = 'Publications reporting the Variant-Disease association. Output includes three values pmid:rsid:score. pmid - is the pmid of the publication reporting the Variant-Disease association; rsid - dbSNP variant Identifier; score - DisGENET score for the Variant-Disease association';
+  $header{'DisGeNET_PMID'} = 'PMID of the publication reporting the Variant-Disease association';
+  $header{'DisGeNET_SCORE'} = 'DisGENET score for the Variant-Disease association';
 
   if($self->{disease}) {
     $header{'DisGeNET_disease'} = 'Name of the disease reporting the Variant-pmid association';
+  }
+  if($self->{rsid}) {
+    $header{'DisGeNET_rsid'} = 'dbSNP variant Identifier';
   }
 
   return \%header;
@@ -138,23 +197,37 @@ sub run {
   return {} unless(@data);
 
   my %hash;
-  my @result;
+  my @result_pmid;
+  my @result_score;
+  my @result_rsid;
   my %unique_values;
   my @diseases;
   my %unique_diseases;
-
-  my $n_results = 1;
 
   foreach my $data_value (@data) {
     my $pmid = $data_value->{pmid};
     my $rsid = $data_value->{rsid};
     my $score = $data_value->{score};
+    my $source = $data_value->{source};
+
+    if($self->{filter_score}) {
+      next if($score < $self->{filter_score});
+    }
+
+    if($self->{source_to_filter}) {
+      my $sources_aux = $self->{source_to_filter};
+      my $check = check_source($sources_aux, $source);
+      next if(!$check);
+    }
 
     # Some publications are duplicated - same publications from different sources are in different rows
     # Check if pmid and rsid are not returned more than once
     if(!$unique_values{$pmid.':'.$rsid}++) {
-      my $result_string = $pmid . ':' . $rsid . ":" . $score;
-      push @result, $result_string;
+      push @result_pmid, $pmid;
+      push @result_score, $score;
+      if($self->{rsid}) {
+        push @result_rsid, $rsid;
+      }
     }
 
     if($self->{disease}) {
@@ -165,13 +238,19 @@ sub run {
     }
   }
 
-  $hash{'DisGeNET'} = join(',', @result);
+  $hash{'DisGeNET_PMID'} = join(',', @result_pmid);
+  $hash{'DisGeNET_SCORE'} = join(',', @result_score);
 
   if($self->{disease}) {
-    $hash{'DisGeNET_disease'} = join(',', @diseases);
+    $hash{'DisGeNET_disease'} = join('&', @diseases);
   }
 
-  return \%hash;
+  if($self->{rsid}) {
+    my @u_result_rsid = uniq @result_rsid;
+    $hash{'DisGeNET_rsid'} = join(',', @u_result_rsid);
+  }
+
+  return scalar @result_pmid > 0 ? \%hash : {};
 }
 
 sub parse_data {
@@ -187,7 +266,8 @@ sub parse_data {
       rsid => $all_data[0],
       diseaseName => $all_data[6],
       score => $all_data[10],
-      pmid => $all_data[14]
+      pmid => $all_data[14],
+      source => $all_data[15]
   };
 }
 
@@ -197,6 +277,21 @@ sub get_start {
 
 sub get_end {
   return $_[1]->{end};
+}
+
+sub check_source {
+  my $input_sources = shift;
+  my $var_source = shift;
+
+  my $result = 0;
+
+  my %hash_sources = map { $_ => 1 } @$input_sources;
+
+  if(exists($hash_sources{$var_source})) {
+    $result = 1;
+  }
+
+  return $result;
 }
 
 1;
