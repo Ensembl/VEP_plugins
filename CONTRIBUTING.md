@@ -25,6 +25,6 @@ Fuller guidance on creating and using plugins for Ensembl VEP is given [here](ht
 * Also acknowledge any data/tool provider with any text they specify on their website, including the project URL and latest publication where possible. 
 
 ## Licence
-Please add a licence and your contact details. Ensembl code is licensed under our Apache 2.0 license. Our expectation is that contributed code is made available under the same license. Any copyright assertion to other organistions should be declared in the modifying file and in the root LICENSE section.
+Please add a licence and your contact details. Ensembl code is licensed under the Apache 2.0 License and our expectation is that contributed code is made available under the same License. Any copyright assertion to other organistions should be declared in the modifying file and in the root LICENSE section.
 
 
