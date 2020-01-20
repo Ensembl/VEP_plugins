@@ -6,8 +6,6 @@ Please submit new plugins and updates as pull requests against the MASTER branch
 
 ## Plugin Development
 
-Guidance on writing plugins for Ensembl VEP is given [here](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html).
-
 To make development of plugins easier, we suggest you use the [Bio::EnsEMBL::Variation::Utils::BaseVepPlugin](https://github.com/Ensembl/ensembl-variation/blob/master/modules/Bio/EnsEMBL/Variation/Utils/BaseVepPlugin.pm) module as your base class, as this provides default implementations of all the necessary methods which can be overridden as required.
 The documentation in this module provides details of all required methods and a simple example of a plugin implementation. 
 Also see [Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin](https://github.com/Ensembl/ensembl-variation/blob/master/modules/Bio/EnsEMBL/Variation/Utils/BaseVepTabixPlugin.pm) for reading tabix-indexed files.
