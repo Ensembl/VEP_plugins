@@ -12,13 +12,16 @@ To make development of plugins easier, we suggest you use the [Bio::EnsEMBL::Var
 The documentation in this module provides details of all required methods and a simple example of a plugin implementation. 
 Also see [Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin](https://github.com/Ensembl/ensembl-variation/blob/master/modules/Bio/EnsEMBL/Variation/Utils/BaseVepTabixPlugin.pm) for reading tabix-indexed files.
 
+Ensembl VEP provides multiple output formats; it is worth testing plugins with each format for ease of parsing.
+
+Fuller guidance on creating and using plugins for Ensembl VEP is given [here](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html).
 
 ## Documentation
 
 * Please add NAME and DESCRIPTION sections to the POD header - these are used to automatically create documentation pages.
 * The documentation should include enough information for others to use the plugin, including:
-  * full instructions on how to download and format any data
-  * full instructions on how to download and install code
+  * full instructions on how to download and format any required data
+  * full instructions on how to download and install required software
 * Also acknowledge any data/tool provider with any text they specify on their website, including the project URL and latest publication where possible. 
 
 ## Licence
