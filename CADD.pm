@@ -92,7 +92,9 @@ sub run {
   
   return {} unless $allele =~ /^[ACGT-]+$/;
 
-  my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+  my $vf_start = $vf->{start};
+  $vf_start = ($vf_start <= 2) ? 1 : $vf_start - 2; 
+  my @data =  @{$self->get_data($vf->{chr}, $vf_start, $vf->{end})};
 
   foreach (@data) {
     my $matches = get_matched_variant_alleles(
