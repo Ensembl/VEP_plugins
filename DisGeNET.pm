@@ -77,12 +77,12 @@ limitations under the License.
  tabix -s 2 -b 3 -e 3 all_variant_disease_pmid_associations_sorted.tsv.gz
 
  The plugin can then be run as default:
- ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations.tsv.gz
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_sorted.tsv.gz
 
  or with an option to include optional data or/and filters: 
- ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations.tsv.gz,
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_sorted.tsv.gz,
  disease=1
- ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations.tsv.gz,
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_sorted.tsv.gz,
  disease=1,filter_source='GWASDB&GWASCAT'
 
  Of notice: this plugin only matches the chromosome and the position in the
