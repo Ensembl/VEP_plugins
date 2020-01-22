@@ -56,6 +56,8 @@ limitations under the License.
                   Accepted sources are: UNIPROT, CLINVAR, GWASDB, GWASCAT, BEFREE
                   Separate multiple values with '&'.
 
+ unique         : Only reports unique dbSNP variant Identifiers and diseases/phenotype names (optional)
+
 
  Output:
  The output includes: 
@@ -132,6 +134,11 @@ sub new {
   if(defined($param_hash->{rsid})) {
     my $rsid = $param_hash->{rsid};
     $self->{rsid} = $rsid;
+  }
+
+  if(defined($param_hash->{unique})) {
+    my $unique = $param_hash->{unique};
+    $self->{unique} = $unique;
   }
 
   if(defined($param_hash->{filter_score})) {
@@ -232,7 +239,12 @@ sub run {
 
     if($self->{disease}) {
       my $disease_name = $data_value->{diseaseName};
-      if(!$unique_diseases{$disease_name}++) {
+      if($self->{unique}) {
+        if(!$unique_diseases{$disease_name}++) {
+          push @diseases, $disease_name;
+        }
+      }
+      else{
         push @diseases, $disease_name;
       }
     }
@@ -246,8 +258,13 @@ sub run {
   }
 
   if($self->{rsid}) {
-    my @u_result_rsid = uniq @result_rsid;
-    $hash{'DisGeNET_rsid'} = join(',', @u_result_rsid);
+    if($self->{unique}) {
+      my @u_result_rsid = uniq @result_rsid;
+      $hash{'DisGeNET_rsid'} = join(',', @u_result_rsid);
+    }
+    else {
+      $hash{'DisGeNET_rsid'} = join(',', @result_rsid);
+    }
   }
 
   return scalar @result_pmid > 0 ? \%hash : {};
