@@ -1,4 +1,4 @@
-# Ensembl Variation Effect Predictor - Plugins
+# Ensembl Variant Effect Predictor - Plugins
 
 This repository holds plugins which are developed to extend the functionality of the Ensembl Variant Effect Predictor (VEP). See [here](https://github.com/Ensembl/ensembl-vep/blob/master/README.md) for the core VEP code.
 
@@ -7,8 +7,8 @@ Please refer to the documentation in each file for details of what each plugin d
 ~/.vep/Plugins directory (or elsewhere on your $PERL5LIB) and then run the VEP with the argument --plugin <module name>.
 
 ## Documentation
-* [VEP documentation](https://www.ensembl.org/info/docs/tools/vep/index.html) has general information on installing and running VEP
-* [VEP plugin documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) details on how plugins are developed and used.
+* [VEP documentation](https://www.ensembl.org/info/docs/tools/vep/index.html) has general information on installing and running VEP.
+* [VEP plugin documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) details how plugins are developed and used.
 
 
 ## Contact Us
