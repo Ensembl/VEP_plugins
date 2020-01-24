@@ -249,7 +249,7 @@ sub run {
           next unless $aa_alteration !~ /UTR/;
 
           # If there's a protein alteration then it only adds citations for the exact alteration cited
-          if(defined($aa_alteration) && defined($peptide_start) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
+          if(defined($aa_alteration) && defined($peptide_start) && defined($peptide_end) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
             $result_data = $data_value->{result};
           }
         }
