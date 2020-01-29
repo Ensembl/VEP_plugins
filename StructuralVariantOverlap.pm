@@ -224,7 +224,7 @@ sub run {
 
     if(scalar (keys %{$self->{cols}}) > 0){
       foreach my $info (keys %{$self->{cols}}){
-        push @{$save{$self->{label} . $info}},  $info{$info};
+        push @{$save{$self->{label} . "_" . $info}},  $info{$info};
       }
     }
     else{
