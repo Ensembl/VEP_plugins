@@ -29,7 +29,7 @@ limitations under the License.
 
  mv DisGeNET.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet/data.tsv.gz
-  ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet/data.tsv.gz,1
+ ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet/data.tsv.gz,1
 
 =head1 DESCRIPTION
 
@@ -153,8 +153,9 @@ sub new {
     my @sources_filter;
     foreach my $source (split(/[\;\&\|]/, $param_hash->{filter_source})) {
       if (!$valid_sources->{$source}) {
-        die "$source is not a supported value. Supported sources are: ", join(', ', keys %$valid_sources);
-      } else {
+        die "ERROR: $source is not a supported source name. Supported sources are: ", join(', ', keys %$valid_sources), "\n";
+      }
+      else {
         push @sources_filter, $source;
       }
     }
