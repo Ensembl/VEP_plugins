@@ -34,8 +34,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- uses the Mastermind Genomic Search Engine (https://www.genomenon.com/mastermind)
- to report variants that have clinical evidence cited in the medical literature. 
+ reports variants that have clinical evidence cited in the medical literature. 
  It is available for both GRCh37 and GRCh38.
 
  Running options:
@@ -52,6 +51,7 @@ limitations under the License.
  'MMCNT3' is the count of Mastermind articles including other DNA-level variants resulting
  in the same amino acid change;
  'MMID3' is the Mastermind variant identifier(s), as gene:key, for MMCNT3;
+ 'MMURI3' is the Mastermind URL to the variant.
 
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
  https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key
@@ -132,6 +132,7 @@ sub feature_types {
 sub get_header_info {
 
   return{
+     'Mastermind_URL'  => 'Mastermind URL that redirects you directly to the website. Outputs unique column: MMURI3.',
      'Mastermind_counts'  => 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.',
      'Mastermind_MMID3'  => 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.',
   };
@@ -270,16 +271,17 @@ sub parse_data {
 
   my ($chr, $start, $id, $ref, $alt, $x, $xx, $data) = split /\t/, $line;
 
-  my ($mmcnt1, $mmcnt2, $mmcnt3, $mmid3);
+  my ($mmcnt1, $mmcnt2, $mmcnt3, $mmid3, $mmuri3);
   my @data_splited = split /;/, $data;
   foreach my $value (@data_splited){
     $mmcnt1 = $value if $value =~ /MMCNT1/;
     $mmcnt2 = $value if $value =~ /MMCNT2/;
     $mmcnt3 = $value if $value =~ /MMCNT3/;
     $mmid3  = $value if $value =~ /MMID3/;
+    $mmuri3  = $value if $value =~ /MMURI3/;
   }
 
-  my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3;
+  my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3 . ';' . $mmuri3;
 
   # Frameshift or nonsense
   my $is_fs = 0;
@@ -302,16 +304,20 @@ sub parse_data {
   $mmcnt2 =~ s/MMCNT2=//;
   $mmcnt3 =~ s/MMCNT3=//;
   $mmid3  =~ s/MMID3=//;
+  $mmuri3  =~ s/MMURI3=//;
 
   my %mm_hash;
+  $mm_hash{'Mastermind_URL'} = $mmuri3;
   $mm_hash{'Mastermind_counts'} = $mmcnt1.'|'.$mmcnt2.'|'.$mmcnt3;
   $mm_hash{'Mastermind_MMID3'} = $mmid3;
 
   my @aa_alterations = split /,/, $mmid3;
 
+  my @aa_alterations_new;
   foreach my $aa_alteration (@aa_alterations) {
     $aa_alteration =~ s/.*\:[A-Za-z]+//;
     $aa_alteration =~ s/[A-Za-z]+|\*//;
+    push @aa_alterations_new, $aa_alteration;
   }
 
   return {
