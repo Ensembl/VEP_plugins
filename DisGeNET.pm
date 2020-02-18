@@ -28,8 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv DisGeNET.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet/data.tsv.gz
- ./vep -i variations.vcf --plugin DisGeNET,/path/to/disgenet/data.tsv.gz,1
+ ./vep -i variations.vcf --plugin DisGeNET,file=/path/to/disgenet/data.tsv.gz
+ ./vep -i variations.vcf --plugin DisGeNET,file=/path/to/disgenet/data.tsv.gz,disease=1
 
 =head1 DESCRIPTION
 
@@ -255,7 +255,7 @@ sub run {
   $hash{'DisGeNET_SCORE'} = join(',', @result_score);
 
   if($self->{disease}) {
-    $hash{'DisGeNET_disease'} = join('&', @diseases);
+    $hash{'DisGeNET_disease'} = join(',', @diseases);
   }
 
   if($self->{rsid}) {
@@ -280,9 +280,15 @@ sub parse_data {
 
   my @all_data = split /\t/, $line;
 
+  # Delete commas from phenotype/disease description
+  my $disease = $all_data[6];
+  if($disease =~ /,/) {
+    $disease =~ s/,//g;
+  }
+
   return {
       rsid => $all_data[0],
-      diseaseName => $all_data[6],
+      diseaseName => $disease,
       score => $all_data[10],
       pmid => $all_data[14],
       source => $all_data[15]
