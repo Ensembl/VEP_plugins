@@ -37,8 +37,10 @@ limitations under the License.
  A VEP plugin that retrieves data for missense variants from a tabix-indexed
  dbNSFP file.
  
- Please cite the dbNSFP publication alongside the VEP if you use this resource:
- http://www.ncbi.nlm.nih.gov/pubmed/21520341
+ Please cite the dbNSFP publications alongside the VEP if you use this resource:
+ dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
+ dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
+ dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
  
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin. The dbNSFP data file can be downloaded from
