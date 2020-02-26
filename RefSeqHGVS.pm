@@ -45,7 +45,7 @@ Archived RefSeq transcripts are not available.
  effects of base substitutions.
 ﻿Garla, V., Kong, Y., Szpakowski, S., & Krauthammer, M. (2011). 
  Bioinformatics, 27(3), 416-8. doi:10.1093/bioinformatics/btq658
- http://www.ncbi.nlm.nih.gov/pubmed/21149339
+ https://www.ncbi.nlm.nih.gov/pubmed/21149339
 
 =item * Conservative selection of equivalent RefSeq transcripts.
 
