@@ -47,7 +47,7 @@ The 20 disease-associated regulatory elements and one ultraconserved enhancer an
 
 Please refer to the satMutMPRA web server and Kircher M et al. (2019) paper for more information:
 https://mpra.gs.washington.edu/satMutMPRA/
-http://www.ncbi.nlm.nih.gov/pubmed/31395865
+https://www.ncbi.nlm.nih.gov/pubmed/31395865
 
 Parameters can be set using a key=value system:
  file           : required - a tabix indexed file of the satMutMPRA data corresponding to desired assembly.

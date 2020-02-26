@@ -36,7 +36,7 @@ limitations under the License.
  tabix-indexed CADD data files.
  
  Please cite the CADD publication alongside the VEP if you use this resource:
- http://www.ncbi.nlm.nih.gov/pubmed/24487276
+ https://www.ncbi.nlm.nih.gov/pubmed/24487276
  
  The tabix utility must be installed in your path to use this plugin. The CADD
  data files can be downloaded from
