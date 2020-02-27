@@ -43,6 +43,10 @@ limitations under the License.
  translation. Any variants with a splice site consequence type are
  ignored.
 
+ If VEP is run in offline mode using the flag --offline, a FASTA file is required.
+ See: https://www.ensembl.org/info/docs/tools/vep/script/vep_cache.html#fasta
+ Sequence may be incomplete without a FASTA file or database connection.
+
 =cut
 
 package Downstream;
