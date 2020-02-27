@@ -1,6 +1,6 @@
 =head1 LICENSE
 
-Copyright 2018 QIMR Berghofer Medical Research Institute
+Copyright [2018-2020] QIMR Berghofer Medical Research Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,44 +27,53 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv gnomADc.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad-public/r2.0.2/coverage/genomes
- ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad-public/r2.0.2/coverage/exomes
+ ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomADc.gz
 
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves gnomAD annotation from either the genome
  or exome coverage files, available here:
 
- http://gnomad.broadinstitute.org/downloads
+ https://gnomad.broadinstitute.org/downloads
 
- The coverage files must be downloaded and tabix indexed before using this
- plugin:
+ Or via the Google Cloud console:
 
- > release="2.0.2"
+ https://console.cloud.google.com/storage/browser/gnomad-public/release
 
- > genomes="https://storage.googleapis.com/gnomad-public/release/${release}/coverage/genomes"
- > wget -x "${genomes}"/gnomad.genomes.r${release}.chr{{1..22},X}.coverage.txt.gz
- > for i in "${genomes#*//}"/gnomad.genomes.r${release}.chr{{1..22},X}.coverage.txt.gz; do
- >   tabix -s 1 -b 2 -e 2 "${i}"
- > done
+ The coverage summary files must be processed and Tabix indexed before
+ use by this plugin. Please select from the instructions below:
 
- > exomes="https://storage.googleapis.com/gnomad-public/release/${release}/coverage/exomes"
- > wget -x "${exomes}"/gnomad.exomes.r${release}.chr{{1..22},X,Y}.coverage.txt.gz
- > for i in "${exomes#*//}"/gnomad.exomes.r${release}.chr{{1..22},X,Y}.coverage.txt.gz; do
- >   tabix -s 1 -b 2 -e 2 "${i}"
- > done
+ # GRCh38 and gnomAD genomes:
+ > genomes="https://storage.googleapis.com/gnomad-public/release/3.0/coverage/genomes"
+ > genome_coverage_tsv="gnomad.genomes.r3.0.coverage.summary.tsv.bgz"
+ > wget "${genomes}/${genome_coverage_tsv}"
+ > zcat "${genome_coverage_tsv}" | sed -e '1s/^locus/#chrom\tpos/; s/:/\t/' | bgzip > gnomADc.gz
+ > tabix -s 1 -b 2 -e 2 gnomADc.gz
 
- The parent directory's basename is used to set the output field prefix. This
- is 'gnomADg' for genomes, 'gnomADe' for exomes, or else just 'gnomAD'.
+ # GRCh37 and gnomAD genomes:
+ > genomes="https://storage.googleapis.com/gnomad-public/release/2.1/coverage/genomes"
+ > genome_coverage_tsv="gnomad.genomes.coverage.summary.tsv.bgz"
+ > wget "${genomes}/${genome_coverage_tsv}"
+ > zcat "${genome_coverage_tsv}" | sed -e '1s/^/#/' | bgzip > gnomADg.gz
+ > tabix -s 1 -b 2 -e 2 gnomADg.gz
+
+ # GRCh37 and gnomAD exomes:
+ > exomes="https://storage.googleapis.com/gnomad-public/release/2.1/coverage/exomes"
+ > exome_coverage_tsv="gnomad.exomes.coverage.summary.tsv.bgz"
+ > wget "${exomes}/${exome_coverage_tsv}"
+ > zcat "${exome_coverage_tsv}" | sed -e '1s/^/#/' | bgzip > gnomADe.gz
+ > tabix -s 1 -b 2 -e 2 gnomADe.gz
+
+ By default, the output field prefix is 'gnomAD'. However if the input file's
+ basename is 'gnomADg' (genomes) or 'gnomADe' (exomes), then these values are
+ used instead. This makes it possible to call the plugin twice and include
+ both genome and exome coverage values in a single run. For example:
+
+ ./vep -i variations.vcf --plugin gnomADc,gnomADg.gz --plugin gnomADc,gnomADe.gz
 
  If you use this plugin, please see the terms and data information:
 
- http://gnomad.broadinstitute.org/terms
-
- The gnomAD coverage files are provided for GRCh37, but if you use GRCh38
- you may like to use the liftover files, available here:
-
- https://console.cloud.google.com/storage/browser/gnomad-public/release
+ https://gnomad.broadinstitute.org/terms
 
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin. 
@@ -78,6 +87,7 @@ use strict;
 use warnings;
 
 use File::Basename;
+use File::Spec;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
@@ -93,22 +103,36 @@ sub new {
 
   $self->get_user_params();
 
-  my $params = $self->params;
+  my $path = shift @{ $self->params };
+  die("ERROR: gnomADc input file not specified\n") unless $path;
+  die("ERROR: gnomADc input file not found\n") unless -e $path;
 
-  my $dir = shift @$params;
-  die("ERROR: gnomAD directory not specified\n") unless $dir;
-  die("ERROR: gnomAD directory not found\n") unless -d $dir;
+  my $prefix = 'gnomAD';
 
-  # use the parent directory's basename to set a column prefix
-  my $base = basename($dir);
-  my $prefix = 'gnomAD' . ($base eq 'genomes' || $base eq 'exomes' ? substr($base, 0, 1) : '');
+  if (-f $path) {
 
-  # add any coverage files to our list of inputs
-  opendir (my $fh, $dir) or die $!;
-  for (readdir $fh) {
-    $self->add_file("$dir/$_") if /\.coverage\.txt\.gz$/;
+    $self->add_file($path);
+
+    # use the file's basename to set a column prefix
+    my $basename = fileparse($path, qr/\.[^.]*/);
+    my %gnomad_basenames = map { $_ => 1 } qw( gnomADg gnomADe );
+
+    $prefix = $basename if exists $gnomad_basenames{$basename};
   }
-  closedir $fh;
+  elsif (-d $path) {
+
+    opendir (my $fh, $path) or die $!;
+    for (readdir $fh) {
+      $self->add_file(File::Spec->catfile($path, $_)) if /\.coverage\.txt\.gz$/;
+    }
+    closedir $fh;
+
+    # use the parent directory's basename to set a column prefix
+    my $basename = basename($path);
+    my %gnomad_dirnames = map { $_ => 1 } qw( genomes exomes );
+
+    $prefix .= substr($basename, 0, 1) if exists $gnomad_dirnames{$basename};
+  }
 
   my @files = @{ $self->files() };
 
@@ -131,7 +155,7 @@ sub get_header_info {
 
   for (qw(mean median)) {
     $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
-  };
+  }
 
   for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
     $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
@@ -144,11 +168,13 @@ sub run {
   my ($self, $vfoa) = @_;
 
   my $vf = $vfoa->variation_feature;
+
+  (my $vf_chr = $vf->{chr}) =~ s/^chr//;
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
 
   $vf_end = $vf_start if $vf_start > $vf_end;
 
-  my @results = @{ $self->get_data($vf->{chr}, $vf_start, $vf_end) };
+  my @results = @{ $self->get_data($vf_chr, $vf_start, $vf_end) };
 
   return {} unless @results;
 
