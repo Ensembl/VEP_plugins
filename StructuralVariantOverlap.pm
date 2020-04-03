@@ -38,7 +38,7 @@ limitations under the License.
 
  file           : required - a VCF file of reference data. 
 
- overlap        : percentage overlap between SVs (default: 80)
+ percentage     : percentage overlap between SVs (default: 80)
  reciprocal     : calculate reciprocal overlap, options:  0 or 1. (default: 0)
                   (overlap is expressed as % of input SV by default)
 
@@ -103,7 +103,7 @@ sub new {
 
   $self->{distance}   = $params_hash->{distance} ? $params_hash->{distance} : undef;
   $self->{match_type} = $params_hash->{match_type} ? $params_hash->{match_type} : undef ;
-  $self->{required_percent_olap} = $params_hash->{overlap} ? $params_hash->{overlap} : 80;
+  $self->{required_percent_olap} = $params_hash->{percentage} ? $params_hash->{percentage} : 80;
   $self->{same_type}  = $params_hash->{same_type} ? $params_hash->{same_type} : 0 ;
   $self->{label}  = $params_hash->{label} ? $params_hash->{label} : "SV_overlap";
   $self->{reciprocal}  = $params_hash->{reciprocal} ? $params_hash->{reciprocal} : 0;
