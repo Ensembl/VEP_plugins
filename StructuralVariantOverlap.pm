@@ -38,7 +38,7 @@ limitations under the License.
 
  file           : required - a VCF file of reference data. 
 
- overlap        : percentage overlap between SVs (default: 80)
+ percentage     : percentage overlap between SVs (default: 80)
  reciprocal     : calculate reciprocal overlap, options:  0 or 1. (default: 0)
                   (overlap is expressed as % of input SV by default)
 
