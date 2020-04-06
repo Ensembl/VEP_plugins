@@ -795,6 +795,16 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/99/satMutMPRA.pm",
     },
 
+    # DisGeNET
+    {
+      "key" => "DisGeNET",
+      "helptip" => "Variant-Disease-PMID associations from the DisGeNET database",
+      "section" => "Phenotype data",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/99/DisGeNET.pm",
+    },
+
 
     ## VARIANT DATA
     ###############
