@@ -118,7 +118,7 @@ sub run {
   ($start, $end) = ($end, $start) if $start > $end;
   my ($res) = @{$self->get_data($vf->{chr}, $start, $end)};
 
-  shift $params if ($params->[0] =~ /.gz/i); #Removes filename
+  shift @{$params} if ($params->[0] =~ /.gz/i); #Removes filename
   
   my %col_head_hash = map { $_ => 1 } @{$self->{headers}};
   my $col_head_hashref = \%col_head_hash;
