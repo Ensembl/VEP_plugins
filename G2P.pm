@@ -56,7 +56,8 @@ limitations under the License.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
  all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible.
-                         
+                         Setting the value to 1 will overwrite any confidence levels provided with the
+                         confidence_levels option.
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
                          Specifiy the list of reference populations to include with --af_from_vcf_keys    
  af_from_vcf_keys      : VCF collections used for annotating variant alleles with observed
@@ -102,7 +103,6 @@ package G2P;
 
 use strict;
 use warnings;
-
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
@@ -241,9 +241,12 @@ sub new {
   }
 
   if ($params->{all_confidence_levels}) {
-    push @{$params->{confidence_levels}}, 'possible', @{$DEFAULTS{confidence_levels}};
+    if ($params->{confidence_levels}) {
+      warn("Option all_confidence_levels set to 1 overwrites confidence levels provided with confidence_levels option.");
+    }
+    $params->{confidence_levels} = ['possible', @{$DEFAULTS{confidence_levels}}];
   }
-  if ($params->{confidence_levels}) {
+  elsif ($params->{confidence_levels}) {
     my @confidence_levels = ();
     foreach my $confidence_level (split(/[\;\&\|]/, $params->{confidence_levels})) {
       if (!$supported_confidence_levels->{$confidence_level}) {
@@ -376,6 +379,7 @@ sub run {
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
   return {} if (!$self->gene_overlap_filtering($tva));
+
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   $self->set_whitelist_flag($tva);
   return {} if (!$self->frequency_filtering($tva));
@@ -573,22 +577,27 @@ sub frequency_filtering {
   } 
 
   $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter} = $pass_frequency_filter;
-  return $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter} || $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist};
+  return $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
 }
 
 sub _vep_cache_frequency_filtering {
   my $self = shift;
   my $tva = shift;
+
   my $allele = $tva->variation_feature_seq;
   my $vf     = $tva->base_variation_feature;
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $existing = $vf->{existing};
   my @keys = @{$self->{user_params}->{af_keys}};
   my $dumped_annotations = 0; 
+  my $vf_cache_name =  $self->{vf_cache_name};
   foreach my $existing_var (@$existing) {
     my @frequencies = grep defined, @{$existing_var}{@keys};
+    if ($existing_var->{matched_alleles}) {
+      $allele = $existing_var->{matched_alleles}[0]->{b_allele};
+    }
     next if (!@frequencies);
-    if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold)) { 
+    if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold) && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist}) { 
       return 0;
     } else {
       $self->_dump_existing_vf_frequencies($existing_var, $allele);
@@ -1173,7 +1182,7 @@ sub chart_and_txt_data {
               my $tva_data = $tva_annotation_data->{$vf_name}->{$transcript_stable_id};
               my $vf_data = $vf_annotation_data->{$vf_name}; 
               if (!$vf_data) {
-                print STDERR $vf_name, "\n"; 
+                print STDERR "No vf_data for: $vf_name\n"; 
               } 
               my $hash = {};
               foreach my $pair (split/;/, "$tva_data;$vf_data") {
