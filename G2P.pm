@@ -675,10 +675,11 @@ sub _vcf_frequency_filtering {
   my $allele = $tva->variation_feature_seq;
   my $vf = $tva->base_variation_feature;
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
+  my $vf_cache_name =  $self->{vf_cache_name};
   foreach my $vcf_collection (@{$self->{config}->{vcf_collections}}) {
     my @alleles = grep {$_->allele eq $allele} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
     my @frequencies = grep {$_->frequency > $frequency_threshold} @alleles;
-    if (scalar @frequencies > 0) {
+    if (scalar @frequencies > 0 && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist}) {
       return 0;
     } else {
       $self->_dump_existing_vf_vcf(\@alleles) if (scalar @alleles); 
