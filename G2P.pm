@@ -378,13 +378,17 @@ sub run {
   # only interested if we know the zygosity
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
+  # filter by G2P gene overlap
   return {} if (!$self->gene_overlap_filtering($tva));
-
+  # filter by variant consequence
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   $self->set_whitelist_flag($tva);
+  # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
+  # dump annotations for txt and html report files
   $self->dump_vf_annotations($tva);      
   $self->dump_individual_annotations($tva, $zyg);
+  # check if transcript contains enough variants to fulfill the allelic requirement of the gene
   my $G2P_complete = $self->is_g2p_complete($tva, $zyg);
   my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
   my $results = {};
@@ -564,14 +568,16 @@ sub frequency_filtering {
   my $tva = shift;
 
   my $vf = $tva->base_variation_feature;
+  # Set up caching to avoid looking up frequencies for each overlapping transcript
   my $vf_cache_name = $self->get_cache_name($vf);
   $self->{vf_cache_name} = $vf_cache_name;
   $self->{g2p_vf_cache} = {} if (!defined $self->{g2p_vf_cache}->{$vf_cache_name});
-
+  # Retrieve cached result
   my $pass_frequency_filter = $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
   return $pass_frequency_filter if (defined $pass_frequency_filter);
-
+  # Check frequencies from cache files first
   $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva);
+  # Check frequencies from VCF files if user is providing use_vcf flag
   if ($pass_frequency_filter && $self->{config}->{use_vcf}) {
     $pass_frequency_filter = $self->_vcf_frequency_filtering($tva);
   } 
@@ -587,24 +593,28 @@ sub _vep_cache_frequency_filtering {
   my $allele = $tva->variation_feature_seq;
   my $vf     = $tva->base_variation_feature;
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
-  my $existing = $vf->{existing};
-  my @keys = @{$self->{user_params}->{af_keys}};
-  my $dumped_annotations = 0; 
+  my $existing = $vf->{existing}; # Get existing variants from cache file which are stored on VF level
+  my @keys = @{$self->{user_params}->{af_keys}}; # Consider user defined list of af keys
+  my $dumped_annotations = 0;  # Indicates if existing annotations have already been dumped for txt and html report files
   my $vf_cache_name =  $self->{vf_cache_name};
   foreach my $existing_var (@$existing) {
     my @frequencies = grep defined, @{$existing_var}{@keys};
-    if ($existing_var->{matched_alleles}) {
+    if ($existing_var->{matched_alleles}) { # Get matched alleles from input variant and existing variant, in case input variant was normalized to match variant from cache file
       $allele = $existing_var->{matched_alleles}[0]->{b_allele};
     }
     next if (!@frequencies);
     if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold) && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist}) { 
-      return 0;
+      return 0; # Return 0 (failed filtering) if frequencies exceed threshold and variant is not on whitelist
     } else {
+      # Dump annotations for txt and html report files
       $self->_dump_existing_vf_frequencies($existing_var, $allele);
       $self->_dump_existing_vf_annotations($existing_var);
       $dumped_annotations = 1;
     }
   }
+  # If we get to this point it means that there were no frequencies for the input variant in the cache files
+  # and we pass the filtering step.
+  # We need to dump 'empty' annotations for such variants to indicate that there are no available frequencies
   $self->_dump_existing_vf_annotations() if (!$dumped_annotations);
   return 1;
 }
@@ -674,10 +684,13 @@ sub _vcf_frequency_filtering {
   my $tva = shift;
   my $allele = $tva->variation_feature_seq;
   my $vf = $tva->base_variation_feature;
+  # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $vf_cache_name =  $self->{vf_cache_name};
   foreach my $vcf_collection (@{$self->{config}->{vcf_collections}}) {
     my @alleles = grep {$_->allele eq $allele} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
+    # As soon as we find a frequency which is higher than the frequency_threshold,
+    # and variant is not on whitelist we can stop.
     my @frequencies = grep {$_->frequency > $frequency_threshold} @alleles;
     if (scalar @frequencies > 0 && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist}) {
       return 0;
