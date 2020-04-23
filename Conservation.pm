@@ -141,6 +141,7 @@ sub run {
   if(@{$self->params}[0] !~ /ftp.ensembl.org/ && not -f @{$self->params}[0])
   {
     my $FTP_URL = "ftp://ftp.ensembl.org/pub/current_compara/conservation_scores/";
+    $FTP_URL = "ftp://ftp.ensembl.org/pub/grch37/release-96/compara/conservation_scores/" if $self->config->{assembly} eq 'GRCh37';
     my $FTP_USER = 'anonymous';  
 
     $FTP_URL =~ m/(ftp:\/\/)?(.+?)\/(.+)/;  
