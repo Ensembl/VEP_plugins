@@ -31,7 +31,7 @@ limitations under the License.
  
  ./vep -i variations.vcf --plugin Conservation,mammals
  ./vep -i variations.vcf --plugin Conservation,/path/to/bigwigfile.bw
- ./vep -i variations.vcf --plugin Conservation,database,GERP_CONSERVATION_SCORE,mammals
+ ./vep -i variations.vcf --plugin Conservation,database,GERP_CONSERVATION_SCORE,mammals  ##Not supported for GRCh37
 
 =head1 DESCRIPTION
 
@@ -76,6 +76,9 @@ sub new {
     $self->{use_database} = $self->params->[0] eq 'database';
 
     if($self->{use_database}){
+  
+      die "Plugin database usage is no longer supported for GRCh37, please use '--Plugin Conservation,[mammals,amniotes]' instead\n" if $self->{config}->{assembly} eq 'GRCh37';
+
       shift(@{$self->params});
       my $params = $self->params;
 
@@ -141,6 +144,7 @@ sub run {
   if(@{$self->params}[0] !~ /ftp.ensembl.org/ && not -f @{$self->params}[0])
   {
     my $FTP_URL = "ftp://ftp.ensembl.org/pub/current_compara/conservation_scores/";
+    $FTP_URL = "ftp://ftp.ensembl.org/pub/grch37/release-96/compara/conservation_scores/" if $self->config->{assembly} eq 'GRCh37';
     my $FTP_USER = 'anonymous';  
 
     $FTP_URL =~ m/(ftp:\/\/)?(.+?)\/(.+)/;  
