@@ -44,6 +44,10 @@ limitations under the License.
                          - Download from http://www.ebi.ac.uk/gene2phenotype/downloads
                          - Download from PanelApp  
 
+ whitelist             : A whitelist for variants to include even if variants do not pass allele
+                         frequency filtering. The whitelist needs to be a sorted, bgzipped and
+                         tabixed VCF file.
+
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
@@ -52,7 +56,8 @@ limitations under the License.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
  all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible.
-                         
+                         Setting the value to 1 will overwrite any confidence levels provided with the
+                         confidence_levels option.
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
                          Specifiy the list of reference populations to include with --af_from_vcf_keys    
  af_from_vcf_keys      : VCF collections used for annotating variant alleles with observed
@@ -98,15 +103,16 @@ package G2P;
 
 use strict;
 use warnings;
-
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
 use Text::CSV;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
 use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 our $CAN_USE_HTS_PM;
 
@@ -235,9 +241,12 @@ sub new {
   }
 
   if ($params->{all_confidence_levels}) {
-    push @{$params->{confidence_levels}}, 'possible', @{$DEFAULTS{confidence_levels}};
+    if ($params->{confidence_levels}) {
+      warn("Option all_confidence_levels set to 1 overwrites confidence levels provided with confidence_levels option.");
+    }
+    $params->{confidence_levels} = ['possible', @{$DEFAULTS{confidence_levels}}];
   }
-  if ($params->{confidence_levels}) {
+  elsif ($params->{confidence_levels}) {
     my @confidence_levels = ();
     foreach my $confidence_level (split(/[\;\&\|]/, $params->{confidence_levels})) {
       if (!$supported_confidence_levels->{$confidence_level}) {
@@ -303,6 +312,13 @@ sub new {
     } 
   }
 
+  if ($params->{whitelist}) {
+    if (! -f $params->{whitelist}) {
+      die "Whitelist (" . $params->{whitelist} . ") does not exist.";
+    }
+    $self->{_files} = [$params->{whitelist}];
+  }
+
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
@@ -362,18 +378,55 @@ sub run {
   # only interested if we know the zygosity
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
+  # filter by G2P gene overlap
   return {} if (!$self->gene_overlap_filtering($tva));
+  # filter by variant consequence
   return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+  $self->set_whitelist_flag($tva);
+  # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
-
+  # dump annotations for txt and html report files
   $self->dump_vf_annotations($tva);      
   $self->dump_individual_annotations($tva, $zyg);
+  # check if transcript contains enough variants to fulfill the allelic requirement of the gene
   my $G2P_complete = $self->is_g2p_complete($tva, $zyg);
   my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
   my $results = {};
   $results->{G2P_complete} = $G2P_complete if ($G2P_complete); 
   $results->{G2P_flag} = $G2P_flag if ($G2P_flag);
   return $results;
+}
+
+sub set_whitelist_flag {
+  my $self = shift;
+  my $tva = shift;
+  return if (!$self->{user_params}->{whitelist});
+  my $vf = $tva->variation_feature;
+
+  my $allele = $tva->variation_feature_seq;
+
+  foreach (@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
+    my @vcf_alleles = split /\//, $_->allele_string;
+    my $ref_allele  = shift @vcf_alleles;
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => [$allele],
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+        ref  => $ref_allele,
+        alts => \@vcf_alleles,
+        pos  => $_->{start},
+      }
+    );
+    if (scalar @$matches) {
+      my $vf_cache_name = $self->get_cache_name($vf);
+      $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist} = 1;
+      last;
+    }
+  }
 }
 
 sub is_valid_g2p_variant {
@@ -450,7 +503,7 @@ sub exceeds_threshold {
   my $variants = shift;
   my @pass_variants = ();
   foreach my $variant (@$variants) {
-    if (!defined $self->{highest_frequencies}->{$variant} || $self->{highest_frequencies}->{$variant} <= $af_threshold) {
+    if (!defined $self->{highest_frequencies}->{$variant} || $self->{highest_frequencies}->{$variant} <= $af_threshold || $self->{g2p_vf_cache}->{$variant}->{is_on_whitelist}) {
       push @pass_variants, $variant;
     }
   }
@@ -515,14 +568,16 @@ sub frequency_filtering {
   my $tva = shift;
 
   my $vf = $tva->base_variation_feature;
+  # Set up caching to avoid looking up frequencies for each overlapping transcript
   my $vf_cache_name = $self->get_cache_name($vf);
   $self->{vf_cache_name} = $vf_cache_name;
   $self->{g2p_vf_cache} = {} if (!defined $self->{g2p_vf_cache}->{$vf_cache_name});
-
+  # Retrieve cached result
   my $pass_frequency_filter = $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
   return $pass_frequency_filter if (defined $pass_frequency_filter);
-
+  # Check frequencies from cache files first
   $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva);
+  # Check frequencies from VCF files if user is providing use_vcf flag
   if ($pass_frequency_filter && $self->{config}->{use_vcf}) {
     $pass_frequency_filter = $self->_vcf_frequency_filtering($tva);
   } 
@@ -534,23 +589,32 @@ sub frequency_filtering {
 sub _vep_cache_frequency_filtering {
   my $self = shift;
   my $tva = shift;
+
   my $allele = $tva->variation_feature_seq;
   my $vf     = $tva->base_variation_feature;
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
-  my $existing = $vf->{existing};
-  my @keys = @{$self->{user_params}->{af_keys}};
-  my $dumped_annotations = 0; 
+  my $existing = $vf->{existing}; # Get existing variants from cache file which are stored on VF level
+  my @keys = @{$self->{user_params}->{af_keys}}; # Consider user defined list of af keys
+  my $dumped_annotations = 0;  # Indicates if existing annotations have already been dumped for txt and html report files
+  my $vf_cache_name =  $self->{vf_cache_name};
   foreach my $existing_var (@$existing) {
     my @frequencies = grep defined, @{$existing_var}{@keys};
+    if ($existing_var->{matched_alleles}) { # Get matched alleles from input variant and existing variant, in case input variant was normalized to match variant from cache file
+      $allele = $existing_var->{matched_alleles}[0]->{b_allele};
+    }
     next if (!@frequencies);
-    if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold)) { 
-      return 0;
+    if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold) && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist}) { 
+      return 0; # Return 0 (failed filtering) if frequencies exceed threshold and variant is not on whitelist
     } else {
+      # Dump annotations for txt and html report files
       $self->_dump_existing_vf_frequencies($existing_var, $allele);
       $self->_dump_existing_vf_annotations($existing_var);
       $dumped_annotations = 1;
     }
   }
+  # If we get to this point it means that there were no frequencies for the input variant in the cache files
+  # and we pass the filtering step.
+  # We need to dump 'empty' annotations for such variants to indicate that there are no available frequencies
   $self->_dump_existing_vf_annotations() if (!$dumped_annotations);
   return 1;
 }
@@ -620,11 +684,15 @@ sub _vcf_frequency_filtering {
   my $tva = shift;
   my $allele = $tva->variation_feature_seq;
   my $vf = $tva->base_variation_feature;
+  # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
+  my $vf_cache_name =  $self->{vf_cache_name};
   foreach my $vcf_collection (@{$self->{config}->{vcf_collections}}) {
     my @alleles = grep {$_->allele eq $allele} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
+    # As soon as we find a frequency which is higher than the frequency_threshold,
+    # and variant is not on whitelist we can stop.
     my @frequencies = grep {$_->frequency > $frequency_threshold} @alleles;
-    if (scalar @frequencies > 0) {
+    if (scalar @frequencies > 0 && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist}) {
       return 0;
     } else {
       $self->_dump_existing_vf_vcf(\@alleles) if (scalar @alleles); 
@@ -665,6 +733,8 @@ sub dump_vf_annotations {
   my $ref = $alleles[0];
   my $seq_region_name = $vf->{chr};
 
+  my $is_on_whitelist = $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist} || 0;
+
   my $params = $self->{user_params};
   my $tr = $tva->transcript;
   my $refseq = $tr->{_refseq} || 'NA';
@@ -678,6 +748,7 @@ sub dump_vf_annotations {
 
   my $g2p_data = {
     'vf_name' => $vf_name,
+    'is_on_whitelist' => $is_on_whitelist,
     'transcript_stable_id' => $tr->stable_id,
     'consequence_types' => join(',', @consequence_types),
     'refseq' => $refseq,
@@ -690,6 +761,7 @@ sub dump_vf_annotations {
     'polyphen_prediction' => $pph_pred,
   };
   $self->write_report('G2P_tva_annotations', $vf_cache_name, $tr->stable_id, $g2p_data);
+  $self->write_report('is_on_whitelist', $vf_cache_name) if ($is_on_whitelist);
 }
 
 sub dump_individual_annotations {
@@ -860,6 +932,9 @@ sub write_report {
     print $fh join("\t", $flag, @_), "\n";
   } elsif ($flag eq 'log') {
     print $fh join("\t", $flag, @_), "\n";
+  } elsif ($flag eq 'is_on_whitelist') {
+    my ($vf_name) = @_;
+    print $fh "$flag\t$vf_name\n";
   } elsif ($flag eq 'G2P_gene_data') {
     my ($gene_id, $gene_data, $gene_xrefs) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
@@ -949,7 +1024,7 @@ sub write_charts {
   my $count = 1;
   my @new_header = (
     'Variant location and alleles (REF/ALT)',
-    'Variant name', 
+    'Variant name (* indicates that variant is on whitelist)',
     'Existing name', 
     'Zygosity', 
     'All allelic requirements from G2P DB',
@@ -1121,7 +1196,7 @@ sub chart_and_txt_data {
               my $tva_data = $tva_annotation_data->{$vf_name}->{$transcript_stable_id};
               my $vf_data = $vf_annotation_data->{$vf_name}; 
               if (!$vf_data) {
-                print STDERR $vf_name, "\n"; 
+                print STDERR "No vf_data for: $vf_name\n"; 
               } 
               my $hash = {};
               foreach my $pair (split/;/, "$tva_data;$vf_data") {
@@ -1134,6 +1209,7 @@ sub chart_and_txt_data {
               if ($existing_name ne 'NA') {
                 $existing_name = "<a href=\"http://$assembly.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
               }
+              my $is_on_whitelist = $hash->{is_on_whitelist};
               my $refseq = $hash->{refseq};
               my $failed = $hash->{failed};
               my $clin_sign = $hash->{clin_sig};
@@ -1176,6 +1252,7 @@ sub chart_and_txt_data {
               my ($location, $alleles) = split(' ', $vf_location);
               $location =~ s/\-/:/;
               $alleles =~ s/\//:/;
+              $vf_name .= "*" if ($is_on_whitelist);
               push @{$chart_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}, [[
                 [$vf_location], 
                 [$vf_name], 
@@ -1279,6 +1356,10 @@ sub parse_log_files {
         my ($flag, $gene_id, $transcript_id, $is_canonical) = split/\t/;
         $canonical_transcripts->{$transcript_id} = 1;
       }
+      elsif (/^is_on_whitelist/) {
+        my ($flag, $vf_cache_name) =  split/\t/;
+        $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_whitelist} = 1;
+      }
     }
     $fh->close;
   }
@@ -1331,6 +1412,20 @@ sub store_population_names {
     my $population_name = (split('=', $frequency_annotation))[0];
     $self->{population_names}->{$population_name} = 1;
   }
+}
+
+sub get_start {
+  return $_[1]->{start};
+}
+
+sub get_end {
+  return $_[1]->{end};
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+  my ($vf) = @{parse_line({format => 'vcf', minimal => 1}, $line)};
+  return $vf;
 }
 
 sub stats_html_head {
