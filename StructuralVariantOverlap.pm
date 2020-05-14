@@ -108,7 +108,6 @@ sub new {
   $self->{label}  = $params_hash->{label} ? $params_hash->{label} : "SV_overlap";
   $self->{reciprocal}  = $params_hash->{reciprocal} ? $params_hash->{reciprocal} : 0;
 
-
   ## allow specific columns to be rerieved from the VCF
   if($params_hash->{cols}){
     my @cols = split/\:/, $params_hash->{cols};
@@ -229,9 +228,10 @@ sub run {
     }
     else{
       ## add allele frequency as a default if available
-      push @{$save{$self->{label}."_AF"}}, defined  $info{AF} ?  $info{AF} : undef;
+      push @{$save{$self->{label}."_AF"}}, defined  $info{AF} ?  $info{AF} : "-";
     }
   }
+
   ## format
   my %output;
   foreach my $t( keys %save){
@@ -259,9 +259,16 @@ sub get_data{
   ## adjust coords for tabix
   my $s  = $start - 1;
   my $pos_string = sprintf("%s:%i-%i", $svf->seq_region_name, $s, $end);
-  
-  (open my $in, "tabix  ".$self->{file}." $pos_string |")||die "Failed to read headers from " . $self->{file} . "\n" ;
- 
+
+  # check if chromosome has prefix 'chr'
+  my $pos_string_chr = $pos_string;
+  (open my $fo, "tabix -l ".$self->{file}." |") || die "Failed to read chromosome type from " . $self->{file} . "\n";
+
+  my $line = <$fo>;
+  $pos_string_chr = 'chr'.$pos_string if($line =~ /chr/);
+
+  (open my $in, "tabix  ".$self->{file}." $pos_string_chr |")||die "Failed to read headers from " . $self->{file} . "\n" ;
+
   while(<$in>) {
 
     my $olap_svs = parse_line({format => 'vcf'}, $_);
