@@ -66,7 +66,7 @@ limitations under the License.
   - dbSNP variant Identifier (optional)
   - diseases/phenotype names (optional)
 
- The following steps are necessary before running this plugin:
+ The following steps are necessary before running this plugin (tested with DisGeNET export date 2020-05-26):
  This plugin uses file 'all_variant_disease_pmid_associations.tsv.gz'
  File can be downloaded from: https://www.disgenet.org/downloads
 
