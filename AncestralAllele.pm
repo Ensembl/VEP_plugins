@@ -65,6 +65,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Utils::Exception qw(throw);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
