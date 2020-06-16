@@ -100,13 +100,17 @@ sub get_header_info {
 sub run {
   my ($self, $vfoa) = @_;
   
+  if ($self->{config}->{offline}) {
+      die("ERROR: the plugin NearestGene does not work in --offline mode\n");
+  }
+
   my $vf = $vfoa->base_variation_feature;
   my $loc_string = sprintf("%s:%i-%i", $vf->{chr} || $vf->seq_region_name, $vf->{start}, $vf->{end});
   
   if(!exists($self->{_cache}) || !exists($self->{_cache}->{$loc_string})) {
     $self->{config}->{ga} = $self->{config}->{reg}->get_adaptor($self->{config}->{species}, $self->{config}->{core_type}, 'gene');
     $self->{ga} ||= $self->{config}->{ga};
-    die("ERROR: Could not get gene adaptor; this plugin does not work in --offline mode\n") unless $self->{ga};
+    die("ERROR: Could not get gene adaptor\n") unless $self->{ga};
 
     my %opts = map {'-'.$_ => $CONFIG{$_}} keys %CONFIG;
     $opts{-feature} = $vf;
