@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -46,6 +46,9 @@ limitations under the License.
  Parameters are passed e.g.:
 
  --plugin NearestGene,limit=3,max_range=50000
+
+ This plugin requires a database connection. It cannot be run with VEP
+ in offline mode i.e. using the --offline flag.
 
 =cut
 
@@ -119,4 +122,3 @@ sub run {
 }
 
 1;
-
