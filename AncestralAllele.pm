@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv AncestralAllele.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin AncestralAllele,homo_sapiens_ancestor_GRCh38_e86.fa.gz
+ ./vep -i variations.vcf --plugin AncestralAllele,homo_sapiens_ancestor_GRCh38.fa.gz
 
 =head1 DESCRIPTION
 
@@ -41,11 +41,11 @@ limitations under the License.
  bgzipped file that can be accessed via Bio::DB::HTS::Faidx (installed by VEP's
  INSTALL.pl):
 
- wget ftp://ftp.ensembl.org/pub/release-90/fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38_e86.tar.gz
- tar xfz homo_sapiens_ancestor_GRCh38_e86.tar.gz
- cat homo_sapiens_ancestor_GRCh38_e86/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38_e86.fa.gz
- rm -rf homo_sapiens_ancestor_GRCh38_e86/ homo_sapiens_ancestor_GRCh38_e86.tar.gz
- ./vep -i variations.vcf --plugin AncestralAllele,homo_sapiens_ancestor_GRCh38_e86.fa.gz
+ wget ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
+ tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
+ cat homo_sapiens_ancestor_GRCh38/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38.fa.gz
+ rm -rf homo_sapiens_ancestor_GRCh38/ homo_sapiens_ancestor_GRCh38.tar.gz
+ ./vep -i variations.vcf --plugin AncestralAllele,homo_sapiens_ancestor_GRCh38.fa.gz
 
  The plugin is also compatible with Bio::DB::Fasta and an uncompressed FASTA file.
 
@@ -65,6 +65,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Utils::Exception qw(throw);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
