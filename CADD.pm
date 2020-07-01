@@ -93,7 +93,6 @@ sub run {
   
   # get allele, reverse comp if needed
   my $allele = $tva->variation_feature_seq;
-  reverse_comp(\$allele) if $vf->{strand} < 0;
   
   return {} unless $allele =~ /^[ACGT-]+$/;
 
