@@ -143,10 +143,10 @@ sub new {
   my $version;
   if ($file =~ /2\.9/) {
     $version = '2.9';
-  } elsif ($file =~ /4\.0b1/) {
+  } elsif ($file =~ /4\.0b1/) { # we need to treat this version as a special case because the name of the location column is different from other releases
     $version = '4.0.1';
-  } elsif ($file =~ /4\.0/) {
-    $version = '4.0';
+  } elsif ($file =~ /4\./) {
+    $version = '4';
   } elsif ($file =~ /3\./) {
     $version = 3;
   } else {
