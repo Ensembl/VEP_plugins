@@ -1,0 +1,143 @@
+AntibodyMapping	provides information as to whether an antibody mapping is “unique”, “pseudo-unique” or “not unique” in a manner analogous to that of peptide mappings
+TopologicalDomain	Location of non-membrane regions of membrane-spanning proteins
+SequenceConflict	Sequence discrepancies of unknown origin
+TransmembraneRegion	Extent of a membrane-spanning region
+CompositionallyBiasedRegion	Region of compositional bias in the protein
+ModifiedResidue	Modified residues
+Repeat	Positions of repeated sequence motifs or repeated domains
+Mutagenesis	Site which has been experimentally altered by mutagenesis
+DisulfideBond	Cysteine residues participating in disulfide bonds
+PdbMapping	Protein 3D structure
+GlycosylationSite	Covalently attached glycan group(s)
+ZincFingerRegion	Position(s) and type(s) of zinc fingers within the protein
+DnaBindingRegion	Position and type of a DNA-binding domain
+BindingSite	Binding site for any chemical group (co-enzyme, prosthetic group, etc.)
+MatureProtein	Extent of an active peptide or a polypetide chain in the mature protein
+NucleotidePhosphateBindingRegion	Nucleotide phosphate binding region
+Variant	Natural variant of the protein
+Domain	Position and type of each modular protein domain
+DomainInfo	Relevant information on protein domain(s)
+MiscellaneousRegion	Region of interest in the sequence
+InteractingRegion	Region interacting with another macromolecule
+AbsorptionMax	Absorption maximun rate
+AbsorptionNote	Absorption note
+ActiveSite	Amino acid(s) directly involved in the activity of an enzyme
+ActivityRegulation	Activity regulation
+Allergen	Amino acid(s) directly involved in the activity of an enzyme
+AnnotationType	Annotation type
+BetaStrand	Beta strand regions within the experimentally determined protein structure
+BgeeDevelopmentalStageCv	Bgee controlled vocabulary of human developmental stages
+BinaryInteraction	Binary interaction
+CalciumBindingRegion	Position(s) of calcium binding region(s) within the protein
+CatalyticActivity	Reaction(s) catalyzed by an enzyme
+Caution	Warning about possible errors and/or grounds for confusion
+CleavageSite	Cleavage site on the sequence
+Cofactor	Non-protein substance required for enzyme activity
+CofactorInfo	Relevant information on protein cofactor(s)
+CoiledCoilRegion	Positions of regions of coiled coil within the protein
+Consortium	Consortium
+CrossLink	Residues participating in covalent linkage(s) between proteins
+Database	Database of the cross-reference
+DevelopmentalStageInfo	Expression of the gene product according to the cell stage and/or tissue or organism development
+Disease	Involvement in disease: disease(s) associated with protein defect(s)
+ElectrophysiologicalParameter	
+Entry	General information of a protein
+EnzymeClassification	Ontology annotation by enzyme classification
+EnzymeClassificationCv	Describes each type of enzyme for which an EC (Enzyme Commission) number has been provided
+Evidence	Evidence
+EvidenceCodeOntologyCv	Ontology to describe information that is used to support an assertion
+EvocDevelopmentalStageCv	eVOC ontology of human development stages
+ExperimentalContext	Experimental variables related to evidences
+ExpressionInfo	Expression annotation to summarize expression levels measured in a series of experiments
+ExpressionLevel	Expression levels detected during experiment
+ExpressionProfile	Expression of the gene product in different tissues
+FunctionInfo	General function(s) of a protein
+FamilyInfo	Family info
+Gene	Gene
+GoBiologicalProcess	Ontology annotation by go biological process
+GoBiologicalProcessCv	Ontology to describe gene and gene product attributes. This is the part of GO describing biological processes
+GoCellularComponent	Ontology annotation by go cellular component
+GoCellularComponentCv	Ontology to describe gene and gene product attributes. This is the part of GO describing cellular components
+GOEvidenceCode	GO evidence code
+GoMolecularFunction	Ontology annotation by go molecular function
+GoMolecularFunctionCv	Ontology to describe gene and gene product attributes. This is the part of GO describing molecular functions
+Helix	Helical regions within the experimentally determined protein structure
+History	A history of a protein entry
+Identifier	Identifier type
+Induction	Effects of environmental factors on gene expression
+InitiatorMethionine	Cleavage of the initiator methionine
+InteractionInfo	Subunit structure: interaction with other protein(s)
+IntramembraneRegion	Intramembrane region
+Isoform	Specific information of a protein isoform
+IsoformAnnotationSpecificityQualifier	Specificity qualifiers are used to describe the isoform specificity of an annotation
+KineticKM	Kinetic KM
+KineticNote	Kinetic Note
+KineticVmax	Kinetic Vmax
+LargeScalePublication	Large scale publication
+LipidationSite	Lipidation: covalently attached lipid group(s)
+MammalianPhenotype	Mammalian phenotype
+MammalianPhenotypeCv	Ontology to describe mammalian phenotype
+MeshAnatomyCv	National Library of Medicine&apos;s controlled vocabulary thesaurus. This is the C (diseases) part
+MeshCv	National Library of Medicine&apos;s controlled vocabulary thesaurus
+MetalBindingSite	Binding site for a metal ion
+MiscellaneousSite	Interesting single amino acid site on the sequence
+MitochondrialTransitPeptide	Mitochondrial transit peptide
+Name	Name
+NameList	Name list
+NciMetathesaurusCv	Ontology to describe information that is used to support an assertion
+NciThesaurusCv	National Cancer Institute&apos;s reference terminology resource for biomedical concepts
+NextprotAnatomyCv	neXtProt human anatomical ontology. Developed to allow to navigate through protein and mRNA expression data
+NextprotAnnotationCv	neXtProt ontology for biosequence annotations. Set of terms and relationships used to describe the annotations of biological sequences
+NextprotCellosaurusCv	Controlled vocabulary of cell lines
+NextprotDomainCv	neXtProt controlled vocabulary of domains, repeat and zinc fingers in human proteins as derived from UniProtKB/Swiss-Prot
+NextprotFamilyCv	neXtProt list of human protein families as derived from UniProtKB/Swiss-Prot
+NextprotIcepoCv	Ontology that describes the electrophysiological properties of ion channels
+NextprotMetalCv	neXtProt controlled vocabulary of metal bound to human proteins as derived from UniProtKB/Swiss-Prot
+NextprotModificationEffectCv	Ontology that describes the change resulting from a modification on a protein. Possible modifications include variations and post-translational modifications, while changes can be for example a sub-cellular localization, a phenotype, or a protein property
+NextprotProteinPropertyCv	Ontology that describes biophysical properties of proteins, such as stability
+NextprotTopologyCv	neXtProt controlled vocabulary to describe the topology of regions for transmembrane proteins that span membrane compartments as derived from UniProtKB/Swiss-Prot
+NonConsecutiveResidue	Indicates that two residues in a sequence are not consecutive
+NonStandardAminoAcidCv	Controled vocabulary for non-standard amino acids in protein sequences
+NonTerminalResidue	The sequence is incomplete. Indicate that a residue is not the terminal residue of the complete protein
+OmimCv	OMIM is a comprehensive, authoritative compendium of human genes and genetic phenotypes
+OrganelleCv	List of organelles in which a mature protein is targeted using a transit peptide
+Pathway	Associated metabolic pathways
+PeptideMapping	Peptide mapping
+PeroxisomeTransitPeptide	Peroxisome transit peptide
+Person	Person
+Pharmaceutical	Pharmaceutical use: use of as a pharmaceutical drug
+PhDependence	PhDependence
+PhenotypicVariation	Phenotypic variation
+Propeptide	Part of a protein that is cleaved during maturation or activation
+ProteinExistence	Protein existence detection method and reliabilty level
+ProteinProperty	Protein property
+ProteinSequence	Protein sequence object
+Proteoform	Description of a protein isoform variation. Variations may include variants and PTMs
+PtmInfo	Post-translational modifications
+Publication	Publication
+QualityQualifier	Quality qualifiers are used to describe the reliability of an annotation or evidence
+RedoxPotential	Redox potential
+Selenocysteine	Occurence of non-standard amino acids (selenocysteine and pyrrolysine) in the protein sequence
+SequenceCaution	Errors concerning the protein sequence
+SequenceOntologyCv	Subset of protein feature ontology
+ShortSequenceMotif	Short (up to 20 amino acids) sequence motif of biological interest
+SignalPeptide	Sequence targeting proteins to the secretory pathway or periplasmic space
+SmallMoleculeInteraction	Small molecule interaction
+Source	Originator of the data
+SrmPeptideMapping	Srm peptide mapping
+SubcellularLocation	Subcellular location of the mature protein
+SubcellularLocationNote	Subcellular location information of the mature protein
+TemperatureDependence	Temperature dependence
+TransportActivity	Transport activity
+Turn	Turns within the experimentally determined protein structure
+UnipathwayCv	UniProt controlled vocabulary and hierarchical representation of metabolic pathways
+UniprotDiseaseCv	UniProt controlled vocabulary of human diseases
+UniprotFamilyCv	Uniprot family Cv
+UniprotKeyword	Ontology annotation by uniprot keyword
+UniprotKeywordCv	UniProt controlled vocabulary of keywords
+UniprotPtmCv	UniProt controlled vocabulary of post-translational modifications
+UniprotSubcellularLocationCv	UniProt controlled vocabulary of subcellular locations
+UniprotSubcellularOrientationCv	UniProt controlled vocabulary of subcellular orientations (in UniProt this is part of the UniProt subcellular location CV)
+UniprotSubcellularTopologyCv	UniProt controlled vocabulary of subcellular topologies (in UniProt this is part of the UniProt subcellular location CV)
+VariantInfo	Description of polymorphism(s)
+Xref	Cross reference
