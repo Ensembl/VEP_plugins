@@ -292,7 +292,7 @@ sub get_sparql_query {
                select distinct ?iso ?spos ?epos ?annot_type str(?txt)
                where {
                  values ?poi {$peptide_start}
-                 values ?ensp {'$transcript_id'} # for e101 mapping is for canoncila - somtimes our cnonincal is different than the uniprot canonical
+                 values ?ensp {'$transcript_id'}
                  bind (IRI(CONCAT('http://rdf.ebi.ac.uk/resource/ensembl.protein/',?ensp)) as ?ENSP_IRI)
                  SERVICE <http://sparql.uniprot.org/sparql> {
                    SELECT * WHERE {
