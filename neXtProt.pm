@@ -196,10 +196,9 @@ sub run {
   my $tv = $tva->transcript_variation;
 
   my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
-  my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
   my $transcript_id = $tva->transcript->translation->stable_id;
 
-  return {} unless defined($transcript_id) && defined($peptide_start) && defined($peptide_end);
+  return {} unless defined($transcript_id) && defined($peptide_start);
 
   my $query = $self->get_sparql_query($peptide_start,$transcript_id);
 
