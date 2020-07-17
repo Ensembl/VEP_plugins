@@ -131,7 +131,7 @@ my %DEFAULTS = (
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
-  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg gnomADg_r3.0)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
