@@ -64,7 +64,7 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
                          all available VCF collections are included. 
-                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg
+                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg, gnomADg_r3.0
                          Separate multiple values with '&'
                          VCF collections contain the following populations: 
                          topmed: TOPMed
@@ -304,7 +304,7 @@ sub new {
           push @collections, $vcf_collection;
         }
       }
-      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
+      warn "Couldn't find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
     } else {
