@@ -40,7 +40,10 @@ limitations under the License.
 
  Please cite the neXtProt publication alongside the VEP if you use this resource:
  https://doi.org/10.1093/nar/gkz995
- 
+
+ This plugin is only suitable for small sets of variants as an additional 
+ individual remote API query run for each variant.
+
  Running options:
  (Default) the data retrieved by default is the MatureProtein, NucleotidePhosphateBindingRegion,
  Variant, Domain, MiscellaneousRegion and InteractingRegion.
@@ -57,15 +60,17 @@ limitations under the License.
 
  all_labels     : Set value to 1 to include all data even if data was not found for all labels
 
- * note: 'max_set' and 'config_data' cannot be used in simultaneously.
+ position       : Set value to 1 to include the start and end position in the protein
+
+ * note: 'max_set' and 'config_data' cannot be used simultaneously.
 
 
  Output:
   By default, the plugin only returns data that is available. Example (default behaviour):
-  neXtProt_Domain=396,583,DH;neXtProt_MatureProtein=1,1344,Rho guanine nucleotide exchange factor 10
+  neXtProt_MatureProtein=1,1344,Rho guanine nucleotide exchange factor 10
 
   The option 'all_labels' includes all data, same example as above:
-  neXtProt_Domain=396,583,DH;neXtProt_MatureProtein=1,1344,Rho guanine nucleotide exchange factor 10;
+  neXtProt_MatureProtein=1,1344,Rho guanine nucleotide exchange factor 10;
   neXtProt_InteractingRegion=-;neXtProt_NucleotidePhosphateBindingRegion=-;neXtProt_Variant=-;
   neXtProt_MiscellaneousRegion=-;
 
@@ -92,8 +97,7 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 my $default_output = {
   'neXtProt_MatureProtein' => 'Extent of an active peptide or a polypetide chain in the mature protein',
   'neXtProt_NucleotidePhosphateBindingRegion' => 'Nucleotide phosphate binding region',
-  'neXtProt_Variant' => 'Natural variant of the protein',
-  'neXtProt_Domain' => 'Position and type of each modular protein domain',
+  'neXtProt_Variant' => 'Variant-specific annotations',
   'neXtProt_MiscellaneousRegion' => 'Region of interest in the sequence',
   'neXtProt_InteractingRegion' => 'Region interacting with another macromolecule'
 };
@@ -113,8 +117,7 @@ my $max_set_output = {
   'neXtProt_BindingSite' => 'Binding site for any chemical group (co-enzyme, prosthetic group, etc.)',
   'neXtProt_MatureProtein' => 'Extent of an active peptide or a polypetide chain in the mature protein',
   'neXtProt_NucleotidePhosphateBindingRegion' => 'Nucleotide phosphate binding region',
-  'neXtProt_Variant' => 'Natural variant of the protein',
-  'neXtProt_Domain' => 'Position and type of each modular protein domain',
+  'neXtProt_Variant' => 'Variant-specific annotations',
   'neXtProt_MiscellaneousRegion' => 'Region of interest in the sequence',
   'neXtProt_InteractingRegion' => 'Region interacting with another macromolecule'
 };
@@ -156,6 +159,10 @@ sub new {
 
   if(defined($param_hash->{all_labels})) {
     $self->{all_labels} = $param_hash->{all_labels};
+  }
+
+  if(defined($param_hash->{position})) {
+    $self->{position} = $param_hash->{position};
   }
 
   return $self;
@@ -247,12 +254,13 @@ sub run {
     # Some annot_type have more than one value
     # Need to check if it's not duplicated
     if($result_hash{'neXtProt_'.$annot_type}) {
-      my $annot_type_data = $start_pos.','.$end_pos.','.$data;
+      my $annot_type_data = $self->{position} ? $start_pos.','.$end_pos.','.$data : $data;
       push @{$result_hash{'neXtProt_'.$annot_type}}, $annot_type_data unless grep{$_ eq $annot_type_data} @{$result_hash{'neXtProt_'.$annot_type}};
     }
     else {
       my @list_of_data;
-      push @list_of_data, $start_pos.','.$end_pos.','.$data;
+      my $annot_type_data = $self->{position} ? $start_pos.','.$end_pos.','.$data : $data;
+      push @list_of_data, $annot_type_data;
       $result_hash{'neXtProt_'.$annot_type} = \@list_of_data;
     }
   }
