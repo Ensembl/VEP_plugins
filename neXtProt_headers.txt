@@ -41,5 +41,5 @@ SrmPeptideMapping	Srm peptide mapping
 TopologicalDomain	Location of non-membrane regions of membrane-spanning proteins
 TransmembraneRegion	Extent of a membrane-spanning region
 Turn	Turns within the experimentally determined protein structure
-Variant	Natural variant of the protein
+Variant	Variant-specific annotations
 ZincFingerRegion	Position(s) and type(s) of zinc fingers within the protein
