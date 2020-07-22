@@ -103,6 +103,7 @@ sub new {
       FROM translation_md5 m, attrib a, protein_function_predictions p
       WHERE m.translation_md5_id = p.translation_md5_id
       AND p.analysis_attrib_id = a.attrib_id
+      AND a.value IN ('sift', 'polyphen_humdiv', 'polyphen_humvar')
     }, {mysql_use_result => 1});
 
     my ($md5, $attrib, $matrix);
@@ -184,6 +185,7 @@ sub run {
 
       while(my $arrayref = $self->{get_sth}->fetchrow_arrayref) {
         my $analysis = $arrayref->[1];
+        next unless ($analysis =~ /sift|polyphen/i);
         my ($super_analysis, $sub_analysis) = split('_', $arrayref->[1]);
 
         $data->{$analysis} = Bio::EnsEMBL::Variation::ProteinFunctionPredictionMatrix->new(
@@ -246,4 +248,3 @@ sub add_to_cache {
 }
 
 1;
-
