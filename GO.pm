@@ -73,7 +73,7 @@ sub new {
 }
 
 sub version {
-  return 73;
+  return 101;
 }
 
 sub feature_types {
@@ -86,15 +86,36 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-  
-  my $tr = $tva->transcript->translation;
-  return {} unless defined($tr);
-  
-  my $entries = $tr->get_all_DBEntries('GO');
-  
-  my $string = join(",", map {$_->display_id.':'.$_->description} @$entries);
+
+  my $transcript =$tva->transcript();
+  return {} unless defined($transcript);
+
+  my $entries;
+
+  if( $self->{config}->{assembly} && $self->{config}->{assembly} eq 'GRCh37'){
+    ## GO xrefs are held at the translation level in the GRCh37 database
+    my $tr = $transcript->translation;
+    return {} unless defined($tr);
+    $entries = $tr->get_all_DBEntries('GO');
+  }
+  else{
+    ## GO xrefs are held at the transcript level in recent databases
+    $entries = $transcript->get_all_DBEntries('GO');
+  }
+
+  return{} unless defined $entries && scalar(@{$entries} >0);
+
+  my @out;
+  foreach my $entry (@$entries){
+    my $e = $entry->display_id().':'.$entry->description();
+    # handle descriptions like nuclear chromosome, telomeric region
+    $e =~ s/\,/\_/g;
+    push @out, $e;
+  }
+
+  my $string = join(",", @out);
   $string =~ s/\s+/\_/g;
-  
+
   return { GO => $string };
 }
 
