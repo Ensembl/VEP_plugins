@@ -92,11 +92,11 @@ sub get_header_info {
 
 sub run {
     my ($self, $tva) = @_;
-    
+
     my @SO_terms = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
 
     return {} unless grep { $_ eq 'frameshift_variant' } @SO_terms;
-        
+
     return {} if grep { /splice/ } @SO_terms;
 
     my $tv = $tva->transcript_variation;
@@ -105,8 +105,7 @@ sub run {
     my $cds_seq = defined($tr->{_variation_effect_feature_cache})
                 ? $tr->{_variation_effect_feature_cache}->{translateable_seq}
                 : $tr->translateable_seq;
-        
-    # get the sequence to translate
+
     my ($low_pos, $high_pos) = sort {$a <=> $b} ($tv->cds_start, $tv->cds_end);
     my $is_insertion         = $tv->cds_start > $tv->cds_end ? 1 : 0;
     my $last_complete_codon  = (ceil($low_pos / 3) - 1) * 3;
@@ -116,15 +115,13 @@ sub run {
     my $three_prime_utr_seq  = $tr->three_prime_utr->seq() if ($tr->three_prime_utr);
     $to_translate            = $to_translate.$three_prime_utr_seq if ($three_prime_utr_seq);
     $to_translate            =~ s/\-//g;
-        
-    # create a bioperl object
+
     my $codon_seq = Bio::Seq->new(
       -seq      => $to_translate,
       -moltype  => 'dna',
       -alphabet => 'dna'
     );
-        
-    # get codon table
+
     my $codon_table;
     if(defined($tr->{_variation_effect_feature_cache})) {
         $codon_table = $tr->{_variation_effect_feature_cache}->{codon_table} || 1;
@@ -133,12 +130,10 @@ sub run {
         my ($attrib) = @{$tr->slice->get_all_Attributes('codon_table')};
         $codon_table = $attrib ? $attrib->value || 1 : 1;
     }
-        
-    # translate
+
     my $new_pep = $codon_seq->translate(undef, undef, undef, $codon_table)->seq();
     $new_pep =~ s/\*.*//;
-        
-    # compare lengths
+
     my $translation = defined($tr->{_variation_effect_feature_cache}->{peptide})
                     ? $tr->{_variation_effect_feature_cache}->{peptide}
                     : $tr->translation->seq;
@@ -146,7 +141,7 @@ sub run {
     my ($pep_start, $pep_end) = ($tv->translation_start, $tv->translation_end);
 
     my $new_length = ($pep_start < $pep_end ? $pep_start : $pep_end) + length($new_pep);
-        
+
     return {
         DownstreamProtein   => $new_pep,
         ProteinLengthChange => $new_length - length($translation),
