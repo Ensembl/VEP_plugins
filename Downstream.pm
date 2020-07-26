@@ -102,7 +102,10 @@ sub run {
         
         my $tv = $tva->transcript_variation;
         my $tr = $tv->transcript;
-        my $cds_seq = defined($tr->{_variation_effect_feature_cache}) ? $tr->{_variation_effect_feature_cache}->{translateable_seq} : $tr->translateable_seq;
+
+        my $cds_seq = defined($tr->{_variation_effect_feature_cache})
+                    ? $tr->{_variation_effect_feature_cache}->{translateable_seq}
+                    : $tr->translateable_seq;
         
         # get the sequence to translate
         my ($low_pos, $high_pos) = sort {$a <=> $b} ($tv->cds_start, $tv->cds_end);
@@ -137,8 +140,13 @@ sub run {
         $new_pep =~ s/\*.*//;
         
         # compare lengths
-        my $translation = defined($tr->{_variation_effect_feature_cache}) && defined($tr->{_variation_effect_feature_cache}->{peptide}) ? $tr->{_variation_effect_feature_cache}->{peptide} : $tr->translation->seq;
-        my $new_length = ($tv->translation_start < $tv->translation_end ? $tv->translation_start : $tv->translation_end) + length($new_pep);
+        my $translation = defined($tr->{_variation_effect_feature_cache}->{peptide})
+                        ? $tr->{_variation_effect_feature_cache}->{peptide}
+                        : $tr->translation->seq;
+
+        my ($pep_start, $pep_end) = ($tv->translation_start, $tv->translation_end);
+
+        my $new_length = ($pep_start < $pep_end ? $pep_start : $pep_end) + length($new_pep);
         
         return {
             DownstreamProtein   => $new_pep,
