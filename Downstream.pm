@@ -59,6 +59,18 @@ use POSIX qw(ceil);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new(@_);
+
+    if($self->{config}{offline} && !$self->{config}{fasta}) {
+        die("ERROR: cannot function in offline mode without a FASTA file\n");
+    }
+
+    return $self;
+}
+
 sub version {
     return '2.3';
 }
