@@ -34,7 +34,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- retrives data for missense variants from neXtProt, which is a comprehensive 
+ retrieves data for missense variants from neXtProt, which is a comprehensive 
  human-centric discovery platform that offers integration of and navigation 
  through protein-related data (https://www.nextprot.org/).
 
@@ -46,31 +46,32 @@ limitations under the License.
 
  Running options:
  (Default) the data retrieved by default is the MatureProtein, NucleotidePhosphateBindingRegion,
- Variant, Domain, MiscellaneousRegion and InteractingRegion.
+ Variant, MiscellaneousRegion and InteractingRegion.
  The plugin can also be run with other options to retrieve other data than the default.
  
  Options are passed to the plugin as key=value pairs:
  max_set        : Set value to 1 to return a bigger set of protein-related data 
                   (includes the default data)
 
- config_data    : The set of data can be configured by the user. Use file 'neXtProt_headers.txt'
-                  to check which data (labels) are available.
+ return_values  : The set of data to be returned. 
+                  Use file 'neXtProt_headers.txt' to check which data (labels) are available.
 
- url            : Set value to 1 to include the URL to link to the neXtProt entry
+ url            : Set value to 1 to include the URL to link to the neXtProt entry.
 
- all_labels     : Set value to 1 to include all data even if data was not found for all labels
+ all_labels     : Set value to 1 to include all labels, even if data is not available.
 
- position       : Set value to 1 to include the start and end position in the protein
+ position       : Set value to 1 to include the start and end position in the protein.
 
- * note: 'max_set' and 'config_data' cannot be used simultaneously.
+ * note: 'max_set' and 'return_values' cannot be used simultaneously.
 
 
  Output:
   By default, the plugin only returns data that is available. Example (default behaviour):
-  neXtProt_MatureProtein=1,1344,Rho guanine nucleotide exchange factor 10
+  neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10
 
-  The option 'all_labels' includes all data, same example as above:
-  neXtProt_MatureProtein=1,1344,Rho guanine nucleotide exchange factor 10;
+  The option 'all_labels' returns a consistent set of the requested fields, using "-" where 
+  values are not available. Same example as above:
+  neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10;
   neXtProt_InteractingRegion=-;neXtProt_NucleotidePhosphateBindingRegion=-;neXtProt_Variant=-;
   neXtProt_MiscellaneousRegion=-;
 
@@ -79,7 +80,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin neXtProt
 
  or to return only the data specified by the user:
- ./vep -i variations.vcf --plugin neXtProt,config_data='Domain&InteractingRegion'
+ ./vep -i variations.vcf --plugin neXtProt,return_values='Domain&InteractingRegion'
 
 
 =cut
@@ -129,8 +130,8 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  if(defined($param_hash->{max_set}) && defined($param_hash->{config_data})) {
-    die "ERROR: Can't use max_set and config_data simultaneously!\n";
+  if(defined($param_hash->{max_set}) && defined($param_hash->{return_values})) {
+    die "ERROR: Can't use max_set and return_values simultaneously!\n";
   }
 
   # Return the isoform URL to the neXtProt web page
@@ -140,8 +141,8 @@ sub new {
     if(defined($param_hash->{max_set})) {
       $max_set_output->{'neXtProt_url'} = 'neXtProt URL';
     }
-    elsif(defined($param_hash->{config_data})) {
-      $self->{config_data_hash}->{'neXtProt_url'} = 'neXtProt URL';
+    elsif(defined($param_hash->{return_values})) {
+      $self->{return_values_hash}->{'neXtProt_url'} = 'neXtProt URL';
     }
     else {
       $default_output->{'neXtProt_url'} = 'neXtProt URL';
@@ -152,8 +153,8 @@ sub new {
     $self->{max_set} = $param_hash->{max_set};
   }
 
-  if(defined($param_hash->{config_data})) {
-    $self->{config_data} = $param_hash->{config_data};
+  if(defined($param_hash->{return_values})) {
+    $self->{return_values} = $param_hash->{return_values};
     $self->build_data_hash();
   }
 
@@ -182,9 +183,9 @@ sub get_header_info {
       $header{$value} = $max_set_output->{$value};
     }
   }
-  elsif($self->{config_data}) {
-    foreach my $value (keys $self->{config_data_hash}) {
-      $header{$value} = $self->{config_data_hash}->{$value};
+  elsif($self->{return_values}) {
+    foreach my $value (keys $self->{return_values_hash}) {
+      $header{$value} = $self->{return_values_hash}->{$value};
     }
   }
   else {
@@ -203,7 +204,7 @@ sub run {
   my $tv = $tva->transcript_variation;
 
   my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
-  my $transcript_id = $tva->transcript->translation->stable_id;
+  my $translation_id = $tva->transcript->translation->stable_id;
 
   my $tl = $tva->transcript->translation;
   my @uniprot = @{$tl->get_all_DBLinks('Uniprot_isoform')};
@@ -274,8 +275,8 @@ sub run {
   if($self->{max_set}) {
     @keys = keys %$max_set_output;
   }
-  elsif($self->{config_data}) {
-    @keys = keys $self->{config_data_hash};
+  elsif($self->{return_values}) {
+    @keys = keys $self->{return_values_hash};
   }
   else {
     @keys = keys %$default_output;
@@ -296,7 +297,7 @@ sub run {
 }
 
 sub get_sparql_query {
-  my ($self, $peptide_start, $transcript_id) = @_;
+  my ($self, $peptide_start, $translation_id) = @_;
 
   my $query = "PREFIX : <http://nextprot.org/rdf#>
                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -305,7 +306,7 @@ sub get_sparql_query {
                select distinct ?iso ?spos ?epos ?annot_type str(?txt)
                where {
                  values ?poi {$peptide_start}
-                 values ?upiso {'$transcript_id'}
+                 values ?upiso {'$translation_id'}
                  BIND(IRI(CONCAT('http://nextprot.org/rdf/isoform/NX_',?upiso)) AS ?iso) .
                  ?entry :isoform ?iso .
                  ?iso :positionalAnnotation ?statement .
@@ -338,10 +339,10 @@ sub build_data_hash {
     close FILE;
   }
 
-  my @data_from_user = split(/[\;\&\|]/, $self->{config_data});
+  my @data_from_user = split(/[\;\&\|]/, $self->{return_values});
   foreach my $dfu (@data_from_user) {
     if($headers_file_hash{$dfu}) {
-      $self->{config_data_hash}->{'neXtProt_' . $dfu} = $headers_file_hash{$dfu};
+      $self->{return_values_hash}->{'neXtProt_' . $dfu} = $headers_file_hash{$dfu};
     }
     else {
       die ("ERROR: $dfu is not available in neXtProt. Check file 'neXtProt_headers.txt' to see the data that is valid to query.\n");
