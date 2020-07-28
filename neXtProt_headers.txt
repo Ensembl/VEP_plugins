@@ -1,5 +1,5 @@
 ActiveSite	Amino acid(s) directly involved in the activity of an enzyme
-AntibodyMapping	provides information as to whether an antibody mapping is “unique”, “pseudo-unique” or “not unique” in a manner analogous to that of peptide mappings
+AntibodyMapping	provides information as to whether an antibody mapping is "unique", "pseudo-unique" or "not unique" in a manner analogous to that of peptide mappings
 BetaStrand	Beta strand regions within the experimentally determined protein structure
 BindingSite	Binding site for any chemical group (co-enzyme, prosthetic group, etc.)
 CalciumBindingRegion	Position(s) of calcium binding region(s) within the protein

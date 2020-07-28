@@ -46,11 +46,11 @@ limitations under the License.
 
  Running options:
  (Default) the data retrieved by default is the MatureProtein, NucleotidePhosphateBindingRegion,
- Variant, MiscellaneousRegion and InteractingRegion.
+ Variant, MiscellaneousRegion, TopologicalDomain and InteractingRegion.
  The plugin can also be run with other options to retrieve other data than the default.
  
  Options are passed to the plugin as key=value pairs:
- max_set        : Set value to 1 to return a bigger set of protein-related data 
+ max_set        : Set value to 1 to return all available protein-related data 
                   (includes the default data)
 
  return_values  : The set of data to be returned.
@@ -73,7 +73,7 @@ limitations under the License.
   values are not available. Same example as above:
   neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10;
   neXtProt_InteractingRegion=-;neXtProt_NucleotidePhosphateBindingRegion=-;neXtProt_Variant=-;
-  neXtProt_MiscellaneousRegion=-;
+  neXtProt_MiscellaneousRegion=-;neXtProt_TopologicalDomain=-;
 
 
  The plugin can then be run as default:
@@ -100,26 +100,7 @@ my $default_output = {
   'neXtProt_NucleotidePhosphateBindingRegion' => 'Nucleotide phosphate binding region',
   'neXtProt_Variant' => 'Variant-specific annotations',
   'neXtProt_MiscellaneousRegion' => 'Region of interest in the sequence',
-  'neXtProt_InteractingRegion' => 'Region interacting with another macromolecule'
-};
-
-my $max_set_output = {
   'neXtProt_TopologicalDomain' => 'Location of non-membrane regions of membrane-spanning proteins',
-  'neXtProt_SequenceConflict' => 'Sequence discrepancies of unknown origin',
-  'neXtProt_TransmembraneRegion' => 'Extent of a membrane-spanning region',
-  'neXtProt_CompositionallyBiasedRegion' => 'Region of compositional bias in the protein',
-  'neXtProt_ModifiedResidue' => 'Modified residues',
-  'neXtProt_Repeat' => 'Positions of repeated sequence motifs or repeated domains',
-  'neXtProt_Mutagenesis' => 'Site which has been experimentally altered by mutagenesis',
-  'neXtProt_DisulfideBond' => 'Cysteine residues participating in disulfide bonds',
-  'neXtProt_GlycosylationSite' => 'Covalently attached glycan group(s)',
-  'neXtProt_ZincFingerRegion' => 'Position(s) and type(s) of zinc fingers within the protein',
-  'neXtProt_DnaBindingRegion' => 'Position and type of a DNA-binding domain',
-  'neXtProt_BindingSite' => 'Binding site for any chemical group (co-enzyme, prosthetic group, etc.)',
-  'neXtProt_MatureProtein' => 'Extent of an active peptide or a polypetide chain in the mature protein',
-  'neXtProt_NucleotidePhosphateBindingRegion' => 'Nucleotide phosphate binding region',
-  'neXtProt_Variant' => 'Variant-specific annotations',
-  'neXtProt_MiscellaneousRegion' => 'Region of interest in the sequence',
   'neXtProt_InteractingRegion' => 'Region interacting with another macromolecule'
 };
 
@@ -138,10 +119,7 @@ sub new {
   if(defined($param_hash->{url})) {
     $self->{url} = $param_hash->{url};
 
-    if(defined($param_hash->{max_set})) {
-      $max_set_output->{'neXtProt_url'} = 'neXtProt URL';
-    }
-    elsif(defined($param_hash->{return_values})) {
+    if(defined($param_hash->{max_set}) || defined($param_hash->{return_values})) {
       $self->{return_values_hash}->{'neXtProt_url'} = 'neXtProt URL';
     }
     else {
@@ -151,11 +129,12 @@ sub new {
 
   if(defined($param_hash->{max_set})) {
     $self->{max_set} = $param_hash->{max_set};
+    $self->build_data_hash(1);
   }
 
   if(defined($param_hash->{return_values})) {
     $self->{return_values} = $param_hash->{return_values};
-    $self->build_data_hash();
+    $self->build_data_hash(0);
   }
 
   if(defined($param_hash->{all_labels})) {
@@ -179,8 +158,8 @@ sub get_header_info {
   my %header;
 
   if($self->{max_set}) {
-    foreach my $value (keys $max_set_output) {
-      $header{$value} = $max_set_output->{$value};
+    foreach my $value (keys $self->{return_values_hash}) {
+      $header{$value} = $self->{return_values_hash}->{$value};
     }
   }
   elsif($self->{return_values}) {
@@ -267,10 +246,7 @@ sub run {
   }
 
   my @keys;
-  if($self->{max_set}) {
-    @keys = keys %$max_set_output;
-  }
-  elsif($self->{return_values}) {
+  if($self->{max_set} || $self->{return_values}) {
     @keys = keys $self->{return_values_hash};
   }
   else {
@@ -323,7 +299,8 @@ sub get_sparql_query {
 
 sub build_data_hash {
   my $self = shift;
-  my $file = 'neXtProt_headers.txt';
+  my $option = shift; # Set to 1 to return all data from header file, set to 0 to return data specified by the user
+  my $file = '/homes/dlemos/VEP_plugins/neXtProt_headers.txt';
 
   my %headers_file_hash;
   my %output_hash;
@@ -341,13 +318,22 @@ sub build_data_hash {
     close FILE;
   }
 
-  my @data_from_user = split(/[\;\&\|]/, $self->{return_values});
-  foreach my $dfu (@data_from_user) {
-    if($headers_file_hash{$dfu}) {
-      $self->{return_values_hash}->{'neXtProt_' . $dfu} = $headers_file_hash{$dfu};
+  # Going to return the data specified by the user
+  if($option == 0) {
+    my @data_from_user = split(/[\;\&\|]/, $self->{return_values});
+    foreach my $dfu (@data_from_user) {
+      if($headers_file_hash{$dfu}) {
+        $self->{return_values_hash}->{'neXtProt_' . $dfu} = $headers_file_hash{$dfu};
+      }
+      else {
+        die ("ERROR: $dfu is not available in neXtProt. Check file 'neXtProt_headers.txt' to see the data that is valid to query.\n");
+      }
     }
-    else {
-      die ("ERROR: $dfu is not available in neXtProt. Check file 'neXtProt_headers.txt' to see the data that is valid to query.\n");
+  }
+  # Return all data available in header file
+  else {
+    foreach my $hf (keys %headers_file_hash) {
+      $self->{return_values_hash}->{'neXtProt_' . $hf} = $headers_file_hash{$hf};
     }
   }
 }
