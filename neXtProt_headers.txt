@@ -1,0 +1,45 @@
+ActiveSite	Amino acid(s) directly involved in the activity of an enzyme
+AntibodyMapping	provides information as to whether an antibody mapping is "unique", "pseudo-unique" or "not unique" in a manner analogous to that of peptide mappings
+BetaStrand	Beta strand regions within the experimentally determined protein structure
+BindingSite	Binding site for any chemical group (co-enzyme, prosthetic group, etc.)
+CalciumBindingRegion	Position(s) of calcium binding region(s) within the protein
+CleavageSite	Cleavage site on the sequence
+CoiledCoilRegion	Positions of regions of coiled coil within the protein
+CompositionallyBiasedRegion	Region of compositional bias in the protein
+CrossLink	Residues participating in covalent linkage(s) between proteins
+DisulfideBond	Cysteine residues participating in disulfide bonds
+DnaBindingRegion	Position and type of a DNA-binding domain
+Domain	Position and type of each modular protein domain
+DomainInfo	Relevant information on protein domain(s)
+GlycosylationSite	Covalently attached glycan group(s)
+Helix	Helical regions within the experimentally determined protein structure
+InitiatorMethionine	Cleavage of the initiator methionine
+InteractingRegion	Region interacting with another macromolecule
+IntramembraneRegion	Intramembrane region
+LipidationSite	Lipidation: covalently attached lipid group(s)
+MatureProtein	Extent of an active peptide or a polypetide chain in the mature protein
+MetalBindingSite	Binding site for a metal ion
+MiscellaneousRegion	Region of interest in the sequence
+MiscellaneousSite	Interesting single amino acid site on the sequence
+MitochondrialTransitPeptide	Mitochondrial transit peptide
+ModifiedResidue	Modified residues
+Mutagenesis	Site which has been experimentally altered by mutagenesis
+NonConsecutiveResidue	Indicates that two residues in a sequence are not consecutive
+NonTerminalResidue	The sequence is incomplete. Indicate that a residue is not the terminal residue of the complete protein
+NucleotidePhosphateBindingRegion	Nucleotide phosphate binding region
+PdbMapping	Protein 3D structure
+PeptideMapping	Peptide mapping
+PeroxisomeTransitPeptide	Peroxisome transit peptide
+Propeptide	Part of a protein that is cleaved during maturation or activation
+PtmInfo	Post-translational modifications
+Repeat	Positions of repeated sequence motifs or repeated domains
+Selenocysteine	Occurence of non-standard amino acids (selenocysteine and pyrrolysine) in the protein sequence
+SequenceConflict	Sequence discrepancies of unknown origin
+ShortSequenceMotif	Short (up to 20 amino acids) sequence motif of biological interest
+SignalPeptide	Sequence targeting proteins to the secretory pathway or periplasmic space
+SrmPeptideMapping	Srm peptide mapping
+TopologicalDomain	Location of non-membrane regions of membrane-spanning proteins
+TransmembraneRegion	Extent of a membrane-spanning region
+Turn	Turns within the experimentally determined protein structure
+Variant	Variant-specific annotations
+ZincFingerRegion	Position(s) and type(s) of zinc fingers within the protein
