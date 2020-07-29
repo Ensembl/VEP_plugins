@@ -56,7 +56,7 @@ limitations under the License.
  return_values  : The set of data to be returned.
                   Use file 'neXtProt_headers.txt' to check which data (labels) are available.
 
- url            : Set value to 1 to include the URL to link to the neXtProt entry.
+ uri            : Set value to 1 to include the URI to link to the neXtProt entry.
 
  all_labels     : Set value to 1 to include all labels, even if data is not available.
 
@@ -115,15 +115,15 @@ sub new {
     die "ERROR: Can't use max_set and return_values simultaneously!\n";
   }
 
-  # Return the isoform URL to the neXtProt web page
-  if(defined($param_hash->{url})) {
-    $self->{url} = $param_hash->{url};
+  # Return the isoform URI to the neXtProt web page
+  if(defined($param_hash->{uri})) {
+    $self->{uri} = $param_hash->{uri};
 
     if(defined($param_hash->{max_set}) || defined($param_hash->{return_values})) {
-      $self->{return_values_hash}->{'neXtProt_url'} = 'neXtProt URL';
+      $self->{return_values_hash}->{'neXtProt_uri'} = 'neXtProt URI';
     }
     else {
-      $default_output->{'neXtProt_url'} = 'neXtProt URL';
+      $default_output->{'neXtProt_uri'} = 'neXtProt URi';
     }
   }
 
@@ -202,13 +202,13 @@ sub run {
   my %result_hash_final;
 
   # Output format: 'iso','spos','epos','annot_type','callret-4'
-  # 'iso' -> isoform URL to neXtProt page; 'spos' -> start position; 'epos' -> end position; 'annot_type' -> annotation type (e.g. PdbMapping, Variant, etc.);
+  # 'iso' -> isoform URI to neXtProt page; 'spos' -> start position; 'epos' -> end position; 'annot_type' -> annotation type (e.g. PdbMapping, Variant, etc.);
   # 'callret-4' -> data
   my $output_list = $output->{results}->{bindings};
   return {} if (@$output_list == 0);
 
   foreach my $results (@$output_list) {
-    my $isoform_url = $results->{iso}->{value};
+    my $isoform_uri = $results->{iso}->{value};
     my $start_pos = $results->{spos}->{value};
     my $end_pos = $results->{epos}->{value};
     my $annot_type = $results->{annot_type}->{value};
@@ -225,10 +225,10 @@ sub run {
     }
     $data =~ s/\.$//;
 
-    # There is only one URL
-    if($self->{url} && !$result_hash{'neXtProt_url'}) {
-      my @isoform_value = ($isoform_url);
-      $result_hash{'neXtProt_url'} = \@isoform_value;
+    # There is only one URI
+    if($self->{uri} && !$result_hash{'neXtProt_uri'}) {
+      my @isoform_value = ($isoform_uri);
+      $result_hash{'neXtProt_uri'} = \@isoform_value;
     }
 
     # Some annot_type have more than one value
