@@ -76,7 +76,7 @@ limitations under the License.
 
  The files with the annotations for all possible substitutions (snv), 1 base insertions 
  and 1-4 base deletions (indel) within genes are available here:
- https://basespace.illumina.com/analyses/194103939/files?projectId=66029966
+ https://basespace.illumina.com/s/otSPW8hnhaZR
 
  GRCh37:
  tabix -p vcf spliceai_scores.raw.snv.hg37.vcf.gz
@@ -298,3 +298,4 @@ sub parse_data {
 }
 
 1;
+
