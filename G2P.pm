@@ -64,7 +64,7 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
                          all available VCF collections are included. 
-                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg
+                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg, gnomADg_r3.0
                          Separate multiple values with '&'
                          VCF collections contain the following populations: 
                          topmed: TOPMed
@@ -131,7 +131,7 @@ my %DEFAULTS = (
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
-  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg gnomADg_r3.0)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -304,7 +304,7 @@ sub new {
           push @collections, $vcf_collection;
         }
       }
-      warn "Couln't find VCF collection ids for assembly " . $assembly if (!@collections);
+      warn "Couldn't find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
     } else {
