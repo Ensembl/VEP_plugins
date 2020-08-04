@@ -310,7 +310,7 @@ sub build_data_hash {
   my %output_hash;
 
   if (! -e $file) {
-    die ("ERROR: neXtProt_headers file is not available.");
+    die ("ERROR: neXtProt_headers file is not available in $plugin_dir");
   } else {
     open FILE, $file;
     while(<FILE>) {
