@@ -753,6 +753,8 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "SpliceAI",
       "label" => "SpliceAI",
+      "helptip" => "Pre-calculated annotations from SpliceAI a deep neural network, developed by Illumina, Inc that predicts splice junctions from an arbitrary pre-mRNA transcript sequence. Used for non-commercial purposes.",
+      "label" => "SpliceAI",
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
