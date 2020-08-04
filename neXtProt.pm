@@ -301,7 +301,10 @@ sub get_sparql_query {
 sub build_data_hash {
   my $self = shift;
   my $option = shift; # Set to 1 to return all data from header file, set to 0 to return data specified by the user
-  my $file = 'neXtProt_headers.txt';
+
+  my $plugin_dir = $INC{'neXtProt.pm'};
+  $plugin_dir =~ s/neXtProt\.pm//i;
+  my $file = $plugin_dir.'/neXtProt_headers.txt';
 
   my %headers_file_hash;
   my %output_hash;
