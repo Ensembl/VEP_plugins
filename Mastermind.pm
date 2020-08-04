@@ -247,12 +247,12 @@ sub run {
           elsif($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
             $result_data = $data_value->{result};
           }
-          elsif($data_value->{is_other} == 1 && !defined($has_cdna)) {
+          elsif($data_value->{is_other} == 1 && defined($is_intron)) {
             $result_data = $data_value->{result};
           }
 
           # If mastermind aa change is UTR then skips aa verification
-          next unless $aa_alteration !~ /UTR/;
+          next if($aa_alteration =~ /UTR/ || !defined($has_cdna));
 
           # If there's a protein alteration then it only adds citations for the exact alteration cited
           if(defined($aa_alteration) && defined($peptide_start) && defined($peptide_end) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
