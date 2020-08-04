@@ -56,7 +56,7 @@ limitations under the License.
  return_values  : The set of data to be returned.
                   Use file 'neXtProt_headers.txt' to check which data (labels) are available.
 
- uri            : Set value to 1 to include the URI to link to the neXtProt entry.
+ url            : Set value to 1 to include the URL to link to the neXtProt entry.
 
  all_labels     : Set value to 1 to include all labels, even if data is not available.
 
@@ -115,15 +115,15 @@ sub new {
     die "ERROR: Can't use max_set and return_values simultaneously!\n";
   }
 
-  # Return the isoform URI to the neXtProt web page
-  if(defined($param_hash->{uri})) {
-    $self->{uri} = $param_hash->{uri};
+  # Return the isoform URL to the neXtProt web page
+  if(defined($param_hash->{url})) {
+    $self->{url} = $param_hash->{url};
 
     if(defined($param_hash->{max_set}) || defined($param_hash->{return_values})) {
-      $self->{return_values_hash}->{'neXtProt_uri'} = 'neXtProt URI';
+      $self->{return_values_hash}->{'neXtProt_url'} = 'neXtProt URL';
     }
     else {
-      $default_output->{'neXtProt_uri'} = 'neXtProt URi';
+      $default_output->{'neXtProt_url'} = 'neXtProt URL';
     }
   }
 
@@ -202,18 +202,18 @@ sub run {
   my %result_hash_final;
 
   # Output format: 'iso','spos','epos','annot_type','callret-4'
-  # 'iso' -> isoform URI to neXtProt page; 'spos' -> start position; 'epos' -> end position; 'annot_type' -> annotation type (e.g. PdbMapping, Variant, etc.);
-  # 'callret-4' -> data
+  # 'nx_lnk' -> isoform URL to neXtProt page; 'spos' -> start position; 'epos' -> end position; 'annot_type' -> annotation type (e.g. PdbMapping, Variant, etc.);
+  # 'annot_descr' -> data
   my $output_list = $output->{results}->{bindings};
   return {} if (@$output_list == 0);
 
   foreach my $results (@$output_list) {
-    my $isoform_uri = $results->{iso}->{value};
+    my $isoform_url = $results->{nx_lnk}->{value};
     my $start_pos = $results->{spos}->{value};
     my $end_pos = $results->{epos}->{value};
     my $annot_type = $results->{annot_type}->{value};
     $annot_type =~ s/.*#//;
-    my $data = $results->{'callret-4'}->{value};
+    my $data = $results->{annot_descr}->{value};
     # PdbMapping and Variant values contain ';'
     if($data =~ /;/) {
       if($annot_type eq 'Variant') { 
@@ -225,10 +225,10 @@ sub run {
     }
     $data =~ s/\.$//;
 
-    # There is only one URI
-    if($self->{uri} && !$result_hash{'neXtProt_uri'}) {
-      my @isoform_value = ($isoform_uri);
-      $result_hash{'neXtProt_uri'} = \@isoform_value;
+    # There is only one URL
+    if($self->{url} && !$result_hash{'neXtProt_url'}) {
+      my @isoform_value = ($isoform_url);
+      $result_hash{'neXtProt_url'} = \@isoform_value;
     }
 
     # Some annot_type have more than one value
@@ -274,7 +274,7 @@ sub get_sparql_query {
                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                PREFIX up: <http://purl.uniprot.org/core/>
                PREFIX isoform: <http://nextprot.org/rdf/isoform/>
-               select distinct ?iso ?spos ?epos ?annot_type str(?txt)
+               select distinct ?iso ?nx_lnk ?spos ?epos ?annot_type str(?txt) as ?annot_descr
                where {
                  values ?poi {$peptide_start}
                  values ?ensp {'$translation_id'}
@@ -288,6 +288,9 @@ sub get_sparql_query {
                 BIND(IRI(replace(str(?upiso),'http://purl.uniprot.org/isoforms/','http://nextprot.org/rdf/isoform/NX_')) AS ?iso) .
                 ?entry :isoform ?iso .
                 ?iso :positionalAnnotation ?statement .
+                bind(replace(str(?iso),'http://nextprot.org/rdf/isoform/','') as  ?iso_ac) .
+                bind(replace(str(?entry),'http://nextprot.org/rdf/entry/','') as  ?entry_ac) .
+                bind(concat('https://www.nextprot.org/entry/', ?entry_ac, '/sequence?isoform=', ?iso_ac) as ?nx_lnk) .
                 ?statement rdfs:comment ?txt .
                 ?statement a ?annot_type .
                 ?statement :start ?spos; :end ?epos .
