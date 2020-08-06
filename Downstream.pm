@@ -55,7 +55,6 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-use POSIX qw(ceil);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
@@ -106,18 +105,18 @@ sub run {
                 ? $tr->{_variation_effect_feature_cache}->{translateable_seq}
                 : $tr->translateable_seq;
 
-    my ($low_pos, $high_pos) = sort {$a <=> $b} ($tv->cds_start, $tv->cds_end);
-    my $is_insertion         = $tv->cds_start > $tv->cds_end ? 1 : 0;
-    my $last_complete_codon  = (ceil($low_pos / 3) - 1) * 3;
-    my $before_var_seq       = substr $cds_seq, $last_complete_codon, $low_pos - $last_complete_codon - ($is_insertion ? 0 : 1);
-    my $after_var_seq        = substr $cds_seq, $high_pos - ($is_insertion ? 1 : 0);
-    my $to_translate         = $before_var_seq.$tva->feature_seq.$after_var_seq;
-    my $three_prime_utr_seq  = $tr->three_prime_utr->seq() if ($tr->three_prime_utr);
-    $to_translate            = $to_translate.$three_prime_utr_seq if ($three_prime_utr_seq);
-    $to_translate            =~ s/\-//g;
+    my ($start, $end) = ($tv->cds_start, $tv->cds_end);
+
+    substr($cds_seq, $start - 1, $end - $start + 1) = $tva->seq_length > 0 ? $tva->feature_seq : '';
+
+    my $low_pos = $start > $end ? $end : $start;
+    my $last_complete_codon = $low_pos - ( ( ( $low_pos - 1 ) % 3 ) + 1 );
+
+    my $downstream_seq = substr($cds_seq, $last_complete_codon > 0 ? $last_complete_codon : 0);
+    my $three_prime_utr = $tr->three_prime_utr ? $tr->three_prime_utr->seq() : '';
 
     my $codon_seq = Bio::Seq->new(
-      -seq      => $to_translate,
+      -seq      => $downstream_seq . $three_prime_utr,
       -moltype  => 'dna',
       -alphabet => 'dna'
     );
