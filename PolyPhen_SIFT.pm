@@ -33,22 +33,18 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves PolyPhen and SIFT predictions from a
- locally constructed sqlite database. It can be used when your main
+ locally constructed SQLite database. It can be used when your main
  source of VEP transcript annotation (e.g. a GFF file or GFF-based cache)
  does not contain these predictions.
 
- You must either download or create a sqlite database of the predictions.
+ You must create a SQLite database of the predictions or point to the SQLite
+ database file already created.
+
  You may point to the file by adding db=[file] as a parameter:
 
  --plugin PolyPhen_SIFT,db=[file]
 
- Human predictions (assembly-independent) are available here:
-
- https://dl.dropboxusercontent.com/u/12936195/homo_sapiens.PolyPhen_SIFT.db
-
- (Please note the download location of this file may change)
-
- Place this file in $HOME/.vep to have the plugin find it automatically.
+ Place the SQLite database file in $HOME/.vep to have the plugin find it automatically.
  You may change this directory by adding dir=[dir] as a parameter:
 
  --plugin PolyPhen_SIFT,dir=[dir]
@@ -103,6 +99,7 @@ sub new {
       FROM translation_md5 m, attrib a, protein_function_predictions p
       WHERE m.translation_md5_id = p.translation_md5_id
       AND p.analysis_attrib_id = a.attrib_id
+      AND a.value IN ('sift', 'polyphen_humdiv', 'polyphen_humvar')
     }, {mysql_use_result => 1});
 
     my ($md5, $attrib, $matrix);
@@ -184,6 +181,7 @@ sub run {
 
       while(my $arrayref = $self->{get_sth}->fetchrow_arrayref) {
         my $analysis = $arrayref->[1];
+        next unless ($analysis =~ /sift|polyphen/i);
         my ($super_analysis, $sub_analysis) = split('_', $arrayref->[1]);
 
         $data->{$analysis} = Bio::EnsEMBL::Variation::ProteinFunctionPredictionMatrix->new(
@@ -246,4 +244,3 @@ sub add_to_cache {
 }
 
 1;
-
