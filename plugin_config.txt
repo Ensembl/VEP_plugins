@@ -753,6 +753,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "SpliceAI",
       "label" => "SpliceAI",
+      "helptip" => "Pre-calculated annotations from SpliceAI a deep neural network, developed by Illumina, Inc that predicts splice junctions from an arbitrary pre-mRNA transcript sequence. Used for non-commercial purposes (https://github.com/Illumina/SpliceAI)",
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
@@ -939,7 +940,7 @@ my $VEP_PLUGIN_CONFIG = {
     # DisGeNET
     {
       "key" => "DisGeNET",
-      "helptip" => "Variant-Disease-PMID associations from the DisGeNET database",
+      "helptip" => "Variant-Disease-PMID associations from the DisGeNET database (http://www.disgenet.org/)",
       "section" => "Phenotype data",
       "available" => 0,
       "enabled" => 0,

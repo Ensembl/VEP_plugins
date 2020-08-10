@@ -186,7 +186,7 @@ sub get_header_info {
   $header{'DisGeNET_SCORE'} = 'DisGENET score for the Variant-Disease association';
 
   if($self->{disease}) {
-    $header{'DisGeNET_disease'} = 'Name of the disease reporting the Variant-pmid association';
+    $header{'DisGeNET_disease'} = 'Name of associated disease';
   }
   if($self->{rsid}) {
     $header{'DisGeNET_rsid'} = 'dbSNP variant Identifier';
