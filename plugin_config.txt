@@ -86,7 +86,7 @@ my $VEP_PLUGIN_CONFIG = {
             #"Polyphen2_HDIV_pred",
             #"Polyphen2_HVAR_score",
             #"Polyphen2_HVAR_rankscore",
-            "Polyphen2_HVAR_pred",
+            #"Polyphen2_HVAR_pred",
             "LRT_score",
             "LRT_converted_rankscore",
             "LRT_pred",
