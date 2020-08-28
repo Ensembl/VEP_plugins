@@ -179,7 +179,7 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
 
-  return {} unless grep {$_->SO_term =~ 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$_->SO_term =~ 'missense_variant|stop_gain'} @{$tva->get_all_OverlapConsequences};
   my $tv = $tva->transcript_variation;
 
   my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
