@@ -158,12 +158,12 @@ sub get_header_info {
   my %header;
 
   if($self->{max_set}) {
-    foreach my $value (keys $self->{return_values_hash}) {
+    foreach my $value (keys %{$self->{return_values_hash}}) {
       $header{$value} = $self->{return_values_hash}->{$value};
     }
   }
   elsif($self->{return_values}) {
-    foreach my $value (keys $self->{return_values_hash}) {
+    foreach my $value (keys %{$self->{return_values_hash}}) {
       $header{$value} = $self->{return_values_hash}->{$value};
     }
   }
@@ -252,7 +252,7 @@ sub run {
 
   my @keys;
   if($self->{max_set} || $self->{return_values}) {
-    @keys = keys $self->{return_values_hash};
+    @keys = keys %{$self->{return_values_hash}};
   }
   else {
     @keys = keys %$default_output;
