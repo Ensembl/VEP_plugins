@@ -43,7 +43,7 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
 
- file           : Path to DisGENET data file (mandatory).
+ file           : Path to DisGeNET data file (mandatory).
 
  disease        : Set value to 1 to include the diseases/phenotype names reporting
                   the Variant-PMID association (optional).
@@ -62,7 +62,7 @@ limitations under the License.
  Output:
  The output includes: 
   - PMID of the publication reporting the Variant-Disease association (default)
-  - DisGENET score for the Variant-Disease association (default)
+  - DisGeNET score for the Variant-Disease association (default)
   - dbSNP variant Identifier (optional)
   - diseases/phenotype names (optional)
 
@@ -94,7 +94,7 @@ limitations under the License.
  disease=1,filter_source='GWASDB&GWASCAT'
 
  Of notice: this plugin only matches the chromosome and the position in the
-  chromosome, the alleles are not taken into account to append the DisGENET data.
+  chromosome, the alleles are not taken into account to append the DisGeNET data.
   The rsid is provided (optional) in the output in order to help to filter the relevant data.
 
 
@@ -128,7 +128,7 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  die("ERROR: DisGENET file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
+  die("ERROR: DisGeNET file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
 
   $self->add_file($param_hash->{file});
 
@@ -183,7 +183,7 @@ sub get_header_info {
   my %header;
 
   $header{'DisGeNET_PMID'} = 'PMID of the publication reporting the Variant-Disease association';
-  $header{'DisGeNET_SCORE'} = 'DisGENET score for the Variant-Disease association';
+  $header{'DisGeNET_SCORE'} = 'DisGeNET score for the Variant-Disease association';
 
   if($self->{disease}) {
     $header{'DisGeNET_disease'} = 'Name of associated disease';
