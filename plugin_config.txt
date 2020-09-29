@@ -931,7 +931,7 @@ my $VEP_PLUGIN_CONFIG = {
     # DisGeNET
     {
       "key" => "DisGeNET",
-      "helptip" => "Variant-Disease-PMID associations from the DisGeNET database (http://www.disgenet.org/)",
+      "helptip" => "Variant-Disease-PMID associations from the DisGeNET database (https://www.disgenet.org/)",
       "section" => "Phenotype data",
       "available" => 0,
       "enabled" => 0,
