@@ -34,7 +34,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- retrieves data for missense variants from neXtProt, which is a comprehensive 
+ retrieves data for missense and stop gain variants from neXtProt, which is a comprehensive 
  human-centric discovery platform that offers integration of and navigation 
  through protein-related data (https://www.nextprot.org/).
 
@@ -179,7 +179,7 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
 
-  return {} unless grep {$_->SO_term =~ 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$_->SO_term =~ 'missense_variant|stop_gain'} @{$tva->get_all_OverlapConsequences};
   my $tv = $tva->transcript_variation;
 
   my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
