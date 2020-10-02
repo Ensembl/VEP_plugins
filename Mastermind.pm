@@ -30,6 +30,7 @@ limitations under the License.
  mv Mastermind.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz
  ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,1
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,0,1
 
 =head1 DESCRIPTION
 
@@ -40,7 +41,8 @@ limitations under the License.
 
  Running options:
  (Option 1) By default, this plugin matches the citation data with the specific mutation.
- (Option 2) It can be run with the flag '1' to return the citations for all mutations/transcripts.   
+ (Option 2) It can be run with the first flag '1' to return the citations for all mutations/transcripts.   
+ (Option 3) It can be run with the second flag '1' to return only the Mastermind variant identifier(s).
 
  Output: 
  The output includes three unique counts 'MMCNT1, MMCNT2, MMCNT3' and one identifier 'MMID3'
@@ -54,8 +56,8 @@ limitations under the License.
  'MMID3' is the Mastermind variant identifier(s), as gene:key, for MMCNT3;
 
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
- https://mastermind.genomenon.com/detail?disease=all%20diseases&gene=gene&mutation=gene:key
-  
+ https://mastermind.genomenon.com/detail?mutation=gene:key
+ 
  More information can be found at: https://www.genomenon.com/cvr/
 
 
@@ -81,6 +83,8 @@ limitations under the License.
  or with an option to not filter by mutations (Option 2): 
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,1 
 
+ or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (Option 3):
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,1
 
  Note: While running this plugin as default, i.e. filtering by mutation, if a variant doesn't affect 
        the protein sequence, the citation data can be appended to a transcript with different consequence.
@@ -122,6 +126,10 @@ sub new {
     $self->{mutation_off} = $self->params->[1];
   }
 
+  if(defined($self->params->[2])) {
+    $self->{only_mmid3} = $self->params->[2];
+  }
+
   return $self;
 }
 
@@ -130,11 +138,17 @@ sub feature_types {
 }
 
 sub get_header_info {
+  my $self = shift;
 
-  return{
-     'Mastermind_counts'  => 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.',
-     'Mastermind_MMID3'  => 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.',
-  };
+  my %header;
+
+  if(!$self->{only_mmid3}) {
+    $header{'Mastermind_counts'} = 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.';
+  }
+
+  $header{'Mastermind_MMID3'} = 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.';
+
+  return \%header;
 
 }
 
@@ -316,7 +330,7 @@ sub parse_data {
   $mmid3  =~ s/MMID3=//;
 
   my %mm_hash;
-  $mm_hash{'Mastermind_counts'} = $mmcnt1.'|'.$mmcnt2.'|'.$mmcnt3;
+  $mm_hash{'Mastermind_counts'} = $mmcnt1.'|'.$mmcnt2.'|'.$mmcnt3 if(!$self->{only_mmid3});
   $mm_hash{'Mastermind_MMID3'} = $mmid3;
 
   my @aa_alterations = split /,/, $mmid3;
