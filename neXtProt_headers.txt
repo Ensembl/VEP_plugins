@@ -16,7 +16,7 @@ Helix	Helical regions within the experimentally determined protein structure
 InitiatorMethionine	Cleavage of the initiator methionine
 InteractingRegion	Region interacting with another macromolecule
 IntramembraneRegion	Intramembrane region
-InteractionMapping	
+InteractionMapping	Interaction Mapping
 LipidationSite	Lipidation: covalently attached lipid group(s)
 MatureProtein	Extent of an active peptide or a polypetide chain in the mature protein
 MetalBindingSite	Binding site for a metal ion
@@ -30,7 +30,7 @@ NonTerminalResidue	The sequence is incomplete. Indicate that a residue is not th
 NucleotidePhosphateBindingRegion	Nucleotide phosphate binding region
 PdbMapping	Protein 3D structure
 PeptideMapping	Peptide mapping
-PhenotypicVariation	
+PhenotypicVariation	Phenotypic Variation
 PeroxisomeTransitPeptide	Peroxisome transit peptide
 Propeptide	Part of a protein that is cleaved during maturation or activation
 PtmInfo	Post-translational modifications
