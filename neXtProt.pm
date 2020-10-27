@@ -96,12 +96,12 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my $default_output = {
-  'neXtProt_MatureProtein' => 'Extent of an active peptide or a polypetide chain in the mature protein',
+  'neXtProt_MatureProtein'                    => 'Extent of an active peptide or a polypetide chain in the mature protein',
   'neXtProt_NucleotidePhosphateBindingRegion' => 'Nucleotide phosphate binding region',
-  'neXtProt_Variant' => 'Variant-specific annotations',
-  'neXtProt_MiscellaneousRegion' => 'Region of interest in the sequence',
-  'neXtProt_TopologicalDomain' => 'Location of non-membrane regions of membrane-spanning proteins',
-  'neXtProt_InteractingRegion' => 'Region interacting with another macromolecule'
+  'neXtProt_Variant'                          => 'Variant-specific annotations',
+  'neXtProt_MiscellaneousRegion'              => 'Region of interest in the sequence',
+  'neXtProt_TopologicalDomain'                => 'Location of non-membrane regions of membrane-spanning proteins',
+  'neXtProt_InteractingRegion'                => 'Region interacting with another macromolecule'
 };
 
 sub new {
@@ -213,6 +213,7 @@ sub run {
   return {} if (@$output_list == 0);
 
   foreach my $results (@$output_list) {
+
     my $isoform_url = $results->{nx_lnk}->{value};
     my $start_pos = $results->{spos}->{value};
     my $end_pos = $results->{epos}->{value};
@@ -279,21 +280,33 @@ sub get_sparql_query {
                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                PREFIX up: <http://purl.uniprot.org/core/>
                PREFIX isoform: <http://nextprot.org/rdf/isoform/>
-               select distinct ?iso ?nx_lnk ?spos ?epos ?annot_type str(?txt) as ?annot_descr
-               where {
-                 values ?poi {$peptide_start}
+               PREFIX proteoform: <http://nextprot.org/rdf/proteoform/>
+               PREFIX cv: <http://nextprot.org/rdf/terminology/>
+               select distinct ?iso ?nx_lnk ?spos ?epos ?annot_type str(?txt) as ?annot_descr where {
                  values ?upiso {'$translation_id'}
                  BIND(IRI(CONCAT('http://nextprot.org/rdf/isoform/NX_',?upiso)) AS ?iso) .
                  ?entry :isoform ?iso .
-                 ?iso :positionalAnnotation ?statement .
-                 bind(replace(str(?iso),'http://nextprot.org/rdf/isoform/','') as  ?iso_ac) .
-                 bind(replace(str(?entry),'http://nextprot.org/rdf/entry/','') as  ?entry_ac) .
-                 bind(concat('https://www.nextprot.org/entry/', ?entry_ac, '/sequence?isoform=', ?iso_ac) as ?nx_lnk) .
-                 ?statement rdfs:comment ?txt .
-                 ?statement a ?annot_type .
-                 ?statement :start ?spos; :end ?epos .
+                 values ?poi {$peptide_start}
+                 {
+                   ?iso :positionalAnnotation ?statement .
+                   ?statement rdfs:comment ?txt .
+	           bind(replace(str(?iso),'http://nextprot.org/rdf/isoform/','') as  ?iso_ac) .
+                   bind(concat('https://www.nextprot.org/entry/', ?iso_ac, '/sequence?isoform=', ?iso_ac) as ?nx_lnk) .
+                   ?statement a ?annot_type .
+                   ?statement :start ?spos; :end ?epos .
+                 }
+                 union
+                 {
+                   ?iso :proteoform ?pf .
+                   ?pf :modification ?varmut; :phenotypicVariation ?phvar .
+                   ?varmut :start ?spos; :end ?epos.
+                   ?phvar :term ?phtype; :impactedObject / :term / rdfs:label ?ioTermlab .
+                   ?phvar a ?annot_type; :entryAnnotationId ?eid .
+                   ?phtype :childOf cv:ME_0000002; rdfs:label ?effect .
+                   bind (concat(CONCAT(?effect,' '),?ioTermlab) as ?txt)
+                 }
                  filter((?spos <= ?poi) && (?epos >= ?poi))
-               } order by ?spos";
+                 } order by ?spos";
 
   return $query;
 }
