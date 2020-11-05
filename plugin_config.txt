@@ -867,7 +867,7 @@ my $VEP_PLUGIN_CONFIG = {
 
 
 
-    ## PHENOTYPES DATA
+    ## PHENOTYPES DATA AND CITATIONS
     ##################
 
     # Phenotypes
@@ -875,7 +875,7 @@ my $VEP_PLUGIN_CONFIG = {
       "key" => "Phenotypes",
       "label" => "Phenotypes",
       "helptip" => "Retrieves overlapping phenotype annotations",
-      "section" => "Phenotype data",
+      "section" => "Phenotype data and citations",
       "requires_data" => 1,
       "available" => 0,
       "enabled" => 0,
@@ -893,7 +893,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/GO.pm",
-      "section" => "Phenotype data",
+      "section" => "Phenotype data and citations",
     },
 
     # G2P
@@ -904,7 +904,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "requires_data" => 1,
-      "section" => "Phenotype data",
+      "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/G2P.pm",
     },
     
@@ -914,7 +914,7 @@ my $VEP_PLUGIN_CONFIG = {
       "label" => "PostGAP",
       "available" => 0,
       "enabled" => 0,
-      "section" => "Phenotype data",
+      "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/PostGAP.pm"
     },
 
@@ -922,7 +922,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "satMutMPRA",
       "helptip" => "Reports saturation mutagenesis MPRA measures of variant effects on gene RNA expression for 21 enhancers/promoters",
-      "section" => "Phenotype data",
+      "section" => "Phenotype data and citations",
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/satMutMPRA.pm",
@@ -932,11 +932,24 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "DisGeNET",
       "helptip" => "Variant-Disease-PMID associations from the DisGeNET database (https://www.disgenet.org/)",
-      "section" => "Phenotype data",
+      "section" => "Phenotype data and citations",
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/DisGeNET.pm",
     },
+
+    # Mastermind
+    {
+      "key" => "Mastermind",
+      "label" => "Mastermind",
+      "helptip" => "Variants with clinical evidence cited in the medical literature reported by Mastermind Genomic Search Engine (https://www.genomenon.com/mastermind)",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Phenotype data and citations",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/Mastermind.pm"
+    },
+
+
 
     ## VARIANT DATA
     ###############
@@ -1164,22 +1177,6 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Motif",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/FunMotifs.pm"
-    },
-
-
-
-    ## PUBLICATION
-    ##############
-
-    # Mastermind
-    {
-      "key" => "Mastermind",
-      "label" => "Mastermind",
-      "helptip" => "Variants with clinical evidence cited in the medical literature reported by Mastermind Genomic Search Engine (https://www.genomenon.com/mastermind)",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Publication",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/Mastermind.pm"
     },
 
 
