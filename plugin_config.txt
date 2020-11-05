@@ -1175,6 +1175,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "Mastermind",
       "label" => "Mastermind",
+      "helptip" => "Variants with clinical evidence cited in the medical literature reported by Mastermind Genomic Search Engine (https://www.genomenon.com/mastermind)",
       "available" => 0,
       "enabled" => 0,
       "section" => "Publication",
