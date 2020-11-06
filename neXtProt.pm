@@ -36,13 +36,14 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  retrieves data for missense and stop gain variants from neXtProt, which is a comprehensive 
  human-centric discovery platform that offers integration of and navigation 
- through protein-related data (https://www.nextprot.org/).
+ through protein-related data for example, effects of variants on protein function, 
+ localization and interactions  (https://www.nextprot.org/).
 
  Please cite the neXtProt publication alongside the VEP if you use this resource:
  https://doi.org/10.1093/nar/gkz995
 
  This plugin is only suitable for small sets of variants as an additional 
- individual remote API query run for each variant.
+ individual remote API query is run for each variant.
 
  Running options:
  (Default) the data retrieved by default is the MatureProtein, NucleotidePhosphateBindingRegion,
@@ -53,8 +54,9 @@ limitations under the License.
  max_set        : Set value to 1 to return all available protein-related data 
                   (includes the default data)
 
- return_values  : The set of data to be returned. 
+ return_values  : The set of data to be returned with different data separated by '&'. 
                   Use file 'neXtProt_headers.txt' to check which data (labels) are available.
+                  Example: --plugin neXtProt,return_values='Domain&InteractingRegion'
 
  url            : Set value to 1 to include the URL to link to the neXtProt entry.
 
@@ -75,6 +77,8 @@ limitations under the License.
   neXtProt_InteractingRegion=-;neXtProt_NucleotidePhosphateBindingRegion=-;neXtProt_Variant=-;
   neXtProt_MiscellaneousRegion=-;neXtProt_TopologicalDomain=-;
 
+  Of notice, multiple values can be returned for the same label. In this case, the values will
+  be separeted by '|' for tab and txt format, and '&' for VCF format. 
 
  The plugin can then be run as default:
  ./vep -i variations.vcf --plugin neXtProt
