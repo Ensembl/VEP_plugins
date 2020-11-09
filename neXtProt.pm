@@ -36,8 +36,8 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  retrieves data for missense and stop gain variants from neXtProt, which is a comprehensive 
  human-centric discovery platform that offers integration of and navigation 
- through protein-related data for example, effects of variants on protein function, 
- localization and interactions  (https://www.nextprot.org/).
+ through protein-related data for example, variant information, localization 
+ and interactions  (https://www.nextprot.org/).
 
  Please cite the neXtProt publication alongside the VEP if you use this resource:
  https://doi.org/10.1093/nar/gkz995
