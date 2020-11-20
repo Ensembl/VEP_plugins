@@ -935,6 +935,9 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Phenotype data",
       "available" => 0,
       "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/102/DisGeNET.pm",
     },
 
