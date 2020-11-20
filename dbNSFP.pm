@@ -69,7 +69,21 @@ limitations under the License.
  > zgrep -h -v ^#chr dbNSFP4.0a_variant.chr* | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.0a.gz
  > tabix -s 1 -b 2 -e 2 dbNSFP4.0a.gz
 
- When running the plugin you must list at least one column to retrieve from the
+ For release 4.1a with GRCh38/hg38 data:
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.1a.zip
+ > unzip dbNSFP4.1a.zip
+ > zcat dbNSFP4.1a_variant.chr1.gz | head -n1 > h
+ > zgrep -h -v ^#chr dbNSFP4.1a_variant.chr* | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.1a_grch38.gz
+ > tabix -s 1 -b 2 -e 2 dbNSFP4.1a_grch38.gz
+
+ For release 4.1a with GRCh37/hg19 data:
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.1a.zip
+ > unzip dbNSFP4.1a.zip
+ > zcat dbNSFP4.1a_variant.chr1.gz | head -n1 > h
+ > zgrep -h -v ^#chr dbNSFP4.1a_variant.chr* | awk '$8 != "." ' | sort -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP4.1a_grch37.gz
+ > tabix -s 8 -b 9 -e 9 dbNSFP4.1a_grch37.gz
+
+When running the plugin you must list at least one column to retrieve from the
  dbNSFP file, specified as parameters to the plugin e.g.
  
  --plugin dbNSFP,/path/to/dbNSFP.gz,LRT_score,GERP++_RS
@@ -420,5 +434,3 @@ sub add_replacement_logic {
 }
 
 1;
-
-
