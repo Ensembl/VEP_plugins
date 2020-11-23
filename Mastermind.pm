@@ -31,6 +31,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz
  ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,1
  ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,0,1
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,0,0,1
 
 =head1 DESCRIPTION
 
@@ -40,9 +41,12 @@ limitations under the License.
  It is available for both GRCh37 and GRCh38.
 
  Running options:
- (Option 1) By default, this plugin matches the citation data with the specific mutation.
- (Option 2) It can be run with the first flag '1' to return the citations for all mutations/transcripts.   
- (Option 3) It can be run with the second flag '1' to return only the Mastermind variant identifier(s).
+ The plugin has multiple parameters, the first one is expected to be the file name path 
+ which can be followed by 3 optional flags.
+ Default: the plugin matches the citation data with the specific mutation.
+ Using first flag '1': returns the citations for all mutations/transcripts.   
+ Using the second flag '1': only returns the Mastermind variant identifier(s).
+ Using the third flag '1': also returns the Mastermind URL.
 
  Output: 
  The output includes three unique counts 'MMCNT1, MMCNT2, MMCNT3' and one identifier 'MMID3'
@@ -57,6 +61,8 @@ limitations under the License.
 
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
  https://mastermind.genomenon.com/detail?mutation=gene:key
+
+ If the third flag is used then the built URL is returned and it's identified by 'URL'.
  
  More information can be found at: https://www.genomenon.com/cvr/
 
@@ -77,14 +83,17 @@ limitations under the License.
  tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.GRCh38-vcf.gz
   
  
- The plugin can then be run as default (Option 1):
+ The plugin can then be run as default:
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
 
- or with an option to not filter by mutations (Option 2): 
+ or with an option to not filter by mutations (first flag): 
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,1 
 
- or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (Option 3):
+ or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (second flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,1
+
+ or with an option to also return the Mastermind URL (third flag):
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,0,1
 
  Note: While running this plugin as default, i.e. filtering by mutation, if a variant doesn't affect 
        the protein sequence, the citation data can be appended to a transcript with different consequence.
@@ -130,6 +139,10 @@ sub new {
     $self->{only_mmid3} = $self->params->[2];
   }
 
+  if(defined($self->params->[3])) {
+    $self->{return_url} = $self->params->[3];
+  }
+
   return $self;
 }
 
@@ -147,6 +160,10 @@ sub get_header_info {
   }
 
   $header{'Mastermind_MMID3'} = 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.';
+
+  if($self->{return_url}) {
+    $header{'Mastermind_URL'} = 'Mastermind URL';
+  }
 
   return \%header;
 
@@ -338,6 +355,15 @@ sub parse_data {
   foreach my $aa_alteration (@aa_alterations) {
     $aa_alteration =~ s/.*\:[A-Za-z]+//;
     $aa_alteration =~ s/[A-Za-z]+|\*//;
+  }
+
+  if($self->{return_url}) {
+    my @url;
+    my @id_split = split /,/, $mmid3;
+    foreach my $id (@id_split) {
+      push @url, 'https://mastermind.genomenon.com/detail?mutation=' . $id;
+    }
+    $mm_hash{'Mastermind_URL'} = join ',', @url;
   }
 
   return {
