@@ -62,7 +62,7 @@ limitations under the License.
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
  https://mastermind.genomenon.com/detail?mutation=gene:key
 
- If the third flag (option 4) is used then the built URL is returned and it's identified by 'URL'.
+ If the third flag is used then the built URL is returned and it's identified by 'URL'.
  
  More information can be found at: https://www.genomenon.com/cvr/
 
