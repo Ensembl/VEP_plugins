@@ -41,10 +41,12 @@ limitations under the License.
  It is available for both GRCh37 and GRCh38.
 
  Running options:
- (Option 1) By default, this plugin matches the citation data with the specific mutation.
- (Option 2) It can be run with the first flag '1' to return the citations for all mutations/transcripts.   
- (Option 3) It can be run with the second flag '1' to return only the Mastermind variant identifier(s).
- (Option 4) It can be run with the third flag '1' to also return the Mastermind URL.
+ The plugin has multiple parameters, the first one is expected to be the file name path 
+ which can be followed by 3 optional flags.
+ Default: the plugin matches the citation data with the specific mutation.
+ Using first flag '1': returns the citations for all mutations/transcripts.   
+ Using the second flag '1': only returns the Mastermind variant identifier(s).
+ Using the third flag '1': also returns the Mastermind URL.
 
  Output: 
  The output includes three unique counts 'MMCNT1, MMCNT2, MMCNT3' and one identifier 'MMID3'
