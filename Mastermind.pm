@@ -83,16 +83,16 @@ limitations under the License.
  tabix -p vcf mastermind_cited_variants_reference-XXXX.XX.XX.GRCh38-vcf.gz
   
  
- The plugin can then be run as default (Option 1):
+ The plugin can then be run as default:
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
 
- or with an option to not filter by mutations (Option 2): 
+ or with an option to not filter by mutations (first flag): 
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,1 
 
- or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (Option 3):
+ or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (second flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,1
 
- or with an option to also return the Mastermind URL (Option 4):
+ or with an option to also return the Mastermind URL (third flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,0,1
 
  Note: While running this plugin as default, i.e. filtering by mutation, if a variant doesn't affect 
