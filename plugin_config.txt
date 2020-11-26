@@ -935,6 +935,9 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Phenotype data and citations",
       "available" => 0,
       "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/DisGeNET.pm",
     },
 
@@ -945,6 +948,9 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Variants with clinical evidence cited in the medical literature reported by Mastermind Genomic Search Engine (https://www.genomenon.com/mastermind)",
       "available" => 0,
       "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
       "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/103/Mastermind.pm"
     },
