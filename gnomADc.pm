@@ -69,7 +69,21 @@ limitations under the License.
  used instead. This makes it possible to call the plugin twice and include
  both genome and exome coverage values in a single run. For example:
 
- ./vep -i variations.vcf --plugin gnomADc,gnomADg.gz --plugin gnomADc,gnomADe.gz
+ ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomADg.gz --plugin gnomADc,/path/to/gnomADe.gz
+
+ This plugin also tries to be backwards compatible with older versions of the
+ coverage summary files, including releases 2.0.1 and 2.0.2. These releases
+ make available one coverage file per chromosome and these can be used "as-is"
+ without requiring any preprocessing. To annotate against multiple tabix-indexed
+ chromosome files, instead specify the path to the parent directory. For example:
+
+ ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad-public/release/2.0.2/coverage/genomes
+
+ When a directory path is supplied, only files immediately under this directory
+ that have a '.txt.gz' extension will attempt to be loaded. By default, the
+ output field prefix is simply 'gnomAD'. However if the parent directory is
+ either 'genomes' or 'exomes', then the output field prefix will be 'gnomADg'
+ or 'gnomADe', respectively.
 
  If you use this plugin, please see the terms and data information:
 
@@ -123,7 +137,7 @@ sub new {
 
     opendir (my $fh, $path) or die $!;
     for (readdir $fh) {
-      $self->add_file(File::Spec->catfile($path, $_)) if /\.coverage\.txt\.gz$/;
+      $self->add_file(File::Spec->catfile($path, $_)) if /\.txt\.gz$/;
     }
     closedir $fh;
 
