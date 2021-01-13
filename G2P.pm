@@ -830,6 +830,12 @@ sub read_gene_data_from_file {
           $ensembl_gene_id = $tmp{"EnsemblId(GRch38)"};
         }
         if ($ensembl_gene_id) {
+          foreach my $column_name ('Gene Entity Symbol', 'Gene Symbol') {
+            if (defined $tmp{$column_name}) {
+              push @{$gene_data{$ensembl_gene_id}->{"gene_xrefs"}}, $tmp{$column_name};
+              $self->write_report('G2P_list', $tmp{$column_name});
+            }
+          }
           my @ars = ();
           my $allelic_requirement_panel_app = $tmp{"Model_Of_Inheritance"};
           if ($allelic_requirement_panel_app =~ m/MONOALLELIC|BOTH/) {
