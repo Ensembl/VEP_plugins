@@ -44,7 +44,14 @@ limitations under the License.
  cat revel_all_chromosomes.csv | tr "," "\t" > tabbed_revel.tsv
  sed '1s/.*/#&/' tabbed_revel.tsv > new_tabbed_revel.tsv
  bgzip new_tabbed_revel.tsv
+
+ for GRCh37:
  tabix -f -s 1 -b 2 -e 2 new_tabbed_revel.tsv.gz
+
+ for GRCh38:
+ zcat new_tabbed_revel.tsv.gz | head -n1 > h
+ zgrep -h -v ^#chr new_tabbed_revel.tsv.gz | awk '$3 != "." ' | sort -k1,1 -k3,3n - | cat h - | bgzip -c > new_tabbed_revel_grch38.tsv.gz
+ tabix -f -s 1 -b 3 -e 3 new_tabbed_revel_grch38.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
 
