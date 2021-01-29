@@ -129,7 +129,7 @@ sub new {
 
   die("ERROR: Mastermind input file not specified or found!\n") unless defined($self->params->[0]) && -e $self->params->[0];
 
-  $self->{file} = $self->params->[0];
+  $self->add_file($self->params->[0]);
 
   if(defined($self->params->[1])) {
     $self->{mutation_off} = $self->params->[1];
