@@ -159,7 +159,7 @@ sub get_header_info {
     $header{'Mastermind_counts'} = 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.';
   }
 
-  $header{'Mastermind_MMID3'} = 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.';
+  $header{'Mastermind_MMID3'} = 'Mastermind MMID3 variant identifier(s), as gene:key. Link to the Genomenon Mastermind Genomic Search Engine.';
 
   if($self->{return_url}) {
     $header{'Mastermind_URL'} = 'Mastermind URL';
