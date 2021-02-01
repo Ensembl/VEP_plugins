@@ -57,7 +57,7 @@ limitations under the License.
  the cDNA level or given only at protein level;
  'MMCNT3' is the count of Mastermind articles including other DNA-level variants resulting
  in the same amino acid change;
- 'MMID3' is the Mastermind variant identifier(s), as gene:key, for MMCNT3;
+ 'MMID3' is the Mastermind variant identifier(s), as gene:key. Link to the Genomenon Mastermind Genomic Search Engine;
 
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
  https://mastermind.genomenon.com/detail?mutation=gene:key
