@@ -57,7 +57,7 @@ limitations under the License.
  the cDNA level or given only at protein level;
  'MMCNT3' is the count of Mastermind articles including other DNA-level variants resulting
  in the same amino acid change;
- 'MMID3' is the Mastermind variant identifier(s), as gene:key, for MMCNT3;
+ 'MMID3' is the Mastermind variant identifier(s), as gene:key. Link to the Genomenon Mastermind Genomic Search Engine;
 
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
  https://mastermind.genomenon.com/detail?mutation=gene:key
@@ -129,7 +129,7 @@ sub new {
 
   die("ERROR: Mastermind input file not specified or found!\n") unless defined($self->params->[0]) && -e $self->params->[0];
 
-  $self->{file} = $self->params->[0];
+  $self->add_file($self->params->[0]);
 
   if(defined($self->params->[1])) {
     $self->{mutation_off} = $self->params->[1];
@@ -159,7 +159,7 @@ sub get_header_info {
     $header{'Mastermind_counts'} = 'Mastermind number of citations in the medical literature. Output includes three unique counts: MMCNT1|MMCNT2|MMCNT3. MMCNT1 - Count of Mastermind articles with cDNA matches for this specific variant; MMCNT2 - Count of Mastermind articles with variants either explicitly matching at the cDNA level or given only at protein level; MMCNT3 - Count of Mastermind articles including other DNA-level variants resulting in the same amino acid change.';
   }
 
-  $header{'Mastermind_MMID3'} = 'Mastermind MMID3 variant identifier(s), as gene:key, for MMCNT3.';
+  $header{'Mastermind_MMID3'} = 'Mastermind MMID3 variant identifier(s), as gene:key. Link to the Genomenon Mastermind Genomic Search Engine.';
 
   if($self->{return_url}) {
     $header{'Mastermind_URL'} = 'Mastermind URL';
