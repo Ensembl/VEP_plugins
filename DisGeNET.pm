@@ -56,15 +56,13 @@ limitations under the License.
                   Accepted sources are: UNIPROT, CLINVAR, GWASDB, GWASCAT, BEFREE
                   Separate multiple values with '&'.
 
- unique         : Only reports unique dbSNP variant Identifiers and diseases/phenotype names (optional)
-
 
  Output:
- The output includes: 
+  Each element of the output includes:
   - PMID of the publication reporting the Variant-Disease association (default)
   - DisGeNET score for the Variant-Disease association (default)
-  - dbSNP variant Identifier (optional)
   - diseases/phenotype names (optional)
+  - dbSNP variant Identifier (optional)
 
  The following steps are necessary before running this plugin (tested with DisGeNET export date 2020-05-26):
  This plugin uses file 'all_variant_disease_pmid_associations.tsv.gz'
@@ -142,11 +140,6 @@ sub new {
     $self->{rsid} = $rsid;
   }
 
-  if(defined($param_hash->{unique})) {
-    my $unique = $param_hash->{unique};
-    $self->{unique} = $unique;
-  }
-
   if(defined($param_hash->{filter_score})) {
     my $filter_score = $param_hash->{filter_score};
     if($filter_score < 0 || $filter_score > 1) {
@@ -182,14 +175,14 @@ sub get_header_info {
 
   my %header;
 
-  $header{'DisGeNET_PMID'} = 'PMID of the publication reporting the Variant-Disease association';
-  $header{'DisGeNET_SCORE'} = 'DisGeNET score for the Variant-Disease association';
+  $header{"DisGeNET"} = "The different elements are separated by ':'. PMID of the publication reporting the Variant-Disease association; DisGeNET score for the Variant-Disease association";
 
   if($self->{disease}) {
-    $header{'DisGeNET_disease'} = 'Name of associated disease';
+    $header{"DisGeNET"} = $header{"DisGeNET"} . "; Name of associated disease";
   }
+
   if($self->{rsid}) {
-    $header{'DisGeNET_rsid'} = 'dbSNP variant Identifier';
+    $header{"DisGeNET"} = $header{"DisGeNET"} . "; dbSNP variant Identifier";
   }
 
   return \%header;
@@ -211,14 +204,11 @@ sub run {
   return {} unless(@data);
 
   my %hash;
-  my @result_pmid;
-  my @result_score;
-  my @result_rsid;
-  my %unique_values;
-  my @diseases;
-  my %unique_diseases;
+  my @final_result;
 
   foreach my $data_value (@data) {
+    my @result;
+
     my $pmid = $data_value->{pmid};
     my $rsid = $data_value->{rsid};
     my $score = $data_value->{score};
@@ -234,47 +224,28 @@ sub run {
       next if(!$check);
     }
 
-    # Some publications are duplicated - same publications from different sources are in different rows
-    # Check if pmid and rsid are not returned more than once
-    if(!$unique_values{$pmid.':'.$rsid}++) {
-      push @result_pmid, $pmid;
-      push @result_score, $score;
-      if($self->{rsid}) {
-        push @result_rsid, $rsid;
-      }
-    }
+    push @result, $pmid;
+    push @result, $score;
 
     if($self->{disease}) {
-      my $disease_name = $data_value->{diseaseName};
-      if($self->{unique}) {
-        if(!$unique_diseases{$disease_name}++) {
-          push @diseases, $disease_name;
-        }
-      }
-      else{
-        push @diseases, $disease_name;
-      }
+      push @result, $data_value->{diseaseName};
     }
+
+    if($self->{rsid}) {
+      push @result, $rsid;
+    }
+
+    push @final_result, join(':', @result);
+
   }
 
-  $hash{'DisGeNET_PMID'} = join(',', @result_pmid);
-  $hash{'DisGeNET_SCORE'} = join(',', @result_score);
+  # return the unique results
+  my %h1 = map{ $_ => 1 }@final_result;
+  my @new_final_result = keys %h1;
 
-  if($self->{disease}) {
-    $hash{'DisGeNET_disease'} = join(',', @diseases);
-  }
+  $hash{"DisGeNET"} = [@new_final_result];
 
-  if($self->{rsid}) {
-    if($self->{unique}) {
-      my @u_result_rsid = uniq @result_rsid;
-      $hash{'DisGeNET_rsid'} = join(',', @u_result_rsid);
-    }
-    else {
-      $hash{'DisGeNET_rsid'} = join(',', @result_rsid);
-    }
-  }
-
-  return scalar @result_pmid > 0 ? \%hash : {};
+  return \%hash;
 }
 
 sub parse_data {
