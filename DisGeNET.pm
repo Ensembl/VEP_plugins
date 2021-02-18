@@ -175,15 +175,17 @@ sub get_header_info {
 
   my %header;
 
-  $header{"DisGeNET"} = "The different elements are separated by ':'. PMID of the publication reporting the Variant-Disease association; DisGeNET score for the Variant-Disease association";
+  $header{"DisGeNET"} = "Variant-Disease-PMID associations from the DisGeNET database. The output includes the PMID of the publication reporting the Variant-Disease association, DisGeNET score for the Variant-Disease association";
 
   if($self->{disease}) {
-    $header{"DisGeNET"} = $header{"DisGeNET"} . "; Name of associated disease";
+    $header{"DisGeNET"} .= ", name of associated disease";
   }
 
   if($self->{rsid}) {
-    $header{"DisGeNET"} = $header{"DisGeNET"} . "; dbSNP variant Identifier";
+    $header{"DisGeNET"} .= ", dbSNP variant Identifier";
   }
+
+  $header{"DisGeNET"} .= ". Each value is separated by ':'";
 
   return \%header;
 }
