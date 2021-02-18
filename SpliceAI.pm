@@ -206,19 +206,19 @@ sub run {
     );
     if (@$matches) {
 
-      my @hash;
-      my %hash_final;
+      my @output_list;
+      my %hash;
 
       my @data_values = split /\|/, $data_value->{result};
-      push @hash, 'SYMBOL' . ':' .$data_values[0];
-      push @hash, 'DS_AG' . ':' .$data_values[1];
-      push @hash, 'DS_AL' . ':' .$data_values[2];
-      push @hash, 'DS_DG' . ':' .$data_values[3];
-      push @hash, 'DS_DL' . ':' .$data_values[4];
-      push @hash, 'DP_AG' . ':' .$data_values[5];
-      push @hash, 'DP_AL' . ':' .$data_values[6];
-      push @hash, 'DP_DG' . ':' .$data_values[7];
-      push @hash, 'DP_DL' . ':' .$data_values[8];
+      push @output_list, 'SYMBOL' . ':' .$data_values[0];
+      push @output_list, 'DS_AG' . ':' .$data_values[1];
+      push @output_list, 'DS_AL' . ':' .$data_values[2];
+      push @output_list, 'DS_DG' . ':' .$data_values[3];
+      push @output_list, 'DS_DL' . ':' .$data_values[4];
+      push @output_list, 'DP_AG' . ':' .$data_values[5];
+      push @output_list, 'DP_AL' . ':' .$data_values[6];
+      push @output_list, 'DP_DG' . ':' .$data_values[7];
+      push @output_list, 'DP_DL' . ':' .$data_values[8];
 
       # Add a flag if cutoff is used
       if($self->{cutoff}) {
@@ -228,12 +228,12 @@ sub run {
         else {
           $result_flag = 'FAIL';
         }
-        push @hash, 'Cutoff' . ':' . $result_flag;
+        push @output_list, 'Cutoff' . ':' . $result_flag;
       }
 
-      $hash_final{'SpliceAI'} = [@hash];
+      $hash{'SpliceAI'} = [@output_list];
 
-      return \%hash_final;
+      return \%hash;
     }
   }
 
