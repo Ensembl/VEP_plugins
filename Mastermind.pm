@@ -40,6 +40,9 @@ limitations under the License.
  to report variants that have clinical evidence cited in the medical literature. 
  It is available for both GRCh37 and GRCh38.
 
+ Please cite the Mastermind publication alongside the VEP if you use this resource:
+ https://www.frontiersin.org/article/10.3389/fgene.2020.577152
+
  Running options:
  The plugin has multiple parameters, the first one is expected to be the file name path 
  which can be followed by 3 optional flags.
