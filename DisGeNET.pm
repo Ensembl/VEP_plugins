@@ -207,9 +207,13 @@ sub run {
 
   my %hash;
   my @final_result;
+  my @final_result_json;
+
+  my $format = $self->{config}->{output_format};
 
   foreach my $data_value (@data) {
     my @result;
+    my %result_json;
 
     my $pmid = $data_value->{pmid};
     my $rsid = $data_value->{rsid};
@@ -226,28 +230,44 @@ sub run {
       next if(!$check);
     }
 
-    push @result, $pmid;
-    push @result, $score;
+    if($format eq 'json') {
+      $result_json{'pmid'} = $pmid;
+      $result_json{'score'} = $score;
+    }
+    else {
+      push @result, $pmid;
+      push @result, $score;
+    }
 
     if($self->{disease}) {
-      push @result, $data_value->{diseaseName};
+      if($format eq 'json') {
+        $result_json{'diseaseName'} = $data_value->{diseaseName};
+      }
+      else {
+        push @result, $data_value->{diseaseName};
+      }
     }
 
     if($self->{rsid}) {
-      push @result, $rsid;
+      if($format eq 'json') {
+        $result_json{'rsid'} = $rsid;
+      }
+      else {
+        push @result, $rsid;
+      }
     }
 
-    push @final_result, join(':', @result);
-
+    if($format eq 'json') {
+      push @final_result_json, \%result_json;
+    }
+    else {
+      push @final_result, join(':', @result);
+    }
   }
 
-  # return the unique results
-  my %h1 = map{ $_ => 1 }@final_result;
-  my @new_final_result = keys %h1;
+  $hash{"DisGeNET"} = [@final_result];
 
-  $hash{"DisGeNET"} = [@new_final_result];
-
-  return \%hash;
+  return $format eq 'json' ? {DisGeNET => [@final_result_json]} : \%hash;
 }
 
 sub parse_data {
