@@ -209,7 +209,10 @@ sub run {
   my @final_result;
   my @final_result_json;
 
-  my $format = $self->{config}->{output_format};
+  my $format;
+  if($self->{config}->{output_format} eq 'json' || $self->{config}->{output_format} eq 'rest') {
+    $format = 1;
+  }
 
   foreach my $data_value (@data) {
     my @result;
@@ -230,7 +233,7 @@ sub run {
       next if(!$check);
     }
 
-    if($format eq 'json') {
+    if($format) {
       $result_json{'pmid'} = $pmid;
       $result_json{'score'} = $score;
     }
@@ -240,7 +243,7 @@ sub run {
     }
 
     if($self->{disease}) {
-      if($format eq 'json') {
+      if($format) {
         $result_json{'diseaseName'} = $data_value->{diseaseName};
       }
       else {
@@ -249,7 +252,7 @@ sub run {
     }
 
     if($self->{rsid}) {
-      if($format eq 'json') {
+      if($format) {
         $result_json{'rsid'} = $rsid;
       }
       else {
@@ -257,7 +260,7 @@ sub run {
       }
     }
 
-    if($format eq 'json') {
+    if($format) {
       push @final_result_json, \%result_json;
     }
     else {
@@ -267,7 +270,7 @@ sub run {
 
   $hash{"DisGeNET"} = [@final_result];
 
-  return $format eq 'json' ? {DisGeNET => [@final_result_json]} : \%hash;
+  return $format ? {DisGeNET => [@final_result_json]} : \%hash;
 }
 
 sub parse_data {
