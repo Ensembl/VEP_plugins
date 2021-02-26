@@ -58,15 +58,19 @@ limitations under the License.
  cutoff between 0 and 1.
 
  Output: 
- The output includes the gene symbol, delta scores (DS) and delta positions (DP)
- for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL).
+  The output includes the gene symbol, delta scores (DS) and delta positions (DP)
+  for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL).
 
- For tab and JSON the output contains one header 'SpliceAI_pred' with all
- the delta scores and positions. The format is:
+  For tab the output contains one header 'SpliceAI_pred' with all
+  the delta scores and positions. The format is:
    SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
 
- For VCF output the delta scores and positions are stored in different headers.
- The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
+  For JSON the output is a hash with the following format:
+  "spliceai":
+    {"DP_DL":0,"DS_AL":0,"DP_AG":0,"DS_DL":0,"SYMBOL":"X","DS_AG":0,"DP_AL":0,"DP_DG":0,"DS_DG":0}
+
+  For VCF output the delta scores and positions are stored in different headers.
+  The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
    Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
  If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
@@ -234,17 +238,19 @@ sub run {
 
       my %hash;
 
-      if($output_vcf) {
+      if($output_vcf || $self->{config}->{output_format} eq "json" )  {
         my @data_values = split /\|/, $data_value->{result};
-        $hash{'SpliceAI_pred_SYMBOL'} = $data_values[0];
-        $hash{'SpliceAI_pred_DS_AG'} = $data_values[1];
-        $hash{'SpliceAI_pred_DS_AL'} = $data_values[2];
-        $hash{'SpliceAI_pred_DS_DG'} = $data_values[3];
-        $hash{'SpliceAI_pred_DS_DL'} = $data_values[4];
-        $hash{'SpliceAI_pred_DP_AG'} = $data_values[5];
-        $hash{'SpliceAI_pred_DP_AL'} = $data_values[6];
-        $hash{'SpliceAI_pred_DP_DG'} = $data_values[7];
-        $hash{'SpliceAI_pred_DP_DL'} = $data_values[8];
+        my $prefix ="";
+        $prefix = "SpliceAI_pred_" if $output_vcf;
+        $hash{$prefix. 'SYMBOL'} = $data_values[0];
+        $hash{$prefix. 'DS_AG'} = $data_values[1];
+        $hash{$prefix. 'DS_AL'} = $data_values[2];
+        $hash{$prefix. 'DS_DG'} = $data_values[3];
+        $hash{$prefix. 'DS_DL'} = $data_values[4];
+        $hash{$prefix. 'DP_AG'} = $data_values[5];
+        $hash{$prefix. 'DP_AL'} = $data_values[6];
+        $hash{$prefix. 'DP_DG'} = $data_values[7];
+        $hash{$prefix. 'DP_DL'} = $data_values[8];
       }
 
       else {
@@ -262,7 +268,7 @@ sub run {
         $hash{'SpliceAI_cutoff'} = $result_flag;
       }
 
-      return \%hash;
+      return $self->{config}->{output_format} eq "json"?  {SpliceAI => \%hash} : \%hash;
     }
   }
 
