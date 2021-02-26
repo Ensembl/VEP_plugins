@@ -58,10 +58,20 @@ limitations under the License.
  cutoff between 0 and 1.
 
  Output: 
- The output includes the gene symbol, delta scores (DS) and delta positions (DP)
- for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL).
- It contains one header 'SpliceAI' with all the delta scores and positions. The format is:
-   SYMBOL:CDH1,DS_AG:0.00,DS_AL:0.00,DS_DG:0.00,DS_DL:0.00,DP_AG:0,DP_AL:0,DP_DG:0,DP_DL:0
+  The output includes the gene symbol, delta scores (DS) and delta positions (DP)
+  for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL).
+
+  For tab the output contains one header 'SpliceAI_pred' with all
+  the delta scores and positions. The format is:
+   SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
+
+  For JSON the output is a hash with the following format:
+  "spliceai":
+    {"DP_DL":0,"DS_AL":0,"DP_AG":0,"DS_DL":0,"SYMBOL":"X","DS_AG":0,"DP_AL":0,"DP_DG":0,"DS_DG":0}
+
+  For VCF output the delta scores and positions are stored in different headers.
+  The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
+   Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
  If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
  passes the cutoff, 'FAIL' otherwise. 
@@ -103,6 +113,8 @@ use Bio::EnsEMBL::Variation::VariationFeature;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my $output_vcf;
+
 sub new {
   my $class = shift;
 
@@ -126,6 +138,10 @@ sub new {
     $self->{cutoff} = $cutoff;
   }
 
+  if($self->{config}->{output_format} eq "vcf") {
+    $output_vcf = 1;
+  }
+
   return $self;
 }
 
@@ -138,10 +154,24 @@ sub get_header_info {
 
   my %header;
 
-  $header{"SpliceAI"} = "SpliceAI predicted effect on splicing. These include SYMBOL: gene symbol, DS_AG: Delta score for acceptor gain, DS_AL: Delta score for acceptor loss, DS_DG: Delta score for donor gain, DS_DL: Delta score for donor loss, DP_AG: Delta position for acceptor gain, DP_A: Delta position for acceptor loss, DP_DG: Delta position for donor gain, DP_DL: Delta position for donor loss";
+  if($output_vcf) {
+    $header{'SpliceAI_pred_SYMBOL'} = 'SpliceAI gene symbol';
+    $header{'SpliceAI_pred_DS_AG'} = 'SpliceAI predicted effect on splicing. Delta score for acceptor gain';
+    $header{'SpliceAI_pred_DS_AL'} = 'SpliceAI predicted effect on splicing. Delta score for acceptor loss';
+    $header{'SpliceAI_pred_DS_DG'} = 'SpliceAI predicted effect on splicing. Delta score for donor gain';
+    $header{'SpliceAI_pred_DS_DL'} = 'SpliceAI predicted effect on splicing. Delta score for donor loss';
+    $header{'SpliceAI_pred_DP_AG'} = 'SpliceAI predicted effect on splicing. Delta position for acceptor gain';
+    $header{'SpliceAI_pred_DP_AL'} = 'SpliceAI predicted effect on splicing. Delta position for acceptor loss';
+    $header{'SpliceAI_pred_DP_DG'} = 'SpliceAI predicted effect on splicing. Delta position for donor gain';
+    $header{'SpliceAI_pred_DP_DL'} = 'SpliceAI predicted effect on splicing. Delta position for donor loss';
+  }
+
+  else {
+    $header{'SpliceAI_pred'} = 'SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL';
+  }
 
   if($self->{cutoff}) {
-    $header{"SpliceAI"} .= ", Cutoff: Flag if delta score pass the cutoff (PASS) or if it does not (FAIL)";
+    $header{'SpliceAI_cutoff'} = 'Flag if delta score pass the cutoff (PASS) or if it does not (FAIL)';
   }
 
   return \%header;
@@ -206,19 +236,26 @@ sub run {
     );
     if (@$matches) {
 
-      my @output_list;
       my %hash;
 
-      my @data_values = split /\|/, $data_value->{result};
-      push @output_list, 'SYMBOL' . ':' .$data_values[0];
-      push @output_list, 'DS_AG' . ':' .$data_values[1];
-      push @output_list, 'DS_AL' . ':' .$data_values[2];
-      push @output_list, 'DS_DG' . ':' .$data_values[3];
-      push @output_list, 'DS_DL' . ':' .$data_values[4];
-      push @output_list, 'DP_AG' . ':' .$data_values[5];
-      push @output_list, 'DP_AL' . ':' .$data_values[6];
-      push @output_list, 'DP_DG' . ':' .$data_values[7];
-      push @output_list, 'DP_DL' . ':' .$data_values[8];
+      if($output_vcf || $self->{config}->{output_format} eq "json" )  {
+        my @data_values = split /\|/, $data_value->{result};
+        my $prefix ="";
+        $prefix = "SpliceAI_pred_" if $output_vcf;
+        $hash{$prefix. 'SYMBOL'} = $data_values[0];
+        $hash{$prefix. 'DS_AG'} = $data_values[1];
+        $hash{$prefix. 'DS_AL'} = $data_values[2];
+        $hash{$prefix. 'DS_DG'} = $data_values[3];
+        $hash{$prefix. 'DS_DL'} = $data_values[4];
+        $hash{$prefix. 'DP_AG'} = $data_values[5];
+        $hash{$prefix. 'DP_AL'} = $data_values[6];
+        $hash{$prefix. 'DP_DG'} = $data_values[7];
+        $hash{$prefix. 'DP_DL'} = $data_values[8];
+      }
+
+      else {
+        $hash{'SpliceAI_pred'} = $data_value->{result};
+      }
 
       # Add a flag if cutoff is used
       if($self->{cutoff}) {
@@ -228,12 +265,10 @@ sub run {
         else {
           $result_flag = 'FAIL';
         }
-        push @output_list, 'Cutoff' . ':' . $result_flag;
+        $hash{'SpliceAI_cutoff'} = $result_flag;
       }
 
-      $hash{'SpliceAI'} = [@output_list];
-
-      return \%hash;
+      return $self->{config}->{output_format} eq "json"?  {SpliceAI => \%hash} : \%hash;
     }
   }
 
