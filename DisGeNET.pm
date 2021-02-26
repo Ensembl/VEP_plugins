@@ -56,15 +56,13 @@ limitations under the License.
                   Accepted sources are: UNIPROT, CLINVAR, GWASDB, GWASCAT, BEFREE
                   Separate multiple values with '&'.
 
- unique         : Only reports unique dbSNP variant Identifiers and diseases/phenotype names (optional)
-
 
  Output:
- The output includes: 
+  Each element of the output includes:
   - PMID of the publication reporting the Variant-Disease association (default)
   - DisGeNET score for the Variant-Disease association (default)
-  - dbSNP variant Identifier (optional)
   - diseases/phenotype names (optional)
+  - dbSNP variant Identifier (optional)
 
  The following steps are necessary before running this plugin (tested with DisGeNET export date 2020-05-26):
  This plugin uses file 'all_variant_disease_pmid_associations.tsv.gz'
@@ -142,11 +140,6 @@ sub new {
     $self->{rsid} = $rsid;
   }
 
-  if(defined($param_hash->{unique})) {
-    my $unique = $param_hash->{unique};
-    $self->{unique} = $unique;
-  }
-
   if(defined($param_hash->{filter_score})) {
     my $filter_score = $param_hash->{filter_score};
     if($filter_score < 0 || $filter_score > 1) {
@@ -182,15 +175,17 @@ sub get_header_info {
 
   my %header;
 
-  $header{'DisGeNET_PMID'} = 'PMID of the publication reporting the Variant-Disease association';
-  $header{'DisGeNET_SCORE'} = 'DisGeNET score for the Variant-Disease association';
+  $header{"DisGeNET"} = "Variant-Disease-PMID associations from the DisGeNET database. The output includes the PMID of the publication reporting the Variant-Disease association, DisGeNET score for the Variant-Disease association";
 
   if($self->{disease}) {
-    $header{'DisGeNET_disease'} = 'Name of associated disease';
+    $header{"DisGeNET"} .= ", name of associated disease";
   }
+
   if($self->{rsid}) {
-    $header{'DisGeNET_rsid'} = 'dbSNP variant Identifier';
+    $header{"DisGeNET"} .= ", dbSNP variant Identifier";
   }
+
+  $header{"DisGeNET"} .= ". Each value is separated by ':'";
 
   return \%header;
 }
@@ -211,14 +206,18 @@ sub run {
   return {} unless(@data);
 
   my %hash;
-  my @result_pmid;
-  my @result_score;
-  my @result_rsid;
-  my %unique_values;
-  my @diseases;
-  my %unique_diseases;
+  my @final_result;
+  my @final_result_json;
+
+  my $format;
+  if($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+    $format = 1;
+  }
 
   foreach my $data_value (@data) {
+    my @result;
+    my %result_json;
+
     my $pmid = $data_value->{pmid};
     my $rsid = $data_value->{rsid};
     my $score = $data_value->{score};
@@ -234,47 +233,44 @@ sub run {
       next if(!$check);
     }
 
-    # Some publications are duplicated - same publications from different sources are in different rows
-    # Check if pmid and rsid are not returned more than once
-    if(!$unique_values{$pmid.':'.$rsid}++) {
-      push @result_pmid, $pmid;
-      push @result_score, $score;
-      if($self->{rsid}) {
-        push @result_rsid, $rsid;
-      }
+    if($format) {
+      $result_json{'pmid'} = $pmid;
+      $result_json{'score'} = $score;
+    }
+    else {
+      push @result, $pmid;
+      push @result, $score;
     }
 
     if($self->{disease}) {
-      my $disease_name = $data_value->{diseaseName};
-      if($self->{unique}) {
-        if(!$unique_diseases{$disease_name}++) {
-          push @diseases, $disease_name;
-        }
+      if($format) {
+        $result_json{'diseaseName'} = $data_value->{diseaseName};
       }
-      else{
-        push @diseases, $disease_name;
+      else {
+        push @result, $data_value->{diseaseName};
       }
     }
-  }
 
-  $hash{'DisGeNET_PMID'} = join(',', @result_pmid);
-  $hash{'DisGeNET_SCORE'} = join(',', @result_score);
+    if($self->{rsid}) {
+      if($format) {
+        $result_json{'rsid'} = $rsid;
+      }
+      else {
+        push @result, $rsid;
+      }
+    }
 
-  if($self->{disease}) {
-    $hash{'DisGeNET_disease'} = join(',', @diseases);
-  }
-
-  if($self->{rsid}) {
-    if($self->{unique}) {
-      my @u_result_rsid = uniq @result_rsid;
-      $hash{'DisGeNET_rsid'} = join(',', @u_result_rsid);
+    if($format) {
+      push @final_result_json, \%result_json;
     }
     else {
-      $hash{'DisGeNET_rsid'} = join(',', @result_rsid);
+      push @final_result, join(':', @result);
     }
   }
 
-  return scalar @result_pmid > 0 ? \%hash : {};
+  $hash{"DisGeNET"} = [@final_result];
+
+  return $format ? {DisGeNET => [@final_result_json]} : \%hash;
 }
 
 sub parse_data {
