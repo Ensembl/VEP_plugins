@@ -210,7 +210,7 @@ sub run {
   my @final_result_json;
 
   my $format;
-  if($self->{config}->{output_format} eq 'json' || $self->{config}->{output_format} eq 'rest') {
+  if($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
     $format = 1;
   }
 
