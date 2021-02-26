@@ -238,7 +238,7 @@ sub run {
 
       my %hash;
 
-      if($output_vcf || $self->{config}->{output_format} eq "json" )  {
+      if($output_vcf || $self->{config}->{output_format} eq "json" || $self->{config}->{rest})  {
         my @data_values = split /\|/, $data_value->{result};
         my $prefix ="";
         $prefix = "SpliceAI_pred_" if $output_vcf;
@@ -268,7 +268,7 @@ sub run {
         $hash{'SpliceAI_cutoff'} = $result_flag;
       }
 
-      return $self->{config}->{output_format} eq "json"?  {SpliceAI => \%hash} : \%hash;
+      return ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => \%hash} : \%hash;
     }
   }
 
