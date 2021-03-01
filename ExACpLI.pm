@@ -18,10 +18,10 @@ limitations under the License.
 =head1 CONTACT
 
  Please email comments or questions to the public Ensembl
- developers list at <http://lists.ensembl.org/mailman/listinfo/dev>.
+ developers list at <https://lists.ensembl.org/mailman/listinfo/dev>.
 
  Questions may also be sent to the Ensembl helpdesk at
- <http://www.ensembl.org/Help/Contact>.
+ <https://www.ensembl.org/Help/Contact>.
 
 =cut
 
