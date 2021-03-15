@@ -193,6 +193,9 @@ sub run {
   my $result_data = '';
   my $result_flag;
 
+  # Store all SpliceAI results
+  my %hash_aux;
+
   foreach my $data_value (@data) {
 
     my $ref_allele;
@@ -268,11 +271,29 @@ sub run {
         $hash{'SpliceAI_cutoff'} = $result_flag;
       }
 
-      return ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => \%hash} : \%hash;
+      $hash_aux{$data_value->{gene}} = \%hash;
     }
   }
 
-  return {};
+  return {} unless(%hash_aux);
+
+  my $result = {};
+
+  my $n_genes = scalar keys %hash_aux;
+  if($n_genes == 1) {
+    # Get the first and only gene from the hash of results
+    my $key_gene = (keys %hash_aux)[0];
+    $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$key_gene}} : $hash_aux{$key_gene};
+  }
+  elsif($n_genes > 1) {
+    # Compare genes from SpliceAI with the variant gene
+    my $genename = $tva->transcript->get_Gene->external_name;
+    if($hash_aux{$genename}) {
+      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$genename}} : $hash_aux{$genename};
+    }
+  }
+
+  return $result;
 }
 
 # Parse data from SpliceAI file
@@ -282,9 +303,10 @@ sub parse_data {
   my ($chr, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
 
   $info =~ s/SpliceAI=//;
-  my @info_splited = split (qr/\|/,$info, 2);
+  my @info_splited = split (qr/\|/,$info, 3);
   my $allele = $info_splited[0];
-  my $data = $info_splited[1];
+  my $data = $info_splited[1] . "|" . $info_splited[2];
+  my $gene = $info_splited[1];
 
   my $max_score;
   if($self->{cutoff}){
@@ -300,6 +322,7 @@ sub parse_data {
     alt    => $alt,
     info   => $max_score,
     result => $data,
+    gene   => $gene,
   };
 }
 
