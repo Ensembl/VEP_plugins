@@ -41,6 +41,7 @@ limitations under the License.
  dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
  dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
  dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
+ dbNSFP v4   https://www.ncbi.nlm.nih.gov/pubmed/33261662
  
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin. The dbNSFP data file can be downloaded from
