@@ -287,9 +287,12 @@ sub run {
   }
   elsif($n_genes > 1) {
     # Compare genes from SpliceAI with the variant gene
-    my $genename = $tva->transcript->get_Gene->external_name;
-    if($hash_aux{$genename}) {
-      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$genename}} : $hash_aux{$genename};
+    my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+    if($hash_aux{$gene_symbol}) {
+      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
+    }
+    else {
+      warn("Warning: the variant gene symbol doesn't match any gene symbol from SpliceAI");
     }
   }
 
