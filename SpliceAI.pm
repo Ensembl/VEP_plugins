@@ -278,22 +278,13 @@ sub run {
   return {} unless(%hash_aux);
 
   my $result = {};
-
-  my $n_genes = scalar keys %hash_aux;
-  if($n_genes == 1) {
-    # Get the first and only gene from the hash of results
-    my $key_gene = (keys %hash_aux)[0];
-    $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$key_gene}} : $hash_aux{$key_gene};
+  # Compare genes from SpliceAI with the variant gene
+  my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+  if($hash_aux{$gene_symbol}) {
+    $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
   }
-  elsif($n_genes > 1) {
-    # Compare genes from SpliceAI with the variant gene
-    my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
-    if($hash_aux{$gene_symbol}) {
-      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
-    }
-    else {
-      warn("Warning: the variant gene symbol doesn't match any gene symbol from SpliceAI");
-    }
+  else {
+    warn("Warning: for variant '$chr:$start-$end' the gene symbol '$gene_symbol' doesn't match any of the gene symbols from SpliceAI");
   }
 
   return $result;
