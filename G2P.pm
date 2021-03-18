@@ -17,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Ensembl <http://www.ensembl.org/info/about/contact/index.html>
+ Ensembl <https://www.ensembl.org/info/about/contact/index.html>
     
 =cut
 
@@ -41,7 +41,7 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
  file                  : Path to G2P data file. The file needs to be uncompressed.
-                         - Download from http://www.ebi.ac.uk/gene2phenotype/downloads
+                         - Download from https://www.ebi.ac.uk/gene2phenotype/downloads
                          - Download from PanelApp  
 
  variant_include_list  : A list of variants to include even if variants do not pass allele
@@ -778,7 +778,7 @@ sub dump_individual_annotations {
 }
 
 # read G2P CSV dump
-# as from http://www.ebi.ac.uk/gene2phenotype/downloads
+# as from https://www.ebi.ac.uk/gene2phenotype/downloads
 sub read_gene_data_from_file {
   my $self = shift;
   my $file = shift;
@@ -1212,8 +1212,15 @@ sub chart_and_txt_data {
               }
               my $vf_location = $hash->{vf_location};
               my $existing_name = $hash->{existing_name};
+              my $ensembl_url;
+              if($assembly eq 'GRCh37') {
+                $ensembl_url = "https://grch37.ensembl.org";
+              }
+              else {
+                $ensembl_url = "https://ensembl.org";
+              }
               if ($existing_name ne 'NA') {
-                $existing_name = "<a href=\"http://$assembly.ensembl.org/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
+                $existing_name = "<a href=\"$ensembl_url/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
               }
               my $is_on_variant_include_list = $hash->{is_on_variant_include_list};
               my $refseq = $hash->{refseq};
@@ -1458,7 +1465,7 @@ sub stats_html_tail {
   my $script =<<SHTML;
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
   <script>
     \$( "input[type=checkbox]" ).on( "click", function(){
       if (\$('.target').is(':checked')) {
