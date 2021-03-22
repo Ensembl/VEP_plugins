@@ -41,6 +41,7 @@ limitations under the License.
  dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
  dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
  dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
+ dbNSFP v4   https://www.ncbi.nlm.nih.gov/pubmed/33261662
  
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin. The dbNSFP data file can be downloaded from
@@ -119,6 +120,17 @@ When running the plugin you must list at least one column to retrieve from the
  If the dbNSFP README file is found in the same directory as the data file,
  column descriptions will be read from this and incorporated into the VEP output
  file header.
+
+The plugin matches rows in the tabix-indexed dbNSFP file on:
+
+ position
+ alt allele
+ aaref - reference amino acid
+ aaalt - alternative amino acid
+
+To match only on the first position and the alt allele use --pep_match=0
+
+--plugin dbNSFP,/path/to/dbNSFP.gz,pep_match=0,col1,col2
 
 =cut
 
@@ -200,6 +212,26 @@ sub new {
     $index++;
   } else {
     $self->add_replacement_logic();  
+  }
+
+  # Peptide matching on by default
+  $self->{pep_match} = 1;
+
+  if ($self->params->[$index] =~ /^pep_match=/) {
+    my $pep_match = $self->params->[$index];
+    $pep_match =~ s/pep_match=//;
+    $index++;
+    if ($pep_match == 0) {
+      $self->{pep_match} = 0;
+    }
+  }
+
+
+  if ($self->{pep_match}) {
+    # Check the columns for the aa are there
+    foreach my $h (qw(aaalt aaref)) {
+      die("ERROR: Could not find the required column $h for pep_match option in $file\n") unless grep{$_ eq $h} @{$self->{headers}};
+    }
   } 
  
   # get required columns
@@ -299,6 +331,7 @@ sub run {
   }
   
   my $vf = $tva->variation_feature;
+  my $tv = $tva->transcript_variation;
   
   return {} unless $vf->{start} eq $vf->{end};
   
@@ -313,6 +346,7 @@ sub run {
 
   my $data;
   my $pos;
+  my $allele_string;
 
   my $assembly = $self->{config}->{assembly};
   my $chr = ($vf->{chr} =~ /MT/i) ? 'M' : $vf->{chr};
@@ -341,6 +375,13 @@ sub run {
       $pos == $vf->{start} &&
       defined($tmp_data->{alt}) &&
       $tmp_data->{alt} eq $allele;
+
+    if ($self->{pep_match}) {
+      $allele_string = join('/', $tmp_data->{aaref}, $tmp_data->{aaalt});
+      $allele_string =~ s/X/*/g;
+      next if ($tv->pep_allele_string() ne $allele_string);
+    }
+
     # make a clean copy as we're going to edit it
     %$data = %$tmp_data;
 
