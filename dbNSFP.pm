@@ -230,7 +230,7 @@ sub new {
   if ($self->{pep_match}) {
     # Check the columns for the aa are there
     foreach my $h (qw(aaalt aaref)) {
-      die("ERROR: Could not find the required column $h in $file\n") unless grep{$_ eq $h} @{$self->{headers}};
+      die("ERROR: Could not find the required column $h for pep_match option in $file\n") unless grep{$_ eq $h} @{$self->{headers}};
     }
   } 
  
