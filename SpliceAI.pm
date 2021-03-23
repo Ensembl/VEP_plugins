@@ -73,6 +73,11 @@ limitations under the License.
   The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
    Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
+  Gene matching:
+  If SpliceAI contains scores for multiple genes that overlap the same genomic location,
+  the plugin compares the gene from the SpliceAI file with the gene symbol from the input variant.
+  If none of the gene symbols match, the plugin does not return any scores.
+
  If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
  passes the cutoff, 'FAIL' otherwise. 
 
@@ -95,7 +100,6 @@ limitations under the License.
  indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
  ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,
  indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,cutoff=0.5
-
 
 =cut
 
@@ -193,6 +197,9 @@ sub run {
   my $result_data = '';
   my $result_flag;
 
+  # Store all SpliceAI results
+  my %hash_aux;
+
   foreach my $data_value (@data) {
 
     my $ref_allele;
@@ -268,11 +275,29 @@ sub run {
         $hash{'SpliceAI_cutoff'} = $result_flag;
       }
 
-      return ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => \%hash} : \%hash;
+      $hash_aux{$data_value->{gene}} = \%hash;
     }
   }
 
-  return {};
+  return {} unless(%hash_aux);
+
+  my $result = {};
+
+  my $n_genes = scalar keys %hash_aux;
+  if($n_genes == 1) {
+    # Get the only gene from the hash of results
+    my $key_gene = (keys %hash_aux)[0];
+    $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$key_gene}} : $hash_aux{$key_gene};
+  }
+  elsif($n_genes > 1) {
+    # Compare genes from SpliceAI with the variant gene symbol
+    my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+    if($hash_aux{$gene_symbol}) {
+      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
+    }
+  }
+
+  return $result;
 }
 
 # Parse data from SpliceAI file
@@ -282,9 +307,10 @@ sub parse_data {
   my ($chr, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
 
   $info =~ s/SpliceAI=//;
-  my @info_splited = split (qr/\|/,$info, 2);
+  my @info_splited = split (qr/\|/,$info, 3);
   my $allele = $info_splited[0];
-  my $data = $info_splited[1];
+  my $data = $info_splited[1] . "|" . $info_splited[2];
+  my $gene = $info_splited[1];
 
   my $max_score;
   if($self->{cutoff}){
@@ -300,6 +326,7 @@ sub parse_data {
     alt    => $alt,
     info   => $max_score,
     result => $data,
+    gene   => $gene,
   };
 }
 
