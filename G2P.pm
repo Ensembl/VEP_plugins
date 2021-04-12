@@ -434,7 +434,7 @@ sub is_valid_g2p_variant {
   my $tva = shift;
   my $zyg = shift;
   my $transcript = $tva->transcript;
-  my $gene_stable_id = $transcript->{_gene}->stable_id;
+  my $gene_stable_id = get_gene_stable_id($transcript);
   my @allelic_requirements = keys %{$self->{ar}->{$gene_stable_id}};
   my @results = ();
   foreach my $ar (@allelic_requirements) {
@@ -454,7 +454,7 @@ sub is_g2p_complete {
   my $vf = $tva->base_variation_feature;
   my $individual = $vf->{individual};
   my $transcript = $tva->transcript;
-  my $gene_stable_id = $transcript->{_gene}->stable_id;
+  my $gene_stable_id = get_gene_stable_id($transcript);
   my $transcript_stable_id = $transcript->stable_id; 
   $self->{per_individual}->{$individual}->{$transcript_stable_id}->{$zyg}->{$self->{vf_cache_name}} = 1;
   my @allelic_requirements = keys %{$self->{ar}->{$gene_stable_id}};
@@ -514,9 +514,7 @@ sub gene_overlap_filtering {
   my $self = shift;
   my $tva = shift;
   my $transcript = $tva->transcript;
-  my $gene = $transcript->{_gene};
-  my $gene_stable_id = $gene->stable_id;
-
+  my $gene_stable_id = get_gene_stable_id($transcript);
   my $pass_gene_overlap_filter = $self->{g2p_gene_cache}->{$gene_stable_id};
   my @gene_xrefs = ();
   if (! defined $pass_gene_overlap_filter) {
@@ -547,8 +545,7 @@ sub _dump_transcript_annotations {
   my $transcript = shift;
   my $transcript_stable_id = $transcript->stable_id;
   if (!defined $self->{g2p_transcript_cache}->{$transcript_stable_id}) {
-    my $gene = $transcript->{_gene};
-    my $gene_stable_id = $gene->stable_id;
+    my $gene_stable_id = get_gene_stable_id($transcript);
     if ($transcript->is_canonical) {
       $self->write_report('G2P_transcript_data', "$gene_stable_id\t$transcript_stable_id\tis_canonical");
     }
@@ -561,6 +558,11 @@ sub get_cache_name {
   my $vf = shift;
   my $cache_name = ($vf->{original_chr} || $vf->{chr}) . '_' . $vf->{start} . '_' . ($vf->{allele_string} || $vf->{class_SO_term});
   return $cache_name;
+}
+
+sub get_gene_stable_id {
+  my $transcript = shift;
+  return $transcript->{_gene}->stable_id;
 }
 
 sub frequency_filtering {
@@ -773,7 +775,7 @@ sub dump_individual_annotations {
   my $vf_cache_name = $self->{vf_cache_name};
   my $transcript = $tva->transcript;
   my $transcript_stable_id = $transcript->stable_id;
-  my $gene_stable_id = $transcript->{_gene_stable_id};
+  my $gene_stable_id = get_gene_stable_id($transcript);
   $self->write_report('G2P_individual_annotations', join("\t", $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual));
 }
 
