@@ -107,6 +107,7 @@ use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
 use Text::CSV;
+use Data::Dumper;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
@@ -980,11 +981,9 @@ sub finish {
 sub generate_report {
   my $self = shift;
   my $result_summary = $self->parse_log_files;
-  my $chart_txt_data = $self->chart_and_txt_data($result_summary);
-  my $chart_data = $chart_txt_data->{chart_data};
-  my $txt_data = $chart_txt_data->{txt_data};
+  my ($html_data, $txt_data) = $self->html_and_txt_data($result_summary);
+  $self->write_html_output($result_summary, $html_data, $result_summary->{canonical_transcripts}, $result_summary->{gene_xrefs});
   $self->write_txt_output($txt_data, $result_summary->{gene_xrefs});
-  $self->write_charts($result_summary, $chart_data, $result_summary->{canonical_transcripts}, $result_summary->{gene_xrefs});
 }
 
 sub write_txt_output {
@@ -1010,18 +1009,17 @@ sub write_txt_output {
   $fh_txt->close();
 }
 
-sub write_charts {
+sub write_html_output {
   my $self = shift;
   my $result_summary = shift;
-  my $chart_data = shift;
+  my $html_data = shift;
   my $canonical_transcripts = shift;
   my $gene_xrefs = shift;
 
   my $count_g2p_genes = keys %{$result_summary->{g2p_list}};
   my $count_in_vcf_file = keys %{$result_summary->{in_vcf_file}};
-  my $count_complete_genes = scalar keys %{$result_summary->{complete_genes}};
+  my $count_g2p_complete_genes = scalar keys %{$result_summary->{g2p_complete_genes}};
 
-  my @charts = ();
   my @frequencies_header = (); 
 
   foreach my $short_name (sort keys %{$self->{population_names}}) {
@@ -1050,7 +1048,7 @@ sub write_charts {
 
   my $html_output_file = $self->{user_params}->{html_report};
   my $fh_out = FileHandle->new($html_output_file, 'w');
-  print $fh_out stats_html_head(\@charts);
+  print $fh_out stats_html_head();
   print $fh_out "<div class='main_content container'>";
 
  
@@ -1074,7 +1072,7 @@ sub write_charts {
   print $fh_out "<dd>G2P genes</dd>";
   print $fh_out "<dt>$count_in_vcf_file</dt>";
   print $fh_out "<dd>G2P genes in input VCF file</dd>";
-  print $fh_out "<dt>$count_complete_genes</dt>";
+  print $fh_out "<dt>$count_g2p_complete_genes</dt>";
   print $fh_out "<dd>G2P complete genes in input VCF file</dd>";
   print $fh_out "</dl>";
 
@@ -1108,13 +1106,13 @@ my $switch =<<SHTML;
 SHTML
 
   print $fh_out $switch;
-
-  foreach my $individual (sort keys %$chart_data) {
-    foreach my $gene_id (keys %{$chart_data->{$individual}}) {
+ 
+  foreach my $individual (sort keys %$html_data) {
+    foreach my $gene_id (keys %{$html_data->{$individual}}) {
       my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
-      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_id}}) {
+      foreach my $ar (keys %{$html_data->{$individual}->{$gene_id}}) {
         print $fh_out "<ul>\n";
-        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_id}->{$ar}}) {
+        foreach my $transcript_stable_id (keys %{$html_data->{$individual}->{$gene_id}->{$ar}}) {
           my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
           print $fh_out "<li><a class=\"$class\" href=\"#$individual\_$gene_id_title\_$ar\_$transcript_stable_id\">" . "$individual &gt; $gene_id_title &gt; $ar &gt; $transcript_stable_id" . "</a> </li>\n";
         }
@@ -1123,11 +1121,11 @@ SHTML
     }
   }
 
-  foreach my $individual (sort keys %$chart_data) {
-    foreach my $gene_id (keys %{$chart_data->{$individual}}) {
+  foreach my $individual (sort keys %$html_data) {
+    foreach my $gene_id (keys %{$html_data->{$individual}}) {
       my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
-      foreach my $ar (keys %{$chart_data->{$individual}->{$gene_id}}) {
-        foreach my $transcript_stable_id (keys %{$chart_data->{$individual}->{$gene_id}->{$ar}}) {
+      foreach my $ar (keys %{$html_data->{$individual}->{$gene_id}}) {
+        foreach my $transcript_stable_id (keys %{$html_data->{$individual}->{$gene_id}->{$ar}}) {
           my $class = ($canonical_transcripts->{$transcript_stable_id}) ? 'is_canonical' : 'not_canonical';
           print $fh_out "<div class=\"$class\">";
           my $name = "$individual\_$gene_id_title\_$ar\_$transcript_stable_id";
@@ -1139,7 +1137,7 @@ SHTML
           print $fh_out "<tr>" . join('', map {"<th>$_</th>"} @new_header) . "</tr>\n";
           print $fh_out "</thead>\n";
           print $fh_out "<tbody>\n";
-          foreach my $vf_data (@{$chart_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}) {
+          foreach my $vf_data (@{$html_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}) {
             my $data_row = $vf_data->[0];
             my @tds = ();
             foreach my $cell (@$data_row) {
@@ -1164,10 +1162,10 @@ SHTML
   print $fh_out stats_html_tail();
 }
 
-sub chart_and_txt_data {
+sub html_and_txt_data {
   my $self = shift;
   my $result_summary = shift;
-  my $complete_genes = $result_summary->{complete_genes};
+  my $g2p_complete_genes = $result_summary->{g2p_complete_genes};
   my $new_order = $result_summary->{new_order};
 
   my $tva_annotation_data = $result_summary->{tva_annotation_data};
@@ -1179,7 +1177,7 @@ sub chart_and_txt_data {
   my @frequencies_header = sort keys %{$self->{population_names}};
 
   my $assembly = $self->{config}->{assembly};
-  my $chart_data = {};
+  my $html_output_data = {};
   my $txt_output_data = {};
 
   my $prediction2bgcolor = {
@@ -1268,7 +1266,7 @@ sub chart_and_txt_data {
               $location =~ s/\-/:/;
               $alleles =~ s/\//:/;
               $vf_name .= "*" if ($is_on_variant_include_list);
-              push @{$chart_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}, [[
+              push @{$html_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}}, [[
                 [$vf_location], 
                 [$vf_name], 
                 [$existing_name], 
@@ -1299,7 +1297,7 @@ sub chart_and_txt_data {
       }
     }
   }
-  return {txt_data => $txt_output_data, chart_data => $chart_data};
+  return ($html_output_data, $txt_output_data);
 }
 
 sub parse_log_files {
@@ -1314,7 +1312,7 @@ sub parse_log_files {
   my $canonical_transcripts = {};
   my $all_g2p_genes = {};
   my $vcf_g2p_genes = {};
-  my $complete_genes = {};
+  my $g2p_complete_genes = {};
   my $ar_data = {};
   my $g2p_transcripts = {};
   my $gene_xrefs = {};
@@ -1333,7 +1331,7 @@ sub parse_log_files {
         my ($flag, $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual) = split/\t/;
         $individual_data->{$individual}->{$gene_stable_id}->{$transcript_stable_id}->{$zyg}->{$vf_cache_name} = 1;
       }
-
+      #G2P_frequencies     17_82929274_A/G AA=0.0007289,AFR=0,AMR=0.0014,EA=0.005595,EAS=0,EUR=0.006,SAS=0,gnomAD=0.002923,gnomAD_AFR=0.0005175,gnomAD_AMR=0.002206,gnomAD_ASJ=0.003392,gnomAD_EAS=0,gnomAD_FIN=0.003583,gnomAD_NFE=0.004446,gnomAD_OTH=0.003814,gnomAD_SAS=0.0002618
       elsif (/^G2P_frequencies/) {
         my ($flag, $vf_cache_name, $frequencies) = split/\t/;
         $frequency_data->{$vf_cache_name}->{$frequencies} = 1;
@@ -1343,17 +1341,17 @@ sub parse_log_files {
           $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
         }
       }
-
+      #G2P_tva_annotations 17_82929274_A/G ENST00000355528 consequence_types=splice_region_variant,intron_variant;hgvs_p=NA;hgvs_t=ENST00000355528.9:c.2852+3A>G;is_on_variant_include_list=0;polyphen_prediction=NA;polyphen_score=NA;refseq=NM_005993.5;sift_prediction=NA;sift_score=NA;transcript_stable_id=ENST00000355528;vf_location=17:82929274-82929274 A/G;vf_name=id_17_82929274_A_G
       elsif (/^G2P_tva_annotations/) {
         my ($flag, $vf_cache_name, $transcript_stable_id, $annotations) = split/\t/;
         $tva_annotation_data->{$vf_cache_name}->{$transcript_stable_id} = $annotations;
       }
-
+      #G2P_existing_vf_annotations 17_82941481_C/T clin_sig=NA;existing_name=rs780053410;failed=no;novel=no
       elsif (/^G2P_existing_vf_annotations/) {
         my ($flag, $vf_cache_name, $annotations) = split/\t/;
         $vf_annotation_data->{$vf_cache_name} = $annotations;
       }
-
+      #G2P_gene_data ENSG00000141556 biallelic TBCD
       elsif (/^G2P_gene_data/) {
         my ($flag, $gene_id, $ars, $xrefs) = split/\t/;
         foreach my $ar (split(',', $ars)) {
@@ -1361,12 +1359,12 @@ sub parse_log_files {
         }
         $gene_xrefs->{$gene_id} = $xrefs;
       }
-
+      #G2P_in_vcf  ENSG00000141556
       elsif (/^G2P_in_vcf/) {
         my ($flag, $gene_id) = split/\t/;
         $vcf_g2p_genes->{$gene_id} = 1;
       }
-
+      #G2P_transcript_data ENSG00000141556 ENST00000355528 is_canonical
       elsif (/^G2P_transcript_data/) {
         my ($flag, $gene_id, $transcript_id, $is_canonical) = split/\t/;
         $canonical_transcripts->{$transcript_id} = 1;
@@ -1379,6 +1377,18 @@ sub parse_log_files {
     $fh->close;
   }
   my $new_order = {};
+# individual_data structure:
+#{
+#  'individual_id' => {
+#    'gene_symbol' => {
+#      'transcript_id' => {
+#        'ZYG' => { # HET, HOM
+#          'vf_cache_name' => 1
+#        }
+#      }
+#    }
+#  }
+#}
   foreach my $individual (keys %$individual_data) {
     foreach my $gene_id (keys %{$individual_data->{$individual}}) {
       foreach my $transcript_id (keys %{$individual_data->{$individual}->{$gene_id}}) {
@@ -1386,14 +1396,27 @@ sub parse_log_files {
           my $zyg2var = $individual_data->{$individual}->{$gene_id}->{$transcript_id};
           my $fulfils_ar = $self->obeys_rule($ar, $zyg2var);
           if (scalar keys %$fulfils_ar > 0) {
-            $complete_genes->{$gene_id} = 1;
+            $g2p_complete_genes->{$gene_id} = 1;
             $new_order->{$individual}->{$gene_id}->{$ar}->{$transcript_id} = $fulfils_ar;
           }
         }
       }
     }
   }
-
+# new_order structure:
+# {
+#   'P1' => { #individual_id 
+#     'gene-POLR2A' => { #gene_symbol
+#       'monoallelic' => { #allelic_requirement
+#         'NM_000937.5' => { #transcript_id
+#           'HET' => [ #zygosity
+#             '17_7503762_G/A' #vf_cache_name
+#           ]
+#         }
+#       }
+#     }
+#   }
+# };
   return {
     frequency_data => $frequency_data,
     vf_annotation_data => $vf_annotation_data,
@@ -1403,7 +1426,7 @@ sub parse_log_files {
     gene2ar => $ar_data,
     gene_xrefs => $gene_xrefs,
     in_vcf_file => $vcf_g2p_genes,
-    complete_genes => $complete_genes,
+    g2p_complete_genes => $g2p_complete_genes,
     g2p_list => $all_g2p_genes,
   };
 }
@@ -1444,8 +1467,6 @@ sub parse_data {
 }
 
 sub stats_html_head {
-    my $charts = shift;
-
     my $html =<<SHTML;
 <html>
 <head>
