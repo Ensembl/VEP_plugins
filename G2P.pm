@@ -107,7 +107,6 @@ use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
 use Text::CSV;
-use Data::Dumper;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
