@@ -773,7 +773,7 @@ sub dump_individual_annotations {
   my $vf_cache_name = $self->{vf_cache_name};
   my $transcript = $tva->transcript;
   my $transcript_stable_id = $transcript->stable_id;
-  my $gene_stable_id = $transcript->{_gene_stable_id};
+  my $gene_stable_id = $transcript->{_gene}->stable_id;
   $self->write_report('G2P_individual_annotations', join("\t", $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual));
 }
 
