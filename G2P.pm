@@ -18,7 +18,6 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <https://www.ensembl.org/info/about/contact/index.html>
-    
 =cut
 
 =head1 NAME
@@ -96,13 +95,13 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg,confidence_levels='confirmed&probable&both RD and IF'
  --plugin G2P,file=G2P.csv
- 
 =cut
 
 package G2P;
 
 use strict;
 use warnings;
+use Data::Dumper;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
@@ -348,6 +347,18 @@ sub new {
   return $self;
 }
 
+=head2 _get_highest_frequency_threshold
+
+  Description: Retrieve the highest allele frequency threshold across all defined allelic requirements.
+               This will speed up the filtering by allele frequency. As soon as we found a frequency
+               higher than this highest frequency the filtering fails and we don't need to consider
+               the variant further.
+  Returntype : Float $highest_frequency
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _get_highest_frequency_threshold {
   my $highest_frequency = 0.0;
   foreach my $ar (keys %$allelic_requirements) {
@@ -372,6 +383,23 @@ sub get_header_info {
   };
 }
 
+=head2 run
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Arg [2]    : Hashref $line
+  Description: Filter input transcript variation allele on:
+                - G2P gene overlap
+                - variant consequence
+                - variant include list
+                - allele frequency
+               Based on the filtering results check if the allelic requirement is fulfilled and write results to hash.
+               Dump annnotations to a log file for generating TXT and HTML output files after VEP has finished.
+  Returntype : Hashref $results
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub run {
   my ($self, $tva, $line) = @_;
 
@@ -397,6 +425,19 @@ sub run {
   return $results;
 }
 
+=head2 set_variant_include_list_flag
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Description: Check if variant is part of the variant include list.
+               If the variant is on the variant include list then report
+               it in the result set regardless if the variant passed the
+               filtering by variant consequence and allele frequency.
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub set_variant_include_list_flag {
   my $self = shift;
   my $tva = shift;
@@ -429,6 +470,21 @@ sub set_variant_include_list_flag {
   }
 }
 
+=head2 is_valid_g2p_variant
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Arg [2]    : String $zygosity
+  Example    : $valid_g2p_variant = $self->is_valid_g2p_variant($tva, 'HOM')
+  Description: Take all allelic requirements of the gene that overlap this variant
+               and check if the variant passes the frequency threshold filter where the threshold is defined
+               by the allelic requirement of the gene.
+               Concatenate results for several allelic requirements by ','.
+  Returntype : String for example "monoallelic=HOM"
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub is_valid_g2p_variant {
   my $self = shift;
   my $tva = shift;
@@ -440,13 +496,25 @@ sub is_valid_g2p_variant {
   foreach my $ar (@allelic_requirements) {
     my $ar_rules = $allelic_requirements->{$ar};
     my $af_threshold = $ar_rules->{af};
-    if ($self->exceeds_threshold($af_threshold, [$self->{vf_cache_name}])) {
+    if ($self->variants_filtered_by_frequency_threshold($af_threshold, [$self->{vf_cache_name}])) {
       push @results, "$ar=$zyg";
     }
   }
   return join(',', @results);
 }
 
+=head2 is_g2p_complete
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Arg [2]    : String $zygosity           
+  Description: A G2P gene is considered complete if its allelic requirement is fulfilled.
+               Create a summary string which connects the fulfilled allelic_requirement and all variants which pass filtering. 
+  Returntype : String $g2p_complete, for example "monoallelic=HET:7_941481_C/T&HET:7_929274_A/G,HOM:7_931481_C/T|biallelic=HOM:7_931481_C/T"
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub is_g2p_complete {
   my $self = shift;
   my $tva = shift;
@@ -458,38 +526,65 @@ sub is_g2p_complete {
   my $transcript_stable_id = $transcript->stable_id; 
   $self->{per_individual}->{$individual}->{$transcript_stable_id}->{$zyg}->{$self->{vf_cache_name}} = 1;
   my @allelic_requirements = keys %{$self->{ar}->{$gene_stable_id}};
-  my $G2P_complete;
+  my @g2p_complete = ();
   foreach my $ar (@allelic_requirements) {
     my $zyg2var = $self->{per_individual}->{$individual}->{$transcript_stable_id};
-    my $fulfils_ar = $self->obeys_rule($ar, $zyg2var);
-    if (scalar keys %$fulfils_ar > 0) {
-      $G2P_complete .= "$ar=";
-      my @passed_variants = ();
-      foreach my $zyg (keys %$fulfils_ar) {
-        my @tmp = ();
-        foreach my $var (@{$fulfils_ar->{$zyg}}) {
-          push @tmp, "$zyg:$var";
-        }
-        push @passed_variants, join('&', @tmp);
+    my $filtered_zyg2var = $self->zyg2var_filtered_by_allelic_requirement_rule($ar, $zyg2var);
+    if (defined $filtered_zyg2var) {
+      my @filtered_variants = ();
+      foreach my $zyg (keys %$filtered_zyg2var) {
+        push @filtered_variants, join('&', map {"$zyg:$_"} @{$filtered_zyg2var->{$zyg}};
       }
-      $G2P_complete = "$ar=" . join(',', @passed_variants);
+      push @g2p_complete, "$ar=" . join(',', @filtered_variants));
     }
   }
-  return $G2P_complete;
+  return join('\|', @g2p_complete);
 } 
 
-sub obeys_rule {
+=head2 zyg2var_filtered_by_allelic_requirement_rule
+
+  Arg [1]    : String $ar allelic requirement
+  Arg [2]    : Hashref $zyg2var
+  Example    : $zyg2var_filtered = $self->zyg2var_filtered_by_allelic_requirement_rule('biallelic', {
+                'HET' => {
+                  '4_32941481_C/T' => 1,
+                  '4_32929274_A/G' => 1
+                }
+               });
+  Description: Check if the variants fulfill the given allelic requirement. Variants are grouped by their
+               zygosity. The subroutine checks for each variant if in internally stored frequency for a variant
+               is lower than the allele frequency threshold defined by the allelic requirement. Then consider
+               the variants which pass frequency filtering and check if the number is sufficient to fulfil the
+               allelic requirement.  
+  Returntype : Hashref $zyg2var_filtered: with zygosity as key and filtered variants in arrayref as value
+               For example: {
+                'HET' => [
+                  '4_32941481_C/T',
+                  '4_32929274_A/G'
+                ]
+               };
+               Undef, if none of the variants pass the filtering
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
+sub zyg2var_filtered_by_allelic_requirement_rule {
   my $self = shift;
+  my $zyg2variants = shift;
   my $ar = shift;
   my $zyg2variants = shift;
   my $ar_rules = $allelic_requirements->{$ar};
+  # allele frequency threshold for given allelic requirement
   my $af_threshold = $ar_rules->{af};
+  # number of variants with a particular zygosity that need to pass filtering
+  # to fulfil allelic requirement
   my $zyg2counts = $ar_rules->{rules};
   my $results = {};
   foreach my $zyg (keys %$zyg2counts) {
     my $count = $zyg2counts->{$zyg};
     my @all_variants = keys %{$zyg2variants->{$zyg}};
-    my $variants = $self->exceeds_threshold($af_threshold, \@all_variants);
+    my $variants = $self->variants_filtered_by_frequency_threshold($af_threshold, \@all_variants);
     if (scalar @$variants >= $count) {
       $results->{$zyg} = $variants;
     }
@@ -497,19 +592,59 @@ sub obeys_rule {
   return $results;
 }
 
-sub exceeds_threshold {
+=head2 variants_filtered_by_frequency_threshold
+
+  Arg [1]    : Float $af_threshold allele frequency threshold
+  Arg [2]    : Arrayref $variants
+  Example    : $variants_filtered = $self->variants_filtered_by_frequency_threshold(0.001, [
+                  '4_32941481_C/T' => 1,
+                  '4_32929274_A/G' => 1
+                ]
+               );
+  Description: Check for each variant if the highest frequencies that has been observed in any
+               population and is stored internally under the highest_frequencies hash key is lower
+               than the given allele frequency threshold. If yes, add the variant to the result set.
+               Also add the variant to the result if the variant hasn't any observed allele frequencies
+               or if the variant is in the variant include list. 
+  Returntype : Arrayref $variants_filtered
+               For example: [
+                  '4_32941481_C/T' => 1,
+                  '4_32929274_A/G' => 1
+               ];
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
+sub variants_filtered_by_frequency_threshold {
   my $self = shift;
   my $af_threshold = shift;
   my $variants = shift;
   my @pass_variants = ();
   foreach my $variant (@$variants) {
-    if (!defined $self->{highest_frequencies}->{$variant} || $self->{highest_frequencies}->{$variant} <= $af_threshold || $self->{g2p_vf_cache}->{$variant}->{is_on_variant_include_list}) {
+    if (!defined $self->{highest_frequencies}->{$variant} ||
+         $self->{highest_frequencies}->{$variant} <= $af_threshold ||
+         $self->{g2p_vf_cache}->{$variant}->{is_on_variant_include_list}
+    ) {
       push @pass_variants, $variant;
     }
   }
   return \@pass_variants;
 }
 
+=head2 gene_overlap_filtering
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Example    :
+  Description: returns 1 or 0 depending on if the gene is part of the input panel. If the gene is part of the panel we store
+               the allelic requirement in the internal cash under the name 'ar'. We also write G2P_gene_data and G2P_in_vcf
+               information to the log file. We call _dump_transcript_annotations and write transcript information to the log file.
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub gene_overlap_filtering {
   my $self = shift;
   my $tva = shift;
@@ -540,6 +675,16 @@ sub gene_overlap_filtering {
   return $self->{g2p_gene_cache}->{$gene_stable_id};
 }
 
+=head2 _dump_transcript_annotations
+
+  Arg [1]    : Transcript $transcript
+  Description: Write G2P_transcript_data to log file.
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _dump_transcript_annotations {
   my $self = shift;
   my $transcript = shift;
@@ -553,6 +698,16 @@ sub _dump_transcript_annotations {
   }
 }
 
+=head2 get_cache_name
+
+  Arg [1]    : VariationFeature $vf
+  Description: Create a variant identifier for internal use which is stored in the internal cache
+  Returntype : String $vf_cache_name for example 19_8412862_G/A 
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub get_cache_name {
   my $self = shift;
   my $vf = shift;
@@ -560,11 +715,32 @@ sub get_cache_name {
   return $cache_name;
 }
 
+=head2 get_gene_stable_id
+
+  Arg [1]    : Transcript $transcript
+  Description: Retrives the gene stable id from the transcript object
+  Returntype : String $gene_stable_id
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub get_gene_stable_id {
   my $transcript = shift;
   return $transcript->{_gene}->stable_id;
 }
 
+=head2 frequency_filtering
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Description: returns 1 or 0 depending on if the variant passes frequency filtering.
+               We consider allele frequencies from the VEP cache and VCF files for filtering.
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub frequency_filtering {
   my $self = shift;
   my $tva = shift;
@@ -588,6 +764,17 @@ sub frequency_filtering {
   return $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
 }
 
+=head2 _vep_cache_frequency_filtering
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Description: Returns 1 or 0 depending on if the variant passes frequency filtering where allele frequencies come from the VEP cache.
+               Return 1 if no observed allele frequencies exist for the given variant which means that the filtering passes.
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _vep_cache_frequency_filtering {
   my $self = shift;
   my $tva = shift;
@@ -621,6 +808,18 @@ sub _vep_cache_frequency_filtering {
   return 1;
 }
 
+=head2 _dump_existing_vf_frequencies
+
+  Arg [1]    : Hashref $exisiting_var
+  Description: The $exisiting_var contains everything that is stored for the variant in the VEP cache file.
+               Extract allele frequencies from $exisiting_var and write it to the log file as G2P_frequencies. 
+               Store the highest observed frequency for the variant which is used later for filtering.
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _dump_existing_vf_frequencies {
   my $self = shift;
   my $existing_var = shift;
@@ -643,6 +842,17 @@ sub _dump_existing_vf_frequencies {
   $self->write_report('G2P_frequencies', $self->{vf_cache_name}, \@frequencies);
 }
 
+=head2 _dump_exisiting_vf_annotations
+
+  Arg [1]    : Hashref $existing_var
+  Description: The $exisiting_var contains everything that is stored for the variant in the VEP cache file.
+               Extract variant annotation from the hashref and write the annotations to the log file as G2P_existing_vf_annotations. 
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _dump_existing_vf_annotations {
   my $self = shift;
   my $existing_var = shift;
@@ -664,7 +874,19 @@ sub _dump_existing_vf_annotations {
   $self->write_report('G2P_existing_vf_annotations', $self->{vf_cache_name}, $data);
 }
 
+=head2 _exceeds_frequency_threshold
 
+  Arg [1]    : Arrayref $vep_cache_frequencies
+  Arg [2]    : String $allele
+  Arg [3]    : Float $threshold
+  Example    : $exceeds_threshold = $self->_exceeds_frequency_threshold(['A:0.001', 'A:0.0001'], 'A', 0.01);
+  Description: Returns 1 if any of the vep cache frequencies exceeds the given frequency threshold for the given allele. 
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _exceeds_frequency_threshold {
   my $self = shift;
   my $vep_cache_frequencies = shift;
@@ -681,6 +903,18 @@ sub _exceeds_frequency_threshold {
   return 0;
 }
 
+=head2 _vcf_frequency_filtering
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Description: Returns 1 or 0 depending on if the variant passes frequency filtering where allele frequencies come from VCF files.
+               Return 1 if no observed allele frequencies exist for the given variant which means that the filtering passes.
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+
+=cut
 sub _vcf_frequency_filtering {
   my $self = shift;
   my $tva = shift;
@@ -703,6 +937,16 @@ sub _vcf_frequency_filtering {
   return 1;
 }
 
+=head2 _dump_existing_vf_vcf
+
+  Arg [1]    : Arrayref $alleles
+  Description: Write allele frequencies from VCF files to the log file as G2P_frequencies.
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub _dump_existing_vf_vcf {
   my $self = shift;
   my $alleles = shift;
@@ -712,12 +956,35 @@ sub _dump_existing_vf_vcf {
   $self->write_report('G2P_frequencies', $self->{vf_cache_name}, \@frequencies);
 }
 
+=head2 store_highest_frequency
+
+  Arg [1]    : Float $frequency
+  Example    :
+  Description: Store highest observed frequency for the current variant in the internal cache which is used
+               for filtering later.
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub store_highest_frequency {
   my $self = shift;
   my $f = shift;
   $self->{highest_frequency}->{$self->{vf_cache_name}} = $f;
 }
 
+=head2 dump_vf_annotations
+
+  Arg [1]    : TranscriptVariationAllele $tva 
+  Description: Write all variation feature related annotations to the log file as G2P_tva_annotations.
+               Write flag is_on_variant_include_list to the log file if the variant is on the variant include list. 
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub dump_vf_annotations {
   my $self = shift;
   my $tva = shift;
@@ -766,6 +1033,16 @@ sub dump_vf_annotations {
   $self->write_report('is_on_variant_include_list', $vf_cache_name) if ($is_on_variant_include_list);
 }
 
+=head2 dump_individual_annotations
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Description: Write individual specific information to the log file as G2P_individual_annotations.
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub dump_individual_annotations {
   my $self = shift;
   my $tva = shift;
@@ -779,12 +1056,20 @@ sub dump_individual_annotations {
   $self->write_report('G2P_individual_annotations', join("\t", $gene_stable_id, $transcript_stable_id, $vf_cache_name, $zyg, $individual));
 }
 
-# read G2P CSV dump
-# as from https://www.ebi.ac.uk/gene2phenotype/downloads
+=head2 read_gene_data_from_file
+
+  Arg [1]    : String $file
+  Description: Read panel data from file into the internal cache. Extract gene symbol, gene symbol synonyms or previously assigned symbols,
+               allelic requirement and gene-disease confidence values.
+               Get G2P CSV dump from https://www.ebi.ac.uk/gene2phenotype/downloads.
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub read_gene_data_from_file {
   my $self = shift;
   my $file = shift;
-  my $delimiter = shift;
   my (@headers, %gene_data);
 
   my $assembly =  $self->{config}->{assembly};
@@ -899,8 +1184,18 @@ sub read_gene_data_from_file {
   return \%gene_data;
 }
 
-# return either whole gene data hash or one gene's data
-# this should allow updates to this plugin to e.g. query a REST server, for example
+=head2 gene_data
+
+  Arg [1]    : String $gene_symbol
+  Example    : $gene_data = $self->gene_data('PRKAR1A')
+  Description: Get all panel specific data for the given gene symbol.
+               TODO add example of gene_data hash
+  Returntype : Hashref $gene_data
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub gene_data {
   my ($self, $gene_symbol) = @_;
   my $gene_data = $self->{gene_data}->{$gene_symbol};
@@ -911,6 +1206,16 @@ sub gene_data {
   return $gene_data;
 }
 
+=head2 synonym_mappings
+
+  Description: Create a hashref in the internal cache under the key prev_symbol_mappings which
+               maps any previously assigned gene symbols to the latest gene symbol.
+  Returntype : None
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub synonym_mappings {
   my $self = shift;
   my $gene_data = $self->{gene_data};
@@ -923,6 +1228,18 @@ sub synonym_mappings {
   $self->{prev_symbol_mappings} = $synonym_mappings;
 }
 
+=head2 write_report
+
+  Arg [1]    : String $flag
+  Arg [2]    : Array of values that need to be written to the log file together with the flag.
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub write_report {
   my $self = shift;
   my $flag = shift;
@@ -972,11 +1289,30 @@ sub write_report {
   close $fh;
 }
 
+=head2 finish
+
+  Description: Call generate_report subroutine.
+  Returntype : None
+  Exceptions : None
+  Caller     : Called by VEP::Runner after it completed the annotation of all variants from the input VCF file.
+  Status     : Stable
+
+=cut
 sub finish {
   my $self = shift;
   $self->generate_report;
 }
 
+=head2 generate_report
+
+  Description: Parses the log files into a hashref $result_summary.
+               Calls html_and_txt_data($result_summary) to create specific hashrefs for generating the TXT and HTML output files.
+  Returntype : None
+  Exceptions : None
+  Caller     : G2P::finish
+  Status     : Stable
+
+=cut
 sub generate_report {
   my $self = shift;
   my $result_summary = $self->parse_log_files;
@@ -985,6 +1321,17 @@ sub generate_report {
   $self->write_txt_output($txt_data, $result_summary->{gene_xrefs});
 }
 
+=head2 write_txt_output
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub write_txt_output {
   my $self = shift;
   my $txt_output_data = shift; 
@@ -1008,6 +1355,17 @@ sub write_txt_output {
   $fh_txt->close();
 }
 
+=head2 write_html_output
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub write_html_output {
   my $self = shift;
   my $result_summary = shift;
@@ -1015,8 +1373,11 @@ sub write_html_output {
   my $canonical_transcripts = shift;
   my $gene_xrefs = shift;
 
+# G2P genes in G2P input panel file
   my $count_g2p_genes = keys %{$result_summary->{g2p_list}};
+# G2P genes in input VCF file: How many G2P genes overlap any of the variants from the input VCF.
   my $count_in_vcf_file = keys %{$result_summary->{in_vcf_file}};
+# G2P complete genes in input VCF file
   my $count_g2p_complete_genes = scalar keys %{$result_summary->{g2p_complete_genes}};
 
   my @frequencies_header = (); 
@@ -1161,11 +1522,22 @@ SHTML
   print $fh_out stats_html_tail();
 }
 
+=head2 html_and_txt_data
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub html_and_txt_data {
   my $self = shift;
   my $result_summary = shift;
   my $g2p_complete_genes = $result_summary->{g2p_complete_genes};
-  my $new_order = $result_summary->{new_order};
+  my $results_by_individual = $result_summary->{results_by_individual};
 
   my $tva_annotation_data = $result_summary->{tva_annotation_data};
   my $vf_annotation_data = $result_summary->{vf_annotation_data};
@@ -1189,13 +1561,13 @@ sub html_and_txt_data {
   };
 
 
-  foreach my $individual (sort keys %$new_order) {
+  foreach my $individual (sort keys %$results_by_individual) {
 
-    foreach my $gene_id (keys %{$new_order->{$individual}}) {
-      my $observed_allelic_requirement = join(',', keys %{$gene2ar->{$gene_id}});
-      foreach my $ar (keys %{$new_order->{$individual}->{$gene_id}}) {
-        foreach my $transcript_stable_id (keys %{$new_order->{$individual}->{$gene_id}->{$ar}}) {
-          my $zyg2vf = $new_order->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}; 
+    foreach my $gene_id (keys %{$results_by_individual->{$individual}}) {
+      my $observed_allelic_requirement = join(',', keys %{$gene2ar->{$gene_id}}); # document
+      foreach my $ar (keys %{$results_by_individual->{$individual}->{$gene_id}}) {
+        foreach my $transcript_stable_id (keys %{$results_by_individual->{$individual}->{$gene_id}->{$ar}}) {
+          my $zyg2vf = $results_by_individual->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}; 
           foreach my $zygosity (keys %$zyg2vf) {
             foreach my $vf_name (@{$zyg2vf->{$zygosity}}) {
               my $tva_data = $tva_annotation_data->{$vf_name}->{$transcript_stable_id};
@@ -1288,7 +1660,7 @@ sub html_and_txt_data {
                 $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
               }
               $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{is_canonical} = $is_canonical;
-              $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{REQ} = $observed_allelic_requirement;
+              $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{REQ} = $observed_allelic_requirement; # document REQ
               push @{$txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{variants}}, $txt_output_variant;
             }
           }
@@ -1299,6 +1671,17 @@ sub html_and_txt_data {
   return ($html_output_data, $txt_output_data);
 }
 
+=head2 parse_log_files
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub parse_log_files {
   my $self = shift;
 
@@ -1312,7 +1695,7 @@ sub parse_log_files {
   my $all_g2p_genes = {};
   my $vcf_g2p_genes = {};
   my $g2p_complete_genes = {};
-  my $ar_data = {};
+  my $ar_data = {}; # allelic requirement
   my $g2p_transcripts = {};
   my $gene_xrefs = {};
 
@@ -1375,53 +1758,16 @@ sub parse_log_files {
     }
     $fh->close;
   }
-  my $new_order = {};
-# individual_data structure:
-#{
-#  'individual_id' => {
-#    'gene_symbol' => {
-#      'transcript_id' => {
-#        'ZYG' => { # HET, HOM
-#          'vf_cache_name' => 1
-#        }
-#      }
-#    }
-#  }
-#}
-  foreach my $individual (keys %$individual_data) {
-    foreach my $gene_id (keys %{$individual_data->{$individual}}) {
-      foreach my $transcript_id (keys %{$individual_data->{$individual}->{$gene_id}}) {
-        foreach my $ar (keys %{$ar_data->{$gene_id}}) {
-          my $zyg2var = $individual_data->{$individual}->{$gene_id}->{$transcript_id};
-          my $fulfils_ar = $self->obeys_rule($ar, $zyg2var);
-          if (scalar keys %$fulfils_ar > 0) {
-            $g2p_complete_genes->{$gene_id} = 1;
-            $new_order->{$individual}->{$gene_id}->{$ar}->{$transcript_id} = $fulfils_ar;
-          }
-        }
-      }
-    }
-  }
-# new_order structure:
-# {
-#   'P1' => { #individual_id 
-#     'gene-POLR2A' => { #gene_symbol
-#       'monoallelic' => { #allelic_requirement
-#         'NM_000937.5' => { #transcript_id
-#           'HET' => [ #zygosity
-#             '17_7503762_G/A' #vf_cache_name
-#           ]
-#         }
-#       }
-#     }
-#   }
-# };
+  
+  my $results_by_individual = $self->get_results_by_individual($individual);
+  my $g2p_complete_genes = $self->get_g2p_complete_genes($results_by_individual);
+
   return {
     frequency_data => $frequency_data,
     vf_annotation_data => $vf_annotation_data,
     tva_annotation_data => $tva_annotation_data,
     canonical_transcripts => $canonical_transcripts,
-    new_order => $new_order,
+    results_by_individual => $results_by_individual,
     gene2ar => $ar_data,
     gene_xrefs => $gene_xrefs,
     in_vcf_file => $vcf_g2p_genes,
@@ -1430,6 +1776,108 @@ sub parse_log_files {
   };
 }
 
+=head2 get_g2p_complete_genes
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
+sub get_g2p_complete_genes {
+  my $self = shift;
+  my $results_by_individual = shift;
+  my $g2p_complete_genes = {};
+  foreach my $individual (keys %$results_by_individual) {
+    foreach my $gene_id (keys %{$results_by_individual->{$individual}}) {
+      $g2p_complete_genes->{$gene_id} = 1;
+    }
+  }
+  return $g2p_complete_genes;
+}
+
+=head2 get_results_by_individual
+
+  Arg [1]    : Hashref $individual_data
+  Arg [2]    : Hashref $ar_data
+  Example    : $results_by_individual = $self->get_results_by_individual(
+               {
+                'person_a' => {                # individual id
+                  'PRDM15' => {                # gene id
+                    'ENST00000398548' => {     # transcript id
+                      'HOM' => {               # zygosity: HET, HOM
+                        '21_41839757_C/T' => 1 # variant name
+                      }
+                    }
+                  }
+                }
+               }, {
+                'PRDM15' => {
+                  'monoallelic' => 1,
+                },
+               });  
+  Description: Creates a new hashref $results_by_individual which orders data from the log file by individual and gene.
+               Foreach gene it then list all transcripts and variants that pass filtering under the respective allelic
+               requirement. 
+  Returntype : Hashref $results_by_individual
+               Here is an example, which is made up. For the monoallelic gene PRDM15 in person a we found a homozygous variant
+               in transcript ENST00000398548 which passes all filters and is reported in the result set.
+               {
+                 'person_a' => {              # individual id 
+                   'PRDM15' => {              # gene id
+                     'monoallelic' => {       # allelic requirement, contains all variants that fulfil allelic requirement
+                       'ENST00000398548' => { # transcript id
+                         'HOM' => [           # zygosity
+                           '21_41839757_C/T'  # variants that passed filtering by frequency threshold
+                         ]
+                       }
+                     }
+                   }
+                 }
+               };
+
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
+
+sub get_results_by_individual {
+  my $self = shift;
+  my $individual_data = shift;
+  my $ar_data = shift;
+  my $results_by_individual = {};
+
+  foreach my $individual (keys %$individual_data) {
+    foreach my $gene_id (keys %{$individual_data->{$individual}}) {
+      foreach my $transcript_id (keys %{$individual_data->{$individual}->{$gene_id}}) {
+        foreach my $allelic_requirement (keys %{$ar_data->{$gene_id}}) {
+          my $zyg2var = $individual_data->{$individual}->{$gene_id}->{$transcript_id};
+          my $filtered_zyg2var = $self->zyg2var_filtered_by_allelic_requirement_rule($zyg2var, $allelic_requirement);
+          if (defined $filtered_zyg2var) {
+            $results_by_individual->{$individual}->{$gene_id}->{$allelic_requirement}->{$transcript_id} = $filtered_zyg2var;
+          }
+        }
+      }
+    }
+  }
+  return $results_by_individual;
+}
+
+=head2 get_highest_frequency
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub get_highest_frequency {
   my $frequencies = shift;
   my $highest_frequency = 0;
@@ -1442,6 +1890,17 @@ sub get_highest_frequency {
   return $highest_frequency;
 }
 
+=head2 store_population_names
+
+  Arg [1]    :
+  Example    :
+  Description:
+  Returntype :
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
 sub store_population_names {
   my $self = shift;
   my $frequencies = shift;
