@@ -533,9 +533,9 @@ sub is_g2p_complete {
     if (defined $filtered_zyg2var) {
       my @filtered_variants = ();
       foreach my $zyg (keys %$filtered_zyg2var) {
-        push @filtered_variants, join('&', map {"$zyg:$_"} @{$filtered_zyg2var->{$zyg}};
+        push @filtered_variants, join('&', map {"$zyg:$_"} @{$filtered_zyg2var->{$zyg}});
       }
-      push @g2p_complete, "$ar=" . join(',', @filtered_variants));
+      push @g2p_complete, "$ar=" . join(',', @filtered_variants);
     }
   }
   return join('\|', @g2p_complete);
@@ -571,7 +571,6 @@ sub is_g2p_complete {
 =cut
 sub zyg2var_filtered_by_allelic_requirement_rule {
   my $self = shift;
-  my $zyg2variants = shift;
   my $ar = shift;
   my $zyg2variants = shift;
   my $ar_rules = $allelic_requirements->{$ar};
@@ -589,7 +588,11 @@ sub zyg2var_filtered_by_allelic_requirement_rule {
       $results->{$zyg} = $variants;
     }
   }
-  return $results;
+  if (scalar keys %$results > 0) {
+    return $results;
+  } else {
+    return undef;
+  }
 }
 
 =head2 variants_filtered_by_frequency_threshold
@@ -1536,7 +1539,6 @@ SHTML
 sub html_and_txt_data {
   my $self = shift;
   my $result_summary = shift;
-  my $g2p_complete_genes = $result_summary->{g2p_complete_genes};
   my $results_by_individual = $result_summary->{results_by_individual};
 
   my $tva_annotation_data = $result_summary->{tva_annotation_data};
@@ -1559,7 +1561,6 @@ sub html_and_txt_data {
     'benign' => 'success',
     'tolerated' => 'success',
   };
-
 
   foreach my $individual (sort keys %$results_by_individual) {
 
@@ -1694,7 +1695,6 @@ sub parse_log_files {
   my $canonical_transcripts = {};
   my $all_g2p_genes = {};
   my $vcf_g2p_genes = {};
-  my $g2p_complete_genes = {};
   my $ar_data = {}; # allelic requirement
   my $g2p_transcripts = {};
   my $gene_xrefs = {};
@@ -1759,7 +1759,7 @@ sub parse_log_files {
     $fh->close;
   }
   
-  my $results_by_individual = $self->get_results_by_individual($individual);
+  my $results_by_individual = $self->get_results_by_individual($individual_data, $ar_data);
   my $g2p_complete_genes = $self->get_g2p_complete_genes($results_by_individual);
 
   return {
@@ -1856,7 +1856,7 @@ sub get_results_by_individual {
       foreach my $transcript_id (keys %{$individual_data->{$individual}->{$gene_id}}) {
         foreach my $allelic_requirement (keys %{$ar_data->{$gene_id}}) {
           my $zyg2var = $individual_data->{$individual}->{$gene_id}->{$transcript_id};
-          my $filtered_zyg2var = $self->zyg2var_filtered_by_allelic_requirement_rule($zyg2var, $allelic_requirement);
+          my $filtered_zyg2var = $self->zyg2var_filtered_by_allelic_requirement_rule($allelic_requirement, $zyg2var);
           if (defined $filtered_zyg2var) {
             $results_by_individual->{$individual}->{$gene_id}->{$allelic_requirement}->{$transcript_id} = $filtered_zyg2var;
           }
