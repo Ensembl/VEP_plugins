@@ -93,13 +93,19 @@ sub run {
   # only for missense variants
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
+  my $assembly = $self->{config}->{assembly};
+  my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
+  if ($assembly eq 'GRCh37') {
+    ($start_key, $end_key) = ('start_grch37', 'end_grch37');
+  }
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
+
   my ($res) = grep {
-    $_->{alt}   eq $allele &&
-    $_->{start} eq $vf->{start} &&
-    $_->{end}   eq $vf->{end} &&
-    $_->{altaa} eq $tva->peptide
+    $_->{alt}        eq $allele &&
+    $_->{$start_key} eq $vf->{start} &&
+    $_->{$end_key}   eq $vf->{end} &&
+    $_->{altaa}      eq $tva->peptide
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? $res->{result} : {};
@@ -108,17 +114,36 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
 
-  my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = split /\t/, $line;
+  my @values = split /\t/, $line;
+  # the first version only had GRCh37 coordinates
+  if (scalar @values == 7) {
+    my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
 
-  return {
-    alt => $alt,
-    start => $s,
-    end => $s,
-    altaa => $altaa,
-    result => {
-      REVEL   => $revel_value,
-    }
-  };
+    return {
+      alt => $alt,
+      start_grch37 => $s,
+      end_grch37 => $s,
+      altaa => $altaa,
+      result => {
+        REVEL   => $revel_value,
+      }
+    };
+  } elsif (scalar  @values == 8) {
+    my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
+    return {
+      alt => $alt,
+      start_grch37 => $s_grch37,
+      end_grch37 => $s_grch37,
+      start_grch38 => $s_grch38,
+      end_grch38 => $s_grch38,
+      altaa => $altaa,
+      result => {
+        REVEL   => $revel_value,
+      }
+    };
+  } else {
+    return undef;
+  }
 }
 
 sub get_start {
