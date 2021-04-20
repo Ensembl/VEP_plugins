@@ -101,7 +101,6 @@ package G2P;
 
 use strict;
 use warnings;
-use Data::Dumper;
 use Cwd;
 use Scalar::Util qw(looks_like_number);
 use FileHandle;
@@ -1326,10 +1325,10 @@ sub generate_report {
 
 =head2 write_txt_output
 
-  Arg [1]    :
-  Example    :
-  Description:
-  Returntype :
+  Arg [1]    : Hashref $txt_output_data
+  Arg [2]    : Hashref $gene_xrefs
+  Description: Genereates the TXT output file.
+  Returntype : None
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1344,6 +1343,8 @@ sub write_txt_output {
   foreach my $individual (sort keys %$txt_output_data) {
     foreach my $gene_id (keys %{$txt_output_data->{$individual}}) {
       my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
+      # Loop over all observed allelic requirments which are fulfilled based on the number
+      # of variants that have been found in the input VCF
       foreach my $ar (keys %{$txt_output_data->{$individual}->{$gene_id}}) {
         foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_id}->{$ar}}) {
           my $is_canonical = $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$tr_stable_id}->{is_canonical};
@@ -1360,10 +1361,12 @@ sub write_txt_output {
 
 =head2 write_html_output
 
-  Arg [1]    :
-  Example    :
-  Description:
-  Returntype :
+  Arg [1]    : Hashref $result_summary
+  Arg [2]    : Hashref $html_data
+  Arg [3]    : Hashref $canonical_transcripts
+  Arg [4]    : Hashref $gene_xrefs
+  Description: Genereates the HTML output file.
+  Returntype : None
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1527,10 +1530,9 @@ SHTML
 
 =head2 html_and_txt_data
 
-  Arg [1]    :
-  Example    :
-  Description:
-  Returntype :
+  Arg [1]    : Hashref $result_summary
+  Description: Create two hashrefs  $html_output_data and $txt_output_data which will be used to create the HTML and TXT output files.
+  Returntype : Array of Hashref $html_output_data, Hashref $txt_output_data
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1545,7 +1547,7 @@ sub html_and_txt_data {
   my $vf_annotation_data = $result_summary->{vf_annotation_data};
   my $frequency_data = $result_summary->{frequency_data};
   my $canonical_transcripts = $result_summary->{canonical_transcripts};
-  my $gene2ar = $result_summary->{gene2ar};
+  my $gene2ar = $result_summary->{gene2ar}; # All allelic requirements that have been reported for the the gene in the G2P database
 
   my @frequencies_header = sort keys %{$self->{population_names}};
 
@@ -1565,7 +1567,10 @@ sub html_and_txt_data {
   foreach my $individual (sort keys %$results_by_individual) {
 
     foreach my $gene_id (keys %{$results_by_individual->{$individual}}) {
-      my $observed_allelic_requirement = join(',', keys %{$gene2ar->{$gene_id}}); # document
+      # All required allelic requirements as reported in the G2P database
+      my $required_allelic_requirement = join(',', keys %{$gene2ar->{$gene_id}});
+      # Loop over all allelic requirements that are that are fulfilled based on the number of
+      # variants that have been found.
       foreach my $ar (keys %{$results_by_individual->{$individual}->{$gene_id}}) {
         foreach my $transcript_stable_id (keys %{$results_by_individual->{$individual}->{$gene_id}->{$ar}}) {
           my $zyg2vf = $results_by_individual->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}; 
@@ -1643,7 +1648,7 @@ sub html_and_txt_data {
                 [$vf_name], 
                 [$existing_name], 
                 [$zygosity], 
-                [$observed_allelic_requirement],
+                [$required_allelic_requirement],
                 [$consequence_types], 
                 [$clin_sign], 
                 [$sift, $sift_class], 
@@ -1661,7 +1666,7 @@ sub html_and_txt_data {
                 $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
               }
               $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{is_canonical} = $is_canonical;
-              $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{REQ} = $observed_allelic_requirement; # document REQ
+              $txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{REQ} = $required_allelic_requirement;
               push @{$txt_output_data->{$individual}->{$gene_id}->{$ar}->{$transcript_stable_id}->{variants}}, $txt_output_variant;
             }
           }
@@ -1674,9 +1679,9 @@ sub html_and_txt_data {
 
 =head2 parse_log_files
 
-  Arg [1]    :
-  Example    :
-  Description:
+  Description: Read content from log files and write data into hashrefs which will
+               be used to extract G2P complete genes and write results into TXT and
+               HTML output files.
   Returntype :
   Exceptions : None
   Caller     : General
@@ -1695,7 +1700,7 @@ sub parse_log_files {
   my $canonical_transcripts = {};
   my $all_g2p_genes = {};
   my $vcf_g2p_genes = {};
-  my $ar_data = {}; # allelic requirement
+  my $ar_data = {}; # all allelic requirements that have been reported for the gene in the G2P database
   my $g2p_transcripts = {};
   my $gene_xrefs = {};
 
@@ -1760,7 +1765,7 @@ sub parse_log_files {
   }
   
   my $results_by_individual = $self->get_results_by_individual($individual_data, $ar_data);
-  my $g2p_complete_genes = $self->get_g2p_complete_genes($results_by_individual);
+  my $g2p_complete_genes = get_g2p_complete_genes($results_by_individual);
 
   return {
     frequency_data => $frequency_data,
@@ -1778,17 +1783,16 @@ sub parse_log_files {
 
 =head2 get_g2p_complete_genes
 
-  Arg [1]    :
-  Example    :
-  Description:
-  Returntype :
+  Arg [1]    : Hashref $results_by_individual
+  Example    : my $g2p_complete_genes = get_g2p_complete_genes($results_by_individual);
+  Description: Extract all gene ids from the $results_by_individual hashref.
+  Returntype : Hashref $g2p_complete_genes
   Exceptions : None
   Caller     : General
   Status     : Stable
 
 =cut
 sub get_g2p_complete_genes {
-  my $self = shift;
   my $results_by_individual = shift;
   my $g2p_complete_genes = {};
   foreach my $individual (keys %$results_by_individual) {
@@ -1869,10 +1873,10 @@ sub get_results_by_individual {
 
 =head2 get_highest_frequency
 
-  Arg [1]    :
-  Example    :
-  Description:
-  Returntype :
+  Arg [1]    : String $frequency
+  Example    : my $highest_frequency = get_highest_frequency('AA=0.0007289,AFR=0,AMR=0.0014,EA=0.005595,EAS=0,EUR=0.006,SAS=0,gnomAD=0.002923,gnomAD_AFR=0.0005175');
+  Description: Extract the highest frequency from the frequency string.
+  Returntype : Float $highest_frequency
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1892,10 +1896,11 @@ sub get_highest_frequency {
 
 =head2 store_population_names
 
-  Arg [1]    :
-  Example    :
-  Description:
-  Returntype :
+  Arg [1]    : String $frequencies
+  Example    : $self->store_population_names('AA=0.0007289,AFR=0,AMR=0.0014,EA=0.005595,EAS=0,EUR=0.006,SAS=0,gnomAD=0.002923,gnomAD_AFR=0.0005175');
+  Description: Extract population names from the frequency string and store population names in internal cache.
+               Population names are used for creating the header in the HTML output file.
+  Returntype : None
   Exceptions : None
   Caller     : General
   Status     : Stable
