@@ -77,6 +77,20 @@ sub new {
 
   $self->get_user_params();
 
+ # get headers
+  my $file = $self->params->[0];
+  open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
+  while(<HEAD>) {
+    next unless /^\#/;
+    chomp;
+    $_ =~ s/^\#//;
+    $self->{headers} = [split];
+  }
+  close HEAD;
+
+  die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
+  $self->{revel_file_columns} = scalar @{$self->{headers}};
+
   return $self;
 }
 
@@ -116,7 +130,7 @@ sub parse_data {
 
   my @values = split /\t/, $line;
   # the first version only had GRCh37 coordinates
-  if (scalar @values == 7) {
+  if ($self->{revel_file_columns} == 7) {
     my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
 
     return {
@@ -128,7 +142,7 @@ sub parse_data {
         REVEL   => $revel_value,
       }
     };
-  } elsif (scalar  @values == 8) {
+  } elsif ($self->{revel_file_columns} == 8) {
     my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
     return {
       alt => $alt,
@@ -142,7 +156,7 @@ sub parse_data {
       }
     };
   } else {
-    return undef;
+    return;
   }
 }
 
