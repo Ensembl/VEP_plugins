@@ -150,7 +150,7 @@ sub parse_data {
         REVEL   => $revel_value,
       }
     };
-  } 
+  }
   # the first version only has GRCh37 coordinates
   elsif ($self->{revel_file_columns} == 7) {
     my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
