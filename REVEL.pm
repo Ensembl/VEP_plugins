@@ -56,6 +56,7 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin.
 
 =cut
+
 package REVEL;
 
 use strict;
@@ -89,7 +90,12 @@ sub new {
   close HEAD;
 
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
-  $self->{revel_file_columns} = scalar @{$self->{headers}};
+  my $column_count = scalar @{$self->{headers}};
+  if ($column_count != 7 && $column_count != 8) {
+    die "ERROR: Column count must be 8 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
+  }
+
+  $self->{revel_file_columns} = $column_count;
 
   return $self;
 }
@@ -129,27 +135,30 @@ sub parse_data {
   my ($self, $line) = @_;
 
   my @values = split /\t/, $line;
-  # the first version only had GRCh37 coordinates
-  if ($self->{revel_file_columns} == 7) {
-    my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
-
-    return {
-      alt => $alt,
-      start_grch37 => $s,
-      end_grch37 => $s,
-      altaa => $altaa,
-      result => {
-        REVEL   => $revel_value,
-      }
-    };
-  } elsif ($self->{revel_file_columns} == 8) {
+  # the lastest version also contains GRCh38 coordinates
+  if ($self->{revel_file_columns} == 8) {
     my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
+
     return {
       alt => $alt,
       start_grch37 => $s_grch37,
       end_grch37 => $s_grch37,
       start_grch38 => $s_grch38,
       end_grch38 => $s_grch38,
+      altaa => $altaa,
+      result => {
+        REVEL   => $revel_value,
+      }
+    };
+  } 
+  # the first version only has GRCh37 coordinates
+  elsif ($self->{revel_file_columns} == 7) {
+    my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
+
+    return {
+      alt => $alt,
+      start_grch37 => $s,
+      end_grch37 => $s,
       altaa => $altaa,
       result => {
         REVEL   => $revel_value,
