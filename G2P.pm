@@ -550,8 +550,8 @@ sub is_g2p_complete {
                   '4_32929274_A/G' => 1
                 }
                });
-  Description: Check if the variants fulfill the given allelic requirement. Variants are grouped by their
-               zygosity. The subroutine checks for each variant if in internally stored frequency for a variant
+  Description: Check if the variants fulfil the given allelic requirement. Variants are grouped by their
+               zygosity. The subroutine checks for each variant if the internally stored frequency for a variant
                is lower than the allele frequency threshold defined by the allelic requirement. Then consider
                the variants which pass frequency filtering and check if the number is sufficient to fulfil the
                allelic requirement.  
@@ -603,10 +603,10 @@ sub zyg2var_filtered_by_allelic_requirement_rule {
                   '4_32929274_A/G' => 1
                 ]
                );
-  Description: Check for each variant if the highest frequencies that has been observed in any
-               population and is stored internally under the highest_frequencies hash key is lower
+  Description: Check for each variant if the highest frequency that has been observed in any
+               population (stored internally under the highest_frequencies hash key for a variant) is lower
                than the given allele frequency threshold. If yes, add the variant to the result set.
-               Also add the variant to the result if the variant hasn't any observed allele frequencies
+               Also add the variant to the result set if the variant hasn't any observed allele frequencies
                or if the variant is in the variant include list. 
   Returntype : Arrayref $variants_filtered
                For example: [
@@ -643,7 +643,7 @@ sub variants_filtered_by_frequency_threshold {
                information to the log file. We call _dump_transcript_annotations and write transcript information to the log file.
   Returntype : Boolean
   Exceptions : None
-  Caller     : General
+  Caller     : run
   Status     : Stable
 
 =cut
@@ -720,7 +720,7 @@ sub get_cache_name {
 =head2 get_gene_stable_id
 
   Arg [1]    : Transcript $transcript
-  Description: Retrives the gene stable id from the transcript object
+  Description: Retrives the Ensembl or RefSeq gene stable id from the transcript object
   Returntype : String $gene_stable_id
   Exceptions : None
   Caller     : General
@@ -812,9 +812,9 @@ sub _vep_cache_frequency_filtering {
 
 =head2 _dump_existing_vf_frequencies
 
-  Arg [1]    : Hashref $exisiting_var
-  Description: The $exisiting_var contains everything that is stored for the variant in the VEP cache file.
-               Extract allele frequencies from $exisiting_var and write it to the log file as G2P_frequencies. 
+  Arg [1]    : Hashref $existing_var
+  Description: The $existing_var contains everything that is stored for the variant in the VEP cache file.
+               Extract allele frequencies from $existing_var and write it to the log file as G2P_frequencies. 
                Store the highest observed frequency for the variant which is used later for filtering.
   Returntype : None
   Exceptions : None
@@ -847,7 +847,7 @@ sub _dump_existing_vf_frequencies {
 =head2 _dump_exisiting_vf_annotations
 
   Arg [1]    : Hashref $existing_var
-  Description: The $exisiting_var contains everything that is stored for the variant in the VEP cache file.
+  Description: The $existing_var contains everything that is stored for the variant in the VEP cache file.
                Extract variant annotation from the hashref and write the annotations to the log file as G2P_existing_vf_annotations. 
   Returntype : None
   Exceptions : None
@@ -943,7 +943,7 @@ sub _vcf_frequency_filtering {
 
   Arg [1]    : Arrayref $alleles
   Description: Write allele frequencies from VCF files to the log file as G2P_frequencies.
-  Returntype :
+  Returntype : None
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -961,7 +961,6 @@ sub _dump_existing_vf_vcf {
 =head2 store_highest_frequency
 
   Arg [1]    : Float $frequency
-  Example    :
   Description: Store highest observed frequency for the current variant in the internal cache which is used
                for filtering later.
   Returntype : None
@@ -1192,7 +1191,15 @@ sub read_gene_data_from_file {
   Example    : $gene_data = $self->gene_data('PRKAR1A')
   Description: Get all panel specific data for the given gene symbol.
                TODO add example of gene_data hash
-  Returntype : Hashref $gene_data
+  Returntype : Hashref $gene_data, for example:
+                  {
+                    'gene_xrefs' => [
+                      'PEPD'
+                    ],
+                    'allelic requirement' => [
+                      'biallelic'
+                    ]
+                  };
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1234,9 +1241,7 @@ sub synonym_mappings {
 
   Arg [1]    : String $flag
   Arg [2]    : Array of values that need to be written to the log file together with the flag.
-  Example    :
-  Description:
-  Returntype :
+  Description: write_report is called to write results and annotations to the log file.
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1343,7 +1348,7 @@ sub write_txt_output {
   foreach my $individual (sort keys %$txt_output_data) {
     foreach my $gene_id (keys %{$txt_output_data->{$individual}}) {
       my $gene_id_title = (defined $gene_xrefs->{$gene_id}) ? "$gene_id(" .  $gene_xrefs->{$gene_id} . ")" : $gene_id;
-      # Loop over all observed allelic requirments which are fulfilled based on the number
+      # Loop over all observed allelic requirements which are fulfilled based on the number
       # of variants that have been found in the input VCF
       foreach my $ar (keys %{$txt_output_data->{$individual}->{$gene_id}}) {
         foreach my $tr_stable_id (keys %{$txt_output_data->{$individual}->{$gene_id}->{$ar}}) {
@@ -1365,7 +1370,7 @@ sub write_txt_output {
   Arg [2]    : Hashref $html_data
   Arg [3]    : Hashref $canonical_transcripts
   Arg [4]    : Hashref $gene_xrefs
-  Description: Genereates the HTML output file.
+  Description: Generates the HTML output file.
   Returntype : None
   Exceptions : None
   Caller     : General
@@ -1547,7 +1552,7 @@ sub html_and_txt_data {
   my $vf_annotation_data = $result_summary->{vf_annotation_data};
   my $frequency_data = $result_summary->{frequency_data};
   my $canonical_transcripts = $result_summary->{canonical_transcripts};
-  my $gene2ar = $result_summary->{gene2ar}; # All allelic requirements that have been reported for the the gene in the G2P database
+  my $gene2ar = $result_summary->{gene2ar}; # All allelic requirements that have been reported for the  gene in the G2P database
 
   my @frequencies_header = sort keys %{$self->{population_names}};
 
@@ -1569,7 +1574,7 @@ sub html_and_txt_data {
     foreach my $gene_id (keys %{$results_by_individual->{$individual}}) {
       # All required allelic requirements as reported in the G2P database
       my $required_allelic_requirement = join(',', keys %{$gene2ar->{$gene_id}});
-      # Loop over all allelic requirements that are that are fulfilled based on the number of
+      # Loop over all allelic requirements that are fulfilled based on the number of
       # variants that have been found.
       foreach my $ar (keys %{$results_by_individual->{$individual}->{$gene_id}}) {
         foreach my $transcript_stable_id (keys %{$results_by_individual->{$individual}->{$gene_id}->{$ar}}) {
@@ -1682,7 +1687,7 @@ sub html_and_txt_data {
   Description: Read content from log files and write data into hashrefs which will
                be used to extract G2P complete genes and write results into TXT and
                HTML output files.
-  Returntype :
+  Returntype : Hashref of hashrefs
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1824,7 +1829,7 @@ sub get_g2p_complete_genes {
                 },
                });  
   Description: Creates a new hashref $results_by_individual which orders data from the log file by individual and gene.
-               Foreach gene it then list all transcripts and variants that pass filtering under the respective allelic
+               For each gene it then list all transcripts and variants that pass filtering under the respective allelic
                requirement. 
   Returntype : Hashref $results_by_individual
                Here is an example, which is made up. For the monoallelic gene PRDM15 in person a we found a homozygous variant
