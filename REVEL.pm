@@ -78,8 +78,9 @@ sub new {
 
   $self->get_user_params();
 
- # get headers
+ # get column count in REVEL file from header line
   my $file = $self->params->[0];
+  $self->add_file($file);
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
     next unless /^\#/;
@@ -94,8 +95,15 @@ sub new {
   if ($column_count != 7 && $column_count != 8) {
     die "ERROR: Column count must be 8 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
   }
-
   $self->{revel_file_columns} = $column_count;
+
+  my $assembly = $self->{config}->{assembly};
+  my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
+  if ($assembly eq 'GRCh37') {
+    ($start_key, $end_key) = ('start_grch37', 'end_grch37');
+  }
+  $self->{revel_start_key} = $start_key;
+  $self->{revel_end_key} = $end_key;
 
   return $self;
 }
@@ -113,19 +121,14 @@ sub run {
   # only for missense variants
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
-  my $assembly = $self->{config}->{assembly};
-  my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
-  if ($assembly eq 'GRCh37') {
-    ($start_key, $end_key) = ('start_grch37', 'end_grch37');
-  }
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
 
   my ($res) = grep {
-    $_->{alt}        eq $allele &&
-    $_->{$start_key} eq $vf->{start} &&
-    $_->{$end_key}   eq $vf->{end} &&
-    $_->{altaa}      eq $tva->peptide
+    $_->{alt}                      eq $allele &&
+    $_->{$self->{revel_start_key}} eq $vf->{start} &&
+    $_->{$self->{revel_end_key}}   eq $vf->{end} &&
+    $_->{altaa}                    eq $tva->peptide
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? $res->{result} : {};
