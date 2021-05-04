@@ -98,10 +98,18 @@ sub new {
   $self->{revel_file_columns} = $column_count;
 
   my $assembly = $self->{config}->{assembly};
+
+  foreach my $assembly_to_pos (['GRCh37', 'hg19_pos'], ['GRCh38', 'grch38_pos']) {
+    if ($assembly eq  $assembly_to_pos->[0] && ! grep {$_ eq  $assembly_to_pos->[1]} @{$self->{headers}}) {
+      die "ERROR: Assembly is " . $assembly_to_pos->[0] . " but REVEL file does not contain " . $assembly_to_pos->[1] . " in header.\n"; 
+    }
+  }
+
   my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
   if ($assembly eq 'GRCh37') {
     ($start_key, $end_key) = ('start_grch37', 'end_grch37');
   }
+
   $self->{revel_start_key} = $start_key;
   $self->{revel_end_key} = $end_key;
 
