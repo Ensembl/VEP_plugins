@@ -99,10 +99,13 @@ sub new {
 
   my $assembly = $self->{config}->{assembly};
 
-  foreach my $assembly_to_pos (['GRCh37', 'hg19_pos'], ['GRCh38', 'grch38_pos']) {
-    if ($assembly eq  $assembly_to_pos->[0] && ! grep {$_ eq  $assembly_to_pos->[1]} @{$self->{headers}}) {
-      die "ERROR: Assembly is " . $assembly_to_pos->[0] . " but REVEL file does not contain " . $assembly_to_pos->[1] . " in header.\n"; 
-    }
+  my %assembly_to_hdr = ('GRCh37' => 'hg19_pos',
+                         'GRCh38' => 'grch38_pos');
+
+  if (! grep {$_ eq $assembly_to_hdr{$assembly}} @{$self->{headers}}) {
+      die "ERROR: Assembly is " . $assembly .
+          " but REVEL file does not contain " .
+          $assembly_to_hdr{$assembly} . " in header.\n";
   }
 
   my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
