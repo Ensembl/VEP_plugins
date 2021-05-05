@@ -56,6 +56,7 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin.
 
 =cut
+
 package REVEL;
 
 use strict;
@@ -77,6 +78,44 @@ sub new {
 
   $self->get_user_params();
 
+ # get column count in REVEL file from header line
+  my $file = $self->params->[0];
+  $self->add_file($file);
+  open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
+  while(<HEAD>) {
+    next unless /^\#/;
+    chomp;
+    $_ =~ s/^\#//;
+    $self->{headers} = [split];
+  }
+  close HEAD;
+
+  die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
+  my $column_count = scalar @{$self->{headers}};
+  if ($column_count != 7 && $column_count != 8) {
+    die "ERROR: Column count must be 8 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
+  }
+  $self->{revel_file_columns} = $column_count;
+
+  my $assembly = $self->{config}->{assembly};
+
+  my %assembly_to_hdr = ('GRCh37' => 'hg19_pos',
+                         'GRCh38' => 'grch38_pos');
+
+  if (! grep {$_ eq $assembly_to_hdr{$assembly}} @{$self->{headers}}) {
+      die "ERROR: Assembly is " . $assembly .
+          " but REVEL file does not contain " .
+          $assembly_to_hdr{$assembly} . " in header.\n";
+  }
+
+  my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
+  if ($assembly eq 'GRCh37') {
+    ($start_key, $end_key) = ('start_grch37', 'end_grch37');
+  }
+
+  $self->{revel_start_key} = $start_key;
+  $self->{revel_end_key} = $end_key;
+
   return $self;
 }
 
@@ -95,11 +134,12 @@ sub run {
 
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
+
   my ($res) = grep {
-    $_->{alt}   eq $allele &&
-    $_->{start} eq $vf->{start} &&
-    $_->{end}   eq $vf->{end} &&
-    $_->{altaa} eq $tva->peptide
+    $_->{alt}                      eq $allele &&
+    $_->{$self->{revel_start_key}} eq $vf->{start} &&
+    $_->{$self->{revel_end_key}}   eq $vf->{end} &&
+    $_->{altaa}                    eq $tva->peptide
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? $res->{result} : {};
@@ -108,17 +148,39 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
 
-  my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = split /\t/, $line;
+  my @values = split /\t/, $line;
+  # the lastest version also contains GRCh38 coordinates
+  if ($self->{revel_file_columns} == 8) {
+    my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
 
-  return {
-    alt => $alt,
-    start => $s,
-    end => $s,
-    altaa => $altaa,
-    result => {
-      REVEL   => $revel_value,
-    }
-  };
+    return {
+      alt => $alt,
+      start_grch37 => $s_grch37,
+      end_grch37 => $s_grch37,
+      start_grch38 => $s_grch38,
+      end_grch38 => $s_grch38,
+      altaa => $altaa,
+      result => {
+        REVEL   => $revel_value,
+      }
+    };
+  }
+  # the first version only has GRCh37 coordinates
+  elsif ($self->{revel_file_columns} == 7) {
+    my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
+
+    return {
+      alt => $alt,
+      start_grch37 => $s,
+      end_grch37 => $s,
+      altaa => $altaa,
+      result => {
+        REVEL   => $revel_value,
+      }
+    };
+  } else {
+    return;
+  }
 }
 
 sub get_start {
