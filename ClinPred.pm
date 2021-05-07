@@ -33,6 +33,12 @@ https://sites.google.com/site/clinpred/products-services
  and can be tabix-processed by:
  
  for GRCh37:
+ gzip -d ClinPred.txt.gz # to unzip the text file 
+ cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
+sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  #to add a # in the first line of the file 
+sed '1s/C/c' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr 
+bgzip ClinPred_tabbed.tsv # to gunzip the file 
+
  tabix -f -s 1 -b 2 -e 2 ClinPred.txt.gz 
 
  The tabix utility must be installed in your path to use this plugin.
@@ -41,7 +47,7 @@ https://sites.google.com/site/clinpred/products-services
 
 
 =cut
-package CLINPRED;
+package ClinPred;
  
 
 use strict;
