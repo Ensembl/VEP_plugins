@@ -20,7 +20,7 @@ limitations under the License.
 
 =head1 SYNOPSIS
  mv Clinpred.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CLINPRED,/path/to/Clinpred/data.txt.gz
+ ./vep -i variations.vcf --plugin CLINPRED,/path/to/Clinpred.tsv..gz
 =head1 DESCRIPTION
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds the CLINPRED(pathogenicity) score for variants to VEP output.
@@ -33,8 +33,8 @@ https://sites.google.com/site/clinpred/products-services
  and can be tabix-processed by:
  
  for GRCh37:
- gzip -d ClinPred.txt.gz # to unzip the text file 
- cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
+gzip -d ClinPred.txt.gz # to unzip the text file 
+cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
 sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  #to add a # in the first line of the file 
 sed '1s/C/c' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr 
 bgzip ClinPred_tabbed.tsv # to gunzip the file 
@@ -55,11 +55,12 @@ use warnings;
 
 
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp)
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+
+use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
-# this is a method from the base class BaseVepPlugin 
+
 sub new {
   my $class = shift;
   
@@ -72,53 +73,43 @@ sub new {
 
   return $self;
 }
-# this is a method from the base class BaseVepPlugin 
+
 sub feature_types {
   return ['Transcript'];
 
 }
-# this is a method from the base class BaseVepPlugin 
+
 sub get_header_info {
-     # a bit confused about what name to call this since, it is not an abbreviation 
      return { ClinPred => "AN ENSEMBLE MACHINE LEARNING PREDICTION TOOL" };
 }
-# this is a method from the base class BaseVepPlugin 
+
 sub run{
-     my($self, $tva) = @_;
+     my ($self, $tva) = @_;
 
-     # since it is only for missense variant, we do an if or unless statement 
-     if (grep {$_->eq "missense_variant"}){
-          return @{$tva->get_all_OverlapConsequences()};
-     }
+     
+     return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
-     else {
-          return {}
-     }
-
-     my $vf = $tva->variation_feature();
-     # get allele here from the vcf file 
-     my $allele = $tva->variation_feature_seq();
+     my $vf = $tva->variation_feature;
+     my $allele = $tva->variation_feature_seq;
      return {} unless $allele =~ /^[ACGT]$/;
 
-     my $res = grep{
+     my ($res) = grep{
           $_->{alt} eq $allele &&
           $_->{start} eq $vf->{start} &&
-          $_->{end} eq $vf->{end} && } 
+          $_->{end} eq $vf->{end} } 
           
-          @{self->get_data($vf->{chr}, $vf=>{$start}, $vf->{end})};
+          @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
-     return $res ? $res->{$result} : {};
+     return $res ? $res->{result} : {};
 
 
 }
 
-# this is a method from the base class BaseVepTabixPlugin 
-sub parse_data {
-     # we are parsing data using the header of the ClinPred.txt.gz file 
-     # parse data is a method called from the base class BaseVepTabixPlugin
 
+sub parse_data {
+    
      my ($self, $line) = @_;
-     # splitting the header to create a list of variables. 
+   
      my ($chr, $start, $ref, $alt, $ClinPred_score ) = split("\t", $line);
 
      return {
