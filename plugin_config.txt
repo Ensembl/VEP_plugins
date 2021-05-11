@@ -208,7 +208,7 @@ my $VEP_PLUGIN_CONFIG = {
             "SiPhy_29way_logOdds",
             "SiPhy_29way_logOdds_rankscore",
             "bStatistic",
-            "bStatistic_rankscore",
+            "bStatistic_converted_rankscore",
             "1000Gp3_AC",
             "1000Gp3_AF",
             "1000Gp3_AFR_AC",
