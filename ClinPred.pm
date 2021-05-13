@@ -23,8 +23,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin ClinPred,/path/to/ClinPred/data.txt.gz
 
 =head1 DESCRIPTION
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- adds pre-calculated scores from ClinPred.
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated scores from ClinPred.
  ClinPred is a prediction tool to identify disease-relevant nonsynonymous variants.
 
  This Plugin is only available for GRCh37
@@ -99,13 +98,13 @@ sub run{
 
 sub parse_data {
   my ($self, $line) = @_;
-  my ($chr, $start, $ref, $alt, $ClinPred_score ) = split("\t", $line);
+  my ($chr, $start, $ref, $alt, $clinpred_score ) = split("\t", $line);
   return {
     start => $start,
     end => $start,
     alt => $alt,
     result => {
-      ClinPred => $ClinPred_score,
+      ClinPred => $clinpred_score,
      }
         };
 }
