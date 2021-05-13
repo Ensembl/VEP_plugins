@@ -42,7 +42,7 @@ limitations under the License.
  sed '1s/C/c' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr 
  bgzip ClinPred_tabbed.tsv # to gunzip the file 
 
- tabix -f -s 1 -b 2 -e 2 ClinPred.txt.gz 
+ tabix -f -s 1 -b 2 -e 2 ClinPred_tabbed.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
