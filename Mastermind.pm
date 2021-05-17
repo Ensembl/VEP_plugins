@@ -129,9 +129,7 @@ sub new {
   $self->expand_right(0);
 
   $self->get_user_params();
-
-  die("ERROR: Mastermind input file not specified or found!\n") unless defined($self->params->[0]) && -e $self->params->[0];
-
+  my $file = $self->params->[0]
   $self->add_file($self->params->[0]);
 
   if(defined($self->params->[1])) {

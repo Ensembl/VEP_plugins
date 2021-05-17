@@ -129,8 +129,6 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  die("ERROR: SpliceAI files not provided or not found!\n") unless defined($param_hash->{snv}) && defined($param_hash->{indel}) && -e $param_hash->{snv} && -e $param_hash->{indel};
-
   $self->add_file($param_hash->{snv});
   $self->add_file($param_hash->{indel});
 

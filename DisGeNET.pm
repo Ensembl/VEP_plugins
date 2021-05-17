@@ -126,8 +126,6 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  die("ERROR: DisGeNET file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
-
   $self->add_file($param_hash->{file});
 
   if(defined($param_hash->{disease})) {
