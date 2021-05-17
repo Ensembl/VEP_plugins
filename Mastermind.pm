@@ -130,7 +130,7 @@ sub new {
 
   $self->get_user_params();
   my $file = $self->params->[0]
-  $self->add_file($self->params->[0]);
+  $self->add_file($file);
 
   if(defined($self->params->[1])) {
     $self->{mutation_off} = $self->params->[1];
