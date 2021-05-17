@@ -56,6 +56,7 @@ use warnings;
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
 sub new {
   my $class = shift;
   
@@ -64,10 +65,9 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
   
-  $self->get_user_params();
-  die("ERROR: ClinPred input file not specified or found!\n") unless defined($self->params->[0]) && -e $self->params->[0];
+  my $file = $self->params->[0];
+  $self->add_file($file);
 
-  $self->add_file($self->params->[0]);
   return $self;
 }
 
@@ -82,15 +82,15 @@ sub get_header_info {
  
 sub run{
   my ($self, $tva) = @_;
-  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
   return {} unless $allele =~ /^[ACGT]$/;
   my ($res) = grep{
     $_->{alt} eq $allele &&
-    $_->{start} eq $vf->{start} &&
-    $_->{end} eq $vf->{end} 
+    $_->{start} == $vf->{start} &&
+    $_->{end} == $vf->{end} 
     } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
     
   return $res ? $res->{result} : {};
