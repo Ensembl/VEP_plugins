@@ -495,7 +495,8 @@ sub is_valid_g2p_variant {
   foreach my $ar (@allelic_requirements) {
     my $ar_rules = $allelic_requirements->{$ar};
     my $af_threshold = $ar_rules->{af};
-    if ($self->variants_filtered_by_frequency_threshold($af_threshold, [$self->{vf_cache_name}])) {
+    my $variants = $self->variants_filtered_by_frequency_threshold($af_threshold, [$self->{vf_cache_name}]);
+    if (scalar @$variants > 0) {
       push @results, "$ar=$zyg";
     }
   }
@@ -624,8 +625,8 @@ sub variants_filtered_by_frequency_threshold {
   my $variants = shift;
   my @pass_variants = ();
   foreach my $variant (@$variants) {
-    if (!defined $self->{highest_frequencies}->{$variant} ||
-         $self->{highest_frequencies}->{$variant} <= $af_threshold ||
+    my $highest_frequency = $self->highest_frequency($variant);
+    if (! defined $highest_frequency || $highest_frequency <= $af_threshold ||
          $self->{g2p_vf_cache}->{$variant}->{is_on_variant_include_list}
     ) {
       push @pass_variants, $variant;
@@ -793,6 +794,7 @@ sub _vep_cache_frequency_filtering {
     if ($existing_var->{matched_alleles}) { # Get matched alleles from input variant and existing variant, in case input variant was normalized to match variant from cache file
       $allele = $existing_var->{matched_alleles}[0]->{b_allele};
     }
+
     next if (!@frequencies);
     if ($self->_exceeds_frequency_threshold(\@frequencies, $allele, $frequency_threshold) && !$self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_variant_include_list}) { 
       return 0; # Return 0 (failed filtering) if frequencies exceed threshold and variant is not on variant_include_list
@@ -840,7 +842,7 @@ sub _dump_existing_vf_frequencies {
       }
     }
   }
-  $self->store_highest_frequency($higest_frequency);
+  $self->highest_frequency($self->{vf_cache_name}, $higest_frequency);
   $self->write_report('G2P_frequencies', $self->{vf_cache_name}, \@frequencies);
 }
 
@@ -954,14 +956,15 @@ sub _dump_existing_vf_vcf {
   my $alleles = shift;
   my @frequencies = map {$_->population->name . '=' . $_->frequency} @$alleles;
   my @sorted_frequencies = sort { $a->frequency <=> $b->frequency } @$alleles;
-  $self->store_highest_frequency($sorted_frequencies[-1]->frequency);
+  $self->highest_frequency($self->{vf_cache_name}, $sorted_frequencies[-1]->frequency);
   $self->write_report('G2P_frequencies', $self->{vf_cache_name}, \@frequencies);
 }
 
-=head2 store_highest_frequency
+=head2 highest_frequency
 
-  Arg [1]    : Float $frequency
-  Description: Store highest observed frequency for the current variant in the internal cache which is used
+  Arg [1]    : String $vf_cache_name
+  Arg [2]    : Float $frequency
+  Description: Getter and setter for highest observed frequency for the current variant in the internal cache which is used
                for filtering later.
   Returntype : None
   Exceptions : None
@@ -969,10 +972,17 @@ sub _dump_existing_vf_vcf {
   Status     : Stable
 
 =cut
-sub store_highest_frequency {
+sub highest_frequency {
   my $self = shift;
+  my $vf_cache_name = shift;
   my $f = shift;
-  $self->{highest_frequency}->{$self->{vf_cache_name}} = $f;
+  if (defined $vf_cache_name && defined $f) {
+    my $highest_frequency = $self->{highest_frequencies}->{$vf_cache_name};
+    if (defined $highest_frequency && $highest_frequency < $f || ! defined  $highest_frequency) {
+      $self->{highest_frequencies}->{$vf_cache_name} = $f;
+    }
+  }
+  return $self->{highest_frequencies}->{$vf_cache_name};
 }
 
 =head2 dump_vf_annotations
@@ -1729,9 +1739,7 @@ sub parse_log_files {
         $frequency_data->{$vf_cache_name}->{$frequencies} = 1;
         $self->store_population_names($frequencies);
         my $highest_frequency = get_highest_frequency($frequencies);
-        if (!defined  $self->{highest_frequencies}->{$vf_cache_name} || $self->{highest_frequencies}->{$vf_cache_name} <= $highest_frequency) {
-          $self->{highest_frequencies}->{$vf_cache_name} = $highest_frequency;
-        }
+        $self->highest_frequency($vf_cache_name, $highest_frequency);
       }
       #G2P_tva_annotations 17_82929274_A/G ENST00000355528 consequence_types=splice_region_variant,intron_variant;hgvs_p=NA;hgvs_t=ENST00000355528.9:c.2852+3A>G;is_on_variant_include_list=0;polyphen_prediction=NA;polyphen_score=NA;refseq=NM_005993.5;sift_prediction=NA;sift_score=NA;transcript_stable_id=ENST00000355528;vf_location=17:82929274-82929274 A/G;vf_name=id_17_82929274_A_G
       elsif (/^G2P_tva_annotations/) {
