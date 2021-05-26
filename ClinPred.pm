@@ -95,7 +95,7 @@ sub run{
   
 
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
-  ($vf_start, $vf_end) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end});
+  ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
 
   my ($res) = grep{
     $_->{alt} eq $allele &&
