@@ -37,9 +37,9 @@ limitations under the License.
  The following steps are neccessary to tabix the ClinPred.txt.gz file before running the plugin:
  gzip -d ClinPred.txt.gz # to unzip the text file 
  cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
- sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  #to add a # in the first line of the file 
+ sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  # to add a # in the first line of the file 
  sed '1s/C/c' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr 
- bgzip ClinPred_tabbed.tsv # to gunzip the file 
+ bgzip ClinPred_tabbed.tsv 
 
  tabix -f -s 1 -b 2 -e 2 ClinPred_tabbed.tsv.gz
 
@@ -67,7 +67,12 @@ sub new {
   
   my $file = $self->params->[0];
   $self->add_file($file);
+  
+  my $assembly = $self->{config}->{assembly};
 
+  if ($assembly ne "GRCh37") {
+    die "Assembly is not GRCh37, ClinPred only works with GRCh37. \n";
+  }
   return $self;
 }
 
@@ -87,11 +92,16 @@ sub run{
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
   return {} unless $allele =~ /^[ACGT]$/;
+  
+
+  my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
+  ($vf_start, $vf_end) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end});
+
   my ($res) = grep{
     $_->{alt} eq $allele &&
-    $_->{start} == $vf->{start} &&
-    $_->{end} == $vf->{end} 
-    } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+    $_->{start} == $vf_start &&
+    $_->{end} == $vf_end
+    } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
     
   return $res ? $res->{result} : {};
 }
@@ -105,8 +115,8 @@ sub parse_data {
     alt => $alt,
     result => {
       ClinPred => $clinpred_score,
-     }
-        };
+    }
+  };
 }
 
 sub get_start {
