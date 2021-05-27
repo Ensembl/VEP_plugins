@@ -129,7 +129,7 @@ sub new {
   $self->expand_right(0);
 
   $self->get_user_params();
-  my $file = $self->params->[0]
+  my $file = $self->params->[0];
   $self->add_file($file);
 
   if(defined($self->params->[1])) {
