@@ -667,7 +667,23 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/104/PON_P2.pm"
     },
 
-
+    # ClinPred
+    # Requires data file processed from ClinPred.txt.gz
+    {
+      "key" => "ClinPred",
+      "helptip" => "A prediction tool for the identification of disease-relevant nonsynonymous single nucleotide variants",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/104/ClinPred.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/ClinPred_tabbed.tsv.gz"
+      ]
+    },
     
     ## SPLICING PREDICTIONS
     #######################
