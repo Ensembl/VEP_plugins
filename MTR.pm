@@ -12,8 +12,6 @@
 =head1 SYNOPSIS
 
   mv MTR.pm ~/.vep/Plugins
-  curl -O ftp://mtr-viewer.mdhs.unimelb.edu.au/pub/mtrflatfile_1.0.txt.gz
-  curl -O ftp://mtr-viewer.mdhs.unimelb.edu.au/pub/mtrflatfile_1.0.txt.gz.tbi
   perl variant_effect_predictor.pl -i variations.vcf --plugin MTR,mtrflatfile_1.0.txt.gz
 
 =head1 DESCRIPTION
@@ -33,7 +31,16 @@ http://genome.cshlp.org/content/27/10/1715
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path
 to use this plugin. MTR flat files can be downloaded from:
-ftp://mtr-viewer.mdhs.unimelb.edu.au/pub
+http://biosig.unimelb.edu.au/mtr-viewer/downloads
+The following steps are necessary before running the plugin 
+Download the needed data from http://biosig.unimelb.edu.au/mtr-viewer/downloads
+The following steps are needed after downloading
+gzip -d mtrflatfile_2.0.txt.gz
+cat mtrflatfile_2.0.txt | tr " " "\t" > mtrflatfile_2.0.tsv
+sed '1s/.*/#&/'   mtrflatfile_2.0.tsv > mtrflatfile_2.00.tsv
+sed -e '1s/Chromosome_name/chr/' mtrflatfile_2.00.tsv > mtrflatfile_2.0.tsv 
+bgzip  mtrflatfile_2.0.tsv 
+tabix -f -s 1 -b 2 -e 2 mtrflatfile_2.0.tsv.gz
 
 NB: Data are available for GRCh37 only
 
@@ -60,13 +67,11 @@ sub new {
   # get MTR file
   my $file = $self->params->[0];
   $self->add_file($file);
-
-  # remote files?
-  if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
+  
+  #ensure assembly is in GRCh37 
+  my $assembly = $self->{config}->{assembly};
+  if ($assembly ne "GRCh37") {
+    die "Assembly not GRCh37, MTR only works for GRCh37 /n";
   }
 
   # get headers and store on self
