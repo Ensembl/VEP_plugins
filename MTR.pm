@@ -69,12 +69,6 @@ sub new {
     }
   }
 
-  # check files exist
-  else {
-    die "ERROR: MTR file $file not found\n" unless -e $file;
-    die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
-  }
-
   # get headers and store on self
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
