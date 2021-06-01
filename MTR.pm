@@ -12,9 +12,7 @@
 =head1 SYNOPSIS
 
   mv MTR.pm ~/.vep/Plugins
-  curl -O ftp://mtr-viewer.mdhs.unimelb.edu.au/pub/mtrflatfile_1.0.txt.gz
-  curl -O ftp://mtr-viewer.mdhs.unimelb.edu.au/pub/mtrflatfile_1.0.txt.gz.tbi
-  perl variant_effect_predictor.pl -i variations.vcf --plugin MTR,mtrflatfile_1.0.txt.gz
+  ./vep -i variations.vcf --plugin MTR,mtrflatfile_1.0.txt.gz
 
 =head1 DESCRIPTION
 
@@ -31,9 +29,14 @@ Aggregation Consortium Database (ExAC), version 2.0
 Please cite the MTR publication alongside the VEP if you use this resource:
 http://genome.cshlp.org/content/27/10/1715
 
-The Bio::DB::HTS perl library or tabix utility must be installed in your path
-to use this plugin. MTR flat files can be downloaded from:
-ftp://mtr-viewer.mdhs.unimelb.edu.au/pub
+The Bio::DB::HTS perl library or tabix utility must be installed in your path to use this plugin.
+MTR flat files can be downloaded from http://biosig.unimelb.edu.au/mtr-viewer/downloads
+The following steps are necessary before running the plugin 
+gzip -d mtrflatfile_2.0.txt.gz # to unzip the text file.
+cat mtrflatfile_2.0.txt | tr " " "\t" > mtrflatfile_2.00.tsv # to change the file to a tabbed delimited file.
+sed '1s/.*/#&/'   mtrflatfile_2.00.tsv > mtrflatfile_2.0.tsv # to add # in the first line of the file.
+bgzip mtrflatfile_2.0.tsv 
+tabix -f -s 1 -b 2 -e 2 mtrflatfile_2.0.tsv.gz
 
 NB: Data are available for GRCh37 only
 
@@ -54,19 +57,14 @@ sub new {
   my $class = shift;
   my $self = $class->SUPER::new(@_);
 
-  # test tabix
-  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
-
   # get MTR file
   my $file = $self->params->[0];
   $self->add_file($file);
 
-  # remote files?
-  if($file =~ /tp\:\/\//) {
-    my $remote_test = `tabix -f $file 1:1-1 2>&1`;
-    if($remote_test && $remote_test !~ /get_local_version/) {
-      die "$remote_test\nERROR: Could not find file or index file for remote annotation file $file\n";
-    }
+  # to check assembly is GRCh37 
+  my $assembly = $self->{config}->{assembly};
+  if ($assembly ne "GRCh37") {
+    die "Assembly not GRCh37, MTR only works for GRCh37 \n";
   }
 
   # get headers and store on self
