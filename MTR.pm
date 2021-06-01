@@ -12,7 +12,7 @@
 =head1 SYNOPSIS
 
   mv MTR.pm ~/.vep/Plugins
-  ./vep variant_effect_predictor.pl -i variations.vcf --plugin MTR,mtrflatfile_2.0.tsv.gz
+  ./vep -i variations.vcf --plugin MTR,mtrflatfile_2.0.tsv.gz
 
 =head1 DESCRIPTION
 
