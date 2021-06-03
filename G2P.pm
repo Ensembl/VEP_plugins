@@ -230,6 +230,14 @@ sub new {
     die("ERROR: Couldn't create log_dir $log_dir $!\n") if (!$return);
     $params->{log_dir} = $log_dir;
   } 
+  else{
+    opendir my $dh, $log_dir or warn "Not a directory";
+    my @check = grep {$_ ne '.' and $_ ne '..'} readdir $dh;
+    die("Error: Directory is not empty, You need to empty directory before using the plugin \n") if (scalar @check != 0);
+    $params->{log_dir} = $log_dir;
+  }
+
+
 
   foreach my $report_type (qw/txt_report html_report/) {
     if (!$params->{$report_type}) {
