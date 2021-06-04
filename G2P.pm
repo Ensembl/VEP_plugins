@@ -231,9 +231,10 @@ sub new {
     $params->{log_dir} = $log_dir;
   } 
   else{
-    opendir my $dh, $log_dir or warn "Not a directory";
+    opendir my $dh, $log_dir or die("ERROR: There was a problem opening the log_dir: $!\n");
     my @check = grep {$_ ne '.' and $_ ne '..'} readdir $dh;
-    die("Error: Directory is not empty, You need to empty directory before using the plugin \n") if (scalar @check != 0);
+    die("ERROR: The log directory ($log_dir) is not empty. You need to empty directory before using the plugin \n") if (scalar @check != 0);
+    closedir $dh;
     $params->{log_dir} = $log_dir;
   }
 
