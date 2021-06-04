@@ -137,8 +137,8 @@ sub run {
 
   my ($res) = grep {
     $_->{alt}                      eq $allele &&
-    $_->{$self->{revel_start_key}} eq $vf->{start} &&
-    $_->{$self->{revel_end_key}}   eq $vf->{end} &&
+    $_->{$self->{revel_start_key}} == $vf->{start} &&
+    $_->{$self->{revel_end_key}}   == $vf->{end} &&
     $_->{altaa}                    eq $tva->peptide
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 

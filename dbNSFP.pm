@@ -333,7 +333,7 @@ sub run {
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
   
-  return {} unless $vf->{start} eq $vf->{end};
+  return {} unless $vf->{start} == $vf->{end};
   
   # get allele, reverse comp if needed
   my $allele = $tva->variation_feature_seq;
