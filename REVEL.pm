@@ -92,8 +92,8 @@ sub new {
 
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
   my $column_count = scalar @{$self->{headers}};
-  if ($column_count != 7 && $column_count != 8) {
-    die "ERROR: Column count must be 8 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
+  if ($column_count != 7 && $column_count != 8 && $column_count != 9) {
+    die "ERROR: Column count must be 8 or 9 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
   }
   $self->{revel_file_columns} = $column_count;
 
@@ -150,8 +150,8 @@ sub parse_data {
 
   my @values = split /\t/, $line;
   # the lastest version also contains GRCh38 coordinates
-  if ($self->{revel_file_columns} == 8) {
-    my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
+  if ($self->{revel_file_columns} == 8 || $self->{revel_file_columns} == 9) {
+    my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value, $transcript_id ) = @values;
 
     return {
       alt => $alt,
