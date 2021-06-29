@@ -114,8 +114,8 @@ sub run {
   # data is written by pos, allele, transcript ID (feature)
   # grep lines read in matched on position so that they also are matched on allele and transcript ID
   my ($res) = grep {
-    $_->{Genomic_position} eq $vf->{start} &&
-    $_->{Genomic_position} eq $vf->{end} &&
+    $_->{Genomic_position} == $vf->{start} &&
+    $_->{Genomic_position} == $vf->{end} &&
     $_->{alt}              eq $allele &&
     $_->{Feature}          eq $tr_id
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};

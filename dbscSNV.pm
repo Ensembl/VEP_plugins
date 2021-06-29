@@ -145,7 +145,7 @@ sub run {
   
   my $vf = $tva->variation_feature;
   
-  return {} unless $vf->{start} eq $vf->{end};
+  return {} unless $vf->{start} == $vf->{end};
   # return {} unless grep {$_->SO_term =~ /splic/} @{$tva->get_all_OverlapConsequences};
   
   # get allele, reverse comp if needed
