@@ -40,11 +40,11 @@ limitations under the License.
  
  
  REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
- 
- The plugin now tries to support:
- -The first REVEL file version had 7 columns and only GRCh37 coordinates
- -The second REVEL file version (2020 February) has 8 columns with GRCh37 and GRCh38 coordinates
- -The third REVEL file version (2021 May) has 9 columns with GRCh37 and GRCh38 coordinates and new column with transcript ids
+
+ The plugin supports several REVEL file versions:
+ - REVEL file version Dec 2017, which has 7 columns and only GRCh37 coordinates
+ - REVEL file version Feb 2020, which has 8 columns with GRCh37 and GRCh38 coordinates
+ - REVEL file version May 2021, which has 9 columns with GRCh37 and GRCh38 coordinates and a new column with transcript ids
 
  These files can be tabix-processed by:
  Unzip revel-v1.3_all_chromosomes.zip
