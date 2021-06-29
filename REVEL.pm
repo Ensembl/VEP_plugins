@@ -100,7 +100,7 @@ sub new {
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
   my $column_count = scalar @{$self->{headers}};
   if ($column_count != 7 && $column_count != 8 && $column_count != 9) {
-    die "ERROR: Column count must be 8 or 9 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only o.\n";
+    die "ERROR: Column count must be 8 or 9 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only .\n";
   }
   $self->{revel_file_columns} = $column_count;
 
