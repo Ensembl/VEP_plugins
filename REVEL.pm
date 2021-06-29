@@ -38,10 +38,17 @@ limitations under the License.
  Please cite the REVEL publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
  
- REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
- and can be tabix-processed by:
  
- cat revel_all_chromosomes.csv | tr "," "\t" > tabbed_revel.tsv
+ REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
+ 
+ The plugin now tries to support:
+ -The first REVEL file version had 7 columns and only GRCh37 coordinates
+ -The second REVEL file version (2020 February) has 8 columns with GRCh37 and GRCh38 coordinates
+ -The third REVEL file version (2021 May) has 9 columns with GRCh37 and GRCh38 coordinates and new column with transcript ids
+
+ These files can be tabix-processed by:
+ Unzip revel-v1.3_all_chromosomes.zip
+ cat revel_with_transcript_ids | tr "," "\t" > tabbed_revel.tsv
  sed '1s/.*/#&/' tabbed_revel.tsv > new_tabbed_revel.tsv
  bgzip new_tabbed_revel.tsv
 
@@ -93,7 +100,7 @@ sub new {
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
   my $column_count = scalar @{$self->{headers}};
   if ($column_count != 7 && $column_count != 8 && $column_count != 9) {
-    die "ERROR: Column count must be 8 or 9 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
+    die "ERROR: Column count must be 8 or 9 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only o.\n";
   }
   $self->{revel_file_columns} = $column_count;
 
