@@ -38,10 +38,17 @@ limitations under the License.
  Please cite the REVEL publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
  
- REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
- and can be tabix-processed by:
  
- cat revel_all_chromosomes.csv | tr "," "\t" > tabbed_revel.tsv
+ REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
+
+ The plugin supports several REVEL file versions:
+ - REVEL file version Dec 2017, which has 7 columns and only GRCh37 coordinates
+ - REVEL file version Feb 2020, which has 8 columns with GRCh37 and GRCh38 coordinates
+ - REVEL file version May 2021, which has 9 columns with GRCh37 and GRCh38 coordinates and a new column with transcript ids
+
+ These files can be tabix-processed by:
+ Unzip revel-v1.3_all_chromosomes.zip
+ cat revel_with_transcript_ids | tr "," "\t" > tabbed_revel.tsv
  sed '1s/.*/#&/' tabbed_revel.tsv > new_tabbed_revel.tsv
  bgzip new_tabbed_revel.tsv
 
@@ -92,8 +99,8 @@ sub new {
 
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
   my $column_count = scalar @{$self->{headers}};
-  if ($column_count != 7 && $column_count != 8) {
-    die "ERROR: Column count must be 8 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only.\n";
+  if ($column_count != 7 && $column_count != 8 && $column_count != 9) {
+    die "ERROR: Column count must be 8 or 9 for REVEL files with GRCh38 positions or 7 for REVEL files with GRCh37 positions only .\n";
   }
   $self->{revel_file_columns} = $column_count;
 
@@ -150,8 +157,8 @@ sub parse_data {
 
   my @values = split /\t/, $line;
   # the lastest version also contains GRCh38 coordinates
-  if ($self->{revel_file_columns} == 8) {
-    my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
+  if ($self->{revel_file_columns} == 8 || $self->{revel_file_columns} == 9) {
+    my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value, $transcript_id ) = @values;
 
     return {
       alt => $alt,
