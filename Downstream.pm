@@ -55,12 +55,23 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
-use POSIX qw(ceil);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new(@_);
+
+    if($self->{config}{offline} && !$self->{config}{fasta}) {
+        die("ERROR: cannot function in offline mode without a FASTA file\n");
+    }
+
+    return $self;
+}
+
 sub version {
-    return '2.3';
+    return '2.4';
 }
 
 sub feature_types {
@@ -80,61 +91,60 @@ sub get_header_info {
 
 sub run {
     my ($self, $tva) = @_;
-    
-    my @ocs = @{$tva->get_all_OverlapConsequences};
-    
-    if(grep {$_->SO_term eq 'frameshift_variant'} @ocs) {
-        
-        # can't do it for splice sites
-        return {} if grep {$_->SO_term =~ /splice/} @ocs;
-        
-        my $tv = $tva->transcript_variation;
-        my $tr = $tv->transcript;
-        my $cds_seq = defined($tr->{_variation_effect_feature_cache}) ? $tr->{_variation_effect_feature_cache}->{translateable_seq} : $tr->translateable_seq;
-        
-        # get the sequence to translate
-        my ($low_pos, $high_pos) = sort {$a <=> $b} ($tv->cds_start, $tv->cds_end);
-        my $is_insertion         = $tv->cds_start > $tv->cds_end ? 1 : 0;
-        my $last_complete_codon  = (ceil($low_pos / 3) - 1) * 3;
-        my $before_var_seq       = substr $cds_seq, $last_complete_codon, $low_pos - $last_complete_codon - ($is_insertion ? 0 : 1);
-        my $after_var_seq        = substr $cds_seq, $high_pos - ($is_insertion ? 1 : 0);
-        my $to_translate         = $before_var_seq.$tva->feature_seq.$after_var_seq;
-        my $three_prime_utr_seq  = $tr->three_prime_utr->seq() if ($tr->three_prime_utr);
-        $to_translate            = $to_translate.$three_prime_utr_seq if ($three_prime_utr_seq);
-        $to_translate            =~ s/\-//g;
-        
-        # create a bioperl object
-        my $codon_seq = Bio::Seq->new(
-          -seq      => $to_translate,
-          -moltype  => 'dna',
-          -alphabet => 'dna'
-        );
-        
-        # get codon table
-        my $codon_table;
-        if(defined($tr->{_variation_effect_feature_cache})) {
-            $codon_table = $tr->{_variation_effect_feature_cache}->{codon_table} || 1;
-        }
-        else {
-            my ($attrib) = @{$tr->slice->get_all_Attributes('codon_table')};
-            $codon_table = $attrib ? $attrib->value || 1 : 1;
-        }
-        
-        # translate
-        my $new_pep = $codon_seq->translate(undef, undef, undef, $codon_table)->seq();
-        $new_pep =~ s/\*.*//;
-        
-        # compare lengths
-        my $translation = defined($tr->{_variation_effect_feature_cache}) && defined($tr->{_variation_effect_feature_cache}->{peptide}) ? $tr->{_variation_effect_feature_cache}->{peptide} : $tr->translation->seq;
-        my $new_length = ($tv->translation_start < $tv->translation_end ? $tv->translation_start : $tv->translation_end) + length($new_pep);
-        
-        return {
-            DownstreamProtein   => $new_pep,
-            ProteinLengthChange => $new_length - length($translation),
-        };
+
+    my @SO_terms = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
+
+    return {} unless grep { $_ eq 'frameshift_variant' } @SO_terms;
+
+    return {} if grep { /splice/ } @SO_terms;
+
+    my $tv = $tva->transcript_variation;
+    my $tr = $tv->transcript;
+
+    my $cds_seq = defined($tr->{_variation_effect_feature_cache})
+                ? $tr->{_variation_effect_feature_cache}->{translateable_seq}
+                : $tr->translateable_seq;
+
+    my ($start, $end) = ($tv->cds_start, $tv->cds_end);
+
+    substr($cds_seq, $start - 1, $end - $start + 1) = $tva->seq_length > 0 ? $tva->feature_seq : '';
+
+    my $low_pos = $start > $end ? $end : $start;
+    my $last_complete_codon = $low_pos - ( ( ( $low_pos - 1 ) % 3 ) + 1 );
+
+    my $downstream_seq = substr($cds_seq, $last_complete_codon > 0 ? $last_complete_codon : 0);
+    my $three_prime_utr = $tr->three_prime_utr ? $tr->three_prime_utr->seq() : '';
+
+    my $codon_seq = Bio::Seq->new(
+      -seq      => $downstream_seq . $three_prime_utr,
+      -moltype  => 'dna',
+      -alphabet => 'dna'
+    );
+
+    my $codon_table;
+    if(defined($tr->{_variation_effect_feature_cache})) {
+        $codon_table = $tr->{_variation_effect_feature_cache}->{codon_table} || 1;
+    }
+    else {
+        my ($attrib) = @{$tr->slice->get_all_Attributes('codon_table')};
+        $codon_table = $attrib ? $attrib->value || 1 : 1;
     }
 
-    return {};
+    my $new_pep = $codon_seq->translate(undef, undef, undef, $codon_table)->seq();
+    $new_pep =~ s/\*.*//;
+
+    my $translation = defined($tr->{_variation_effect_feature_cache}->{peptide})
+                    ? $tr->{_variation_effect_feature_cache}->{peptide}
+                    : $tr->translation->seq;
+
+    my ($pep_start, $pep_end) = ($tv->translation_start, $tv->translation_end);
+
+    my $new_length = ($pep_start < $pep_end ? $pep_start : $pep_end) + length($new_pep);
+
+    return {
+        DownstreamProtein   => $new_pep,
+        ProteinLengthChange => $new_length - length($translation),
+    };
 }
 
 1;
