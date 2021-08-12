@@ -47,14 +47,14 @@ limitations under the License.
  The following steps are necessary to tabix the gnomad genomes coverage file :
  mv gnomad.genomes.coverage.summary.tsv.bgz gnomad.genomes.r2.1.gz
  gunzip gnomad.genomes.r2.1.gz
- sed '1s/.*/#&/'  gnomad.genomes.r2.1 -> gnomad.genomes.tabbed.tsv
+ sed '1s/.*/#&/'  gnomad.genomes.r2.1 > gnomad.genomes.tabbed.tsv
  bgzip gnomad.genomes.tabbed.tsv
  tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
 
  The following steps are neccessary to tabix the gnomad exomes coverage file :
  mv gnomad.exomes.coverage.summary.tsv.bgz gnomad.exomes.r2.1.gz
  gunzip gnomad.exomes.r2.1.gz
- sed '1s/.*/#&/'  gnomad.exomes.r2.1 -> gnomad.exomes.tabbed.tsv
+ sed '1s/.*/#&/'  gnomad.exomes.r2.1 > gnomad.exomes.tabbed.tsv
  bgzip gnomad.exomes.tabbed.tsv
  tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
 
