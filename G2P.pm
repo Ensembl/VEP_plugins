@@ -416,14 +416,19 @@ sub run {
   return {} unless $zyg;
   # filter by G2P gene overlap
   return {} if (!$self->gene_overlap_filtering($tva));
-  # filter by variant consequence
-  return {} unless grep {$self->{user_params}->{types}->{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
+
   $self->set_variant_include_list_flag($tva);
+
+  # filter by variant consequence
+  return {} if (!$self->consequence_filtering($tva));
+
   # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
+
   # dump annotations for txt and html report files
   $self->dump_vf_annotations($tva);      
   $self->dump_individual_annotations($tva, $zyg);
+
   # check if transcript contains enough variants to fulfill the allelic requirement of the gene
   my $G2P_complete = $self->is_g2p_complete($tva, $zyg);
   my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
@@ -686,6 +691,28 @@ sub gene_overlap_filtering {
   }
   $self->_dump_transcript_annotations($transcript) if ($pass_gene_overlap_filter);
   return $self->{g2p_gene_cache}->{$gene_stable_id};
+}
+
+=head2 consequence_filtering
+
+  Arg [1]    : TranscriptVariationAllele $tva
+  Description: returns 1 or 0 depending on if the variant passes consequence filtering.
+               If the variant is on the variant include list we return 1, regardless
+               if the variant consequence is defined in types.
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+
+=cut
+
+sub consequence_filtering {
+  my $self = shift;
+  my $tva = shift;
+  my $vf = $tva->base_variation_feature;
+  my $vf_cache_name = $self->get_cache_name($vf);
+  return ((grep { $self->{user_params}->{types}->{$_->SO_term} } @{$tva->get_all_OverlapConsequences}) ||
+          $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_variant_include_list});
 }
 
 =head2 _dump_transcript_annotations
