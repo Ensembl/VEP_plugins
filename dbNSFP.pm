@@ -379,7 +379,7 @@ sub run {
     if ($self->{pep_match}) {
       $allele_string = join('/', $tmp_data->{aaref}, $tmp_data->{aaalt});
       $allele_string =~ s/X/*/g;
-      next if ($tv->pep_allele_string() ne $allele_string);
+      next if ($tva->pep_allele_string() ne $allele_string);
     }
 
     # make a clean copy as we're going to edit it
