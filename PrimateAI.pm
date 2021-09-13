@@ -141,7 +141,6 @@ sub parse_data {
   my ($chr, $pos, $alt, $score) = ($line[0], $line[1], $line[3], $line[10]);
 
   return {
-    chr => $chr,
     alt => $alt,
     start => $pos,
     end => $pos,
