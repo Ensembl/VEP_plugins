@@ -237,62 +237,66 @@ sub run {
 
     if($data_value->{data}) {
       my $ref_allele_comp = $ref_allele;
-      my $alt_allele_comp = $alt_allele;
       reverse_comp(\$ref_allele_comp);
-      reverse_comp(\$alt_allele_comp);
 
       # Ref and alt alleles from mastermind file
       my $mm_ref = $data_value->{ref};
       my $mm_alt = $data_value->{alt};
 
-      if( ($ref_allele eq $mm_ref && $alt_allele eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) {
+      # check each alternative allele
+      foreach my $alt_allele_aux (split /,/, $alt_allele){
+        my $alt_allele_comp = $alt_allele_aux;
+        reverse_comp(\$alt_allele_comp);
 
-        # Only checks the genomic location - appends data for all transcripts
-        if($self->{mutation_off}){
-          $result_data = $data_value->{result};
-          next;
-        }
+        if( ($ref_allele eq $mm_ref && $alt_allele_aux eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) {
 
-        # checks by mutation
-        my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
-        my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
-        my $aa_alterations = $data_value->{aa};
-        my $aa_string = $tv->pep_allele_string;
-        my $is_intron = $tv->intron_number();
-        my $has_cdna = $tv->cdna_start();
-        my $is_5utr = $tv->_five_prime_utr();
-        my $is_3utr = $tv->_three_prime_utr();
-
-        my $is_splice = grep {$_->SO_term =~ 'splice'} @{$tva->get_all_OverlapConsequences};
-
-        foreach my $aa_alteration (@$aa_alterations) {
-
-          # checks if citation refers to an UTR variant (5UTR, 3UTR)
-          if($data_value->{is_only_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) {
+          # Only checks the genomic location - appends data for all transcripts
+          if($self->{mutation_off}){
             $result_data = $data_value->{result};
-          }
-          # checks if citation refers to an UTR variant (new groupings from new file 2020-07-10)
-          if($data_value->{is_utr} == 1 && (defined($is_intron) || defined($is_splice) || defined($is_5utr) || defined($is_3utr))) {
-            $result_data = $data_value->{result};
-          }
-          # checks if it is a frameshift or nonsense
-          elsif($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
-            $result_data = $data_value->{result};
-          }
-          elsif($data_value->{is_other} == 1 && defined($is_intron)) {
-            $result_data = $data_value->{result};
+            next;
           }
 
-          # If mastermind aa change is UTR then skips aa verification
-          next if($aa_alteration =~ /UTR/ || !defined($has_cdna));
+          # checks by mutation
+          my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
+          my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
+          my $aa_alterations = $data_value->{aa};
+          my $aa_string = $tva->pep_allele_string;
 
-          # If there's a protein alteration then it only adds citations for the exact alteration cited
-          if(defined($aa_alteration) && defined($peptide_start) && defined($peptide_end) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
-            $result_data = $data_value->{result};
+          my $is_intron = $tv->intron_number();
+          my $has_cdna = $tv->cdna_start();
+          my $is_5utr = $tv->_five_prime_utr();
+          my $is_3utr = $tv->_three_prime_utr();
+
+          my $is_splice = grep {$_->SO_term =~ 'splice'} @{$tva->get_all_OverlapConsequences};
+
+          foreach my $aa_alteration (@$aa_alterations) {
+
+            # checks if citation refers to an UTR variant (5UTR, 3UTR)
+            if($data_value->{is_only_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) {
+              $result_data = $data_value->{result};
+            }
+            # checks if citation refers to an UTR variant (new groupings from new file 2020-07-10)
+            if($data_value->{is_utr} == 1 && (defined($is_intron) || defined($is_splice) || defined($is_5utr) || defined($is_3utr))) {
+              $result_data = $data_value->{result};
+            }
+            # checks if it is a frameshift or nonsense
+            elsif($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
+              $result_data = $data_value->{result};
+            }
+            elsif($data_value->{is_other} == 1 && defined($is_intron)) {
+              $result_data = $data_value->{result};
+            }
+
+            # If mastermind aa change is UTR then skips aa verification
+            next if($aa_alteration =~ /UTR/ || !defined($has_cdna));
+
+            # If there's a protein alteration then it only adds citations for the exact alteration cited
+            if(defined($aa_alteration) && defined($peptide_start) && defined($peptide_end) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
+              $result_data = $data_value->{result};
+            }
           }
         }
       }
-
     }
 
   }
