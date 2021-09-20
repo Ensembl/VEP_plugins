@@ -1516,6 +1516,18 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/StructuralVariantOverlap.pm"
     },
 
+    ## NONSENSE-MEDIATED PREDICTIONS
+    ############
+
+    # NMD 
+    {
+      "key" => "NMD",
+      "helptip" => "Nonsense-mediated mRNA decay escaping variants prediction",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Nonsense-mediated predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/NMD.pm"
+    },
 
     ## PROTEIN DATA
     ###############
@@ -1553,5 +1565,6 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/miRNA.pm",
     }
+
   ]
 };
