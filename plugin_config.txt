@@ -928,7 +928,7 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "params" => [
-        # "/path/to/PrimateAI_scores_v0.2[_hg38].tsv.gz"
+        # "/path/to/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz
       ]
     },
 
