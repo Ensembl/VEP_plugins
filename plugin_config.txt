@@ -1046,8 +1046,8 @@ my $VEP_PLUGIN_CONFIG = {
           "label" => "Select file with annotations for all single nucleotide substitutions (snv)",
           "type" => "dropdown",
           "values" => [
-            { "value" => "snv", "caption" => "SpliceAI (masked scores)" },
-            { "value" => "snv_ensembl", "caption" => "Ensembl MANE transcripts (raw scores)" }
+            { "value" => "snv", "caption" => "Masked scores (Ensembl/GENCODE v24 canonical transcripts)" },
+            { "value" => "snv_ensembl", "caption" => "Raw scores (Ensembl/GENCODE v37 MANE transcripts, SNV only)" }
           ],
           "value" => "snv",
         },
