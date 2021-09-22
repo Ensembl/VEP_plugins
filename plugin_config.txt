@@ -1040,6 +1040,18 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Splicing predictions",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/SpliceAI.pm",
+      "form" => [
+        {
+          "name" => "file_type",
+          "label" => "Select file with annotations for all single nucleotide substitutions (snv)",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "snv", "caption" => "SpliceAI (masked scores)" },
+            { "value" => "snv_ensembl", "caption" => "Ensembl MANE transcripts (raw scores)" }
+          ],
+          "value" => "snv",
+        },
+      ],
     },
 
 
