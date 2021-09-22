@@ -36,17 +36,30 @@ limitations under the License.
 
  https://gnomad.broadinstitute.org/downloads
  To download the gnomad genomes coverage file in TSV format:
+  for Assembly GRCh37: 
+  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
+  for Assembly GRCh38: 
   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate
 
-
  To download the gnomad exomes coverage file in TSV format: 
+  for Assembly GRCh37: 
+  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
+  for Assembky GRCh38: 
   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/exomes/gnomad.exomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate
 
 
  The coverage summary files must be processed and Tabix indexed before
  use by this plugin. 
-
- The following steps are necessary to tabix the gnomad genomes coverage file :
+ 
+ The following steps are necessary to tabix the gnomad genomes coverage file 
+ for Assembly GRCh37
+ mv gnomad.genomes.coverage.summary.tsv.bgz gnomad.genomes.r2.1.gz
+ gunzip gnomad.genomes.r2.1.gz
+ sed '1s/.*/#&/'  gnomad.genomes.r2.1 > gnomad.genomes.tabbed.tsv
+ bgzip gnomad.genomes.tabbed.tsv
+ tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
+ 
+ for Assembly GRCh38:
  mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
  gunzip gnomad.r3.0.1.gz
  sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.genomesv3.tabbed.tsv
@@ -56,6 +69,14 @@ limitations under the License.
  tabix -s 1 -b 2 -e 2 gnomad.genomesv3.tabbed.tsv.gz
 
  The following steps are neccessary to tabix the gnomad exomes coverage file :
+ for Assembly GRCh37:
+ mv gnomad.exomes.coverage.summary.tsv.bgz gnomad.exomes.r2.1.gz
+ gunzip gnomad.exomes.r2.1.gz
+ sed '1s/.*/#&/'  gnomad.exomes.r2.1 > gnomad.exomes.tabbed.tsv
+ bgzip gnomad.exomes.tabbed.tsv
+ tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
+
+ for Assembly GRCh38:
  mv gnomad.exomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
  gunzip gnomad.r3.0.1.gz
  sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.exomesv3.tabbed.tsv
