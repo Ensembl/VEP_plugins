@@ -1043,7 +1043,7 @@ my $VEP_PLUGIN_CONFIG = {
       "form" => [
         {
           "name" => "file_type",
-          "label" => "Select file with annotations for all single nucleotide substitutions (snv)",
+          "label" => "Select analysis mode",
           "type" => "dropdown",
           "values" => [
             { "value" => "snv", "caption" => "Masked scores (Ensembl/GENCODE v24 canonical transcripts)" },
