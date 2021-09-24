@@ -45,6 +45,7 @@ limitations under the License.
  LOEUF scores can be downloaded from
  https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7334197/bin/41586_2020_2308_MOESM4_ESM.zip
 
+ For GRCh37:
 
  These files can be tabix-processed by:
  Unzip 41586_2020_2308_MOESM4_ESM.zip
