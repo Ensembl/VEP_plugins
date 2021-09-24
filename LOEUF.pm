@@ -88,6 +88,7 @@ sub new {
     my $match_by = $param_hash->{match_by};
     $self->{match_by} = $match_by;
   }
+
   else{
     die("ERROR: Argument 'match_by' is undefined");
   }
@@ -105,6 +106,7 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
+
   return {} if grep {$_->SO_term eq 'downstream_gene_variant' || $_->SO_term eq 'upstream_gene_variant'} @{$tva->get_all_OverlapConsequences};
   
   my $vf = $tva->variation_feature;
@@ -112,7 +114,6 @@ sub run {
   my $end = $vf->{end};
   my $start = $vf->{start};
   ($start, $end) = ($end, $start) if $start > $end;
-
   
   if ($self->{match_by} eq 'transcript'){
     my ($res) = grep {
@@ -134,7 +135,6 @@ sub run {
         }
       }
     }
-
     return $max_loeuf_score ? {LOEUF => $max_loeuf_score} : {};
   }
 
@@ -146,7 +146,6 @@ sub run {
 
 sub parse_data {
   my ($self, $line) = @_;
-
   my @values = split /\t/, $line;
   my ($transcript_id, $oe_lof_upper, $gene_id, $chromosome, $start_position, $end_position ) = @values[1,30,64,75,76,77];
   return {
@@ -159,8 +158,6 @@ sub parse_data {
       LOEUF   => $oe_lof_upper,
     }
   };
-
-
 }
 
 sub get_start {
