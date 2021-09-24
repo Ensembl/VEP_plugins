@@ -959,6 +959,21 @@ my $VEP_PLUGIN_CONFIG = {
         # "/path/to/ClinPred_tabbed.tsv.gz"
       ]
     },
+    
+    # LOEUF
+    # Requires data file processed from supplementary_dataset_11_full_constraint_metrics.tsv.gz
+    {
+      "key" => "LOEUF",
+      "helptip" => "LOEUF stands for the "loss-of-function observed/expected upper bound fraction.",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/104/LOEUF.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ]
+    },
 
     ## SPLICING PREDICTIONS
     #######################
