@@ -51,7 +51,7 @@ limitations under the License.
  Unzip 41586_2020_2308_MOESM4_ESM.zip
  cd supplement
  zcat supplementary_dataset_11_full_constraint_metrics.tsv.gz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) | bgzip -c > loeuf_dataset.tsv.gz
- tabix -f -S 1 -s 76 -b 77 -e 77 loeuf_dataset.tsv.gz
+ tabix -f -S 1 -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
 
