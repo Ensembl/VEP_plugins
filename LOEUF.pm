@@ -36,7 +36,8 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds the LOEUF scores to VEP output. LOEUF stands for the "loss-of-function 
  observed/expected upper bound fraction." 
- The plugin currently does not add the score for downstream-gene-variant and upstream-gene-variant 
+
+ The plugin currently does not add the score for downstream_gene_variant and upstream_gene_variant 
 
  Please cite the LOEUF publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7334197/
