@@ -37,7 +37,7 @@ limitations under the License.
  adds the LOEUF scores to VEP output. LOEUF stands for the "loss-of-function 
  observed/expected upper bound fraction." 
 
- The plugin currently does not add the score for downstream_gene_variant and upstream_gene_variant 
+ NB: The plugin currently does not add the score for downstream_gene_variant and upstream_gene_variant 
 
  Please cite the LOEUF publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7334197/
@@ -63,8 +63,6 @@ package LOEUF;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
@@ -82,9 +80,11 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
+  # Get file
   die("ERROR: LOEUF file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
   $self->add_file($param_hash->{file});
 
+  # Check match_by argument
   if(defined($param_hash->{match_by})) {
     my $match_by = $param_hash->{match_by};
     $self->{match_by} = $match_by;
@@ -92,6 +92,12 @@ sub new {
 
   else{
     die("ERROR: Argument 'match_by' is undefined");
+  }
+
+  # Check assembly
+  my $assembly = $self->{config}->{assembly};
+  if ($assembly ne "GRCh37") {
+    die "Assembly is not GRCh37, LOEUF only works with GRCh37. \n";
   }
 
   return $self;
@@ -127,7 +133,7 @@ sub run {
     my @data = grep {
     $_->{gene_id} eq $transcript->{_gene_stable_id}
     } @{$self->get_data($vf->{chr}, $start, $end)};
-    ## Get max loeuf value for the gene
+    # Get max loeuf value for the gene
     my $max_loeuf_score = 0;
     foreach (@data){
       if (looks_like_number($_->{result}->{LOEUF})){
