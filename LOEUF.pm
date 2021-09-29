@@ -69,7 +69,6 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 use Scalar::Util qw(looks_like_number);
 
-
 sub new {
   my $class = shift;
 
@@ -79,12 +78,38 @@ sub new {
   $self->expand_right(0);
 
   my $param_hash = $self->params_to_hash();
+  
+  # Test zcat and head
+  die "ERROR: zcat does not seem to be in your path\n" unless `which zcat 2>&1` =~ /zcat$/;
+  die "ERROR: head does not seem to be in your path\n" unless `which head 2>&1` =~ /head$/;
 
   # Get file
   die("ERROR: LOEUF file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
   $self->add_file($param_hash->{file});
 
-  # Check match_by argument
+  # Get headers from file
+  my $headers;
+  open HEAD,"zcat data/loeuf_dataset.tsv.gz |head -n 1 |";
+  while(<HEAD>) {
+    chomp;
+    $headers = [split];
+  }
+  close HEAD;
+  
+  # Compare indexes of expected and observed columns
+  die "ERROR: Could not read headers from $param_hash->{file}\n" unless defined($headers) && scalar @{$headers};
+  my @obs_columns = @{$headers}[1,30,64,75,76,77] ;
+  my @exp_columns = ("transcript", "oe_lof_upper", "gene_id", "chromosome", "start_position", "end_position"); 
+  my @missing_columns;
+  foreach my $index (0 .. $#exp_columns){
+    if ($obs_columns[$index] ne  $exp_columns[$index]){
+      push @missing_columns,$exp_columns[$index];
+    }
+  }
+  my $missing_columns_str =  join(", ", @missing_columns) if scalar @missing_columns; 
+  die("ERROR: Missing columns: $missing_columns_str") if defined($missing_columns_str);
+
+  # Check match_by argument and store on self
   if(defined($param_hash->{match_by})) {
     my $match_by = $param_hash->{match_by};
     $self->{match_by} = $match_by;
@@ -97,7 +122,7 @@ sub new {
   # Check assembly
   my $assembly = $self->{config}->{assembly};
   if ($assembly ne "GRCh37") {
-    die "Assembly is not GRCh37, LOEUF only works with GRCh37. \n";
+    die "ERROR: Assembly is not GRCh37, LOEUF only works with GRCh37. \n";
   }
 
   return $self;
