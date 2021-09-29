@@ -107,7 +107,7 @@ sub new {
     }
   }
   my $missing_columns_str =  join(", ", @missing_columns) if scalar @missing_columns; 
-  die("ERROR: Missing columns: $missing_columns_str") if defined($missing_columns_str);
+  die("ERROR: Missing columns: $missing_columns_str\n") if defined($missing_columns_str);
 
   # Check match_by argument and store on self
   if(defined($param_hash->{match_by})) {
@@ -116,7 +116,7 @@ sub new {
   }
 
   else{
-    die("ERROR: Argument 'match_by' is undefined");
+    die("ERROR: Argument 'match_by' is undefined\n");
   }
 
   # Check assembly
