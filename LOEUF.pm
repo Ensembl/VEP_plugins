@@ -51,8 +51,10 @@ limitations under the License.
  These files can be tabix-processed by:
  Unzip 41586_2020_2308_MOESM4_ESM.zip
  cd supplement
- zcat supplementary_dataset_11_full_constraint_metrics.tsv.gz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) | bgzip -c > loeuf_dataset.tsv.gz
- tabix -f -S 1 -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
+ zcat supplementary_dataset_11_full_constraint_metrics.tsv.gz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) > loeuf_temp.tsv
+ sed '1s/.*/#&/' loeuf_temp.tsv > loeuf_dataset.tsv
+ bgzip loeuf_dataset.tsv
+ tabix -f -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
 
@@ -79,9 +81,8 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
   
-  # Test zcat and head
-  die "ERROR: zcat does not seem to be in your path\n" unless `which zcat 2>&1` =~ /zcat$/;
-  die "ERROR: head does not seem to be in your path\n" unless `which head 2>&1` =~ /head$/;
+  # Test tabix
+  die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
 
   # Get file
   die("ERROR: LOEUF file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
@@ -89,13 +90,14 @@ sub new {
 
   # Get headers from file
   my $headers;
-  open HEAD,"zcat data/loeuf_dataset.tsv.gz |head -n 1 |";
+  open HEAD,"tabix -H $param_hash->{file} 2>&1 | ";
   while(<HEAD>) {
     chomp;
+    $_ =~ s/^\#//;
     $headers = [split];
   }
   close HEAD;
-  
+
   # Compare indexes of expected and observed columns
   die "ERROR: Could not read headers from $param_hash->{file}\n" unless defined($headers) && scalar @{$headers};
   my @obs_columns = @{$headers}[1,30,64,75,76,77] ;
