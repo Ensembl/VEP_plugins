@@ -962,6 +962,7 @@ my $VEP_PLUGIN_CONFIG = {
     
     # LOEUF
     # Requires data file processed from supplementary_dataset_11_full_constraint_metrics.tsv.gz
+    # Only available for GRCh37
     {
       "key" => "LOEUF",
       "helptip" => "LOEUF stands for the "loss-of-function observed/expected upper bound fraction. This plugin adds constraint scores derived from gnomAD to VEP",
@@ -972,6 +973,10 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
+      ],
+      "params"  => [
+        # "/path/to/loeuf_dataset.gz",
+        "@*"
       ]
     },
 

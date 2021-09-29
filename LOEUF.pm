@@ -85,7 +85,7 @@ sub new {
   die "ERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
 
   # Get file
-  die("ERROR: LOEUF file not provided or not found!\n") unless defined($param_hash->{file}) && -e $param_hash->{file};
+  die "ERROR: LOEUF file not provided or not found!\n" unless defined($param_hash->{file}) && -e $param_hash->{file};
   $self->add_file($param_hash->{file});
 
   # Get headers from file
@@ -109,7 +109,7 @@ sub new {
     }
   }
   my $missing_columns_str =  join(", ", @missing_columns) if scalar @missing_columns; 
-  die("ERROR: Missing columns: $missing_columns_str\n") if defined($missing_columns_str);
+  die "ERROR: Missing columns: $missing_columns_str\n" if defined($missing_columns_str);
 
   # Check match_by argument and store on self
   if(defined($param_hash->{match_by})) {
@@ -118,7 +118,7 @@ sub new {
   }
 
   else{
-    die("ERROR: Argument 'match_by' is undefined\n");
+    die "ERROR: Argument 'match_by' is undefined\n" ;
   }
 
   # Check assembly
