@@ -95,6 +95,36 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
+  # Get headers and check they contain the required fields
+  open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
+
+  while (<HEAD>) {
+    next unless /^\#chr/;
+
+    chomp;
+
+    $_ =~ s/^\#//;
+
+    my @headers = split (/\t/, $_);
+
+    # Store the necessary header indexes on self
+    for (my $i = 0; $i <= (scalar @headers - 1); $i++){
+      if ($headers[$i] eq "pos" | $headers[$i] eq "alt" | $headers[$i] eq "primateDL_score"){
+        $self->{cols}->{$headers[$i]} = $i;
+      }
+    }
+
+    $self->{headers} = \@headers;
+  }
+
+  close HEAD;
+
+  die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
+
+  foreach my $header (qw(pos alt primateDL_score)) {
+    die "ERROR: The required $header header is missing from $file\n" unless grep {$_ eq $header} @{$self->{headers}};
+  }
+
   return $self;
 }
 
@@ -144,7 +174,16 @@ sub parse_data {
 
   #Necessary columns from the input file.
   my @line = split(/\t/, $line);
-  my ($chr, $pos, $alt, $score) = ($line[0], $line[1], $line[3], $line[10]);
+
+  my $index_pos = $self->{cols}->{"pos"};
+  my $index_alt = $self->{cols}->{"alt"};
+  my $index_score = $self->{cols}->{"primateDL_score"};
+
+  my $pos = $line[$index_pos];
+  my $alt = $line[$index_alt];
+  my $score = $line[$index_score];
+
+  die "ERROR: one or more necessary values (pos, alt or primateDL_score) are missing from the input file ".$self->{file}."\n" unless defined $pos && defined $alt && defined $score;
 
   return {
     alt => $alt,
