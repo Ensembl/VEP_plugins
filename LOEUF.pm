@@ -100,8 +100,8 @@ sub new {
 
   # Compare indexes of expected and observed columns
   die "ERROR: Could not read headers from $param_hash->{file}\n" unless defined($headers) && scalar @{$headers};
-  my @obs_columns = @{$headers}[1,30,64,75,76,77] ;
-  my @exp_columns = ("transcript", "oe_lof_upper", "gene_id", "chromosome", "start_position", "end_position"); 
+  my @obs_columns = @{$headers}[1,30,64] ;
+  my @exp_columns = ("transcript", "oe_lof_upper", "gene_id"); 
   my @missing_columns;
   foreach my $index (0 .. $#exp_columns){
     if ($obs_columns[$index] ne  $exp_columns[$index]){
@@ -181,13 +181,10 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
   my @values = split /\t/, $line;
-  my ($transcript_id, $oe_lof_upper, $gene_id, $chromosome, $start_position, $end_position ) = @values[1,30,64,75,76,77];
+  my ($transcript_id, $oe_lof_upper, $gene_id) = @values[1,30,64];
   return {
     gene_id => $gene_id,
     transcript_id => $transcript_id,
-    chromosome => $chromosome,
-    start => $start_position,
-    end => $end_position,
     result => {
       LOEUF   => $oe_lof_upper,
     }
