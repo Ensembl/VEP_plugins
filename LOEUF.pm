@@ -37,6 +37,10 @@ limitations under the License.
  adds the LOEUF scores to VEP output. LOEUF stands for the "loss-of-function 
  observed/expected upper bound fraction." 
 
+ The score can be added matching by either transcript or gene.
+ When matched by gene: 
+ If multiple transcripts are available for a gene, the most severe score is reported.
+
  NB: The plugin currently does not add the score for downstream_gene_variant and upstream_gene_variant 
 
  Please cite the LOEUF publication alongside the VEP if you use this resource:
@@ -160,16 +164,22 @@ sub run {
     my @data = grep {
     $_->{gene_id} eq $transcript->{_gene_stable_id}
     } @{$self->get_data($vf->{chr}, $start, $end)};
-    # Get max loeuf value for the gene
-    my $max_loeuf_score = 0;
+    # Get min loeuf value for the gene
+    my $min_loeuf_score;
+    my $first_entry_flag = 0;
     foreach (@data){
       if (looks_like_number($_->{result}->{LOEUF})){
-        if ($_->{result}->{LOEUF} > $max_loeuf_score){
-          $max_loeuf_score = $_->{result}->{LOEUF};
+	if (!$first_entry_flag){
+	  $min_loeuf_score = $_->{result}->{LOEUF};
+	  $first_entry_flag = 1 ;
+	  next;
+	}
+        if ($_->{result}->{LOEUF} < $min_loeuf_score){
+          $min_loeuf_score = $_->{result}->{LOEUF};
         }
       }
     }
-    return $max_loeuf_score ? {LOEUF => $max_loeuf_score} : {};
+    return $min_loeuf_score ? {LOEUF => $min_loeuf_score} : {};
   }
 
   else{
