@@ -51,10 +51,12 @@ limitations under the License.
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
  confidence_levels     : Confidence levels to include: confirmed, probable, possible, both RD and IF.
+                         For the new terminology, confidence levels to include : definitive, strong, limited and both RD and IF.
                          Separate multiple values with '&'.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
- all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible.
+ all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible for the old terms.
+                         For the new terms, the confidence levels are : definitive, strong, limited and both RD and IF.
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
@@ -166,16 +168,23 @@ my $af_key_2_population_name = {
 
 my $allelic_requirements = {
   'biallelic' => { af => 0.005, rules => {HET => 2, HOM => 1} },
+  'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_X_het' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
 };
 
 my $supported_confidence_levels = {
   'confirmed' => 1,
+  'definitive' => 1,
   'probable' => 1,
+  'strong' => 1,
   'possible' => 1,
+  'limited' => 1,
   'both RD and IF' => 1,
 };
 
