@@ -47,6 +47,8 @@ limitations under the License.
   for Assembly GRCh38: 
    gnomad genomes: 
     wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate
+   gnomad exomes
+    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/exomes/gnomad.exomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate
   
 
  The coverage summary files must be processed and Tabix indexed before
@@ -65,12 +67,14 @@ limitations under the License.
  
  for Assembly GRCh38:
   The following steps are necessary to tabix the gnomad genomes coverage file :
+   mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
    gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
+   sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.genomesv3.tabbed.tsv
    sed '1s/locus/chr\tpos/' gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
    sed 's/:/\t/g' gnomad.ch.genomesv3.tabbed.tsv > gnomad.genomesv3.tabbed.tsv
    bgzip  gnomad.genomesv3.tabbed.tsv 
    tabix -s 1 -b 2 -e 2 gnomad.genomesv3.tabbed.tsv.gz
- 
+
 
  By default, the output field prefix is 'gnomAD'. However if the input file's
  basename is 'gnomADg' (genomes) or 'gnomADe' (exomes), then these values are
