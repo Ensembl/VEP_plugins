@@ -220,7 +220,7 @@ sub run {
   else { 
     my @alleles = split /\//, $vf->allele_string;
     $ref_allele = shift @alleles;
-    $alt_allele = shift @alleles;
+    $alt_allele = join ',', @alleles;
   }
 
   my $end = $vf->{end};
