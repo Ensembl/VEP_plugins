@@ -220,7 +220,7 @@ sub run {
   else { 
     my @alleles = split /\//, $vf->allele_string;
     $ref_allele = shift @alleles;
-    $alt_allele = shift @alleles;
+    $alt_allele = join ',', @alleles;
   }
 
   my $end = $vf->{end};
@@ -245,6 +245,7 @@ sub run {
 
       # check each alternative allele
       foreach my $alt_allele_aux (split /,/, $alt_allele){
+
         my $alt_allele_comp = $alt_allele_aux;
         reverse_comp(\$alt_allele_comp);
 
