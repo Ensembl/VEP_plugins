@@ -208,20 +208,9 @@ sub run {
     $self->{syn_cache}->{$chr} = $new_chr;
   }
 
-  my $ref_allele;
-  my $alt_allele;
-
-  # convert to vcf format to compare the alleles
-  if($vf->allele_string =~ /-/) {
-    my $convert_to_vcf = $vf->to_VCF_record;
-    $ref_allele = ${$convert_to_vcf}[3];
-    $alt_allele = ${$convert_to_vcf}[4];
-  }
-  else { 
-    my @alleles = split /\//, $vf->allele_string;
-    $ref_allele = shift @alleles;
-    $alt_allele = join ',', @alleles;
-  }
+  my @alleles = split /\//, $vf->allele_string;
+  my $ref_allele = shift @alleles;
+  my $alt_allele = join ',', @alleles;
 
   my $end = $vf->{end};
   my $start = $vf->{start};
@@ -236,6 +225,14 @@ sub run {
   foreach my $data_value (@data) {
 
     if($data_value->{data}) {
+
+      # convert to vcf format to compare the alleles
+      if($vf->allele_string =~ /-/) {
+        my $convert_to_vcf = $vf->to_VCF_record;
+        $ref_allele = ${$convert_to_vcf}[3];
+        $alt_allele = ${$convert_to_vcf}[4];
+      }
+
       my $ref_allele_comp = $ref_allele;
       reverse_comp(\$ref_allele_comp);
 
