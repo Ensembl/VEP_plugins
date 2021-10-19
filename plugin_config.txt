@@ -1040,6 +1040,18 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Splicing predictions",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/105/SpliceAI.pm",
+      "form" => [
+        {
+          "name" => "file_type",
+          "label" => "Select analysis mode",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "snv", "caption" => "Masked scores (Ensembl/GENCODE v24 canonical transcripts)" },
+            { "value" => "snv_ensembl", "caption" => "Raw scores (Ensembl/GENCODE v37 MANE transcripts, SNV only)" }
+          ],
+          "value" => "snv",
+        },
+      ],
     },
 
 
