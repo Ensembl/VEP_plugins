@@ -138,7 +138,7 @@ my %DEFAULTS = (
   # set to 1 to do the "opposite", i.e. exclude variants with no MAF data
   default_af => 0,
   # adding new confidence levels based on the new terminology 
-  confidence_levels => [qw(confirmed probable definitive strong)],
+  confidence_levels => [qw(confirmed probable definitive strong, moderate)],
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
@@ -183,6 +183,7 @@ my $supported_confidence_levels = {
   'definitive' => 1,
   'probable' => 1,
   'strong' => 1,
+  'moderate' => 1, 
   'possible' => 1,
   'limited' => 1,
   'both RD and IF' => 1,
