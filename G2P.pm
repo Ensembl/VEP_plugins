@@ -50,12 +50,12 @@ limitations under the License.
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
- confidence_levels     : Confidence levels to include: confirmed, probable, possible, both RD and IF.
-                         For the new terminology, confidence levels to include : definitive, strong, limited and both RD and IF.
+ confidence_levels     : Confidence levels include: definitive, strong, moderate, limited
+                         Former confidence terms are still supported: confirmed, probable, possible, both RD and IF.
                          Separate multiple values with '&'.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
- all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible for the old terms.
+ all_confidence_levels : Set to 1 to include all confidence levels: confirmed, probable and possible for the old terms.
                          For the new terms, the confidence levels are : definitive, strong, limited and both RD and IF.
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
