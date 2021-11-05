@@ -55,8 +55,7 @@ limitations under the License.
                          Separate multiple values with '&'.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
- all_confidence_levels : Set to 1 to include all confidence levels: confirmed, probable and possible for the old terms.
-                         For the new terms, the confidence levels are : definitive, strong, limited and both RD and IF.
+ all_confidence_levels : Set to 1 to include all confidence levels
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
