@@ -50,11 +50,12 @@ limitations under the License.
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
- confidence_levels     : Confidence levels to include: confirmed, probable, possible, both RD and IF.
+ confidence_levels     : Confidence levels include: definitive, strong, moderate, limited
+                         Former confidence terms are still supported: confirmed, probable, possible, both RD and IF.
                          Separate multiple values with '&'.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
- all_confidence_levels : Set value to 1 to include all confidence levels: confirmed, probable and possible.
+ all_confidence_levels : Set to 1 to include all confidence levels
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
@@ -135,8 +136,8 @@ my %DEFAULTS = (
   # this means absence of MAF data is considered equivalent to MAF=0
   # set to 1 to do the "opposite", i.e. exclude variants with no MAF data
   default_af => 0,
-
-  confidence_levels => [qw(confirmed probable)],
+  # adding new confidence levels based on the new terminology 
+  confidence_levels => [qw(confirmed probable definitive strong, moderate)],
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
@@ -166,16 +167,24 @@ my $af_key_2_population_name = {
 
 my $allelic_requirements = {
   'biallelic' => { af => 0.005, rules => {HET => 2, HOM => 1} },
+  'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_X_het' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
 };
 
 my $supported_confidence_levels = {
   'confirmed' => 1,
+  'definitive' => 1,
   'probable' => 1,
+  'strong' => 1,
+  'moderate' => 1, 
   'possible' => 1,
+  'limited' => 1,
   'both RD and IF' => 1,
 };
 
