@@ -137,7 +137,7 @@ my %DEFAULTS = (
   # set to 1 to do the "opposite", i.e. exclude variants with no MAF data
   default_af => 0,
   # adding new confidence levels based on the new terminology 
-  confidence_levels => [qw(confirmed probable definitive strong, moderate)],
+  confidence_levels => [qw(confirmed probable definitive strong moderate)],
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
