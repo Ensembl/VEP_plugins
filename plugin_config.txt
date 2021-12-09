@@ -917,8 +917,8 @@ my $VEP_PLUGIN_CONFIG = {
     # PrimateAI
     # Requires PrimateAI_scores_v0.2.tsv.gz or PrimateAI_scores_v0.2_hg38.tsv.gz from https://basespace.illumina.com/s/yYGFdGih1rXL.
     {
-      "key" = "PrimateAI",
-      "helptip" = "PrimateAI scores can be used to assess pathogenicity of variants in humans",
+      "key" => "PrimateAI",
+      "helptip" => "PrimateAI scores can be used to assess pathogenicity of variants in humans",
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
