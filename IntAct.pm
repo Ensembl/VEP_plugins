@@ -112,7 +112,6 @@ use warnings;
 
 use Bio::EnsEMBL::Utils::Exception qw(warning);
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
@@ -179,30 +178,30 @@ sub get_header_info {
   
   my %header;
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output is separated by , and includes: ";
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Fields in each interaction data are separated by a comma(,) and multiple interaction data is separated by a colon(:). Output field includes - ";
 
-  $header{"IntAct"} .= "Feature AC- Accession number for that particular mutation feature, " if $self->{feature_ac};
-  $header{"IntAct"} .= "Feature short label- Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant), " if $self->{feature_short_label};
-  $header{"IntAct"} .= "Feature range(s)- Position(s) in the protein sequence affected by the mutation, " if $self->{feature_range};
-  $header{"IntAct"} .= "Original sequence- Wild type amino acid residue(s) affected in one letter code, " if $self->{original_sequence};
-  $header{"IntAct"} .= "Resulting sequence- Replacement sequence (or deletion) in one letter code, " if $self->{resulting_sequence};
-  $header{"IntAct"} .= "Feature type- Mutation type following the PSI-MI controlled vocabularies, " if $self->{feature_type};
-  $header{"IntAct"} .= "Feature annotation- Specific comments about the feature that can be of interest, " if $self->{feature_annotation};
-  $header{"IntAct"} .= "Affected protein AC- Affected protein identifier (preferably UniProtKB accession, if available), " if $self->{ap_ac};
-  $header{"IntAct"} .= "Affected protein symbol- As given by UniProtKB, " if $self->{ap_symbol};
-  $header{"IntAct"} .= "Affected protein full name- As given by UniProtKB, " if $self->{ap_full_name};
-  $header{"IntAct"} .= "Affected protein organism- TaxID and species name as given by UniProtKB, " if $self->{ap_organism};
-  $header{"IntAct"} .= "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets, " if $self->{interaction_participants};
-  $header{"IntAct"} .= "PubMedID- Reference to the publication where the interaction evidence was reported, " if $self->{pmid};
-  $header{"IntAct"} .= "Figure legend- Reference to the specific figures in the paper where the interaction evidence was reported, " if $self->{figure_legend};
-  $header{"IntAct"} .= "Interaction AC- Interaction accession within IntAct databases, " if $self->{interaction_ac};
+  $header{"IntAct"} .= "Feature AC: Accession number for that particular mutation feature. " if $self->{feature_ac};  
+  $header{"IntAct"} .= "Feature short label: Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). " if $self->{feature_short_label};
+  $header{"IntAct"} .= "Feature range(s): Position(s) in the protein sequence affected by the mutation. " if $self->{feature_range};
+  $header{"IntAct"} .= "Original sequence: Wild type amino acid residue(s) affected in one letter code. " if $self->{original_sequence};
+  $header{"IntAct"} .= "Resulting sequence: Replacement sequence (or deletion) in one letter code. " if $self->{resulting_sequence};
+  $header{"IntAct"} .= "Feature type: Mutation type following the PSI-MI controlled vocabularies. " if $self->{feature_type};
+  $header{"IntAct"} .= "Feature annotation: Specific comments about the feature that can be of interest. " if $self->{feature_annotation};
+  $header{"IntAct"} .= "Affected protein AC: Affected protein identifier (preferably UniProtKB accession, if available). " if $self->{ap_ac};
+  $header{"IntAct"} .= "Affected protein symbol: As given by UniProtKB. " if $self->{ap_symbol};
+  $header{"IntAct"} .= "Affected protein full name: As given by UniProtKB. " if $self->{ap_full_name};
+  $header{"IntAct"} .= "Affected protein organism: TaxID and species name as given by UniProtKB. " if $self->{ap_organism};
+  $header{"IntAct"} .= "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. " if $self->{interaction_participants};
+  $header{"IntAct"} .= "PubMedID- Reference to the publication where the interaction evidence was reported. " if $self->{pmid};
+  $header{"IntAct"} .= "Figure legend- Reference to the specific figures in the paper where the interaction evidence was reported. " if $self->{figure_legend};
+  $header{"IntAct"} .= "Interaction AC- Interaction accession within IntAct databases. " if $self->{interaction_ac};
   
   return \%header;
 }
 
 # match lines of IntAct data file using HGVS id
 sub _match_id {
-  my ($self, $id) = @_;
+  my ($self, $id_ref, $id_des) = @_;
 
   my $param_hash = $self->params_to_hash();
   my $mutation_file = $param_hash->{mutation_file};
@@ -211,8 +210,12 @@ sub _match_id {
 
   open my $f, $mutation_file or warning("WARNING: couldn't open file $mutation_file\n");
   while(<$f>) {
-    if(/$id/) {
-    	push @matches, $_;
+    my @fields = split /\t/;
+    my $ref = $fields[8];
+    my (undef, $des) = split /:/, $fields[1];
+    
+    if( ($des eq $id_des) && ($ref eq $id_ref) ) {
+        push @matches, $_;
     }
   }
 
@@ -230,49 +233,124 @@ sub _parse_intact_data {
   return \%parsed_data;
 }
 
+# remove duplicate interactions
+sub _remove_duplicates {
+  my ($self, $intact_matches) = @_;
+  
+  my @interaction_acs;
+  my @feature_types;
+  my @interaction_participants;
+
+  my @matches;
+  foreach (@$intact_matches) {
+    my $parsed_data = $self->_parse_intact_data($_);
+    
+    my $interaction_ac = $parsed_data->{interaction_ac};
+    my $feature_type = $parsed_data->{feature_type};
+    my $interaction_participant = $parsed_data->{interaction_participants};
+    
+    if( grep { $interaction_ac } @interaction_acs &&
+        grep { $feature_type } @feature_types &&
+        grep { $interaction_participant } @interaction_participants) {
+
+      push @matches, $parsed_data;
+    
+      push @interaction_acs, $interaction_ac;
+      push @feature_types, $feature_type;
+      push @interaction_participants, $interaction_participant;
+    }
+  }
+  
+  return \@matches;
+}
+
+# filter out field according to user input
+sub _filter_fields {
+  my ($self, $uniq_matches) = @_;
+  
+  my @filtered_result;
+
+  foreach (@$uniq_matches) {
+    my @result = ();
+
+    my $j = 0;
+    while (defined $valid_fields->{$j}) {
+      my $field = $valid_fields->{$j++};
+      if(defined $self->{$field}) {
+        push @result, $_->{$field} or warning("WARNING: failed to push result.\n");
+      }
+    }
+
+    chomp @result;
+    push @filtered_result, join(',', @result);
+  }
+  
+  return {"IntAct" => join(':', @filtered_result)};
+}
+
+# check if two alleles of different length likely be same
+sub _match_allele {
+  my ($self, $a, $b) = @_;
+
+  my $a_ref = $a->{ref};
+  my $b_ref = $b->{ref};
+  my $a_start = $a->{start};
+  my $b_start = $b->{start};
+   
+  while ($a_start < $b_start) {
+    $a_start++;
+    $a_ref = substr $a_ref, 1;
+  }
+  while ($b_start < $a_start) {
+    $b_start++;
+    $b_ref = substr $b_ref, 1;
+  }
+
+  if ($a_ref eq "" || $b_ref eq "") {
+    return 0;
+  }
+  
+  my $a_index = index($a_ref, $b_ref);
+  my $b_index = index($b_ref, $a_ref);
+  
+  return not ($a_index and $b_index);
+}
+
 sub run {
   my ($self, $tva) = @_;
   my $vf = $tva->variation_feature;
 
   # get allele
   my $allele = $tva->variation_feature_seq;
-  
+    
   return {} unless $allele =~ /^[ACGT-]+$/;
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
   foreach (@data) {
-    my $matches = get_matched_variant_alleles(
+    my $matched = $self->_match_allele(
       {
-        ref    => $vf->ref_allele_string,
-        alts   => [$allele],
-        pos    => $vf->{start},
-        strand => $vf->strand
+        ref	=> $vf->ref_allele_string,
+        start	=> $vf->{start}
       },
       {
-       ref  => $_->{ref},
-       alts => [$_->{alt}],
-       pos  => $_->{start},
+        ref	=> $_->{ref},
+        start	=> $_->{start}
       }
     );
+    next if not $matched; 
     
-    my $intact_matches = $self->_match_id($_->{id});
+    # get matched lines from IntAct data file on hgvs id     
+    my ($id_ref, $id_des) = split /:/, $_->{id};
+    my $intact_matches = $self->_match_id($id_ref, $id_des);
+       
+    # keep only the unique interaction data from IntAct
+    my $uniq_matches = $self->_remove_duplicates($intact_matches) if $intact_matches;
     
-    return {} if (scalar @{ $intact_matches } != 1);
-
-    my $parsed_data = $self->_parse_intact_data($intact_matches->[0]);
-   
-    my @result;
-
-    my $i = 0;
-    while (defined $valid_fields->{$i}){
-      my $field = $valid_fields->{$i++};
-      if(defined $self->{$field}) {
-        push @result, $parsed_data->{$field} or warning("WARNING: failed to push result.\n");      
-      }
-    }    
+    # filter fields according to user defined parameters
+    my $results = $self->_filter_fields($uniq_matches) if $uniq_matches;
     
-    return {"IntAct" => [@result]} if (@result);
+    return $results if $results->{IntAct};
   }
 
   return {};
@@ -280,33 +358,18 @@ sub run {
 
 sub parse_data {
   my ($self, $line) = @_;
-  my ($c, $s, $id, $ref, $alt) = split /\t/, $line ;
-  
-  # do VCF-like coord adjustment for mismatched subs
-  my $e = ($s + length($ref)) - 1;
-  if(length($alt) != length($ref)) {
-    my $first_ref = substr($ref, 0, 1);
-    my $first_alt = substr($alt, 0, 1);
-    if ($first_ref eq $first_alt) {
-      $s++;
-      $ref = substr($ref, 1);
-      $alt = substr($alt, 1);
-      $ref ||= '-';
-      $alt ||= '-';
-    }
-  }
+  my ($c, $s, $e, $ref, undef, undef, $id) = split /\t/, $line;
   
   return {
-    ref => $ref,
-    alt => $alt,
+    chr => $c,
     start => $s,
     end => $e,
+    ref => $ref,
     id => $id
   };
 }
 
-sub get_start {
-  print $_, "\n";
+sub get_start { 
   return $_[1]->{start};
 }
 
