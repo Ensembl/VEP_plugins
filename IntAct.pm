@@ -214,6 +214,8 @@ sub _match_id {
     my $ref = $fields[8];
     my (undef, $des) = split /:/, $fields[1];
     
+    next if (not $ref or not $des);
+       
     if( ($des eq $id_des) && ($ref eq $id_ref) ) {
         push @matches, $_;
     }
@@ -297,14 +299,16 @@ sub _match_allele {
   my $a_start = $a->{start};
   my $b_start = $b->{start};
    
-  while ($a_start < $b_start) {
+  while ($a_start < $b_start && $a_ref) {
     $a_start++;
     $a_ref = substr $a_ref, 1;
   }
-  while ($b_start < $a_start) {
+  while ($b_start < $a_start && $b_ref) {
     $b_start++;
     $b_ref = substr $b_ref, 1;
   }
+
+  return if $a_start != $b_start;
 
   if ($a_ref eq "" || $b_ref eq "") {
     return 0;
