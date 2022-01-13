@@ -214,7 +214,7 @@ sub _match_id {
     my $ref = $fields[8];
     my (undef, $des) = split /:/, $fields[1];
     
-    next if (not $ref or not $des);
+    next unless ($ref and $des);
        
     if( ($des eq $id_des) && ($ref eq $id_ref) ) {
         push @matches, $_;
@@ -290,62 +290,28 @@ sub _filter_fields {
   return {"IntAct" => join(':', @filtered_result)};
 }
 
-# check if two alleles of different length likely be same
-sub _match_allele {
-  my ($self, $a, $b) = @_;
-
-  my $a_ref = $a->{ref};
-  my $b_ref = $b->{ref};
-  my $a_start = $a->{start};
-  my $b_start = $b->{start};
-   
-  while ($a_start < $b_start && $a_ref) {
-    $a_start++;
-    $a_ref = substr $a_ref, 1;
-  }
-  while ($b_start < $a_start && $b_ref) {
-    $b_start++;
-    $b_ref = substr $b_ref, 1;
-  }
-
-  return if $a_start != $b_start;
-
-  if ($a_ref eq "" || $b_ref eq "") {
-    return 0;
-  }
-  
-  my $a_index = index($a_ref, $b_ref);
-  my $b_index = index($b_ref, $a_ref);
-  
-  return not ($a_index and $b_index);
-}
-
 sub run {
   my ($self, $tva) = @_;
-  my $vf = $tva->variation_feature;
 
-  # get allele
-  my $allele = $tva->variation_feature_seq;
-    
-  return {} unless $allele =~ /^[ACGT-]+$/;
+  my $vf = $tva->variation_feature;
+  my $tv = $tva->transcript_variation;
+
+  # get reference codon and HGVSp  
+  my $ref_codon = $tv->get_reference_TranscriptVariationAllele->codon if $tv;
+  my $hgvs = $tva->hgvs_protein;  
+  
+  return {} unless ($ref_codon and $hgvs);
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
   foreach (@data) {
-    my $matched = $self->_match_allele(
-      {
-        ref	=> $vf->ref_allele_string,
-        start	=> $vf->{start}
-      },
-      {
-        ref	=> $_->{ref},
-        start	=> $_->{start}
-      }
-    );
-    next if not $matched; 
-    
-    # get matched lines from IntAct data file on hgvs id     
     my ($id_ref, $id_des) = split /:/, $_->{id};
+    my (undef, $hgvs_des) = split /:/, $hgvs;
+    
+    # match variation
+    next unless ($id_des eq $hgvs_des and $_->{ref} eq $ref_codon);
+
+    # get matched lines from IntAct data file on hgvs id     
     my $intact_matches = $self->_match_id($id_ref, $id_des);
        
     # keep only the unique interaction data from IntAct
