@@ -178,7 +178,7 @@ sub get_header_info {
   
   my %header;
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Fields in each interaction data are separated by a comma(,) and multiple interaction data is separated by a colon(:). Output field includes - ";
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output is enclosed by <> and may contain multiple interaction data separated by colon(:). Fields in each interaction data are separated by comma(,). Output field includes - ";
 
   $header{"IntAct"} .= "Feature AC: Accession number for that particular mutation feature. " if $self->{feature_ac};  
   $header{"IntAct"} .= "Feature short label: Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). " if $self->{feature_short_label};
@@ -287,7 +287,7 @@ sub _filter_fields {
     push @filtered_result, join(',', @result);
   }
   
-  return {"IntAct" => join(':', @filtered_result)};
+  return {"IntAct" => "<".join(':', @filtered_result).">"};
 }
 
 sub run {
