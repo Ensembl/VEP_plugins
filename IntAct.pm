@@ -28,38 +28,29 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv IntAct.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CADD,mutation_file=/full/path/to/intact/mutations.tsv,file=/full/path/to/genomic_coordinate/genomic_coordinates.vcf.gz
- ./vep -i variations.vcf --plugin CADD,mutation_file=/full/path/to/intact/mutations.tsv,file=/full/path/to/genomic_coordinate/genomic_coordinates.vcf.gz,minimal=1
+ ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz
+ ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz,minimal=1
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves molecular interaction data for variants from mutations
- data reported by IntAct database.
+ A VEP plugin that retrieves molecular interaction data for variants as reprted by IntAct database.
  
  Please cite the IntAct publication alongside the VEP if you use this resource:
  https://pubmed.ncbi.nlm.nih.gov/24234451/
  
  Pre-requisites:
  
- 1) The IntAct mutation data file can be downloaded from -
- ftp://ftp.ebi.ac.uk/pub/databases/intact/current/various/mutations.tsv
+ 1) The IntAct data files can be downloaded from -
+ http://ftp.ebi.ac.uk/pub/databases/intact/current/various
  
- 2) The genomic location for the HGVS ids needs to be generated to a file and needs 
- to be tabix-indexed. The current file format follows vcf format (see - 
- https://en.wikipedia.org/wiki/Variant_Call_Format) or needs to be tab-limited including 
- the following 5 fields in the order -
-  CHR	POS	ID	REF	ALT
- 
- One way to do this is using vep - 
-  a) first extract the HGVS ids from the IntAct data file - 
-  grep -v ^"#" mutations.tsv | cut -d'    ' -f2 > HGVS_in_mutations.txt
+ 2) The genomic location mapped file needs to be tabix indexed. You can 
+ do this by following commands -
 
-  b) second run vep on this HGVS ids (must be run with database) -
-  ./vep --i HGVS_in_mutations.txt --o genomic_coordinates.vcf --vcf --database --db_version 104
+  a) filter, sort and then zip
+  grep -v -e '^$' -e '^[#\-]' mutation_gc_map.txt | sed '1s/.*/#&/' | sort -k1,1 -k2,2n -k3,3n | bgzip > mutation_gc_map.txt.gz
   
-  c) tabix index the generated vcf file -
-  (grep ^"#" genomic_coordinates.vcf; grep -v ^"#" genomic_coordinates.vcf | sort -k1,1 -k2,2n) | bgzip > genomic_coordinates.vcf.gz
-  tabix -p vcf genomic_coordinates.vcf.gz
+  b) create tabix indexed file -
+  tabix -s 1 -b 2 -e 3 -f mutation_gc_map.txt.gz
 
  3) As you have already noticed, tabix utility must be installed in your path to use this plugin.
  
@@ -92,16 +83,9 @@ limitations under the License.
  
  See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
 
- Output:
-
- Output contains each of the selected field in order and separeted by comma. For example, a default output
- for variation O60701:p.Val132del can be -
-
- IntAct=mutation with no effect(MI:2226),uniprotkb:O60701(protein(MI:0326), 9606 - Homo sapiens),32001716,EBI-25431855
-
  Notice:
  
- The plugin is tested on ... 
+ Currently this plugin is tested on human data only, other species data will be reported but should be used with caution. 
  
 =cut
 
