@@ -71,6 +71,11 @@ sub new {
 
   $self->get_user_params();
 
+  # Check files in arguments
+  my @params = @{$self->params};
+  die "ERROR: No CADD files specified" unless @params > 0;
+  $self->add_file($_) for @params;
+
   return $self;
 }
 
