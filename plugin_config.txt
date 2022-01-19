@@ -161,6 +161,7 @@ my $VEP_PLUGIN_CONFIG = {
             "CADD_raw_hg19",
             "CADD_raw_rankscore_hg19",
             "CADD_phred_hg19",
+            "CAPICE_score",
             "DANN_score",
             "DANN_rankscore",
             "fathmm-MKL_coding_score",
@@ -705,6 +706,28 @@ my $VEP_PLUGIN_CONFIG = {
       ],
       "params" => [
         #"/path/to/whole_genome_SNVs.tsv.gz"
+      ]
+    },
+    
+    # CAPICE
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/CAPICE.pm
+    # Requires tabix-indexed data file as first param
+    # No other parameters so no form required
+    # data file currently only available for GRCh37
+    {
+      "key" => "CAPICE",
+      "label" => "CAPICE",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "Consequence-Agnostic Pathogenicity Interpretation of Clinical Exome variations (CAPICE) is a tool for scoring the pathogenicity of single nucleotide variants and insertion/deletion variants in the human genome. CAPICE uses a gradient boosting tree model trained with multiple genomic annotations used by CADD score and based on clinical significance.",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/CAPICE.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/capice_v1.0_build37_snvs.tsv.gz"
       ]
     },
 
