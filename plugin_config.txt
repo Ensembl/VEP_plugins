@@ -917,12 +917,12 @@ my $VEP_PLUGIN_CONFIG = {
     # PrimateAI
     # Requires PrimateAI_scores_v0.2.tsv.gz or PrimateAI_scores_v0.2_hg38.tsv.gz from https://basespace.illumina.com/s/yYGFdGih1rXL.
     {
-      "key" = "PrimateAI",
-      "helptip" = "PrimateAI scores can be used to assess pathogenicity of variants in humans",
+      "key" => "PrimateAI",
+      "helptip" => "PrimateAI scores can be used to assess pathogenicity of variants in humans",
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/105/PrimateAI.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/PrimateAI.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -1593,6 +1593,25 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/neXtProt.pm"
     },
 
+    # IntAct
+    {
+      "key" => "IntAct",
+      "label" => "IntAct",
+      "available" => 1,
+      "enabled" => 0,
+      "section" => "Protein data",
+      "helptip" => "IntAct provides molecular interaction data for variants as reprted by IntAct database",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/IntAct.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#file=/path/to/mutation_gc_map.txt.gz",
+        "#mutation_file=/path/to/mutations.tsv",
+        "@*"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ]
+    },
 
     ## OTHER
     ########
