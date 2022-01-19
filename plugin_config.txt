@@ -917,12 +917,12 @@ my $VEP_PLUGIN_CONFIG = {
     # PrimateAI
     # Requires PrimateAI_scores_v0.2.tsv.gz or PrimateAI_scores_v0.2_hg38.tsv.gz from https://basespace.illumina.com/s/yYGFdGih1rXL.
     {
-      "key" => "PrimateAI",
-      "helptip" => "PrimateAI scores can be used to assess pathogenicity of variants in humans",
+      "key" = "PrimateAI",
+      "helptip" = "PrimateAI scores can be used to assess pathogenicity of variants in humans",
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/PrimateAI.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/105/PrimateAI.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
