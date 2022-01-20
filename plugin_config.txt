@@ -1597,7 +1597,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "IntAct",
       "label" => "IntAct",
-      "available" => 1,
+      "available" => 0,
       "enabled" => 0,
       "section" => "Protein data",
       "helptip" => "IntAct provides molecular interaction data for variants as reprted by IntAct database",
