@@ -73,7 +73,7 @@ sub new {
 
   # Check files in arguments
   my @params = @{$self->params};
-  die "ERROR: No CADD files specified" unless @params > 0;
+  die "ERROR: No CADD files specified\n" unless @params > 0;
   $self->add_file($_) for @params;
 
   return $self;
