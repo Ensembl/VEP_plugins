@@ -28,6 +28,11 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv CAPICE.pm ~/.vep/Plugins
+ # Download CAPICE SNVs, InDels and index (TBI) files to the same path
+ # - capice_v1.0_build37_indels.tsv.gz
+ # - capice_v1.0_build37_indels.tsv.gz.tbi
+ # - capice_v1.0_build37_snvs.tsv.gz
+ # - capice_v1.0_build37_snvs.tsv.gz.tbi
  ./vep -i variations.vcf --plugin CAPICE,/FULL_PATH_TO_CAPICE_FILE/capice_v1.0_build37_snvs.tsv.gz,/FULL_PATH_TO_CAPICE_FILE/capice_v1.0_build37_indels.tsv.gz
  ./filter_vep -i variant_effect_output.txt --filter "CAPICE_SCORE >= 0.02"
 
@@ -40,11 +45,8 @@ limitations under the License.
  https://pubmed.ncbi.nlm.nih.gov/32831124/
  
  The tabix utility must be installed in your path to use this plugin. The CAPICE
- data files can be downloaded from https://zenodo.org/record/3928295
-
- The plugin works with CAPICE files for GRCh37. The plugin only reports scores
- and does not consider any additional annotations from a CAPICE file. It is
- therefore sufficient to use CAPICE files without the additional annotations.
+ SNVs, InDels and respective index (TBI) files for GRCh37 can be downloaded from
+ https://zenodo.org/record/3928295
 
  To filter results, please use filter_vep with the output file or standard
  output. Documentation on filter_vep is available at:
@@ -75,7 +77,7 @@ sub new {
   
   # Check files in arguments
   my @params = @{$self->params};
-  die "ERROR: No CAPICE files specified" unless @params > 0;
+  die "ERROR: No CAPICE files specified\n" unless @params > 0;
   $self->add_file($_) for @params;
 
   return $self;
@@ -127,7 +129,6 @@ sub parse_data {
   my ($chrom, $start, $ref, $alt, $score) = split /\t/, $line;
 
   # VCF-like adjustment of mismatched substitutions for comparison with VEP
-  # my $end = ($start + length($ref)) - 1;
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
     my $first_alt = substr($alt, 0, 1);
@@ -143,7 +144,6 @@ sub parse_data {
     ref => $ref,
     alt => $alt,
     start => $start,
-    # end => $end,
     result => {
       CAPICE_SCORE => $score
     }

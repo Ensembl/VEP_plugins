@@ -161,7 +161,6 @@ my $VEP_PLUGIN_CONFIG = {
             "CADD_raw_hg19",
             "CADD_raw_rankscore_hg19",
             "CADD_phred_hg19",
-            "CAPICE_score",
             "DANN_score",
             "DANN_rankscore",
             "fathmm-MKL_coding_score",
@@ -711,7 +710,7 @@ my $VEP_PLUGIN_CONFIG = {
     
     # CAPICE
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/CAPICE.pm
-    # Requires tabix-indexed data file as first param
+    # Requires tabix-indexed data files as params (one for InDels, another for SNVs)
     # No other parameters so no form required
     # data file currently only available for GRCh37
     {
@@ -727,6 +726,7 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "params" => [
+        #"/path/to/capice_v1.0_build37_indels.tsv.gz",
         #"/path/to/capice_v1.0_build37_snvs.tsv.gz"
       ]
     },
