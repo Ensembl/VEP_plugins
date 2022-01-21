@@ -32,8 +32,8 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves Gene Ontology terms associated with
- transcripts/translations via the Ensembl API. Requires database connection.
+ A VEP plugin that retrieves Gene Ontology terms associated with transcripts
+ (GRCh38) or their translations (GRCh37). Requires database connection.
  
 =cut
 
@@ -81,7 +81,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { 'GO' => 'GO terms associated with protein product'};
+  return { 'GO' => 'GO terms associated with transcript or protein product'};
 }
 
 sub run {
@@ -90,7 +90,7 @@ sub run {
   # Get GO terms from translation level if not available from transcript level
   my $tr = $tva->transcript;
   my $entries = _get_GO_terms( $tr );
-  $entries = _get_GO_terms( $tr->translation ) unless @$entries;
+  $entries = _get_GO_terms( $tr->translation ) unless defined(@$entries);
   return {} unless defined(@$entries);
   
   my $string = join(",", map {$_->display_id.':'.$_->description} @$entries);
@@ -101,7 +101,7 @@ sub run {
 
 sub _get_GO_terms {
   my $tr = shift;
-  return [] unless defined( $tr );
+  return undef unless defined( $tr );
   return $tr->get_all_DBEntries('GO');
 }
 
