@@ -56,7 +56,18 @@ sub get_header_info {
 }
 
 sub run {
+  my $class = shift;
 
+  my $self = $class->SUPER::new(@_);
+
+  $self->expand_left(0);
+  $self->expand_right(0);
+
+  my $param_hash = $self->params_to_hash();
+
+  $self->add_file($param_hash->{file});
+
+  return $self;
 }
 
 sub parse_data {
