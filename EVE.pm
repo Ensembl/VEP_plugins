@@ -44,18 +44,6 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
-
-}
-
-sub get_header_info {
-  my $self = shift;
-  return {
-    EVE_SCORE => 'Score from EVE model',
-    EVE_CLASS   => 'Classification (Benign, Uncertain, or Pathogenic) when setting 70% as uncertain'
-  }
-}
-
-sub run {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
@@ -68,6 +56,18 @@ sub run {
   $self->add_file($param_hash->{file});
 
   return $self;
+}
+
+sub get_header_info {
+  my $self = shift;
+  return {
+    EVE_SCORE => 'Score from EVE model',
+    EVE_CLASS   => 'Classification (Benign, Uncertain, or Pathogenic) when setting 70% as uncertain'
+  }
+}
+
+sub run {
+
 }
 
 sub parse_data {
