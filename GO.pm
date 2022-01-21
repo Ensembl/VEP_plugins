@@ -73,7 +73,7 @@ sub new {
 }
 
 sub version {
-  return 73;
+  return 107;
 }
 
 sub feature_types {
@@ -87,15 +87,22 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   
-  my $tr = $tva->transcript->translation;
-  return {} unless defined($tr);
-  
-  my $entries = $tr->get_all_DBEntries('GO');
+  # Get GO terms from translation level if not available from transcript level
+  my $tr = $tva->transcript;
+  my $entries = _get_GO_terms( $tr );
+  $entries = _get_GO_terms( $tr->translation ) unless @$entries;
+  return {} unless defined(@$entries);
   
   my $string = join(",", map {$_->display_id.':'.$_->description} @$entries);
   $string =~ s/\s+/\_/g;
   
   return { GO => $string };
+}
+
+sub _get_GO_terms {
+  my $tr = shift;
+  return [] unless defined( $tr );
+  return $tr->get_all_DBEntries('GO');
 }
 
 1;
