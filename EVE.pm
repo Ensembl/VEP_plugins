@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  cp EVE.pm ${HOME}/.vep/Plugins
- ./vep -i variations.vcf --plugin EVE,file=/path/to/disgenet/data.tsv.gz
+ ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz
 
 =head1 DESCRIPTION
 
