@@ -28,8 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv IntAct.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz
- ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz,minimal=1
+ ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,mapping_file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz
+ ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,mapping_file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz,minimal=1
 
 =head1 DESCRIPTION
 
@@ -40,7 +40,7 @@ limitations under the License.
  
  Pre-requisites:
  
- 1) The IntAct data files can be downloaded from -
+ 1) IntAct files can be downloaded from -
  http://ftp.ebi.ac.uk/pub/databases/intact/current/various
  
  2) The genomic location mapped file needs to be tabix indexed. You can 
@@ -56,10 +56,9 @@ limitations under the License.
  
  Options are passed to the plugin as key=value pairs:
 
- file				: (mandatory) Path to tabix-indexed genomic coordinate file
+ mapping_file			: (mandatory) Path to tabix-indexed genomic location mapped file
  mutation_file			: (mandatory) Path to IntAct data file
- default			: (redundant) Set value to 1 to include feature_type, interaction_participants, 
-				  pmid, and interaction_ac in the output.
+ default			: (redundant) Set value to 1 to include feature_type and interaction_ac in the output.
  minimal		  	: Set value to 1 to overwrite default option to include only interaction_ac 
 				  in the output
  
@@ -74,7 +73,6 @@ limitations under the License.
  ap_ac				: Set value to 1 to include Affected protein AC in the output
  ap_symbol			: Set value to 1 to include Affected protein symbol in the output
  ap_full_name			: Set value to 1 to include Affected protein full name in the output
- ap_organism			: Set value to 1 to include Affected protein organism in the output
  interaction_participants	: Set value to 1 to include Interaction participants in the output
  pmid				: Set value to 1 to include PubMedID in the output
  figure_legend			: Set value to 1 to include Figure legend in the output
@@ -130,14 +128,14 @@ sub new {
   
   my $param_hash = $self->params_to_hash();
 
-  $self->add_file($param_hash->{file});
+  $self->add_file($param_hash->{mapping_file});
   
   $self->{interaction_ac} = 1;
   
   $self->{feature_type} = 1 unless defined $param_hash->{minimal};
-  $self->{pmid} = 1 unless defined $param_hash->{minimal};
-  $self->{interaction_participants} = 1 unless defined $param_hash->{minimal};
-   
+
+  $self->{pmid} = 1 if defined $param_hash->{pmid};
+  $self->{interaction_participants} = 1 if defined $param_hash->{interaction_participants};   
   $self->{feature_short_label} = 1 if defined $param_hash->{feature_short_label};
   $self->{feature_range} = 1 if defined $param_hash->{feature_range};
   $self->{original_sequence} = 1 if defined $param_hash->{original_sequence};
@@ -147,14 +145,14 @@ sub new {
   $self->{ap_ac} = 1 if defined $param_hash->{ap_ac};
   $self->{ap_symbol} = 1 if defined $param_hash->{ap_symbol};
   $self->{ap_full_name} = 1 if defined $param_hash->{ap_full_name};
-  $self->{ap_organism} = 1 if defined $param_hash->{ap_organism};
   $self->{figure_legend} = 1 if defined $param_hash->{figure_legend};
 
   return $self;
 }
 
 sub feature_types {
-  return ['Feature', 'Intergenic'];
+  return ['Transcript'];
+
 }
 
 sub get_header_info {
@@ -174,7 +172,6 @@ sub get_header_info {
   $header{"IntAct"} .= "Affected protein AC: Affected protein identifier (preferably UniProtKB accession, if available). " if $self->{ap_ac};
   $header{"IntAct"} .= "Affected protein symbol: As given by UniProtKB. " if $self->{ap_symbol};
   $header{"IntAct"} .= "Affected protein full name: As given by UniProtKB. " if $self->{ap_full_name};
-  $header{"IntAct"} .= "Affected protein organism: TaxID and species name as given by UniProtKB. " if $self->{ap_organism};
   $header{"IntAct"} .= "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. " if $self->{interaction_participants};
   $header{"IntAct"} .= "PubMedID- Reference to the publication where the interaction evidence was reported. " if $self->{pmid};
   $header{"IntAct"} .= "Figure legend- Reference to the specific figures in the paper where the interaction evidence was reported. " if $self->{figure_legend};
@@ -192,7 +189,7 @@ sub _match_id {
 
   my @matches;
 
-  open my $f, $mutation_file or warning("WARNING: couldn't open file $mutation_file\n");
+  open my $f, $mutation_file or die("ERROR: couldn't open file $mutation_file\n");
   while(<$f>) {
     my @fields = split /\t/;
     my $ref = $fields[8];
@@ -214,7 +211,7 @@ sub _parse_intact_data {
 
   my $i = 0;
   my %parsed_data = map { $valid_fields->{$i++} => $_ } split /\t/, $data
-    or warning("WARNING: cannot parse intact data.\n");
+    or die("ERROR: cannot parse intact data.\n");
     
   return \%parsed_data;
 }
@@ -230,6 +227,8 @@ sub _remove_duplicates {
   my @matches;
   foreach (@$intact_matches) {
     my $parsed_data = $self->_parse_intact_data($_);
+
+    next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
     
     my $interaction_ac = $parsed_data->{interaction_ac};
     my $feature_type = $parsed_data->{feature_type};
@@ -263,7 +262,7 @@ sub _filter_fields {
     while (defined $valid_fields->{$j}) {
       my $field = $valid_fields->{$j++};
       if(defined $self->{$field}) {
-        push @result, $_->{$field} or warning("WARNING: failed to push result.\n");
+        push @result, $_->{$field} or warning("WARNING: failed to push result for $self->{$field}.\n");
       }
     }
 
@@ -276,6 +275,8 @@ sub _filter_fields {
 
 sub run {
   my ($self, $tva) = @_;
+
+  return {} if $self->config->{species} ne "homo_sapiens";
 
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
