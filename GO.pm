@@ -33,7 +33,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves Gene Ontology terms associated with transcripts
- (GRCh38) or their translations (GRCh37). Requires database connection.
+ (e.g. GRCh38) or their translations (e.g. GRCh37).
  
 =cut
 
@@ -87,22 +87,22 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   
-  # Get GO terms from translation level if not available from transcript level
   my $tr = $tva->transcript;
-  my $entries = _get_GO_terms( $tr );
-  $entries = _get_GO_terms( $tr->translation ) unless defined(@$entries);
-  return {} unless defined(@$entries);
+  return {} unless defined($tr);
   
-  my $string = join(",", map {$_->display_id.':'.$_->description} @$entries);
+  # Get GO terms at transcript and translation levels
+  my $entries = $tr->get_all_DBLinks('GO');
+  
+  my @go_terms = _uniq( map {$_->display_id.':'.$_->description} @$entries );
+  my $string = join(",", @go_terms);
   $string =~ s/\s+/\_/g;
   
   return { GO => $string };
 }
 
-sub _get_GO_terms {
-  my $tr = shift;
-  return undef unless defined( $tr );
-  return $tr->get_all_DBEntries('GO');
+sub _uniq {
+  my %seen;
+  grep !$seen{$_}++, @_;
 }
 
 1;
