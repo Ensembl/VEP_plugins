@@ -80,10 +80,6 @@ limitations under the License.
  				  this option redundant as it is already included by default or mimimal options.
  
  See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
-
- Notice:
- 
- Currently this plugin is tested on human data only, other species data will be reported but should be used with caution. 
  
 =cut
 
