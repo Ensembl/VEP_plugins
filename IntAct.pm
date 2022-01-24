@@ -94,6 +94,9 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my $output_vcf;
+my $output_json;
+my $output_rest;
 my $valid_fields = {
   0 => "feature_ac",
   1 => "feature_short_label",
@@ -143,6 +146,18 @@ sub new {
   $self->{ap_full_name} = 1 if defined $param_hash->{ap_full_name};
   $self->{figure_legend} = 1 if defined $param_hash->{figure_legend};
 
+  if($self->{config}->{output_format} eq "vcf") {
+    $output_vcf = 1;
+  }
+
+  if($self->{config}->{output_format} eq "json"){
+    $output_json = 1;
+  }
+
+  if($self->{config}->{rest}){
+    $output_rest = 1;
+  }
+
   return $self;
 }
 
@@ -154,25 +169,40 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   
-  my %header;
+  my (%header, %field_des);
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output is enclosed by <> and may contain multiple interaction data separated by colon(:). Fields in each interaction data are separated by comma(,). Output field includes - ";
+  $field_des{"feature_ac"} = "Feature AC - Accession number for that particular mutation feature. ";
+  $field_des{"feature_short_label"} = "Feature short label - Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). ";
+  $field_des{"feature_range"} = "Feature range(s) - Position(s) in the protein sequence affected by the mutation. ";
+  $field_des{"original_sequence"} = "Original sequence - Wild type amino acid residue(s) affected in one letter code. ";
+  $field_des{"resulting_sequence"} = "Resulting sequence - Replacement sequence (or deletion) in one letter code. ";
+  $field_des{"feature_type"} = "Feature type - Mutation type following the PSI-MI controlled vocabularies. ";
+  $field_des{"feature_annotation"} = "Feature annotation - Specific comments about the feature that can be of interest. ";
+  $field_des{"ap_ac"} = "Affected protein AC - Affected protein identifier (preferably UniProtKB accession, if available). ";
+  $field_des{"ap_symbol"} = "Affected protein symbol - As given by UniProtKB. ";
+  $field_des{"ap_full_name"} = "Affected protein full name - As given by UniProtKB. ";
+  $field_des{"interaction_participants"} = "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. ";
+  $field_des{"pmid"} = "PubMedID - Reference to the publication where the interaction evidence was reported. ";
+  $field_des{"figure_legend"} = "Figure legend - Reference to the specific figures in the paper where the interaction evidence was reported. ";
+  $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases. ";
 
-  $header{"IntAct"} .= "Feature AC: Accession number for that particular mutation feature. " if $self->{feature_ac};  
-  $header{"IntAct"} .= "Feature short label: Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). " if $self->{feature_short_label};
-  $header{"IntAct"} .= "Feature range(s): Position(s) in the protein sequence affected by the mutation. " if $self->{feature_range};
-  $header{"IntAct"} .= "Original sequence: Wild type amino acid residue(s) affected in one letter code. " if $self->{original_sequence};
-  $header{"IntAct"} .= "Resulting sequence: Replacement sequence (or deletion) in one letter code. " if $self->{resulting_sequence};
-  $header{"IntAct"} .= "Feature type: Mutation type following the PSI-MI controlled vocabularies. " if $self->{feature_type};
-  $header{"IntAct"} .= "Feature annotation: Specific comments about the feature that can be of interest. " if $self->{feature_annotation};
-  $header{"IntAct"} .= "Affected protein AC: Affected protein identifier (preferably UniProtKB accession, if available). " if $self->{ap_ac};
-  $header{"IntAct"} .= "Affected protein symbol: As given by UniProtKB. " if $self->{ap_symbol};
-  $header{"IntAct"} .= "Affected protein full name: As given by UniProtKB. " if $self->{ap_full_name};
-  $header{"IntAct"} .= "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. " if $self->{interaction_participants};
-  $header{"IntAct"} .= "PubMedID- Reference to the publication where the interaction evidence was reported. " if $self->{pmid};
-  $header{"IntAct"} .= "Figure legend- Reference to the specific figures in the paper where the interaction evidence was reported. " if $self->{figure_legend};
-  $header{"IntAct"} .= "Interaction AC- Interaction accession within IntAct databases. " if $self->{interaction_ac};
-  
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by |. Fields in each interaction data are separated by <>. Output field includes :- " unless $output_vcf;
+
+  my $i = 0;
+  my $total_fields = scalar keys %$valid_fields;
+
+  while ($i < $total_fields){
+    my $field = $valid_fields->{$i++};
+    next unless ($self->{$field} and $field ne "ap_organism");
+ 
+    if($output_vcf){
+      $header{"IntAct_".$field} = $field_des{$field};
+    }
+    else{
+      $header{"IntAct"} .= $field_des{$field};
+    }
+  }
+   
   return \%header;
 }
 
@@ -208,7 +238,10 @@ sub _parse_intact_data {
   my $i = 0;
   my %parsed_data = map { $valid_fields->{$i++} => $_ } split /\t/, $data
     or die("ERROR: cannot parse intact data.\n");
-    
+  
+  # Replace | to avoid confusion for vcf output
+  $parsed_data{interaction_participants} =~ s/\|/ and /g;
+   
   return \%parsed_data;
 }
 
@@ -249,24 +282,39 @@ sub _remove_duplicates {
 sub _filter_fields {
   my ($self, $uniq_matches) = @_;
   
-  my @filtered_result;
-
+  my (@arr, %hash);
+  
   foreach (@$uniq_matches) {
-    my @result = ();
+    # Add separator for default/tab output
+    $hash{"IntAct"} = $hash{"IntAct"}."|" if $hash{"IntAct"};
 
     my $j = 0;
     while (defined $valid_fields->{$j}) {
       my $field = $valid_fields->{$j++};
+      my $field_val = $_->{$field};
+
+      chomp $field_val;
+
       if(defined $self->{$field}) {
-        push @result, $_->{$field} or warning("WARNING: failed to push result for $self->{$field}.\n");
+        if($output_json || $output_rest){
+          $hash{$field} = $field_val;
+        }
+        elsif($output_vcf){
+           $hash{"IntAct_".$field} = $hash{"IntAct_".$field} ? $hash{"IntAct_".$field}."<".$field_val.">" : "<".$field_val.">";
+        }
+        else{
+          $hash{"IntAct"} = $hash{"IntAct"} ? $hash{"IntAct"}."<".$field_val.">" : "<".$field_val.">";
+        }
       }
     }
 
-    chomp @result;
-    push @filtered_result, join(',', @result);
+    push @arr, \%hash if $output_json || $output_rest;
+   
   }
+
+  my $filtered_result = $output_json || $output_rest ? {"IntAct" => \@arr} : \%hash;
   
-  return {"IntAct" => "<".join(':', @filtered_result).">"};
+  return $filtered_result;
 }
 
 sub run {
@@ -301,7 +349,7 @@ sub run {
     # filter fields according to user defined parameters
     my $results = $self->_filter_fields($uniq_matches) if $uniq_matches;
     
-    return $results if $results->{IntAct};
+    return $results if $results;
   }
 
   return {};
