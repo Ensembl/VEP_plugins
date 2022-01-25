@@ -58,6 +58,10 @@ sub new {
   return $self;
 }
 
+sub feature_types {
+  return ['Feature','Intergenic'];
+}
+
 sub get_header_info {
   my $self = shift;
   return {
@@ -67,11 +71,64 @@ sub get_header_info {
 }
 
 sub run {
+  my ($self, $tva) = @_;
+  my $vf = $tva->variation_feature;
+
+  # get allele
+  my $allele = $tva->variation_feature_seq;
+
+  return {} unless $allele =~ /^[ACGT-]+$/;
+
+  my @data = @{
+    $self->get_data(
+      $vf->{chr},
+      $vf->{start} - 2,
+      $vf->{end}
+    )
+  };
+
+  return {} unless(@data);
+
+  my %hash;
+  my @final_result;
+
+  foreach my $variant (@data) {
+    my @result;
+    
+    my $EVE_SCORE = $variant->{EVE_SCORE};
+
+    push @result, $EVE_SCORE;
+    push @final_result, join(':', @result);
+
+    $hash{"EVE"} = [@final_result];
+
+    return \%hash;
+
+  }
 
 }
 
 sub parse_data {
+  my ($self, $line) = @_;
 
+  # Data is a VCF file:
+  # #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO
+  # 1       961387  .       GCC     AAA     .       .       EVE=0.08912364373354463;EnsTranscript=ENST0....
+  # 1       961387  .       GCC     AAC     .       .       EVE=0.08739485410893585;EnsTranscript=ENST0
+
+  # Parsing VCF fields
+  my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line; 
+  
+  # Parsing INFO field
+  my ($EVE_SCORE) = split /;/, $info;
+
+  return {
+    chrom => $chrom,
+    ref => $ref,
+    alt => $alt,
+    start => $pos,
+    EVE_SCORE   => $EVE_SCORE
+  };
 }
 
 sub get_start {
