@@ -89,20 +89,16 @@ sub run {
 
   return {} unless(@data);
 
-  my %hash;
-  my @final_result;
-
   foreach my $variant (@data) {
     my @result;
     
     my $EVE_SCORE = $variant->{EVE_SCORE};
+    my $EVE_CLASS = $variant->{EVE_CLASS};
 
-    push @result, $EVE_SCORE;
-    push @final_result, join(':', @result);
-
-    $hash{"EVE"} = [@final_result];
-
-    return \%hash;
+    return {
+      EVE_SCORE   => $EVE_SCORE,
+      EVE_CLASS => $EVE_CLASS
+    };
 
   }
 
@@ -118,16 +114,24 @@ sub parse_data {
 
   # Parsing VCF fields
   my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line; 
-  
+
+  my $allele_difference = ($ref ^ $alt) =~ tr/\0//c;
+
+  if ($allele_difference > 1){
+    return {};
+  }
+
   # Parsing INFO field
-  my ($EVE_SCORE) = split /;/, $info;
+  my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
+  my ($EVE_CLASS) = $info =~ /Class70=(.*?);/;
 
   return {
     chrom => $chrom,
     ref => $ref,
     alt => $alt,
     start => $pos,
-    EVE_SCORE   => $EVE_SCORE
+    EVE_SCORE   => $EVE_SCORE,
+    EVE_CLASS   => $EVE_CLASS
   };
 }
 
