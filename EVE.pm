@@ -59,7 +59,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature','Intergenic'];
+  return ['Feature'];
 }
 
 sub get_header_info {
