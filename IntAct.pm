@@ -239,8 +239,9 @@ sub _parse_intact_data {
   my %parsed_data = map { $valid_fields->{$i++} => $_ } split /\t/, $data
     or die("ERROR: cannot parse intact data.\n");
   
-  # Replace | to avoid confusion for vcf output
+  # Replace , and | to avoid confusion for interaction paritcipants
   $parsed_data{interaction_participants} =~ s/\|/ and /g;
+  $parsed_data{interaction_participants} =~ s/,//g;
    
   return \%parsed_data;
 }
@@ -300,7 +301,7 @@ sub _filter_fields {
           $hash{$field} = $field_val;
         }
         elsif($output_vcf){
-           $hash{"IntAct_".$field} = $hash{"IntAct_".$field} ? $hash{"IntAct_".$field}."<".$field_val.">" : "<".$field_val.">";
+          $hash{"IntAct_".$field} = $hash{"IntAct_".$field} ? $hash{"IntAct_".$field}.",".$field_val : $field_val;
         }
         else{
           $hash{"IntAct"} = $hash{"IntAct"} ? $hash{"IntAct"}."<".$field_val.">" : "<".$field_val.">";
