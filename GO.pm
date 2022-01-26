@@ -29,11 +29,19 @@ limitations under the License.
 
  mv GO.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin GO
+ # use remote connection (available for compatibility purposes)
+ ./vep -i variations.vcf --plugin GO,remote
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves Gene Ontology terms associated with transcripts
- (e.g. GRCh38) or their translations (e.g. GRCh37).
+ A VEP plugin that retrieves Gene Ontology (GO) terms associated with
+ transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) from a custom GFF
+ file. This GFF file is automatically created once for every database version,
+ species and assembly.
+ 
+ For compatibility purposes, the plugin also allows to use a remote connection
+ to the REST API by using "remote" as a parameter. This remote connection
+ retrieves GO terms one by one at both the transcript and translation level.
  
 =cut
 
@@ -42,33 +50,73 @@ package GO;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
   
-  # connect to DB for offline users
-  my $config = $self->{config};
-  my $reg = $config->{reg};
+  # Check if first parameter is 'remote' in order to use remote connection
+  $self->{use_remote} = @{$self->params} ? $self->params->[0] eq 'remote' : 0;
   
-  if(!defined($self->{config}->{sa})) {
-    $reg = 'Bio::EnsEMBL::Registry';
-    $reg->load_registry_from_db(
-      -host       => $config->{host},
-      -user       => $config->{user},
-      -pass       => $config->{password},
-      -port       => $config->{port},
-      -db_version => $config->{db_version},
-      -species    => $config->{species} =~ /^[a-z]+\_[a-z]+/i ? $config->{species} : undef,
-      -verbose    => $config->{verbose},
-      -no_cache   => $config->{no_slice_cache},
-    );
+  # Check if the tabix command is available
+  unless ( `which tabix 2>&1` =~ /tabix$/ ) {
+    die "ERROR: command tabix not found in your path\n" if $self->{config}{offline};
+    
+    # Use remote connection if online and if the tabix command is not available
+    warn "WARNING: command tabix not found in your path so 'remote' was enabled\n";
+    $self->{use_remote} = 1;
   }
   
+  my $config = $self->{config};
+  my $reg = $config->{reg};
+  $reg = 'Bio::EnsEMBL::Registry';
+  
+  # Two working modes:
+  # 1) Write all GO terms to GFF file once and use file thereafter (default)
+  # 2) Remotely retrieve GO terms one at a time (for compatibility purposes)
+  
+  if ( !$self->{use_remote} ) {
+    # Write GO terms to GFF file and read thereafter -- based on Phenotypes.pm
+    
+    # Prepare file name based on species, database version and assembly
+    my $pkg      = __PACKAGE__.'.pm';
+    my $species  = $config->{species};
+    my $version  = $config->{db_version} || $reg->software_version;
+    my $assembly = $config->{assembly};
+    my @basename = ($pkg, $species, $version);
+    if( $species eq 'homo_sapiens' || $species eq 'human'){
+      $assembly ||= $config->{human_assembly};
+      push @basename, $assembly;
+    }
+    
+    # Create GFF file with GO terms from database (if file does not exist)
+    my $file = join("_", @basename).".gff.gz";
+    $self->_generate_gff($file) unless (-e $file || -e $file.'.lock');
+    
+    print "### GO plugin: Using GFF file\n" unless $config->{quiet};
+    $self->add_file($file);
+    $self->get_user_params();
+  } else {
+    # Allow users to revert to old functionality -- inspired by Conservation.pm
+    print "### GO plugin: Using remote connection\n" unless $config->{quiet};
+    if(!defined($self->{config}->{sa})) {
+      my $species = $config->{species};
+      $reg->load_registry_from_db(
+        -host       => $config->{host},
+        -user       => $config->{user},
+        -pass       => $config->{password},
+        -port       => $config->{port},
+        -db_version => $config->{db_version},
+        -species    => $species =~ /^[a-z]+\_[a-z]+/i ? $species : undef,
+        -verbose    => $config->{verbose},
+        -no_cache   => $config->{no_slice_cache},
+      );
+    }
+  }
   return $self;
 }
 
@@ -85,6 +133,167 @@ sub get_header_info {
 }
 
 sub run {
+  my ($self, $tva) = @_;
+  if ($self->{use_remote}) {
+    # Remote connection to database
+    return $self->_remote_run($tva);
+  } else {
+    # Match data from GFF file
+    my $tr            = $tva->transcript;
+    my $transcript_id = $tr->{stable_id};
+    my $seqname       = $tr->{slice}->{seq_region_name};
+    my $start         = $tr->{start};
+    my $end           = $tr->{end};
+    
+    my @data = @{$self->get_data($seqname, $start, $end)};
+    foreach (@data) {
+      return $_->{result} if $_->{transcript_id} eq $transcript_id;
+    }
+  }
+  return {};
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+  my ($seqname, $source, $feature, $start, $end, $score, $strand, $frame, $attributes) = split /\t/, $line;
+
+  # Parse transcript ID and GO terms from attributes column
+  my $transcript_id = undef;
+  my $go = undef;
+  foreach my $pair(split /;/, $attributes) {
+    my ($key, $value) = split /\=/, $pair;
+    next unless defined($key) and defined($value);
+    if ($key eq "ID") {
+      $transcript_id = $value;
+    } elsif ($key eq "Ontology_term") {
+      $go = $value;
+    }
+  }
+  
+  return {
+    seqname => $seqname,
+    start => $start,
+    end => $end,
+    transcript_id => $transcript_id,
+    result => {
+      GO => $go
+    }
+  };
+}
+
+sub get_start {
+  return $_[1]->{start};
+}
+
+sub get_end {
+  return $_[1]->{end};
+}
+
+sub _generate_gff {
+  my ($self, $file) = @_;
+
+  my $config = $self->{config};
+  die("ERROR: Cannot create GFF file in offline mode\n") if $config->{offline};
+  # die("ERROR: Cannot create GFF file in REST mode\n") if $config->{rest};
+  
+  # test bgzip
+  die "ERROR: bgzip does not seem to be in your path\n" unless `which bgzip 2>&1` =~ /bgzip$/;
+
+  print "### GO plugin: Creating $file from database\n" unless($config->{quiet});
+  
+  my $species = $config->{species};
+  my $ta = $self->{config}->{reg}->get_adaptor($species, 'Core', 'Transcript');
+  die ("ERROR: Ensembl core database not available\n") unless defined $ta;
+
+  print "### GO plugin: Querying database\n" unless $config->{quiet};
+  
+  # Check whether GO terms are related with transcript or translation
+  my $id = _get_GO_terms_id( $ta );
+  
+  # Query database and write to GFF file
+  my @query = qq{
+    SELECT
+      sr.name AS seqname,
+      REPLACE(db.db_name, " ", "_") AS source,
+      "Transcript" AS feature,
+      transcript.seq_region_start AS start,
+      transcript.seq_region_end AS end,
+      '.' AS score,
+      IF(transcript.seq_region_strand = 1, '+', '-') AS strand, 
+      '.' AS frame,
+      CONCAT_WS(';',
+        CONCAT('ID=', transcript.stable_id),
+        CONCAT('Ontology_term=', GROUP_CONCAT(
+          DISTINCT x.display_label, ':',
+          REPLACE(x.description, " ", "_")
+          ORDER BY x.display_label))
+      ) AS attribute
+      
+    FROM transcript
+    LEFT JOIN translation ON translation.transcript_id = transcript.transcript_id
+    LEFT JOIN object_xref ox ON $id = ox.ensembl_id
+    LEFT JOIN xref x ON ox.xref_id = x.xref_id
+    LEFT JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
+    LEFT JOIN external_db db ON x.external_db_id = db.external_db_id
+    WHERE db.db_name = "GO"
+    GROUP BY transcript.stable_id
+    ORDER BY sr.name, transcript.seq_region_start, transcript.seq_region_end;
+  };
+  my $sth = $ta->db->dbc->prepare(@query, { mysql_use_result => 1});
+  $sth->execute();
+  print "### GO plugin: Writing to file\n" unless $config->{quiet};
+  my $file_tmp = _write_to_file($sth, $file);
+  $sth->finish();
+  
+  print "### GO plugin: Sorting file\n" unless $config->{quiet};
+  system("(zgrep '^#' $file_tmp; LC_ALL=C zgrep -v '^#' $file_tmp | sort -k1,1 -k4,4n ) | bgzip -c > $file") and die("ERROR: sort failed\n");
+  unlink($file_tmp);
+
+  print "### GO plugin: Creating tabix index\n" unless $config->{quiet};
+  system "tabix -p gff $file" and die "ERROR: tabix index creation failed\n";
+
+  print "### GO plugin: GFF file ready!\n" unless $config->{quiet};
+  return 1;
+}
+
+sub _get_GO_terms_id {
+  my ($ta) = @_;
+  
+  my @query = qq{
+    SELECT ox.ensembl_object_type
+    FROM ontology_xref go
+    LEFT JOIN object_xref ox ON go.object_xref_id = ox.object_xref_id
+    LIMIT 1;
+  };
+  my $sth = $ta->db->dbc->prepare(@query, { mysql_use_result => 1});
+  $sth->execute();
+  my $type = lc( @{$sth->fetchrow_arrayref}[0] );
+  $sth->finish();
+  return "$type.$type\_id";
+}
+
+sub _write_to_file {
+  my ($sth, $file) = @_;
+  my $file_tmp = $file.".tmp";
+  
+  # Open lock
+  my $lock = "$file\.lock";
+  open LOCK, ">$lock" or die "ERROR: cannot write to lock file $lock\n";
+  print LOCK "1\n";
+  close LOCK;
+
+  open OUT, " | bgzip -c > $file_tmp" or die "ERROR: cannot write to file $file_tmp\n";
+  print OUT "##gff-version 1.10\n"; # GFF file header
+  while(my $row = $sth->fetchrow_arrayref()) {
+    print OUT join("\t", map {defined($_) ? $_ : '.'} @$row)."\n";
+  }
+  close OUT;
+  unlink($lock);
+  
+  return $file_tmp;
+}
+
+sub _remote_run {
   my ($self, $tva) = @_;
   
   my $tr = $tva->transcript;
@@ -106,4 +315,3 @@ sub _uniq {
 }
 
 1;
-
