@@ -93,8 +93,8 @@ sub run {
   return {} unless(@data);
 
   foreach my $variant (@data) {
-    # TODO Better check
-    return {} unless($variant->{start});
+    # This check should disappear with multiple snps codons
+    return {} unless($variant->{start} and $variant->{ref} and $variant->{alt});
 
     my $matches = get_matched_variant_alleles(
       {
@@ -123,6 +123,7 @@ sub parse_data {
 
   my $allele_difference = ($ref ^ $alt) =~ tr/\0//c;
 
+  # TODO Prepare multiple SNPs codons part
   if ($allele_difference > 1){
     return {};
   }
