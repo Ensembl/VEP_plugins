@@ -40,6 +40,8 @@ package EVE;
 use strict;
 use warnings;
 
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
@@ -90,16 +92,24 @@ sub run {
   return {} unless(@data);
 
   foreach my $variant (@data) {
-    my @result;
-    
-    my $EVE_SCORE = $variant->{EVE_SCORE};
-    my $EVE_CLASS = $variant->{EVE_CLASS};
+    # TODO Better check
+    return {} unless($variant->{start});
 
-    return {
-      EVE_SCORE => $EVE_SCORE,
-      EVE_CLASS => $EVE_CLASS
-    };
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $ref_allele,
+        alts   => [$alt_allele],
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $variant->{ref},
+       alts => [$variant->{alt}],
+       pos  => $variant->{start},
+      }
+    );
 
+    return $variant->{result} if (@$matches);
   }
 
 }
