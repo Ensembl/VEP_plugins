@@ -69,10 +69,8 @@ limitations under the License.
   The following steps are necessary to tabix the gnomad genomes coverage file :
    mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
    gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
-   sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.genomesv3.tabbed.tsv
-   sed '1s/locus/chr\tpos/' gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
-   sed 's/:/\t/g' gnomad.ch.genomesv3.tabbed.tsv > gnomad.genomesv3.tabbed.tsv
-   bgzip  gnomad.genomesv3.tabbed.tsv 
+   sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.genomesv3.tabbed.tsv | sed '1s/locus/chr\tpos/' gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
+   sed 's/:/\t/g' gnomad.ch.genomesv3.tabbed.tsv > gnomad.genomesv3.tabbed.tsv | bgzip  gnomad.genomesv3.tabbed.tsv 
    tabix -s 1 -b 2 -e 2 gnomad.genomesv3.tabbed.tsv.gz
 
 
