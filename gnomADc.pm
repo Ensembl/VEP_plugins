@@ -122,6 +122,7 @@ sub new {
   die("ERROR: gnomADc input file not found\n") unless -e $path;
 
   my $prefix = 'gnomAD';
+  my $headers;
 
   if (-f $path) {
 
@@ -130,14 +131,27 @@ sub new {
     # use the file's basename to set a column prefix
     my $basename = fileparse($path, qr/\.[^.]*/);
     my %gnomad_basenames = map { $_ => 1 } qw( gnomADg gnomADe );
-
+    
     $prefix = $basename if exists $gnomad_basenames{$basename};
+    open FH, "tabix -fh $path 1:1-1 2>&1 | ";
+    while(<FH>){
+      next unless /^\#/;
+      chomp;
+      $_ =~ s/^\#//;
+      $self->{headers} = [split];
+    }
+    
+    close(FH);
+    $headers = scalar @{$self->{headers}};
   }
+
+
   elsif (-d $path) {
 
     opendir (my $fh, $path) or die $!;
     for (readdir $fh) {
       $self->add_file(File::Spec->catfile($path, $_)) if /\.tsv\.gz$/;
+   
     }
     closedir $fh;
 
@@ -151,9 +165,10 @@ sub new {
   my @files = @{ $self->files() };
 
   die("ERROR: Could not find any $prefix coverage files\n") unless @files;
-
+  
   $self->{prefix} = $prefix;
-
+  $self->{file_column} = $headers;
+  
   return $self;
 }
 
@@ -165,16 +180,29 @@ sub get_header_info {
   my $self = shift;
 
   my $prefix = $self->{prefix};
+  my $header = $self->{file_column};
+  print $header;
   my %header_info;
   
+  if ($header == 14 ){
+    for (qw(mean median_approx total_DP)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
+    }
 
-  for (qw(mean median)) {
-    $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
+    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+    }
   }
+  else {
+    for (qw(mean median)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
+    }
 
-  for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
-    $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+    }
   }
+ 
 
   return \%header_info;
 }
@@ -210,13 +238,22 @@ sub parse_data {
   my ($self, $line) = @_;
 
   my $prefix = $self->{prefix};
+  my $header = $self->{file_column};
   my ($chr, $pos, @cov) = split /\t/, $line;
-
-  my @keys = map {
-    join('_', $prefix, $_, 'cov')
+  my @keys;
+  if ($header == 14 ){
+    @keys = map {
+      join('_', $prefix, $_, 'cov')
+    }
+    qw(mean median total_DP 1x 5x 10x 15x 20x 25x 30x 50x 100x);
   }
-  qw(mean median 1x 5x 10x 15x 20x 25x 30x 50x 100x);
-
+  else{
+    @keys = map {
+      join('_', $prefix, $_, 'cov')
+    }
+    qw(mean median 1x 5x 10x 15x 20x 25x 30x 50x 100x);
+  }
+  
   my %result;
 
   @result{@keys} = @cov;
