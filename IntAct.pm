@@ -81,6 +81,11 @@ limitations under the License.
  
  See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
  
+ Note that, interaction accession can be used to link to full details on the interaction website. For example, 
+ where the VEP output reports an interaction_ac of EBI-12501485, the URL would be : 
+
+   https://www.ebi.ac.uk/intact/details/interaction/EBI-12501485
+
 =cut
 
 package IntAct;
@@ -186,7 +191,7 @@ sub get_header_info {
   $field_des{"figure_legend"} = "Figure legend - Reference to the specific figures in the paper where the interaction evidence was reported. ";
   $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases. ";
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by |. Fields in each interaction data are separated by <>. Output field includes :- " unless $output_vcf;
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by |. Fields in each interaction data are separated by ,. Output field includes :- " unless $output_vcf;
 
   my $i = 0;
   my $total_fields = scalar keys %$valid_fields;
@@ -286,8 +291,7 @@ sub _filter_fields {
   my (@arr, %hash);
   
   foreach (@$uniq_matches) {
-    # Add separator for default/tab output
-    $hash{"IntAct"} = $hash{"IntAct"}."|" if $hash{"IntAct"};
+    my $str;
 
     my $j = 0;
     while (defined $valid_fields->{$j}) {
@@ -304,13 +308,19 @@ sub _filter_fields {
           $hash{"IntAct_".$field} = $hash{"IntAct_".$field} ? $hash{"IntAct_".$field}.",".$field_val : $field_val;
         }
         else{
-          $hash{"IntAct"} = $hash{"IntAct"} ? $hash{"IntAct"}."<".$field_val.">" : "<".$field_val.">";
+          $str = $str ? $str.",".$field_val : $field_val;
         }
       }
     }
 
-    push @arr, \%hash if $output_json || $output_rest;
-   
+    if($output_json || $output_rest){
+      my %store_hash = %hash;
+      push @arr, \%store_hash;
+    }
+
+    unless($output_json || $output_rest || $output_vcf){
+      $hash{"IntAct"} = $hash{"IntAct"} ? $hash{"IntAct"}."|".$str : $str; 
+    }
   }
 
   my $filtered_result = $output_json || $output_rest ? {"IntAct" => \@arr} : \%hash;
