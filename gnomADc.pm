@@ -161,14 +161,25 @@ sub get_header_info {
   my $prefix = $self->{prefix};
   my %header_info;
 
-  for (qw(mean median)) {
-    $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
-  }
+  my $column_count = scalar @{$self->{headers}};
+  if ($column_count == 14) {
+    for (qw(mean median_approx total_DP)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
+    }
 
-  for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
-    $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+    }
   }
+  else {
+    for (qw(mean median)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
+    }
 
+    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
+      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+    }
+  }
   return \%header_info;
 }
 
