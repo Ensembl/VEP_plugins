@@ -77,7 +77,8 @@ sub run {
   my $vf = $tva->variation_feature;
 
   # get allele
-  my $allele = $tva->variation_feature_seq;
+  my $alt_allele = $tva->variation_feature_seq;
+  my $ref_allele = $vf->ref_allele_string;
 
   return {} unless $allele =~ /^[ACGT-]+$/;
 
@@ -117,11 +118,6 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
 
-  # Data is a VCF file:
-  # #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO
-  # 1       961387  .       GCC     AAA     .       .       EVE=0.08912364373354463;EnsTranscript=ENST0....
-  # 1       961387  .       GCC     AAC     .       .       EVE=0.08739485410893585;EnsTranscript=ENST0
-
   # Parsing VCF fields
   my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line; 
 
@@ -135,16 +131,17 @@ sub parse_data {
   my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
   my ($EVE_CLASS) = $info =~ /Class70=(.*?);/;
 
-  my %new_snp = get_snp_from_codon($ref, $alt, $pos);
+  my %new_snp = _get_snp_from_codon($ref, $alt, $pos);
 
   return {
-    chrom => $chrom,
     ref => $new_snp{ref},
     alt => $new_snp{alt},
     start => $new_snp{pos},
-    EVE_SCORE   => $EVE_SCORE,
-    EVE_CLASS   => $EVE_CLASS
-  };
+    result => {
+      EVE_SCORE   => $EVE_SCORE,
+      EVE_CLASS   => $EVE_CLASS
+    }
+  }
 }
 
 sub get_start {
@@ -156,7 +153,7 @@ sub get_end {
 }
 
 # Additional function
-sub get_snp_from_codon {
+sub _get_snp_from_codon {
   my ($ref, $alt, $pos) = @_;
 
   my $mask = $ref ^ $alt;
