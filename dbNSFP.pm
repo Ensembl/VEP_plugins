@@ -132,6 +132,14 @@ To match only on the first position and the alt allele use --pep_match=0
 
 --plugin dbNSFP,/path/to/dbNSFP.gz,pep_match=0,col1,col2
 
+Some fields contain multiple values, one per Ensembl transcript ID.
+By default all values are returned, separated by ";" in the default VEP output format.
+To return values only for the matched Ensembl transcript ID use transcript_match=1.
+NB: this may cause no value to return if the version of the Ensembl transcript set
+differs between VEP and dbNSFP. 
+
+--plugin dbNSFP,/path/to/dbNSFP.gz,transcript_match=1,col1,col2
+
 =cut
 
 package dbNSFP;
@@ -146,6 +154,7 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
+my %ALLOWED_PARAMS = map {$_ => 1} qw(pep_match transcript_match);
 
 sub new {
   my $class = shift;
@@ -217,15 +226,22 @@ sub new {
   # Peptide matching on by default
   $self->{pep_match} = 1;
 
-  if ($self->params->[$index] =~ /^pep_match=/) {
-    my $pep_match = $self->params->[$index];
-    $pep_match =~ s/pep_match=//;
-    $index++;
-    if ($pep_match == 0) {
-      $self->{pep_match} = 0;
-    }
-  }
+  # transcript matching off by default
+  $self->{transcript_match} = 0;
 
+  # find remaining parameters
+  while($self->params->[$index] =~ /=/) {
+    my ($param, $value) = split('=', $self->params->[$index]);
+
+    if($ALLOWED_PARAMS{$param}) {
+      $self->{$param} = $value;
+    }
+    else {
+      die "ERROR: Invalid parameter $param\n";
+    }
+
+    $index++;
+  }
 
   if ($self->{pep_match}) {
     # Check the columns for the aa are there
@@ -386,28 +402,28 @@ sub run {
     %$data = %$tmp_data;
 
     # convert data with multiple transcript values
-    # if($data->{Ensembl_transcriptid} =~ m/\;/) {
+    if($self->{transcript_match} && $data->{Ensembl_transcriptid} =~ m/\;/) {
 
-    #   # find the "index" of this transcript
-    #   my @tr_ids = split(';', $data->{Ensembl_transcriptid});
-    #   my $tr_index;
+      # find the "index" of this transcript
+      my @tr_ids = split(';', $data->{Ensembl_transcriptid});
+      my $tr_index;
 
-    #   for my $i(0..$#tr_ids) {
-    #     $tr_index = $i;
-    #     last if $tr_ids[$tr_index] =~ /^$tr_id(\.\d+)?$/;
-    #   }
+      for my $i(0..$#tr_ids) {
+        $tr_index = $i;
+        last if $tr_ids[$tr_index] =~ /^$tr_id(\.\d+)?$/;
+      }
 
-    #   next unless defined($tr_index);
+      next unless defined($tr_index);
 
-    #   # now alter other fields
-    #   foreach my $key(keys %$data) {
-    #     if($data->{$key} =~ m/\;/) {
-    #       my @split = split(';', $data->{$key});
-    #       die("ERROR: Transcript index out of range") if $tr_index > $#split;
-    #       $data->{$key} = $split[$tr_index];
-    #     } 
-    #   }
-    # }
+      # now alter other fields
+      foreach my $key(keys %$data) {
+        if($data->{$key} =~ m/\;/) {
+          my @split = split(';', $data->{$key});
+          die("ERROR: Transcript index out of range") if $tr_index > $#split;
+          $data->{$key} = $split[$tr_index];
+        }
+      }
+    }
     last;
   }
   
