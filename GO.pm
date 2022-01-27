@@ -306,7 +306,8 @@ sub _remote_run {
   my $string = join(",", @go_terms);
   $string =~ s/\s+/\_/g;
   
-  return { GO => $string };
+  # Avoid returning empty GO terms
+  return $string eq "" ? {} : { GO => $string };
 }
 
 sub _uniq {
