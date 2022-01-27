@@ -163,9 +163,10 @@ sub new {
   }
 
   my @files = @{ $self->files() };
-
+  
   die("ERROR: Could not find any $prefix coverage files\n") unless @files;
   
+
   $self->{prefix} = $prefix;
   $self->{file_column} = $headers;
   
@@ -181,7 +182,6 @@ sub get_header_info {
 
   my $prefix = $self->{prefix};
   my $header = $self->{file_column};
-  print $header;
   my %header_info;
   
   if ($header == 14 ){
