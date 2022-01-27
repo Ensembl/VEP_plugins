@@ -297,7 +297,8 @@ sub _remote_run {
   
   # Get GO terms at transcript and translation levels
   my $entries = $tr->get_all_DBLinks('GO');
-  
+
+  # Format ID and description of GO terms (and ignore duplicates)
   my @go_terms = _uniq( map {$_->display_id.':'.$_->description} @$entries );
   my $string = join(",", @go_terms);
   $string =~ s/\s+/\_/g;
