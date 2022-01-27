@@ -35,28 +35,34 @@ limitations under the License.
  or exome coverage files, available here:
 
  https://gnomad.broadinstitute.org/downloads
- To download the gnomad genomes coverage file in TSV format:
-  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
 
- To download the gnomad exomes coverage file in TSV format: 
-  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
+ Or via the Google Cloud console:
+
+ https://console.cloud.google.com/storage/browser/gnomad-public/release
 
  The coverage summary files must be processed and Tabix indexed before
- use by this plugin. 
+ use by this plugin. Please select from the instructions below:
 
- The following steps are necessary to tabix the gnomad genomes coverage file :
- mv gnomad.genomes.coverage.summary.tsv.bgz gnomad.genomes.r2.1.gz
- gunzip gnomad.genomes.r2.1.gz
- sed '1s/.*/#&/'  gnomad.genomes.r2.1 > gnomad.genomes.tabbed.tsv
- bgzip gnomad.genomes.tabbed.tsv
- tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
+ # GRCh38 and gnomAD genomes:
+ > genomes="https://storage.googleapis.com/gnomad-public/release/3.0/coverage/genomes"
+ > genome_coverage_tsv="gnomad.genomes.r3.0.coverage.summary.tsv.bgz"
+ > wget "${genomes}/${genome_coverage_tsv}"
+ > zcat "${genome_coverage_tsv}" | sed -e '1s/^locus/#chrom\tpos/; s/:/\t/' | bgzip > gnomADc.gz
+ > tabix -s 1 -b 2 -e 2 gnomADc.gz
 
- The following steps are neccessary to tabix the gnomad exomes coverage file :
- mv gnomad.exomes.coverage.summary.tsv.bgz gnomad.exomes.r2.1.gz
- gunzip gnomad.exomes.r2.1.gz
- sed '1s/.*/#&/'  gnomad.exomes.r2.1 > gnomad.exomes.tabbed.tsv
- bgzip gnomad.exomes.tabbed.tsv
- tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
+ # GRCh37 and gnomAD genomes:
+ > genomes="https://storage.googleapis.com/gnomad-public/release/2.1/coverage/genomes"
+ > genome_coverage_tsv="gnomad.genomes.coverage.summary.tsv.bgz"
+ > wget "${genomes}/${genome_coverage_tsv}"
+ > zcat "${genome_coverage_tsv}" | sed -e '1s/^/#/' | bgzip > gnomADg.gz
+ > tabix -s 1 -b 2 -e 2 gnomADg.gz
+
+ # GRCh37 and gnomAD exomes:
+ > exomes="https://storage.googleapis.com/gnomad-public/release/2.1/coverage/exomes"
+ > exome_coverage_tsv="gnomad.exomes.coverage.summary.tsv.bgz"
+ > wget "${exomes}/${exome_coverage_tsv}"
+ > zcat "${exome_coverage_tsv}" | sed -e '1s/^/#/' | bgzip > gnomADe.gz
+ > tabix -s 1 -b 2 -e 2 gnomADe.gz
 
  By default, the output field prefix is 'gnomAD'. However if the input file's
  basename is 'gnomADg' (genomes) or 'gnomADe' (exomes), then these values are
@@ -131,7 +137,7 @@ sub new {
 
     opendir (my $fh, $path) or die $!;
     for (readdir $fh) {
-      $self->add_file(File::Spec->catfile($path, $_)) if /\.txt\.gz$/;
+      $self->add_file(File::Spec->catfile($path, $_)) if /\.tsv\.gz$/;
     }
     closedir $fh;
 
@@ -160,26 +166,16 @@ sub get_header_info {
 
   my $prefix = $self->{prefix};
   my %header_info;
+  
 
-  my $column_count = scalar @{$self->{headers}};
-  if ($column_count == 14) {
-    for (qw(mean median_approx total_DP)) {
-      $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
-    }
-
-    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
-      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
-    }
+  for (qw(mean median)) {
+    $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
   }
-  else {
-    for (qw(mean median)) {
-      $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
-    }
 
-    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
-      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
-    }
+  for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
+    $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
   }
+
   return \%header_info;
 }
 
