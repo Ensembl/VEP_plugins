@@ -36,8 +36,9 @@ limitations under the License.
 
  A VEP plugin that retrieves Gene Ontology (GO) terms associated with
  transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) from a custom GFF
- file. This GFF file is automatically created once for every database version,
- species and assembly.
+ file. This GFF file is automatically created (if the input file does not exist)
+ by querying the Ensembl core database, according to database version, species
+ and assembly used in VEP.
  
  For compatibility purposes, the plugin also allows to use a remote connection
  to the Ensembl API by using "remote" as a parameter. This remote connection
@@ -59,7 +60,7 @@ sub new {
   
   my $self = $class->SUPER::new(@_);
   
-  # Check if first parameter is 'remote' in order to use remote connection
+  # Check if first parameter is 'remote' in order to revert to old functionality
   $self->{use_remote} = @{$self->params} ? $self->params->[0] eq 'remote' : 0;
   
   # Check if the tabix command is available
@@ -75,12 +76,8 @@ sub new {
   my $reg = $config->{reg};
   $reg = 'Bio::EnsEMBL::Registry';
   
-  # Two working modes:
-  # 1) Write all GO terms to GFF file once and use file thereafter (default)
-  # 2) Remotely retrieve GO terms one at a time (for compatibility purposes)
-  
   if ( !$self->{use_remote} ) {
-    # Write GO terms to GFF file and read thereafter -- based on Phenotypes.pm
+    # Read GO terms from GFF file -- based on Phenotypes.pm
     
     # Prepare file name based on species, database version and assembly
     my $pkg      = __PACKAGE__.'.pm';
@@ -93,16 +90,16 @@ sub new {
       push @basename, $assembly;
     }
     
-    # Create GFF file with GO terms from database (if file does not exist)
+    # Create GFF file with GO terms from database if file does not exist
     my $file = join("_", @basename).".gff.gz";
     $self->_generate_gff($file) unless (-e $file || -e $file.'.lock');
     
-    print "### GO plugin: Using GFF file\n" unless $config->{quiet};
+    print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
     $self->get_user_params();
   } else {
-    # Allow users to revert to old functionality -- inspired by Conservation.pm
-    print "### GO plugin: Using remote connection\n" unless $config->{quiet};
+    # Revert to old GO.pm functionality -- based on Conservation.pm
+    print "### GO plugin: Retrieving GO terms from Ensembl API\n" unless $config->{quiet};
     if(!defined($self->{config}->{sa})) {
       my $species = $config->{species};
       $reg->load_registry_from_db(
@@ -201,11 +198,10 @@ sub _generate_gff {
 
   print "### GO plugin: Creating $file from database\n" unless($config->{quiet});
   
+  print "### GO plugin: Querying Ensembl core database\n" unless $config->{quiet};
   my $species = $config->{species};
   my $ta = $self->{config}->{reg}->get_adaptor($species, 'Core', 'Transcript');
   die ("ERROR: Ensembl core database not available\n") unless defined $ta;
-
-  print "### GO plugin: Querying database\n" unless $config->{quiet};
   
   # Check whether GO terms are related with transcript or translation
   my $id = _get_GO_terms_id( $ta );
