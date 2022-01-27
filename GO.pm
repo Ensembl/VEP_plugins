@@ -40,7 +40,7 @@ limitations under the License.
  species and assembly.
  
  For compatibility purposes, the plugin also allows to use a remote connection
- to the REST API by using "remote" as a parameter. This remote connection
+ to the Ensembl API by using "remote" as a parameter. This remote connection
  retrieves GO terms one by one at both the transcript and translation level.
  
 =cut
