@@ -80,7 +80,7 @@ sub run {
   my $alt_allele = $tva->variation_feature_seq;
   my $ref_allele = $vf->ref_allele_string;
 
-  return {} unless $allele =~ /^[ACGT-]+$/;
+  return {} unless $alt_allele =~ /^[ACGT-]+$/;
 
   my @data = @{
     $self->get_data(
