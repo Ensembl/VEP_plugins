@@ -145,7 +145,7 @@ sub new {
 
     opendir (my $fh, $path) or die $!;
     for (readdir $fh) {
-      $self->add_file(File::Spec->catfile($path, $_)) if /\.txt\.gz$/;
+      $self->add_file(File::Spec->catfile($path, $_)) if /\.tsv\.gz$/;
     }
     closedir $fh;
 
