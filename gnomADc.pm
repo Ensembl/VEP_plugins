@@ -47,8 +47,6 @@ limitations under the License.
   for Assembly GRCh38: 
    gnomad genomes: 
     wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate
-   gnomad exomes
-    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/exomes/gnomad.exomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate
   
 
  The coverage summary files must be processed and Tabix indexed before
@@ -90,7 +88,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad-public/release/2.0.2/coverage/genomes
 
  When a directory path is supplied, only files immediately under this directory
- that have a '.txt.gz' extension will attempt to be loaded. By default, the
+ that have a '.tsv.gz' extension will attempt to be loaded. By default, the
  output field prefix is simply 'gnomAD'. However if the parent directory is
  either 'genomes' or 'exomes', then the output field prefix will be 'gnomADg'
  or 'gnomADe', respectively.
