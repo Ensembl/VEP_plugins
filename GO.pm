@@ -258,11 +258,11 @@ sub _generate_gff {
       ) AS attribute
       
     FROM transcript
-    JOIN translation ON translation.transcript_id = transcript.transcript_id
-    JOIN object_xref ox ON $id = ox.ensembl_id
-    JOIN xref x ON ox.xref_id = x.xref_id
-    JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
-    JOIN external_db db ON x.external_db_id = db.external_db_id
+    LEFT JOIN translation ON translation.transcript_id = transcript.transcript_id
+    LEFT JOIN object_xref ox ON $id = ox.ensembl_id
+    LEFT JOIN xref x ON ox.xref_id = x.xref_id
+    LEFT JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
+    LEFT JOIN external_db db ON x.external_db_id = db.external_db_id
     WHERE db.db_name = "GO"
     GROUP BY transcript.stable_id
     ORDER BY sr.name, transcript.seq_region_start, transcript.seq_region_end;
