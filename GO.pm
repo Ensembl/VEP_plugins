@@ -29,6 +29,10 @@ limitations under the License.
 
  mv GO.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin GO
+
+ # input a custom directory where to write and read GFF files with GO terms
+ ./vep -i variations.vcf --plugin GO,${HOME}/go_terms
+ 
  # use remote connection (available for compatibility purposes)
  ./vep -i variations.vcf --plugin GO,remote
 
@@ -40,9 +44,21 @@ limitations under the License.
  by querying the Ensembl core database, according to database version, species
  and assembly used in VEP.
  
- For compatibility purposes, the plugin also allows to use a remote connection
- to the Ensembl API by using "remote" as a parameter. This remote connection
- retrieves GO terms one by one at both the transcript and translation level.
+ The GFF file containing the GO terms is saved to and loaded from the working
+ directory by default. To change this, provide a directory path as an argument:
+ 
+   --plugin GO,${HOME}/go_terms
+ 
+ The GNU zgrep and GNU sort commands must be installed in your path to create
+ the custom GFF file. The tabix and bgzip utilities are also required: check
+ https://github.com/samtools/htslib.git for installation instructions.
+ 
+ Alternatively, for compatibility purposes, the plugin allows to use a remote
+ connection to the Ensembl API by using "remote" as a parameter. This remote
+ connection retrieves GO terms one by one at both the transcript and translation
+ level:
+
+   --plugin GO,remote
  
 =cut
 
@@ -59,12 +75,15 @@ sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
+  my $config = $self->{config};
+  my $reg = $config->{reg};
+  $reg = 'Bio::EnsEMBL::Registry';
   
-  # Check if first parameter is 'remote' in order to revert to old functionality
-  $self->{use_remote} = @{$self->params} ? $self->params->[0] eq 'remote' : 0;
+  # Check if parameter "remote" is provided to revert to old GO.pm functionality
+  $self->{use_remote} = grep($_ eq "remote", @{$self->params});
   
   # Check if the tabix command is available
-  unless ( `which tabix 2>&1` =~ /tabix$/ ) {
+  if ( !$self->{use_remote} and !`which tabix 2>&1` =~ /tabix$/ ) {
     die "ERROR: command tabix not found in your path\n" if $self->{config}{offline};
     
     # Use remote connection if online and if the tabix command is not available
@@ -72,27 +91,14 @@ sub new {
     $self->{use_remote} = 1;
   }
   
-  my $config = $self->{config};
-  my $reg = $config->{reg};
-  $reg = 'Bio::EnsEMBL::Registry';
+  die "ERROR: cannot run 'remote' in offline mode\n" if ( $self->{use_remote} and $self->{config}{offline} );
   
   if ( !$self->{use_remote} ) {
     # Read GO terms from GFF file -- based on Phenotypes.pm
     
-    # Prepare file name based on species, database version and assembly
-    my $pkg      = __PACKAGE__.'.pm';
-    my $species  = $config->{species};
-    my $version  = $config->{db_version} || $reg->software_version;
-    my $assembly = $config->{assembly};
-    my @basename = ($pkg, $species, $version);
-    if( $species eq 'homo_sapiens' || $species eq 'human'){
-      $assembly ||= $config->{human_assembly};
-      push @basename, $assembly;
-    }
-    
     # Create GFF file with GO terms from database if file does not exist
-    my $file = join("_", @basename).".gff.gz";
-    $self->_generate_gff($file) unless (-e $file || -e $file.'.lock');
+    my $file = $self->_prepare_filename( $reg );
+    $self->_generate_gff( $file ) unless (-e $file || -e $file.'.lock');
     
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
@@ -100,6 +106,7 @@ sub new {
   } else {
     # Revert to old GO.pm functionality -- based on Conservation.pm
     print "### GO plugin: Retrieving GO terms from Ensembl API\n" unless $config->{quiet};
+        
     if(!defined($self->{config}->{sa})) {
       my $species = $config->{species};
       $reg->load_registry_from_db(
@@ -186,6 +193,31 @@ sub get_end {
   return $_[1]->{end};
 }
 
+sub _prepare_filename {
+  my ($self, $reg) = @_;
+  my $config = $self->{config};
+  
+  # Prepare directory to store files
+  my $dir = ""; # work in current directory by default
+  if (@{$self->params}) {
+    $dir = $self->params->[0];
+    $dir =~ s/\/?$/\//; # ensure path ends with slash
+    die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
+  }
+    
+  # Prepare file name based on species, database version and assembly
+  my $pkg      = __PACKAGE__.'.pm';
+  my $species  = $config->{species};
+  my $version  = $config->{db_version} || $reg->software_version;
+  my $assembly = $config->{assembly};
+  my @basename = ($pkg, $species, $version);
+  if( $species eq 'homo_sapiens' || $species eq 'human'){
+    $assembly ||= $config->{human_assembly};
+    push @basename, $assembly;
+  }
+  return $dir.join("_", @basename).".gff.gz";
+}
+
 sub _generate_gff {
   my ($self, $file) = @_;
 
@@ -226,11 +258,11 @@ sub _generate_gff {
       ) AS attribute
       
     FROM transcript
-    LEFT JOIN translation ON translation.transcript_id = transcript.transcript_id
-    LEFT JOIN object_xref ox ON $id = ox.ensembl_id
-    LEFT JOIN xref x ON ox.xref_id = x.xref_id
-    LEFT JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
-    LEFT JOIN external_db db ON x.external_db_id = db.external_db_id
+    JOIN translation ON translation.transcript_id = transcript.transcript_id
+    JOIN object_xref ox ON $id = ox.ensembl_id
+    JOIN xref x ON ox.xref_id = x.xref_id
+    JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
+    JOIN external_db db ON x.external_db_id = db.external_db_id
     WHERE db.db_name = "GO"
     GROUP BY transcript.stable_id
     ORDER BY sr.name, transcript.seq_region_start, transcript.seq_region_end;
