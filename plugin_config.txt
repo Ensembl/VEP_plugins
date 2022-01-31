@@ -720,7 +720,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "Consequence-Agnostic Pathogenicity Interpretation of Clinical Exome variations (CAPICE) is a tool for scoring the pathogenicity of single nucleotide variants and insertion/deletion variants in the human genome. CAPICE uses a gradient boosting tree model trained with multiple genomic annotations used by CADD score and based on clinical significance.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/CAPICE.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/CAPICE.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
