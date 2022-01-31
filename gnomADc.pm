@@ -150,8 +150,12 @@ sub new {
 
     opendir (my $fh, $path) or die $!;
     for (readdir $fh) {
-      $self->add_file(File::Spec->catfile($path, $_)) if /\.tsv\.gz$/;
-   
+      if (/\.tsv\.gz$/){
+        $self->add_file(File::Spec->catfile($path, $_));
+        
+      }
+     
+      
     }
     closedir $fh;
 
@@ -166,22 +170,22 @@ sub new {
 
   die("ERROR: Could not find any $prefix coverage files\n") unless @files;
 
-  foreach my $file (@files) {
-    print $file;
-    open FH, "tabix -fh $file 1:1-1 2>&1 | ";
-    while(<FH>){
-      next unless /^\#/;
-      chomp;
-      $_ =~ s/^\#//;
-      $self->{headers} = [split];
+  #foreach my $file (@files) {
+  #  print $file;
+    #open FH, "tabix -fh $file 1:1-1 2>&1 | ";
+    #while(<FH>){
+      #next unless /^\#/;
+      #chomp;
+      #$_ =~ s/^\#//;
+      #$self->{headers} = [split];
     
-    }
-    close(FH);
-    $headers = scalar @{$self->{headers}}; 
+    #}
+    #close(FH);
+    #$headers = scalar @{$self->{headers}}; 
     
    
     
-  } 
+  #} 
 
   $self->{prefix} = $prefix;
   $self->{file_column} = $headers;
