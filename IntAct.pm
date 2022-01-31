@@ -138,8 +138,7 @@ sub new {
   
   $self->{feature_type} = 1 unless defined $param_hash->{minimal};
 
-  $self->{pmid} = 1 if defined $param_hash->{pmid};
-  $self->{interaction_participants} = 1 if defined $param_hash->{interaction_participants};   
+  $self->{feature_ac} = 1 if defined $param_hash->{feature_ac};   
   $self->{feature_short_label} = 1 if defined $param_hash->{feature_short_label};
   $self->{feature_range} = 1 if defined $param_hash->{feature_range};
   $self->{original_sequence} = 1 if defined $param_hash->{original_sequence};
@@ -149,6 +148,8 @@ sub new {
   $self->{ap_ac} = 1 if defined $param_hash->{ap_ac};
   $self->{ap_symbol} = 1 if defined $param_hash->{ap_symbol};
   $self->{ap_full_name} = 1 if defined $param_hash->{ap_full_name};
+  $self->{interaction_participants} = 1 if defined $param_hash->{interaction_participants};
+  $self->{pmid} = 1 if defined $param_hash->{pmid};
   $self->{figure_legend} = 1 if defined $param_hash->{figure_legend};
 
   if($self->{config}->{output_format} eq "vcf") {
@@ -191,7 +192,7 @@ sub get_header_info {
   $field_des{"figure_legend"} = "Figure legend - Reference to the specific figures in the paper where the interaction evidence was reported. ";
   $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases. ";
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by |. Fields in each interaction data are separated by ,. Output field includes :- " unless $output_vcf;
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by ,. Fields in each interaction data are separated by |. Output field includes :- " unless $output_vcf;
 
   my $i = 0;
   my $total_fields = scalar keys %$valid_fields;
@@ -309,7 +310,7 @@ sub _filter_fields {
           $hash{"IntAct_".$field} = $hash{"IntAct_".$field} ? $hash{"IntAct_".$field}.",".$field_val : $field_val;
         }
         else{
-          $str = $str ? $str.",".$field_val : $field_val;
+          $str = $str ? $str."|".$field_val : $field_val;
         }
       }
     }
@@ -320,7 +321,7 @@ sub _filter_fields {
     }
 
     unless($output_json || $output_rest || $output_vcf){
-      $hash{"IntAct"} = $hash{"IntAct"} ? $hash{"IntAct"}."|".$str : $str; 
+      $hash{"IntAct"} = $hash{"IntAct"} ? $hash{"IntAct"}.",".$str : $str; 
     }
   }
 
