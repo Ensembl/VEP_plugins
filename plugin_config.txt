@@ -1604,7 +1604,7 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/IntAct.pm",
       "requires_data" => 1,
       "params"  => [
-        "#file=/path/to/mutation_gc_map.txt.gz",
+        "#mapping_file=/path/to/mutation_gc_map.txt.gz",
         "#mutation_file=/path/to/mutations.tsv",
         "@*"
       ],
