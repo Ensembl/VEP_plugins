@@ -254,31 +254,32 @@ sub _parse_intact_data {
 # remove duplicate interactions
 sub _remove_duplicates {
   my ($self, $intact_matches) = @_;
-  
-  my @interaction_acs;
-  my @feature_types;
-  my @interaction_participants;
 
   my @matches;
+  
+  my $taken = {};
   foreach (@$intact_matches) {
+    my $is_unique = 0;
+
     my $parsed_data = $self->_parse_intact_data($_);
 
     next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
-    
-    my $interaction_ac = $parsed_data->{interaction_ac};
-    my $feature_type = $parsed_data->{feature_type};
-    my $interaction_participant = $parsed_data->{interaction_participants};
-    
-    if( grep { $interaction_ac } @interaction_acs &&
-        grep { $feature_type } @feature_types &&
-        grep { $interaction_participant } @interaction_participants) {
 
-      push @matches, $parsed_data;
-    
-      push @interaction_acs, $interaction_ac;
-      push @feature_types, $feature_type;
-      push @interaction_participants, $interaction_participant;
+    foreach (keys %$parsed_data) {
+      next unless defined $self->{$_};
+
+      my ($field, $field_val) = ($_, $parsed_data->{$_});
+      chomp $field_val;
+
+      $taken->{$field} = [] unless defined $taken->{$field};
+
+      unless( grep { /\Q$field_val/ } @{ $taken->{$field} } ) {
+        push @{ $taken->{$field} }, $field_val;
+        $is_unique = 1;
+      }
     }
+
+    push @matches, $parsed_data if $is_unique;
   }
   
   return \@matches;
