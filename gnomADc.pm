@@ -163,12 +163,29 @@ sub new {
   }
 
   my @files = @{ $self->files() };
-  
+
   die("ERROR: Could not find any $prefix coverage files\n") unless @files;
-  
+
+  foreach my $file (@files) {
+    print $file;
+    open FH, "tabix -fh $file 1:1-1 2>&1 | ";
+    while(<FH>){
+      next unless /^\#/;
+      chomp;
+      $_ =~ s/^\#//;
+      $self->{headers} = [split];
+    
+    }
+    close(FH);
+    $headers = scalar @{$self->{headers}}; 
+    
+   
+    
+  } 
 
   $self->{prefix} = $prefix;
   $self->{file_column} = $headers;
+  
   
   return $self;
 }
@@ -181,10 +198,11 @@ sub get_header_info {
   my $self = shift;
 
   my $prefix = $self->{prefix};
-  my $header = $self->{file_column};
+  my $header = $self->{file_column} if defined($self->{file_column});
   my %header_info;
   
-  if ($header == 14 ){
+
+  if (defined($header == 14 )){
     for (qw(mean median_approx total_DP)) {
       $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
     }
