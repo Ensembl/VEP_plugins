@@ -290,7 +290,7 @@ sub run {
   elsif($n_genes > 1) {
     # Compare genes from SpliceAI with the variant gene symbol
     my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
-    if($hash_aux{$gene_symbol}) {
+    if(($gene_symbol) && ($hash_aux{$gene_symbol})) {
       $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
     }
   }
