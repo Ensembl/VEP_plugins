@@ -152,10 +152,17 @@ sub new {
     for (readdir $fh) {
       if (/\.tsv\.gz$/){
         $self->add_file(File::Spec->catfile($path, $_));
-        
+        open FH, "tabix -fh $_  1:1-1 2>&1 | ";
+        while(<FH>){
+          next unless /^\#/;
+          chomp;
+          $_ =~ s/^\#//;
+          $self->{headers} = [split];
+        }
       }
+        close(FH);
+        $headers = scalar @{$self->{headers}};
      
-      
     }
     closedir $fh;
 
