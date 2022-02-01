@@ -235,10 +235,12 @@ sub _generate_gff {
   my $ta = $self->{config}->{reg}->get_adaptor($species, 'Core', 'Transcript');
   die ("ERROR: Ensembl core database not available\n") unless defined $ta;
   
-  # Check whether GO terms are related with transcript or translation
+  # Check whether GO terms are set at transcript or translation level
   my $id = _get_GO_terms_id( $ta );
   
   # Query database and write to GFF file
+  my $join_translation_table = _starts_with($id, "translation") ?
+    "JOIN translation ON translation.transcript_id = transcript.transcript_id" : "";
   my @query = qq{
     SELECT
       sr.name AS seqname,
@@ -258,11 +260,11 @@ sub _generate_gff {
       ) AS attribute
       
     FROM transcript
-    LEFT JOIN translation ON translation.transcript_id = transcript.transcript_id
-    LEFT JOIN object_xref ox ON $id = ox.ensembl_id
-    LEFT JOIN xref x ON ox.xref_id = x.xref_id
-    LEFT JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
-    LEFT JOIN external_db db ON x.external_db_id = db.external_db_id
+    $join_translation_table
+    JOIN object_xref ox ON $id = ox.ensembl_id
+    JOIN xref x ON ox.xref_id = x.xref_id
+    JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
+    JOIN external_db db ON x.external_db_id = db.external_db_id
     WHERE db.db_name = "GO"
     GROUP BY transcript.stable_id
     ORDER BY sr.name, transcript.seq_region_start, transcript.seq_region_end;
@@ -282,6 +284,11 @@ sub _generate_gff {
 
   print "### GO plugin: GFF file ready!\n" unless $config->{quiet};
   return 1;
+}
+
+sub _starts_with {
+  my ($string, $prefix) = @_;
+  return rindex($string, $prefix, 0) == 0;
 }
 
 sub _get_GO_terms_id {
