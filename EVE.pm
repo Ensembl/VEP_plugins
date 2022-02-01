@@ -32,7 +32,45 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
+ adds information from EVE (evolutionary model of variant effect).
+ It is only available for GRCh38.
 
+ Please cite EVE publication alongside the VEP if you use this resource:
+ https://www.nature.com/articles/s41586-021-04043-8
+
+###################################################
+# Bash script to merge all VCFs from EVE dataset. #
+###################################################
+
+### BEGIN
+
+# Data link: https://evemodel.org/api/proteins/bulk/download/
+# Input: VCF files by protein (vcf_files_missense_mutations inside zip folder)
+# Output: Compressed Merged VCF file (vcf.gz) + index file (.tbi)
+
+DATA_FOLDER='/<PATH-TO>/vcf_files_missense_mutations' # Fill this line
+OUTPUT_FOLDER='/<PATH-TO>/eve_plugin' # Fill this line
+OUTPUT_NAME='eve_merged.vcf' # Default output name
+
+# Get header from first VCF
+cat `ls ${DATA_FOLDER}/*vcf | head -n1` > header
+
+# Get variants from all VCFs and add to a single-file
+ls ${DATA_FOLDER}/*vcf | while read VCF; do grep -v '^#' ${VCF} >> variants; done
+
+# Merge Header + Variants in a single file
+cat header variants | \
+awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1V -k2,2n"}' > ${OUTPUT_FOLDER}/${OUTPUT_NAME};
+
+# Remove temporary files
+rm header variants
+
+# Compress and index
+bgzip ${OUTPUT_FOLDER}/${OUTPUT_NAME};
+tabix ${OUTPUT_FOLDER}/${OUTPUT_NAME}.gz;
+
+### END
 
 =cut
 package EVE;
