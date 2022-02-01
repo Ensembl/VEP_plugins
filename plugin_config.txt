@@ -1616,6 +1616,25 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/neXtProt.pm"
     },
 
+    # IntAct
+    {
+      "key" => "IntAct",
+      "label" => "IntAct",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Protein data",
+      "helptip" => "IntAct provides molecular interaction data for variants as reprted by IntAct database",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/106/IntAct.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#mapping_file=/path/to/mutation_gc_map.txt.gz",
+        "#mutation_file=/path/to/mutations.tsv",
+        "@*"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ]
+    },
 
     ## OTHER
     ########
