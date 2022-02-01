@@ -113,6 +113,8 @@ sub run {
     return $variant->{result} if (@$matches);
   }
 
+  return {};
+
 }
 
 sub parse_data {
