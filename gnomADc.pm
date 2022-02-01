@@ -1,11 +1,9 @@
 =head1 LICENSE
-
 Copyright [2018-2020] QIMR Berghofer Medical Research Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
      http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
@@ -15,84 +13,69 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 =head1 CONTACT
-
  Stephen Kazakoff <Stephen.Kazakoff@qimrberghofer.edu.au>
     
 =cut
 
 =head1 NAME
-
  gnomADc
 
 =head1 SYNOPSIS
-
  mv gnomADc.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomADc.gz
 
 =head1 DESCRIPTION
-
  A VEP plugin that retrieves gnomAD annotation from either the genome
  or exome coverage files, available here:
-
- https://gnomad.broadinstitute.org/downloads
-
- Or via the Google Cloud console:
-
- https://console.cloud.google.com/storage/browser/gnomad-public/release
+ 
+   https://gnomad.broadinstitute.org/downloads
+ To download the gnomad genomes coverage file in TSV format:
+  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
+ To download the gnomad exomes coverage file in TSV format: 
+  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
 
  The coverage summary files must be processed and Tabix indexed before
- use by this plugin. Please select from the instructions below:
+ use by this plugin. 
 
- # GRCh38 and gnomAD genomes:
- > genomes="https://storage.googleapis.com/gnomad-public/release/3.0/coverage/genomes"
- > genome_coverage_tsv="gnomad.genomes.r3.0.coverage.summary.tsv.bgz"
- > wget "${genomes}/${genome_coverage_tsv}"
- > zcat "${genome_coverage_tsv}" | sed -e '1s/^locus/#chrom\tpos/; s/:/\t/' | bgzip > gnomADc.gz
- > tabix -s 1 -b 2 -e 2 gnomADc.gz
-
- # GRCh37 and gnomAD genomes:
- > genomes="https://storage.googleapis.com/gnomad-public/release/2.1/coverage/genomes"
- > genome_coverage_tsv="gnomad.genomes.coverage.summary.tsv.bgz"
- > wget "${genomes}/${genome_coverage_tsv}"
- > zcat "${genome_coverage_tsv}" | sed -e '1s/^/#/' | bgzip > gnomADg.gz
- > tabix -s 1 -b 2 -e 2 gnomADg.gz
-
- # GRCh37 and gnomAD exomes:
- > exomes="https://storage.googleapis.com/gnomad-public/release/2.1/coverage/exomes"
- > exome_coverage_tsv="gnomad.exomes.coverage.summary.tsv.bgz"
- > wget "${exomes}/${exome_coverage_tsv}"
- > zcat "${exome_coverage_tsv}" | sed -e '1s/^/#/' | bgzip > gnomADe.gz
- > tabix -s 1 -b 2 -e 2 gnomADe.gz
-
+ The following steps are necessary to tabix the gnomad genomes coverage file :
+  mv gnomad.genomes.coverage.summary.tsv.bgz gnomad.genomes.r2.1.gz
+  gunzip gnomad.genomes.r2.1.gz
+  sed '1s/.*/#&/'  gnomad.genomes.r2.1 > gnomad.genomes.tabbed.tsv
+  bgzip gnomad.genomes.tabbed.tsv
+  tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
+ The following steps are neccessary to tabix the gnomad exomes coverage file :
+  mv gnomad.exomes.coverage.summary.tsv.bgz gnomad.exomes.r2.1.gz
+  gunzip gnomad.exomes.r2.1.gz
+  sed '1s/.*/#&/'  gnomad.exomes.r2.1 > gnomad.exomes.tabbed.tsv
+  bgzip gnomad.exomes.tabbed.tsv
+  tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
+ 
  By default, the output field prefix is 'gnomAD'. However if the input file's
  basename is 'gnomADg' (genomes) or 'gnomADe' (exomes), then these values are
  used instead. This makes it possible to call the plugin twice and include
  both genome and exome coverage values in a single run. For example:
-
+ 
  ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomADg.gz --plugin gnomADc,/path/to/gnomADe.gz
-
+ 
  This plugin also tries to be backwards compatible with older versions of the
  coverage summary files, including releases 2.0.1 and 2.0.2. These releases
  make available one coverage file per chromosome and these can be used "as-is"
  without requiring any preprocessing. To annotate against multiple tabix-indexed
  chromosome files, instead specify the path to the parent directory. For example:
-
+ 
  ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad-public/release/2.0.2/coverage/genomes
-
+ 
  When a directory path is supplied, only files immediately under this directory
  that have a '.txt.gz' extension will attempt to be loaded. By default, the
  output field prefix is simply 'gnomAD'. However if the parent directory is
  either 'genomes' or 'exomes', then the output field prefix will be 'gnomADg'
  or 'gnomADe', respectively.
-
+ 
  If you use this plugin, please see the terms and data information:
-
- https://gnomad.broadinstitute.org/terms
-
+   https://gnomad.broadinstitute.org/terms
+ 
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin. 
-
-
 =cut
 
 package gnomADc;
@@ -117,82 +100,26 @@ sub new {
 
   $self->get_user_params();
 
-  my $path = shift @{ $self->params };
-  die("ERROR: gnomADc input file not specified\n") unless $path;
-  die("ERROR: gnomADc input file not found\n") unless -e $path;
+  my $file = $self->params->[0];
+  
 
   my $prefix = 'gnomAD';
   my $headers;
-
-  if (-f $path) {
-
-    $self->add_file($path);
-
-    # use the file's basename to set a column prefix
-    my $basename = fileparse($path, qr/\.[^.]*/);
-    my %gnomad_basenames = map { $_ => 1 } qw( gnomADg gnomADe );
-    
-    $prefix = $basename if exists $gnomad_basenames{$basename};
-    open FH, "tabix -fh $path 1:1-1 2>&1 | ";
-    while(<FH>){
+  $self->add_file($file);
+  
+  open FH, "tabix -fh $file 1:1-1 2>&1 | ";
+  while(<FH>){
       next unless /^\#/;
       chomp;
       $_ =~ s/^\#//;
       $self->{headers} = [split];
-    }
-    
-    close(FH);
-    $headers = scalar @{$self->{headers}};
   }
-
-
-  elsif (-d $path) {
-
-    opendir (my $fh, $path) or die $!;
-    for (readdir $fh) {
-      if (/\.tsv\.gz$/){
-        $self->add_file(File::Spec->catfile($path, $_));
-        open FH, "tabix -fh $_  1:1-1 2>&1 | ";
-        while(<FH>){
-          next unless /^\#/;
-          chomp;
-          $_ =~ s/^\#//;
-          $self->{headers} = [split];
-        }
-      }
-        close(FH);
-        $headers = scalar @{$self->{headers}};
-     
-    }
-    closedir $fh;
-
-    # use the parent directory's basename to set a column prefix
-    my $basename = basename($path);
-    my %gnomad_dirnames = map { $_ => 1 } qw( genomes exomes );
-
-    $prefix .= substr($basename, 0, 1) if exists $gnomad_dirnames{$basename};
-  }
-
-  my @files = @{ $self->files() };
-
-  die("ERROR: Could not find any $prefix coverage files\n") unless @files;
-
-  #foreach my $file (@files) {
-  #  print $file;
-    #open FH, "tabix -fh $file 1:1-1 2>&1 | ";
-    #while(<FH>){
-      #next unless /^\#/;
-      #chomp;
-      #$_ =~ s/^\#//;
-      #$self->{headers} = [split];
     
-    #}
-    #close(FH);
-    #$headers = scalar @{$self->{headers}}; 
-    
-   
-    
-  #} 
+  close(FH);
+  $headers = scalar @{$self->{headers}};
+
+  die("ERROR: Could not find any $prefix coverage files\n") unless $file;
+
 
   $self->{prefix} = $prefix;
   $self->{file_column} = $headers;
