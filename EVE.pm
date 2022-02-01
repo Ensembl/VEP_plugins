@@ -131,8 +131,6 @@ sub run {
   return {} unless(@data);
 
   foreach my $variant (@data) {
-    # This check should disappear with multiple snps codons
-    return {} unless($variant->{start} and $variant->{ref} and $variant->{alt});
 
     my $matches = get_matched_variant_alleles(
       {
