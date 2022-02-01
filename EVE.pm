@@ -93,6 +93,9 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
+  my @params = @{$self->params};
+  die "\nERROR: No EVE file specified\n" unless @params > 0;
+
   $self->add_file($param_hash->{file});
 
   return $self;
