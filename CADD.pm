@@ -73,7 +73,9 @@ sub new {
 
   # Check files in arguments
   my @params = @{$self->params};
-  die "ERROR: No CADD files specified\n" unless @params > 0;
+  die "ERROR: No CADD files specified\n" .
+    "Tip: Add CADD files as plugin parameters, e.g.:\n" .
+    "  ./vep -i variations.vcf --plugin CADD,/path/to/whole_genome_SNVs.tsv.gz,/path/to/InDels.tsv.gz\n" unless @params > 0;
   $self->add_file($_) for @params;
 
   return $self;
