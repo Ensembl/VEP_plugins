@@ -135,10 +135,18 @@ To match only on the first position and the alt allele use --pep_match=0
 Some fields contain multiple values, one per Ensembl transcript ID.
 By default all values are returned, separated by ";" in the default VEP output format.
 To return values only for the matched Ensembl transcript ID use transcript_match=1.
-NB: this may cause no value to return if the version of the Ensembl transcript set
-differs between VEP and dbNSFP. 
+This behaviour only affects transcript-specific fields; non-transcript-specific fields
+are unaffected.
 
 --plugin dbNSFP,/path/to/dbNSFP.gz,transcript_match=1,col1,col2
+
+NB 1: Using this flag may cause no value to return if the version of the Ensembl
+transcript set differs between VEP and dbNSFP.
+
+NB 2: MutationTaster entries are keyed on a different set of transcript IDs. Using
+the transcript_match flag with any MutationTaster field selected will have no effect
+i.e. all entries are returned. Information on corresponding transcript(s) for
+MutationTaster fields can be found using http://www.mutationtaster.org/ChrPos.html
 
 =cut
 
@@ -155,6 +163,19 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
 my %ALLOWED_PARAMS = map {$_ => 1} qw(pep_match transcript_match);
+
+# this region chosen as it should pull out a row in all assemblies
+my $EXAMPLE_REGION = "1:1008170-1082927";
+
+# these fields are ";"-separated but NOT transcript-specific OR do not correspond to Ensembl_transcriptid
+# MutationTaster: Information on corresponding transcript(s) can be found by querying http://www.mutationtaster.org/ChrPos.html
+my %NON_TRANSCRIPT_SPECIFIC_FIELDS = map {$_ => 1} qw(
+  MutationTaster_score
+  MutationTaster_converted_rankscore
+  MutationTaster_pred
+  MutationTaster_model
+  Interpro_domain
+);
 
 sub new {
   my $class = shift;
@@ -196,12 +217,28 @@ sub new {
   $self->add_file($file);
   
   # get headers
-  open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
+  open HEAD, "tabix -fh $file $EXAMPLE_REGION 2>&1 | ";
   while(<HEAD>) {
-    next unless /^\#/;
     chomp;
-    $_ =~ s/^\#//;
-    $self->{headers} = [split];
+
+    # parse header line to get field names
+    if(/^\#/) {
+      $_ =~ s/^\#//;
+      $self->{headers} = [split];
+    }
+
+    # parse data line to identify transcript-specific fields
+    else {
+      next unless /\;/;
+      die "ERROR: No headers found before data" unless defined($self->{headers});
+      my $row_data = $self->parse_data($_);
+      my @transcript_specific_fields;
+      for my $key(keys %$row_data) {
+        push @transcript_specific_fields, $key if $row_data->{$key} =~ /\;/ && !$NON_TRANSCRIPT_SPECIFIC_FIELDS{$key};
+      }
+      $self->{transcript_specific_fields} = \@transcript_specific_fields;
+      last;
+    }
   }
   close HEAD;
   
@@ -248,7 +285,11 @@ sub new {
     foreach my $h (qw(aaalt aaref)) {
       die("ERROR: Could not find the required column $h for pep_match option in $file\n") unless grep{$_ eq $h} @{$self->{headers}};
     }
-  } 
+  }
+
+  if ($self->{transcript_match} && !defined($self->{transcript_specific_fields})) {
+    die("ERROR: transcript_match parameter specified but transcript-specific field detection failed");
+  }
  
   # get required columns
   while(defined($self->params->[$index])) {
@@ -401,27 +442,36 @@ sub run {
     # make a clean copy as we're going to edit it
     %$data = %$tmp_data;
 
-    # convert data with multiple transcript values
-    if($self->{transcript_match} && $data->{Ensembl_transcriptid} =~ m/\;/) {
+    # check and parse data if we're using transcript_match parameter
+    if($self->{transcript_match}) {
 
       # find the "index" of this transcript
       my @tr_ids = split(';', $data->{Ensembl_transcriptid});
       my $tr_index;
 
       for my $i(0..$#tr_ids) {
-        $tr_index = $i;
-        last if $tr_ids[$tr_index] =~ /^$tr_id(\.\d+)?$/;
+        if($tr_ids[$i] eq $tr_id) {
+          $tr_index = $i;
+          last;
+        }
       }
 
-      next unless defined($tr_index);
-
-      # now alter other fields
-      foreach my $key(keys %$data) {
-        if($data->{$key} =~ m/\;/) {
-          my @split = split(';', $data->{$key});
-          die("ERROR: Transcript index out of range") if $tr_index > $#split;
-          $data->{$key} = $split[$tr_index];
+      # if transcriptid doesn't match we have to nerf transcript-specific fields
+      if(!defined($tr_index)) {
+        for my $key(@{$self->{transcript_specific_fields}}) {
+          delete $data->{$key} if defined($data->{$key});
         }
+      }
+
+      # refine values of transcript-specific fields
+      # we need to get the fields here as we're modifying $data in the loop
+      my @refine_fields = grep {defined($data->{$_}) && defined($self->{cols}->{$_})} @{$self->{transcript_specific_fields}};
+
+      foreach my $key(@refine_fields) {
+        my @split = split(';', $data->{$key});
+        die("ERROR: Transcript index out of range") if $tr_index > $#split;
+        die("ERROR: Number of transcript IDs does not match number of data entries for field $key") if scalar @split != scalar @tr_ids;
+        $data->{$key} = $split[$tr_index];
       }
     }
     last;
@@ -434,8 +484,8 @@ sub run {
   my @to = @{$self->{replacement}->{default}->{to}};
 
   my %return;
-  foreach my $colname (keys %$data) {
-    next if(!defined($self->{cols}->{$colname}));
+  foreach my $colname (keys %{$self->{cols}}) {
+    next if(!defined($data->{$colname}));
     next if($data->{$colname} eq '.');
 
     my @from = @{$self->{replacement}->{default}->{from}};
