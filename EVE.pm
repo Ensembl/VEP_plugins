@@ -45,7 +45,7 @@ limitations under the License.
 
 ### BEGIN
 
-# Data link: https://evemodel.org/api/proteins/bulk/download/
+# EVE input file can be downloaded from https://evemodel.org/api/proteins/bulk/download/ 
 # Input: VCF files by protein (vcf_files_missense_mutations inside zip folder)
 # Output: Compressed Merged VCF file (vcf.gz) + index file (.tbi)
 
