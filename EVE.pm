@@ -95,6 +95,10 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
+  my $assembly = $self->{config}->{assembly};
+
+  die "\nAssembly is not GRCh38, EVE only works with GRCh38. \n" if ($assembly ne "GRCh38");
+
   my $param_hash = $self->params_to_hash();
 
   die "\nERROR: No EVE file specified\n" unless defined($param_hash->{file});
