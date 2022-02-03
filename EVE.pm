@@ -68,6 +68,8 @@ rm header variants
 
 # Compress and index
 bgzip ${OUTPUT_FOLDER}/${OUTPUT_NAME};
+
+# If not installed, use: sudo apt install tabix
 tabix ${OUTPUT_FOLDER}/${OUTPUT_NAME}.gz;
 
 ### END
