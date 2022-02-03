@@ -34,6 +34,8 @@ limitations under the License.
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds information from EVE (evolutionary model of variant effect).
+ In this plugin, only single nucleotide variants (SNVs) are analyzed,
+ multiple nucleotides variants (MNVs) are not included.
  It is only available for GRCh38.
 
  Please cite EVE publication alongside the VEP if you use this resource:
