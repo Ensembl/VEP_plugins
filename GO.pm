@@ -237,12 +237,12 @@ sub _generate_gff {
   
   # Check whether GO terms are set at transcript or translation level
   my $id = _get_GO_terms_id( $ta );
-  
-  # Query database and write to GFF file
   my $join_translation_table = _starts_with($id, "translation") ?
     "JOIN translation ON translation.transcript_id = transcript.transcript_id" : "";
+
+  # Query database for each GO term and its description per transcript
   my @query = qq{
-    SELECT
+    SELECT DISTINCT
       sr.name AS seqname,
       REPLACE(db.db_name, " ", "_") AS source,
       "Transcript" AS feature,
@@ -251,13 +251,9 @@ sub _generate_gff {
       '.' AS score,
       IF(transcript.seq_region_strand = 1, '+', '-') AS strand, 
       '.' AS frame,
-      CONCAT_WS(';',
-        CONCAT('ID=', transcript.stable_id),
-        CONCAT('Ontology_term=', GROUP_CONCAT(
-          DISTINCT x.display_label, ':',
-          REPLACE(x.description, " ", "_")
-          ORDER BY x.display_label))
-      ) AS attribute
+      transcript.stable_id AS transcript_stable_id,
+      x.display_label AS go_term,
+      REPLACE(x.description, " ", "_") AS go_term_description
       
     FROM transcript
     $join_translation_table
@@ -266,13 +262,15 @@ sub _generate_gff {
     JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
     JOIN external_db db ON x.external_db_id = db.external_db_id
     WHERE db.db_name = "GO"
-    GROUP BY transcript.stable_id
-    ORDER BY sr.name, transcript.seq_region_start, transcript.seq_region_end;
+    ORDER BY transcript.stable_id, # major assumption for the next steps
+             x.display_label
   };
   my $sth = $ta->db->dbc->prepare(@query, { mysql_use_result => 1});
   $sth->execute();
+
+  # Append all GO terms from the same transcript and write to file
   print "### GO plugin: Writing to file\n" unless $config->{quiet};
-  my $file_tmp = _write_to_file($sth, $file);
+  my $file_tmp = _write_GO_terms_to_file($sth, $file);
   $sth->finish();
   
   print "### GO plugin: Sorting file\n" unless $config->{quiet};
@@ -307,7 +305,7 @@ sub _get_GO_terms_id {
   return "$type.$type\_id";
 }
 
-sub _write_to_file {
+sub _write_GO_terms_to_file {
   my ($sth, $file) = @_;
   my $file_tmp = $file.".tmp";
   
@@ -319,12 +317,35 @@ sub _write_to_file {
 
   open OUT, " | bgzip -c > $file_tmp" or die "ERROR: cannot write to file $file_tmp\n";
   print OUT "##gff-version 1.10\n"; # GFF file header
+
+  # For a single transcript, append all of its GO terms to $transcript_info;
+  # when there is a new transcript, write $transcript_info to file and repeat
+  my $transcript_info;
+  my $previous_transcript = "";
   while(my $row = $sth->fetchrow_arrayref()) {
-    print OUT join("\t", map {defined($_) ? $_ : '.'} @$row)."\n";
+    my ($transcript_id, $go_term, $description) = splice(@$row, -3);
+
+    if ($transcript_id ne $previous_transcript) {
+      # If not the same transcript, write previous transcript info to file
+      print OUT $transcript_info."\n" if defined($transcript_info);
+
+      # Set this new transcript info
+      $previous_transcript = $transcript_id;
+      $row = join("\t", map {defined($_) ? $_ : '.'} @$row);
+      $transcript_info = $row."\tID=$transcript_id;Ontology_term=";
+    } else {
+      # Append comma before appending another GO term
+      $transcript_info .= ","
+    }
+    # Append GO term and its description
+    $description = "" unless defined($description);
+    $transcript_info .= "$go_term:$description";
   }
+  # Write info of last transcript to file
+  print OUT $transcript_info."\n" if defined($transcript_info);
+
   close OUT;
   unlink($lock);
-  
   return $file_tmp;
 }
 
