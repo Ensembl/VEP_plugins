@@ -261,7 +261,7 @@ sub _generate_gff {
     JOIN xref x ON ox.xref_id = x.xref_id
     JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
     JOIN external_db db ON x.external_db_id = db.external_db_id
-    WHERE db.db_name = "GO"
+    WHERE db.db_name = "GO" AND db.dbprimary_acc LIKE "GO:%"
     ORDER BY transcript.stable_id, # major assumption for the next steps
              x.display_label
   };
