@@ -49,14 +49,14 @@ limitations under the License.
  
    --plugin GO,${HOME}/go_terms
  
- The GNU zgrep and GNU sort commands must be installed in your path to create
- the custom GFF file. The tabix and bgzip utilities are also required: check
- https://github.com/samtools/htslib.git for installation instructions.
+ To create/use a custom GFF file, these programs must be installed in your path:
+   * The GNU zgrep and GNU sort commands to create the GFF file.
+   * The tabix and bgzip utilities to create and read the GFF file: check
+     https://github.com/samtools/htslib.git for installation instructions.
  
  Alternatively, for compatibility purposes, the plugin allows to use a remote
- connection to the Ensembl API by using "remote" as a parameter. This remote
- connection retrieves GO terms one by one at both the transcript and translation
- level:
+ connection to the Ensembl API by using "remote" as a parameter. This method
+ retrieves GO terms one by one at both the transcript and translation level:
 
    --plugin GO,remote
  
