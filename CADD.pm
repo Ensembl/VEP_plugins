@@ -139,11 +139,20 @@ sub run {
 }
 
 sub parse_data {
-  my ($self, $line) = @_;
-  my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/, $line;
+  my ($self, $line, $file) = @_;
+
+  my @headers = split /\t/, $self->{$file};
+  my @values = split /\t/, $line;
+
+  my %data = map {$headers[$_] => $values[$_]} (0..(@headers - 1));
+
+  my $c = $data{"#Chrom"};
+  my $s = $data{"Pos"};
+  my $ref = $data{"Ref"};
+  my $alt = $data{"Alt"};
 
   # do VCF-like coord adjustment for mismatched subs
-  my $e = ($s + length($ref)) - 1;
+  my $end = ($s + length($ref)) - 1;
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
     my $first_alt = substr($alt, 0, 1);
@@ -155,14 +164,15 @@ sub parse_data {
       $alt ||= '-';
     }
   }
+
   return {
     ref => $ref,
     alt => $alt,
     start => $s,
-    end => $e,
+    end => $end,
     result => {
-      CADD_RAW   => $raw,
-      CADD_PHRED => $phred
+      CADD_RAW   => $data{"RawScore"},
+      CADD_PHRED => $data{"PHRED"}
     }
   };
 }
