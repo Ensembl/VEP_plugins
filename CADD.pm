@@ -70,6 +70,28 @@ sub new {
 
   $self->get_user_params();
 
+  # Check files in arguments
+  my @params = @{$self->params};
+
+  die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --custom CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @params > 0;
+  $self->add_file($_) for @params;
+
+  foreach my $file (@params) {
+    open IN, "tabix -f -h ".$file." 1:1-1 |";
+
+    my @lines = <IN>;
+
+    while (my $line = shift @lines) {
+      next if (rindex $line, "#Chrom", 0);
+      $self->{$file} = $line;
+    }
+
+    die "'#Chrom' was not found on header" unless $self->{$file};
+
+  }
+
+  close IN;
+
   return $self;
 }
 
