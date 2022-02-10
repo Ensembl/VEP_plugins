@@ -178,6 +178,13 @@ sub parse_data {
   my $ref = $data{"Ref"};
   my $alt = $data{"Alt"};
 
+  # Conditional result
+  my %result = ();
+  foreach (keys %INCLUDE_COLUMNS){
+    next unless (exists($data{$_}));
+    $result{$INCLUDE_COLUMNS{$_}{"name"}} = $data{$_};
+  }
+
   # do VCF-like coord adjustment for mismatched subs
   my $end = ($s + length($ref)) - 1;
   if(length($alt) != length($ref)) {
@@ -197,10 +204,7 @@ sub parse_data {
     alt => $alt,
     start => $s,
     end => $end,
-    result => {
-      CADD_RAW   => $data{"RawScore"},
-      CADD_PHRED => $data{"PHRED"}
-    }
+    result => \%result
   };
 }
 
