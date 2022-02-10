@@ -107,11 +107,15 @@ sub new {
     # Make sure it has a known prefix in header
     die "'#Chrom' was not found on header" unless $self->{$file};
 
+    my $file_check = 0;
     # Conditional header
     for (split /\t/, $self->{$file}){
       next unless (exists($INCLUDE_COLUMNS{$_}));
+      $file_check = 1;
       $self->{header}{$INCLUDE_COLUMNS{$_}{"name"}} = $INCLUDE_COLUMNS{$_}{"description"};
     }
+
+    die "\nERROR: $file does not have a known column to be included" unless $file_check;
 
   }
 
