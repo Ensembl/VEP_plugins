@@ -77,6 +77,9 @@ sub new {
   
   my $self = $class->SUPER::new(@_);
 
+  # Test if tabix exists
+  die "\nERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
+
   $self->expand_left(0);
   $self->expand_right(0);
 
