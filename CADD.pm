@@ -91,6 +91,8 @@ sub new {
   die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --custom CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @params > 0;
   $self->add_file($_) for @params;
 
+  $self->{header} = ();
+
   foreach my $file (@params) {
     open IN, "tabix -f -h ".$file." 1:1-1 |";
 
@@ -98,10 +100,18 @@ sub new {
 
     while (my $line = shift @lines) {
       next if (rindex $line, "#Chrom", 0);
+      chomp $line;
       $self->{$file} = $line;
     }
 
+    # Make sure it has a known prefix in header
     die "'#Chrom' was not found on header" unless $self->{$file};
+
+    # Conditional header
+    for (split /\t/, $self->{$file}){
+      next unless (exists($INCLUDE_COLUMNS{$_}));
+      $self->{header}{$INCLUDE_COLUMNS{$_}{"name"}} = $INCLUDE_COLUMNS{$_}{"description"};
+    }
 
   }
 
@@ -116,10 +126,8 @@ sub feature_types {
 
 sub get_header_info {
   my $self = shift;
-  return {
-    CADD_PHRED => 'PHRED-like scaled CADD score',
-    CADD_RAW   => 'Raw CADD score'
-  }
+
+  return $self->{header}
 }
 
 sub run {
