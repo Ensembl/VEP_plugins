@@ -60,6 +60,18 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+# List here all columns in headers that should be included
+my %INCLUDE_COLUMNS = (
+    "PHRED" => {
+      "name" => "CADD_PHRED",
+      "description" => 'PHRED-like scaled CADD score'
+    },
+    "RawScore" => {
+      "name" => "CADD_RAW",
+      "description" => 'Raw CADD score'
+    }
+);
+
 sub new {
   my $class = shift;
   
