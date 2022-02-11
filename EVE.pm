@@ -171,23 +171,14 @@ sub parse_data {
   # Parsing VCF fields
   my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line; 
 
-  my $allele_difference = ($ref ^ $alt) =~ tr/\0//c;
-
-  # TODO Prepare multiple SNPs codons part
-  if ($allele_difference > 1){
-    return {};
-  }
-
   # Parsing INFO field
   my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
   my ($EVE_CLASS) = $info =~ /Class75=(.*?);/;
 
-  my %new_snp = _get_snp_from_codon($ref, $alt, $pos);
-
   return {
-    ref => $new_snp{ref},
-    alt => $new_snp{alt},
-    start => $new_snp{pos},
+    ref => $ref,
+    alt => $alt,
+    start => $pos,
     result => {
       EVE_SCORE   => $EVE_SCORE,
       EVE_CLASS   => $EVE_CLASS
@@ -201,25 +192,6 @@ sub get_start {
 
 sub get_end {
   return $_[1]->{end};
-}
-
-# Additional function
-sub _get_snp_from_codon {
-  my ($ref, $alt, $pos) = @_;
-
-  my $mask = $ref ^ $alt;
-  while ($mask =~ /[^\0]/g) {
-      $ref = substr($ref,$-[0],1);
-      $alt = substr($alt,$-[0],1);
-      $pos += $-[0];
-  }
-
-  return (
-    ref => $ref,
-    alt => $alt,
-    pos => $pos
-  )
-
 }
 
 1;
