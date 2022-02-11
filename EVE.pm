@@ -116,7 +116,7 @@ sub get_header_info {
   my $self = shift;
   return {
     EVE_SCORE => 'Score from EVE model',
-    EVE_CLASS   => 'Classification (Benign, Uncertain, or Pathogenic) when setting 70% as uncertain'
+    EVE_CLASS   => 'Classification (Benign, Uncertain, or Pathogenic) when setting 75% as uncertain'
   }
 }
 
@@ -178,7 +178,7 @@ sub parse_data {
 
   # Parsing INFO field
   my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
-  my ($EVE_CLASS) = $info =~ /Class70=(.*?);/;
+  my ($EVE_CLASS) = $info =~ /Class75=(.*?);/;
 
   my %new_snp = _get_snp_from_codon($ref, $alt, $pos);
 
