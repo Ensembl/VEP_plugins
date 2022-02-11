@@ -124,6 +124,8 @@ sub run {
   my ($self, $tva) = @_;
   my $vf = $tva->variation_feature;
 
+  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+
   # get allele
   my $alt_allele = $tva->variation_feature_seq;
   my $ref_allele = $vf->ref_allele_string;
