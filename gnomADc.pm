@@ -22,54 +22,47 @@ limitations under the License.
 
 =head1 SYNOPSIS
  mv gnomADc.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomADc.gz
+ ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad.tsv.gz 
 
 =head1 DESCRIPTION
  A VEP plugin that retrieves gnomAD annotation from either the genome
  or exome coverage files, available here:
  
    https://gnomad.broadinstitute.org/downloads
- To download the gnomad genomes coverage file in TSV format:
-  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
- To download the gnomad exomes coverage file in TSV format: 
-  wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
+To download the gnomad coverage file in TSV format:
+ for Assembly GRCh37: 
+  gnomad genomes:
+   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
+  gnomad exomes:
+   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
+  
+To download the gnomad coverage file in TSV format: 
+ for Assembly GRCh38: 
+  gnomad genomes: 
+   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate 
 
- The coverage summary files must be processed and Tabix indexed before
- use by this plugin. 
-
- The following steps are necessary to tabix the gnomad genomes coverage file :
-  mv gnomad.genomes.coverage.summary.tsv.bgz gnomad.genomes.r2.1.gz
-  gunzip gnomad.genomes.r2.1.gz
-  sed '1s/.*/#&/'  gnomad.genomes.r2.1 > gnomad.genomes.tabbed.tsv
-  bgzip gnomad.genomes.tabbed.tsv
-  tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
- The following steps are neccessary to tabix the gnomad exomes coverage file :
-  mv gnomad.exomes.coverage.summary.tsv.bgz gnomad.exomes.r2.1.gz
-  gunzip gnomad.exomes.r2.1.gz
-  sed '1s/.*/#&/'  gnomad.exomes.r2.1 > gnomad.exomes.tabbed.tsv
-  bgzip gnomad.exomes.tabbed.tsv
-  tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
+for Assembly GRCh37:
+  The following steps are necessary to tabix the gnomad genomes coverage file :
+   gunzip -c gnomad.genomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomes.tabbed.tsv
+   bgzip gnomad.genomes.tabbed.tsv
+   tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
+   The following steps are neccessary to tabix the gnomad exomes coverage file :
+   gunzip -c gnomad.exomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.exomes.tabbed.tsv
+   bgzip gnomad.exomes.tabbed.tsv
+   tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
  
- By default, the output field prefix is 'gnomAD'. However if the input file's
- basename is 'gnomADg' (genomes) or 'gnomADe' (exomes), then these values are
- used instead. This makes it possible to call the plugin twice and include
- both genome and exome coverage values in a single run. For example:
- 
- ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomADg.gz --plugin gnomADc,/path/to/gnomADe.gz
+ for Assembly GRCh38:
+  The following steps are necessary to tabix the gnomad genomes coverage file :
+   mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
+   gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
+   sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.genomesv3.tabbed.tsv | sed '1s/locus/chr\tpos/' gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
+   sed 's/:/\t/g' gnomad.ch.genomesv3.tabbed.tsv > gnomad.genomesv3.tabbed.tsv | bgzip  gnomad.genomesv3.tabbed.tsv 
+   tabix -s 1 -b 2 -e 2 gnomad.genomesv3.tabbed.tsv.gz
  
  This plugin also tries to be backwards compatible with older versions of the
  coverage summary files, including releases 2.0.1 and 2.0.2. These releases
  make available one coverage file per chromosome and these can be used "as-is"
- without requiring any preprocessing. To annotate against multiple tabix-indexed
- chromosome files, instead specify the path to the parent directory. For example:
- 
- ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad-public/release/2.0.2/coverage/genomes
- 
- When a directory path is supplied, only files immediately under this directory
- that have a '.txt.gz' extension will attempt to be loaded. By default, the
- output field prefix is simply 'gnomAD'. However if the parent directory is
- either 'genomes' or 'exomes', then the output field prefix will be 'gnomADg'
- or 'gnomADe', respectively.
+ without requiring any preprocessing. 
  
  If you use this plugin, please see the terms and data information:
    https://gnomad.broadinstitute.org/terms
