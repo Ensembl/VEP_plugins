@@ -164,6 +164,26 @@ sub new {
     $output_rest = 1;
   }
 
+
+  my $species = $self->config->{species};
+  $self->{species} = $species;
+
+  # Get species taxonomy id using ensembl REST API
+  die "ERROR: unable to get species taxonomy id without HTTP:tiny\n" unless eval q{ use HTTP::Tiny; 1 };
+  die "ERROR: unable to get species taxonomy id without JSON\n" unless eval q{ use JSON; 1 };
+
+  my $headers = {"content-type" => "application/json"};
+  my $url = "https://rest.ensembl.org/taxonomy/id/${species}?";
+  my $response = HTTP::Tiny->new->get($url, { headers => $headers } );
+
+  die "ERROR: REST call failed with status $response->{status} while getting species taxonomy id\n" unless $response->{success};
+
+  my $html = $response->{content};
+  my $json_response = decode_json($html);  
+  
+  die "ERROR: cannot parse taxonomy id from response content\n" unless defined $json_response->{id} and $json_response->{id} ne "";
+  $self->{species_tax_id} = $json_response->{id};
+  
   return $self;
 }
 
@@ -264,7 +284,11 @@ sub _remove_duplicates {
 
     my $parsed_data = $self->_parse_intact_data($_);
 
-    next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
+    # check if the data has correct species
+    my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
+    $ap_organism_tax_id =~ s/^\s+|\s+$//;
+
+    next if $ap_organism_tax_id ne $self->{species_tax_id};
 
     foreach (keys %$parsed_data) {
       next unless defined $self->{$_};
@@ -333,15 +357,13 @@ sub _filter_fields {
 sub run {
   my ($self, $tva) = @_;
 
-  return {} if $self->config->{species} ne "homo_sapiens";
-
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
 
   # get reference codon and HGVSp  
   my $ref_codon = $tv->get_reference_TranscriptVariationAllele->codon if $tv;
-  my $hgvs = $tva->hgvs_protein;  
-  
+  my $hgvs = $tva->hgvs_protein;
+
   return {} unless ($ref_codon and $hgvs);
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
