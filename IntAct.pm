@@ -168,22 +168,12 @@ sub new {
   my $species = $self->config->{species};
   $self->{species} = $species;
 
-  # Get species taxonomy id using ensembl REST API
-  die "ERROR: unable to get species taxonomy id without HTTP:tiny\n" unless eval q{ use HTTP::Tiny; 1 };
-  die "ERROR: unable to get species taxonomy id without JSON\n" unless eval q{ use JSON; 1 };
+  # get species taxonomy id using ensembl REST API
+  my $species_tax_id = $self->_get_species_tax_id($species);
 
-  my $headers = {"content-type" => "application/json"};
-  my $url = "https://rest.ensembl.org/taxonomy/id/${species}?";
-  my $response = HTTP::Tiny->new->get($url, { headers => $headers } );
+  die "ERROR: could not get species taxonomy id and the species is not human\n" 
+    if not defined $species_tax_id and $species ne "homo_sapiens";
 
-  die "ERROR: REST call failed with status $response->{status} while getting species taxonomy id\n" unless $response->{success};
-
-  my $html = $response->{content};
-  my $json_response = decode_json($html);  
-  
-  die "ERROR: cannot parse taxonomy id from response content\n" unless defined $json_response->{id} and $json_response->{id} ne "";
-  $self->{species_tax_id} = $json_response->{id};
-  
   return $self;
 }
 
@@ -232,6 +222,41 @@ sub get_header_info {
   return \%header;
 }
 
+# get species taxonomy id
+sub _get_species_tax_id {
+  my ($self, $species) = @_;  
+
+  # check if we can use required packages to call REST and parse response
+  unless( eval q{ use HTTP::Tiny; 1 } ) {
+    warning "WARNING: unable to get species taxonomy id without HTTP:tiny; only human will be supported\n";
+    return;
+  }
+  unless( eval q{ use JSON; 1 } ) {
+    warning "WARNING: unable to get species taxonomy id without JSON; only human will be supported\n";
+    return;
+  }
+
+  my $headers = {"content-type" => "application/json"};
+  my $url = "https://rest.ensembl.org/taxonomy/id/${species}?";
+  my $response = HTTP::Tiny->new->get($url, { headers => $headers } );
+
+  unless( $response->{success} ) {
+    warning "WARNING: REST call failed with status $response->{status} while getting species taxonomy id; only human will be supported\n";
+    return;
+  }
+
+  my $html = $response->{content};
+  my $json_response = decode_json($html);
+  
+  unless( defined $json_response->{id} and $json_response->{id} ne "" ) {
+    warning "WARNING: cannot parse taxonomy id from response content; only human will be supported\n";
+    return;
+  }  
+  
+  $self->{species_tax_id} = $json_response->{id};
+  return $self->{species_tax_id};
+}
+
 # match lines of IntAct data file using HGVS id
 sub _match_id {
   my ($self, $id_ref, $id_des) = @_;
@@ -265,7 +290,7 @@ sub _parse_intact_data {
   my %parsed_data = map { $valid_fields->{$i++} => $_ } split /\t/, $data
     or die("ERROR: cannot parse intact data.\n");
   
-  # Replace , and | to avoid confusion for interaction paritcipants
+  # replace , and | to avoid confusion for interaction paritcipants
   $parsed_data{interaction_participants} =~ s/\|/ and /g;
   $parsed_data{interaction_participants} =~ s/,//g;
    
@@ -283,12 +308,17 @@ sub _remove_duplicates {
     my $is_unique = 0;
 
     my $parsed_data = $self->_parse_intact_data($_);
-
+    
     # check if the data has correct species
-    my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
-    $ap_organism_tax_id =~ s/^\s+|\s+$//;
+    if( defined $self->{species_tax_id} ){
+      my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
+      $ap_organism_tax_id =~ s/^\s+|\s+$//;
 
-    next if $ap_organism_tax_id ne $self->{species_tax_id};
+      next if $ap_organism_tax_id ne $self->{species_tax_id};
+    }
+    else {
+      next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
+    }
 
     foreach (keys %$parsed_data) {
       next unless defined $self->{$_};
