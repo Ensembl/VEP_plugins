@@ -36,16 +36,17 @@ To download the gnomad coverage file in TSV format:
   gnomad exomes:
    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
   
-To download the gnomad coverage file in TSV format: 
  for Assembly GRCh38: 
   gnomad genomes: 
    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate 
 
-for Assembly GRCh37:
+The following steps are neccessary before using the plugin
+ for Assembly GRCh37:
   The following steps are necessary to tabix the gnomad genomes coverage file :
    gunzip -c gnomad.genomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomes.tabbed.tsv
    bgzip gnomad.genomes.tabbed.tsv
    tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
+   
    The following steps are neccessary to tabix the gnomad exomes coverage file :
    gunzip -c gnomad.exomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.exomes.tabbed.tsv
    bgzip gnomad.exomes.tabbed.tsv
@@ -55,9 +56,9 @@ for Assembly GRCh37:
   The following steps are necessary to tabix the gnomad genomes coverage file :
    mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
    gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
-   sed '1s/.*/#&/' gnomad.r3.0.1 > gnomad.genomesv3.tabbed.tsv | sed '1s/locus/chr\tpos/' gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
-   sed 's/:/\t/g' gnomad.ch.genomesv3.tabbed.tsv > gnomad.genomesv3.tabbed.tsv | bgzip  gnomad.genomesv3.tabbed.tsv 
-   tabix -s 1 -b 2 -e 2 gnomad.genomesv3.tabbed.tsv.gz
+   sed "1s/locus/chr\tpos/; s/:/\t/g" gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
+   bgzip gnomad.ch.genomesv3.tabbed.tsv
+   tabix -s 1 -b 2 -e 2 gnomad.ch.genomesv3.tabbed.tsv
  
  This plugin also tries to be backwards compatible with older versions of the
  coverage summary files, including releases 2.0.1 and 2.0.2. These releases
@@ -137,22 +138,16 @@ sub get_header_info {
     for (qw(mean median_approx total_DP)) {
       $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
     }
-
-    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
-      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
-    }
   }
   else {
     for (qw(mean median)) {
       $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
     }
-
-    for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
-      $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
-    }
   }
- 
-
+  for (qw(1x 5x 10x 15x 20x 25x 30x 50x 100x)) {
+    $header_info{ join('_', $prefix, $_, 'cov') } = "Fraction of samples at $_ coverage";
+  }
+  
   return \%header_info;
 }
 
