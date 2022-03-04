@@ -54,7 +54,7 @@ The following steps are neccessary before using the plugin
  
  for Assembly GRCh38:
   The following steps are necessary to tabix the gnomad genomes coverage file :
-   mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz gnomad.r3.0.1.gz
+   mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz
    gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
    sed "1s/locus/chr\tpos/; s/:/\t/g" gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
    bgzip gnomad.ch.genomesv3.tabbed.tsv
@@ -134,7 +134,7 @@ sub get_header_info {
   my %header_info;
   
 
-  if (defined($header == 14 )){
+  if (defined $header && $header == 14) {
     for (qw(mean median_approx total_DP)) {
       $header_info{ join('_', $prefix, $_, 'cov') } = "$_ coverage";
     }
@@ -189,7 +189,7 @@ sub parse_data {
     @keys = map {
       join('_', $prefix, $_, 'cov')
     }
-    qw(mean median total_DP 1x 5x 10x 15x 20x 25x 30x 50x 100x);
+    qw(mean median_approx total_DP 1x 5x 10x 15x 20x 25x 30x 50x 100x);
   }
   else{
     @keys = map {
