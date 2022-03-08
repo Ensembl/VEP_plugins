@@ -91,6 +91,8 @@ sub new {
   die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @params > 0;
   $self->add_file($_) for @params;
 
+  my $assembly = $self->{config}->{assembly};
+
   $self->{header} = ();
 
   foreach my $file (@params) {
@@ -98,7 +100,16 @@ sub new {
 
     my @lines = <IN>;
 
+    my @matches =  grep { /$assembly/ } @lines if (defined($assembly));
+
+    if (!@matches && $assembly) {
+      die "\nERROR: Assembly is " . $assembly .
+          " but CADD file does not contain " .
+          $assembly . " in header.\n";
+    }
+
     while (my $line = shift @lines) {
+
       next if (rindex $line, "#Chrom", 0);
       chomp $line;
       $self->{$file} = $line;
