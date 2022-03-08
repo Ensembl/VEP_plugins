@@ -88,7 +88,7 @@ sub new {
   # Check files in arguments
   my @params = @{$self->params};
 
-  die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --custom CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @params > 0;
+  die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @params > 0;
   $self->add_file($_) for @params;
 
   $self->{header} = ();
