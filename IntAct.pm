@@ -164,7 +164,6 @@ sub new {
     $output_rest = 1;
   }
 
-
   my $species = $self->config->{species};
   $self->{species} = $species;
 
@@ -237,11 +236,15 @@ sub _get_species_tax_id {
   }
 
   my $headers = {"content-type" => "application/json"};
-  my $url = "https://rest.ensembl.org/taxonomy/id/${species}?";
+  my $url = "http://rest.ensembl.org/taxonomy/id/${species}?";
   my $response = HTTP::Tiny->new->get($url, { headers => $headers } );
 
   unless( $response->{success} ) {
-    warning "WARNING: REST call failed with status $response->{status} while getting species taxonomy id; only human will be supported\n";
+    my $failure_message = $response->{status};
+    $failure_message = $failure_message . " - " . $response->{content} if defined $response->{content};
+    chomp $failure_message;
+
+    warning "WARNING: REST call failed with error '$failure_message' while getting species taxonomy id; only human will be supported\n";
     return;
   }
 
