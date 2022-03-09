@@ -27,37 +27,37 @@ limitations under the License.
 =head1 DESCRIPTION
  A VEP plugin that retrieves gnomAD annotation from either the genome
  or exome coverage files, available here:
- 
    https://gnomad.broadinstitute.org/downloads
-To download the gnomad coverage file in TSV format:
- for Assembly GRCh37: 
-  gnomad genomes:
-   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
-  gnomad exomes:
-   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
-  
- for Assembly GRCh38: 
-  gnomad genomes: 
-   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate 
 
-The following steps are neccessary before using the plugin
- for Assembly GRCh37:
-  The following steps are necessary to tabix the gnomad genomes coverage file :
-   gunzip -c gnomad.genomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomes.tabbed.tsv
-   bgzip gnomad.genomes.tabbed.tsv
-   tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
+ To download the gnomad coverage file in TSV format:
+  for Assembly GRCh37: 
+   gnomad genomes:
+    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/genomes/gnomad.genomes.coverage.summary.tsv.bgz --no-check-certificate
+   gnomad exomes:
+    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1/coverage/exomes/gnomad.exomes.coverage.summary.tsv.bgz --no-check-certificate
+  
+  for Assembly GRCh38: 
+   gnomad genomes: 
+    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.0.1/coverage/genomes/gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz --no-check-certificate 
+
+ Necessary before using the plugin
+  for Assembly GRCh37:
+   The following steps are necessary to tabix the gnomad genomes coverage file :
+    gunzip -c gnomad.genomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomes.tabbed.tsv
+    bgzip gnomad.genomes.tabbed.tsv
+    tabix -s 1 -b 2 -e 2 gnomad.genomes.tabbed.tsv.gz
    
    The following steps are neccessary to tabix the gnomad exomes coverage file :
-   gunzip -c gnomad.exomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.exomes.tabbed.tsv
-   bgzip gnomad.exomes.tabbed.tsv
-   tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
+    gunzip -c gnomad.exomes.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.exomes.tabbed.tsv
+    bgzip gnomad.exomes.tabbed.tsv
+    tabix -s 1 -b 2 -e 2 gnomad.exomes.tabbed.tsv.gz
  
  for Assembly GRCh38:
-  The following steps are necessary to tabix the gnomad genomes coverage file :
-   gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
-   sed "1s/locus/chr\tpos/; s/:/\t/g" gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
-   bgzip gnomad.ch.genomesv3.tabbed.tsv
-   tabix -s 1 -b 2 -e 2 gnomad.ch.genomesv3.tabbed.tsv
+   The following steps are necessary to tabix the gnomad genomes coverage file :
+    gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
+    sed "1s/locus/chr\tpos/; s/:/\t/g" gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
+    bgzip gnomad.ch.genomesv3.tabbed.tsv
+    tabix -s 1 -b 2 -e 2 gnomad.ch.genomesv3.tabbed.tsv
  
  This plugin also tries to be backwards compatible with older versions of the
  coverage summary files, including releases 2.0.1 and 2.0.2. These releases
