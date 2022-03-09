@@ -54,7 +54,6 @@ The following steps are neccessary before using the plugin
  
  for Assembly GRCh38:
   The following steps are necessary to tabix the gnomad genomes coverage file :
-   mv gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz
    gunzip -c gnomad.genomes.r3.0.1.coverage.summary.tsv.bgz | sed '1s/.*/#&/' > gnomad.genomesv3.tabbed.tsv
    sed "1s/locus/chr\tpos/; s/:/\t/g" gnomad.genomesv3.tabbed.tsv > gnomad.ch.genomesv3.tabbed.tsv
    bgzip gnomad.ch.genomesv3.tabbed.tsv
