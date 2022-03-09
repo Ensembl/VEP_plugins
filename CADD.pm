@@ -100,9 +100,9 @@ sub new {
 
     my @lines = <IN>;
 
-    my @matches =  grep { /$assembly/ } @lines if (defined($assembly));
+    my @assembly_header_matches =  grep { /$assembly/ } @lines if (defined($assembly));
 
-    if (!@matches && $assembly) {
+    if (!@assembly_header_matches && $assembly) {
       die "\nERROR: Assembly is " . $assembly .
           " but CADD file does not contain " .
           $assembly . " in header.\n";
