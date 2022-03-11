@@ -1223,10 +1223,15 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "gnomADc",
       "label" => "gnomADc",
+      "helptip" => "Reports coverage data from the gmomAD coverage files",
       "available" => 0,
       "enabled" => 0,
       "section" => "Frequency data",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/gnomADc.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/gnomADc.pm",
+      "requires_data" => 1,
+       "species" => [
+        "homo_sapiens"
+      ]
     },
 
 
