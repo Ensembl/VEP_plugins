@@ -28,7 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  cp EVE.pm ${HOME}/.vep/Plugins
- ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz
+ ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz # By default, Class75 is used.
+ ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz,class_number=60
 
 =head1 DESCRIPTION
 
@@ -101,9 +102,20 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  die "\nERROR: No EVE file specified\n" unless defined($param_hash->{file});
+  die "\nERROR: No EVE file specified\nTry using 'file=<path-to>/eve_file.vcf.gz'\n" unless defined($param_hash->{file});
 
   $self->add_file($param_hash->{file});
+
+  my @valid_class_numbers = (10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90);
+
+  if (defined($param_hash->{class_number})) {
+
+    die "\nERROR: This class_number: '$param_hash->{class_number}' does not exists.\nTry any of this numbers: " . join(', ', @valid_class_numbers)
+    unless ($param_hash->{class_number} ~~ @valid_class_numbers);
+    $self->{class_number} = $param_hash->{class_number};
+  } else {
+    $self->{class_number} = 75;
+  }
 
   return $self;
 }
@@ -173,7 +185,8 @@ sub parse_data {
 
   # Parsing INFO field
   my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
-  my ($EVE_CLASS) = $info =~ /Class75=(.*?);/;
+  my $class_number = $self->{class_number};
+  my ($EVE_CLASS) = $info =~ /Class$class_number=(.*?);/;
 
   return {
     ref => $ref,
