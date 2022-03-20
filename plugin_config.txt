@@ -1003,7 +1003,8 @@ my $VEP_PLUGIN_CONFIG = {
     # Requires tabix-indexed data file as params
     # No other parameters so no form required
     # data file currently only available for GRCh38
-    # EVE is only avaiable for SNPs, MNVs are not mapped.
+    # We only report EVE scores for input variants and
+    # don't consider adjacent variants.
     {
       "key" => "EVE",
       "label" => "EVE",
