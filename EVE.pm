@@ -109,7 +109,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature'];
+  return ['Transcript'];
 }
 
 sub get_header_info {
