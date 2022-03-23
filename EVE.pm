@@ -127,8 +127,8 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
   return {
-    EVE_SCORE => 'Score from EVE model',
-    EVE_CLASS   => 'Classification (Benign, Uncertain, or Pathogenic) when setting class_number (default 75%) as uncertain'
+    EVE_SCORE => "Score from EVE model",
+    EVE_CLASS   => "Classification (Benign, Uncertain, or Pathogenic) when setting $self->{class_number}% as uncertain"
   }
 }
 
@@ -186,7 +186,7 @@ sub parse_data {
   # Parsing INFO field
   my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
   my $class_number = $self->{class_number};
-  my ($EVE_CLASS) = $info =~ /Class$class_number=(.*?);/;
+  my ($EVE_CLASS) = $info =~ /Class$class_number=(.*?)([;]|$)/;
 
   return {
     ref => $ref,
