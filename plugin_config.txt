@@ -1021,6 +1021,30 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # EVE
+    # https://github.com/ensembl-variation/VEP_plugins/blob/master/EVE.pm
+    # Requires tabix-indexed data file as params
+    # No other parameters so no form required
+    # data file currently only available for GRCh38
+    # We only report EVE scores for input variants and
+    # don't consider adjacent variants.
+    {
+      "key" => "EVE",
+      "label" => "EVE",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "EVE (evolutionary model of variant effect) is a computational method for the classification of human genetic variants trained solely on evolutionary sequences.",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/EVE.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/eve_merged.vcf.gz"
+      ]
+    },
+
     ## SPLICING PREDICTIONS
     #######################
 
