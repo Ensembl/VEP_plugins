@@ -293,10 +293,15 @@ sub _parse_intact_data {
   my %parsed_data = map { $valid_fields->{$i++} => $_ } split /\t/, $data
     or die("ERROR: cannot parse intact data.\n");
   
-  # replace , and | to avoid confusion for interaction paritcipants
-  $parsed_data{interaction_participants} =~ s/\|/ and /g;
-  $parsed_data{interaction_participants} =~ s/,//g;
-   
+  # process complex field for readability
+  if ( defined $parsed_data{interaction_participants} && $parsed_data{interaction_participants} =~ /[\(\)\|]/){
+    $parsed_data{interaction_participants} = join ' and ', map { s/\(.*//g; $_ } split /\|/, $parsed_data{interaction_participants};
+  }
+
+  if ( defined $parsed_data{feature_type} && $parsed_data{feature_type} =~ /[\(\)]/ ){
+    $parsed_data{feature_type} =~ s/\([^\)]+\)//g;
+  }  
+ 
   return \%parsed_data;
 }
 
