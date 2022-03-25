@@ -65,17 +65,11 @@ limitations under the License.
  you can also customize output using the following options -
  feature_ac			: Set value to 1 to include Feature AC in the output
  feature_short_label		: Set value to 1 to include Feature short label in the output
- feature_range			: Set value to 1 to include Feature range(s) in the output
- original_sequence		: Set value to 1 to include Original sequence in the output
- resulting_sequence		: Set value to 1 to include Resulting sequence in the output
  feature_type			: Set value to 1 to include Feature type in the output
  feature_annotation		: Set value to 1 to include Feature annotation in the output
  ap_ac				: Set value to 1 to include Affected protein AC in the output
- ap_symbol			: Set value to 1 to include Affected protein symbol in the output
- ap_full_name			: Set value to 1 to include Affected protein full name in the output
  interaction_participants	: Set value to 1 to include Interaction participants in the output
  pmid				: Set value to 1 to include PubMedID in the output
- figure_legend			: Set value to 1 to include Figure legend in the output
  interaction_ac			: (redundant) Set value to 1 to include Interaction AC in the output. Adding
  				  this option redundant as it is already included by default or mimimal options.
  
@@ -140,18 +134,12 @@ sub new {
 
   $self->{feature_ac} = 1 if defined $param_hash->{feature_ac};   
   $self->{feature_short_label} = 1 if defined $param_hash->{feature_short_label};
-  $self->{feature_range} = 1 if defined $param_hash->{feature_range};
-  $self->{original_sequence} = 1 if defined $param_hash->{original_sequence};
-  $self->{resulting_sequence} = 1 if defined $param_hash->{resulting_sequence};
   $self->{feature_type} = 1 if defined $param_hash->{feature_type};
   $self->{feature_annotation} = 1 if defined $param_hash->{feature_annotation};
   $self->{ap_ac} = 1 if defined $param_hash->{ap_ac};
-  $self->{ap_symbol} = 1 if defined $param_hash->{ap_symbol};
-  $self->{ap_full_name} = 1 if defined $param_hash->{ap_full_name};
   $self->{interaction_participants} = 1 if defined $param_hash->{interaction_participants};
   $self->{pmid} = 1 if defined $param_hash->{pmid};
-  $self->{figure_legend} = 1 if defined $param_hash->{figure_legend};
-
+  
   if($self->{config}->{output_format} eq "vcf") {
     $output_vcf = 1;
   }
@@ -188,17 +176,11 @@ sub get_header_info {
 
   $field_des{"feature_ac"} = "Feature AC - Accession number for that particular mutation feature. ";
   $field_des{"feature_short_label"} = "Feature short label - Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). ";
-  $field_des{"feature_range"} = "Feature range(s) - Position(s) in the protein sequence affected by the mutation. ";
-  $field_des{"original_sequence"} = "Original sequence - Wild type amino acid residue(s) affected in one letter code. ";
-  $field_des{"resulting_sequence"} = "Resulting sequence - Replacement sequence (or deletion) in one letter code. ";
   $field_des{"feature_type"} = "Feature type - Mutation type following the PSI-MI controlled vocabularies. ";
   $field_des{"feature_annotation"} = "Feature annotation - Specific comments about the feature that can be of interest. ";
   $field_des{"ap_ac"} = "Affected protein AC - Affected protein identifier (preferably UniProtKB accession, if available). ";
-  $field_des{"ap_symbol"} = "Affected protein symbol - As given by UniProtKB. ";
-  $field_des{"ap_full_name"} = "Affected protein full name - As given by UniProtKB. ";
   $field_des{"interaction_participants"} = "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. ";
   $field_des{"pmid"} = "PubMedID - Reference to the publication where the interaction evidence was reported. ";
-  $field_des{"figure_legend"} = "Figure legend - Reference to the specific figures in the paper where the interaction evidence was reported. ";
   $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases. ";
 
   $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by ,. Fields in each interaction data are separated by |. Output field includes :- " unless $output_vcf;
