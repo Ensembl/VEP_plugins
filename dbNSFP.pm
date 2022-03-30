@@ -138,6 +138,7 @@ package dbNSFP;
 
 use strict;
 use warnings;
+use File::Basename qw(basename);
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
@@ -170,6 +171,8 @@ sub new {
   
   # get dbNSFP file
   my $file = $self->params->[$index];
+  my $basename = basename($file, ".gz");
+
   my $version;
   if ($file =~ /2\.9/) {
     $version = '2.9';
@@ -183,6 +186,7 @@ sub new {
     die "ERROR: Could not retrieve dbNSFP version from filename $file\n";
   }
   $self->{dbNSFP_version} = $version;
+  $self->{basename} = $basename;
 
   $self->add_file($file);
   
@@ -297,7 +301,7 @@ sub get_header_info {
               m/^\d+\s+(.+?)\:\s+(.+)/;
               $col = $1;
 
-              $rm_descs{$col} = '(from dbNSFP) '.$2 if $col && $2;
+              $rm_descs{$col} = "(from $self->{basename}) ".$2 if $col && $2;
             }
             elsif($reading && /\w/) {
               s/^\s+//;
