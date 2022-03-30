@@ -54,22 +54,83 @@ package CADD;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+# List here all columns in headers that should be included
+my %INCLUDE_COLUMNS = (
+    "PHRED" => {
+      "name" => "CADD_PHRED",
+      "description" => 'PHRED-like scaled CADD score'
+    },
+    "RawScore" => {
+      "name" => "CADD_RAW",
+      "description" => 'Raw CADD score'
+    }
+);
+
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
 
+  # Test if tabix exists
+  die "\nERROR: tabix does not seem to be in your path\n" unless `which tabix 2>&1` =~ /tabix$/;
+
   $self->expand_left(0);
   $self->expand_right(0);
 
   $self->get_user_params();
+
+  # Check files in arguments
+  my @params = @{$self->params};
+
+  die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @params > 0;
+  $self->add_file($_) for @params;
+
+  my $assembly = $self->{config}->{assembly};
+
+  $self->{header} = ();
+
+  foreach my $file (@params) {
+    open IN, "tabix -f -h ".$file." 1:1-1 |";
+
+    my @lines = <IN>;
+
+    my @assembly_header_matches =  grep { /$assembly/ } @lines if (defined($assembly));
+
+    if (!@assembly_header_matches && $assembly) {
+      die "\nERROR: Assembly is " . $assembly .
+          " but CADD file does not contain " .
+          $assembly . " in header.\n";
+    }
+
+    while (my $line = shift @lines) {
+
+      next if (rindex $line, "#Chrom", 0);
+      chomp $line;
+      $self->{$file} = $line;
+    }
+
+    # Make sure it has a known prefix in header
+    die "'#Chrom' was not found on header" unless $self->{$file};
+
+    my $file_check = 0;
+    # Conditional header
+    for (split /\t/, $self->{$file}){
+      next unless (exists($INCLUDE_COLUMNS{$_}));
+      $file_check = 1;
+      $self->{header}{$INCLUDE_COLUMNS{$_}{"name"}} = $INCLUDE_COLUMNS{$_}{"description"};
+    }
+
+    die "\nERROR: $file does not have a known column to be included" unless $file_check;
+
+  }
+
+  close IN;
 
   return $self;
 }
@@ -80,10 +141,8 @@ sub feature_types {
 
 sub get_header_info {
   my $self = shift;
-  return {
-    CADD_PHRED => 'PHRED-like scaled CADD score',
-    CADD_RAW   => 'Raw CADD score'
-  }
+
+  return $self->{header}
 }
 
 sub run {
@@ -118,11 +177,27 @@ sub run {
 }
 
 sub parse_data {
-  my ($self, $line) = @_;
-  my ($c, $s, $ref, $alt, $raw, $phred) = split /\t/, $line;
+  my ($self, $line, $file) = @_;
+
+  my @headers = split /\t/, $self->{$file};
+  my @values = split /\t/, $line;
+
+  my %data = map {$headers[$_] => $values[$_]} (0..(@headers - 1));
+
+  my $c = $data{"#Chrom"};
+  my $s = $data{"Pos"};
+  my $ref = $data{"Ref"};
+  my $alt = $data{"Alt"};
+
+  # Conditional result
+  my %result = ();
+  foreach (keys %INCLUDE_COLUMNS){
+    next unless (exists($data{$_}));
+    $result{$INCLUDE_COLUMNS{$_}{"name"}} = $data{$_};
+  }
 
   # do VCF-like coord adjustment for mismatched subs
-  my $e = ($s + length($ref)) - 1;
+  my $end = ($s + length($ref)) - 1;
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
     my $first_alt = substr($alt, 0, 1);
@@ -134,15 +209,13 @@ sub parse_data {
       $alt ||= '-';
     }
   }
+
   return {
     ref => $ref,
     alt => $alt,
     start => $s,
-    end => $e,
-    result => {
-      CADD_RAW   => $raw,
-      CADD_PHRED => $phred
-    }
+    end => $end,
+    result => \%result
   };
 }
 
