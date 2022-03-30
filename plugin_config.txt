@@ -690,7 +690,6 @@ my $VEP_PLUGIN_CONFIG = {
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/CADD.pm
     # Requires tabix-indexed data file as first param
     # No other parameters so no form required
-    # data file currently only available for GRCh37
     {
       "key" => "CADD",
       "label" => "CADD",
