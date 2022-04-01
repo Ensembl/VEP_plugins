@@ -96,6 +96,8 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 my $output_vcf;
 my $output_json;
 my $output_rest;
+
+# hashref containing all fields that exists in IntAct data file 
 my $valid_fields = {
   0 => "feature_ac",
   1 => "feature_short_label",
