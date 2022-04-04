@@ -92,7 +92,7 @@ sub run {
     if ( $feature->coord_system_name() eq "lrg" ) {
         $feature = $vf->transform('chromosome');
         unless ( $feature ) {
-            warn "Region $vf->{chr}:$vf->{start}_$vf->{end} not defined in" .
+            warn "Region $vf->{chr}:$vf->{start}_$vf->{end} not defined in " .
                  "chromosome coordinate system\n";
             return {};
         }
