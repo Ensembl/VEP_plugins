@@ -45,6 +45,10 @@ limitations under the License.
  This plugin is only suitable for small sets of variants as an additional 
  individual remote API query is run for each variant.
 
+ The neXtProt_headers.txt file is a requirement for running this plugin and is found alongside the plugin in the
+ VEP_plugins GitHub repository. The file contains the RDF entities extracted from 
+ 	https://snorql.nextprot.org/
+
  Running options:
  (Default) the data retrieved by default is the MatureProtein, NucleotidePhosphateBindingRegion,
  Variant, MiscellaneousRegion, TopologicalDomain and InteractingRegion.
