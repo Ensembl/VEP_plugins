@@ -128,6 +128,9 @@ sub new {
   
   my $param_hash = $self->params_to_hash();
 
+  die "ERROR: mutation_file is not specified which is a mandatory parameter\n" unless defined $param_hash->{mutation_file};
+  die "ERROR: mapping_file is not specified which is a mandatory parameter\n" unless defined $param_hash->{mapping_file};
+
   $self->add_file($param_hash->{mapping_file});
   
   $self->{interaction_ac} = 1;
@@ -219,9 +222,8 @@ sub _get_species_tax_id {
     return;
   }
 
-  my $headers = {"content-type" => "application/json"};
   my $url = "http://rest.ensembl.org/taxonomy/id/${species}?";
-  my $response = HTTP::Tiny->new->get($url, { headers => $headers } );
+  my $response = HTTP::Tiny->new->get($url, { headers => {"content-type" => "application/json"} } );
 
   unless( $response->{success} ) {
     my $failure_message = $response->{status};
@@ -399,13 +401,13 @@ sub run {
 
     # get matched lines from IntAct data file on hgvs id     
     my $intact_matches = $self->_match_id($id_ref, $id_des);
-       
+
     # keep only the unique interaction data from IntAct
     my $uniq_matches = $self->_remove_duplicates($intact_matches) if $intact_matches;
-    
+
     # filter fields according to user defined parameters
     my $results = $self->_filter_fields($uniq_matches) if $uniq_matches;
-    
+
     return $results if $results;
   }
 
