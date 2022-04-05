@@ -33,6 +33,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that reports existing variants that fall in the same codon.
+ This plugin requires a database connection, can not be run in offline mode
 
 =cut
 
