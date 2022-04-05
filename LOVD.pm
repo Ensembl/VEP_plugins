@@ -87,10 +87,20 @@ sub run {
     my $ua = LWP::UserAgent->new;
     $ua->env_proxy;
 
-    my $chr = $vf->{chr};
+    my $feature = $vf;
+    # Convert LRG to chromosome system
+    if ( $feature->coord_system_name() eq "lrg" ) {
+        $feature = $vf->transform('chromosome');
+        unless ( $feature ) {
+            warn "Region $vf->{chr}:$vf->{start}_$vf->{end} not defined in " .
+                 "chromosome coordinate system\n";
+            return {};
+        }
+    }
+    my $chr = $feature->slice->seq_region_name();
     $chr =~ s/^chr//;
     
-    my $locus = sprintf('chr%s:%s_%s', $chr, $vf->{start}, $vf->{end});
+    my $locus = sprintf 'chr%s:%s_%s', $chr, $feature->{start}, $feature->{end};
     
     my $data;
     
