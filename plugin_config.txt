@@ -20,7 +20,7 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
-        #"/path/to/dbNSFP4.3a_grch38.gz",
+        #"/path/to/dbNSFP4.2a_grch38.gz",
         "@*"
       ],
       "species" => [
@@ -36,7 +36,7 @@ my $VEP_PLUGIN_CONFIG = {
           'multiple' => 1,
           'style' => 'height:150px',
           'required' => 1,
-          'notes' => 'Field descriptions in <a rel="external" href="https://usf.app.box.com/s/6yi6huheisol3bhmld8bitcon1oi53pm">dbNSFP README</a>',
+          'notes' => 'Field descriptions in <a rel="external" href="https://drive.google.com/file/d/1Vse3b_qw_E46eDcsuLegF5HxpodAZ6Og/view">dbNSFP README</a>',
           # "class" => "jquery-multiselect",
           "values" => [
             #"#chr",
