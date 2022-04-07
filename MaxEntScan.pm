@@ -34,12 +34,12 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- runs MaxEntScan (http://genes.mit.edu/burgelab/maxent/Xmaxentscan_scoreseq.html)
+ runs MaxEntScan (http://hollywood.mit.edu/burgelab/maxent/Xmaxentscan_scoreseq.html)
  to get splice site predictions.
 
  The plugin copies most of the code verbatim from the score5.pl and score3.pl
  scripts provided in the MaxEntScan download. To run the plugin you must get and
- unpack the archive from http://genes.mit.edu/burgelab/maxent/download/; the path
+ unpack the archive from http://hollywood.mit.edu/burgelab/maxent/download/; the path
  to this unpacked directory is then the param you pass to the --plugin flag.
 
  The plugin executes the logic from one of the scripts depending on which
