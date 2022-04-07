@@ -209,13 +209,12 @@ sub _prepare_filename {
   my $pkg      = __PACKAGE__.'.pm';
   my $species  = $config->{species};
   my $version  = $config->{db_version} || $reg->software_version;
-  my $assembly = $config->{assembly};
-  die "specify assembly using --assembly [assembly]\n" unless defined($assembly);
-
   my @basename = ($pkg, $species, $version);
+
   if( $species eq 'homo_sapiens' || $species eq 'human'){
-    $assembly ||= $config->{human_assembly};
-    push @basename, $assembly;
+    my $assembly = $config->{assembly} || $config->{human_assembly};
+    die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
+    push @basename, $assembly if defined $assembly;
   }
   return $dir.join("_", @basename).".gff.gz";
 }

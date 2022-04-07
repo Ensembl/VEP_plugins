@@ -1286,6 +1286,9 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/GO.pm",
       "section" => "Phenotype data and citations",
+      "params" => [
+        #"/path/to/GO_data_dir"
+      ]
     },
 
     # G2P
