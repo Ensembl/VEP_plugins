@@ -175,6 +175,10 @@ my %NON_TRANSCRIPT_SPECIFIC_FIELDS = map {$_ => 1} qw(
   MutationTaster_pred
   MutationTaster_model
   Interpro_domain
+  MutPred_Top5features
+  Transcript_id_VEST3
+  Transcript_var_VEST3
+  VEST3_score
 );
 
 sub new {
