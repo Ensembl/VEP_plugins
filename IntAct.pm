@@ -58,27 +58,20 @@ limitations under the License.
 
  mapping_file			: (mandatory) Path to tabix-indexed genomic location mapped file
  mutation_file			: (mandatory) Path to IntAct data file
- default			: (redundant) Set value to 1 to include feature_type and interaction_ac in the output.
- minimal		  	: Set value to 1 to overwrite default option to include only interaction_ac 
-				  in the output
  
- you can also customize output using the following options -
+ By default the output will always contain feature_type and interaction_ac from the IntAct data file. You can also add more fields using the following options -
  feature_ac			: Set value to 1 to include Feature AC in the output
  feature_short_label		: Set value to 1 to include Feature short label in the output
- feature_range			: Set value to 1 to include Feature range(s) in the output
- original_sequence		: Set value to 1 to include Original sequence in the output
- resulting_sequence		: Set value to 1 to include Resulting sequence in the output
- feature_type			: Set value to 1 to include Feature type in the output
  feature_annotation		: Set value to 1 to include Feature annotation in the output
  ap_ac				: Set value to 1 to include Affected protein AC in the output
- ap_symbol			: Set value to 1 to include Affected protein symbol in the output
- ap_full_name			: Set value to 1 to include Affected protein full name in the output
  interaction_participants	: Set value to 1 to include Interaction participants in the output
  pmid				: Set value to 1 to include PubMedID in the output
- figure_legend			: Set value to 1 to include Figure legend in the output
- interaction_ac			: (redundant) Set value to 1 to include Interaction AC in the output. Adding
- 				  this option redundant as it is already included by default or mimimal options.
- 
+
+ There are also two other options for customizing the output - 
+ all                            : Set value to 1 to include all the fields
+ minimal                        : Set value to 1 to overwrite default behavior and include only interaction_ac 
+				  in the output by default
+
  See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
  
  Note that, interaction accession can be used to link to full details on the interaction website. For example, 
@@ -102,6 +95,8 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 my $output_vcf;
 my $output_json;
 my $output_rest;
+
+# hashref containing all fields that exists in IntAct data file 
 my $valid_fields = {
   0 => "feature_ac",
   1 => "feature_short_label",
@@ -132,25 +127,22 @@ sub new {
   
   my $param_hash = $self->params_to_hash();
 
+  die "ERROR: mutation_file is not specified which is a mandatory parameter\n" unless defined $param_hash->{mutation_file};
+  die "ERROR: mapping_file is not specified which is a mandatory parameter\n" unless defined $param_hash->{mapping_file};
+
   $self->add_file($param_hash->{mapping_file});
   
   $self->{interaction_ac} = 1;
   
   $self->{feature_type} = 1 unless defined $param_hash->{minimal};
 
-  $self->{feature_ac} = 1 if defined $param_hash->{feature_ac};   
-  $self->{feature_short_label} = 1 if defined $param_hash->{feature_short_label};
-  $self->{feature_range} = 1 if defined $param_hash->{feature_range};
-  $self->{original_sequence} = 1 if defined $param_hash->{original_sequence};
-  $self->{resulting_sequence} = 1 if defined $param_hash->{resulting_sequence};
-  $self->{feature_type} = 1 if defined $param_hash->{feature_type};
-  $self->{feature_annotation} = 1 if defined $param_hash->{feature_annotation};
-  $self->{ap_ac} = 1 if defined $param_hash->{ap_ac};
-  $self->{ap_symbol} = 1 if defined $param_hash->{ap_symbol};
-  $self->{ap_full_name} = 1 if defined $param_hash->{ap_full_name};
-  $self->{interaction_participants} = 1 if defined $param_hash->{interaction_participants};
-  $self->{pmid} = 1 if defined $param_hash->{pmid};
-  $self->{figure_legend} = 1 if defined $param_hash->{figure_legend};
+  $self->{feature_ac} = 1 if $param_hash->{feature_ac} || $param_hash->{all};   
+  $self->{feature_short_label} = 1 if $param_hash->{feature_short_label} || $param_hash->{all};
+  $self->{feature_type} = 1 if $param_hash->{all};
+  $self->{feature_annotation} = 1 if $param_hash->{feature_annotation} || $param_hash->{all};
+  $self->{ap_ac} = 1 if $param_hash->{ap_ac} || $param_hash->{all};
+  $self->{interaction_participants} = 1 if $param_hash->{interaction_participants} || $param_hash->{all};
+  $self->{pmid} = 1 if $param_hash->{pmid} || $param_hash->{all};
 
   if($self->{config}->{output_format} eq "vcf") {
     $output_vcf = 1;
@@ -163,6 +155,15 @@ sub new {
   if($self->{config}->{rest}){
     $output_rest = 1;
   }
+
+  my $species = $self->config->{species};
+  $self->{species} = $species;
+
+  # get species taxonomy id using ensembl REST API
+  my $species_tax_id = $self->_get_species_tax_id($species);
+
+  die "ERROR: could not get species taxonomy id and the species is not human\n" 
+    if not defined $species_tax_id and $species ne "homo_sapiens";
 
   return $self;
 }
@@ -177,22 +178,16 @@ sub get_header_info {
   
   my (%header, %field_des);
 
-  $field_des{"feature_ac"} = "Feature AC - Accession number for that particular mutation feature. ";
-  $field_des{"feature_short_label"} = "Feature short label - Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). ";
-  $field_des{"feature_range"} = "Feature range(s) - Position(s) in the protein sequence affected by the mutation. ";
-  $field_des{"original_sequence"} = "Original sequence - Wild type amino acid residue(s) affected in one letter code. ";
-  $field_des{"resulting_sequence"} = "Resulting sequence - Replacement sequence (or deletion) in one letter code. ";
-  $field_des{"feature_type"} = "Feature type - Mutation type following the PSI-MI controlled vocabularies. ";
-  $field_des{"feature_annotation"} = "Feature annotation - Specific comments about the feature that can be of interest. ";
-  $field_des{"ap_ac"} = "Affected protein AC - Affected protein identifier (preferably UniProtKB accession, if available). ";
-  $field_des{"ap_symbol"} = "Affected protein symbol - As given by UniProtKB. ";
-  $field_des{"ap_full_name"} = "Affected protein full name - As given by UniProtKB. ";
-  $field_des{"interaction_participants"} = "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. ";
-  $field_des{"pmid"} = "PubMedID - Reference to the publication where the interaction evidence was reported. ";
-  $field_des{"figure_legend"} = "Figure legend - Reference to the specific figures in the paper where the interaction evidence was reported. ";
-  $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases. ";
+  $field_des{"feature_ac"} = "Feature AC - Accession number for that particular mutation feature; ";
+  $field_des{"feature_short_label"} = "Feature short label - Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant); ";
+  $field_des{"feature_type"} = "Feature type - Mutation type following the PSI-MI controlled vocabularies; ";
+  $field_des{"feature_annotation"} = "Feature annotation - Specific comments about the feature that can be of interest; ";
+  $field_des{"ap_ac"} = "Affected protein AC - Affected protein identifier (preferably UniProtKB accession, if available); ";
+  $field_des{"interaction_participants"} = "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets; ";
+  $field_des{"pmid"} = "PubMedID - Reference to the publication where the interaction evidence was reported; ";
+  $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases; ";
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by ,. Fields in each interaction data are separated by |. Output field includes :- " unless $output_vcf;
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by ,. Fields in each interaction data are separated by |. Output field includes: " unless $output_vcf;
 
   my $i = 0;
   my $total_fields = scalar keys %$valid_fields;
@@ -210,6 +205,44 @@ sub get_header_info {
   }
    
   return \%header;
+}
+
+# get species taxonomy id
+sub _get_species_tax_id {
+  my ($self, $species) = @_;  
+
+  # check if we can use required packages to call REST and parse response
+  unless( eval q{ use HTTP::Tiny; 1 } ) {
+    warning "WARNING: unable to get species taxonomy id without HTTP:tiny; only human will be supported\n";
+    return;
+  }
+  unless( eval q{ use JSON; 1 } ) {
+    warning "WARNING: unable to get species taxonomy id without JSON; only human will be supported\n";
+    return;
+  }
+
+  my $url = "http://rest.ensembl.org/taxonomy/id/${species}?";
+  my $response = HTTP::Tiny->new->get($url, { headers => {"content-type" => "application/json"} } );
+
+  unless( $response->{success} ) {
+    my $failure_message = $response->{status};
+    $failure_message = $failure_message . " - " . $response->{content} if defined $response->{content};
+    chomp $failure_message;
+
+    warning "WARNING: REST call failed with error '$failure_message' while getting species taxonomy id; only human will be supported\n";
+    return;
+  }
+
+  my $html = $response->{content};
+  my $json_response = decode_json($html);
+  
+  unless( defined $json_response->{id} and $json_response->{id} ne "" ) {
+    warning "WARNING: cannot parse taxonomy id from response content; only human will be supported\n";
+    return;
+  }  
+  
+  $self->{species_tax_id} = $json_response->{id};
+  return $self->{species_tax_id};
 }
 
 # match lines of IntAct data file using HGVS id
@@ -245,10 +278,15 @@ sub _parse_intact_data {
   my %parsed_data = map { $valid_fields->{$i++} => $_ } split /\t/, $data
     or die("ERROR: cannot parse intact data.\n");
   
-  # Replace , and | to avoid confusion for interaction paritcipants
-  $parsed_data{interaction_participants} =~ s/\|/ and /g;
-  $parsed_data{interaction_participants} =~ s/,//g;
-   
+  # process complex field for readability
+  if ( defined $parsed_data{interaction_participants} && $parsed_data{interaction_participants} =~ /[\(\)\|]/){
+    $parsed_data{interaction_participants} = join ' and ', map { s/\(.*//g; $_ } split /\|/, $parsed_data{interaction_participants};
+  }
+
+  if ( defined $parsed_data{feature_type} && $parsed_data{feature_type} =~ /[\(\)]/ ){
+    $parsed_data{feature_type} =~ s/\([^\)]+\)//g;
+  }  
+ 
   return \%parsed_data;
 }
 
@@ -263,8 +301,17 @@ sub _remove_duplicates {
     my $is_unique = 0;
 
     my $parsed_data = $self->_parse_intact_data($_);
+    
+    # check if the data has correct species
+    if( defined $self->{species_tax_id} ){
+      my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
+      $ap_organism_tax_id =~ s/^\s+|\s+$//;
 
-    next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
+      next if $ap_organism_tax_id ne $self->{species_tax_id};
+    }
+    else {
+      next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
+    }
 
     foreach (keys %$parsed_data) {
       next unless defined $self->{$_};
@@ -333,15 +380,13 @@ sub _filter_fields {
 sub run {
   my ($self, $tva) = @_;
 
-  return {} if $self->config->{species} ne "homo_sapiens";
-
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
 
   # get reference codon and HGVSp  
   my $ref_codon = $tv->get_reference_TranscriptVariationAllele->codon if $tv;
-  my $hgvs = $tva->hgvs_protein;  
-  
+  my $hgvs = $tva->hgvs_protein;
+
   return {} unless ($ref_codon and $hgvs);
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
@@ -355,13 +400,13 @@ sub run {
 
     # get matched lines from IntAct data file on hgvs id     
     my $intact_matches = $self->_match_id($id_ref, $id_des);
-       
+
     # keep only the unique interaction data from IntAct
     my $uniq_matches = $self->_remove_duplicates($intact_matches) if $intact_matches;
-    
+
     # filter fields according to user defined parameters
     my $results = $self->_filter_fields($uniq_matches) if $uniq_matches;
-    
+
     return $results if $results;
   }
 
