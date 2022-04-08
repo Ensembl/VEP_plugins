@@ -75,6 +75,7 @@ my $VEP_PLUGIN_CONFIG = {
             "AltaiNeandertal",
             "Denisova",
             "VindijiaNeandertal",
+            "ChagyrskayaNeandertal",
             #"SIFT_score",
             #"SIFT_converted_rankscore",
             #"SIFT_pred",
