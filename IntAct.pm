@@ -58,21 +58,20 @@ limitations under the License.
 
  mapping_file			: (mandatory) Path to tabix-indexed genomic location mapped file
  mutation_file			: (mandatory) Path to IntAct data file
- default			: (redundant) Set value to 1 to include feature_type and interaction_ac in the output.
- minimal		  	: Set value to 1 to overwrite default option to include only interaction_ac 
-				  in the output
  
- you can also customize output using the following options -
+ By default the output will always contain feature_type and interaction_ac from the IntAct data file. You can also add more fields using the following options -
  feature_ac			: Set value to 1 to include Feature AC in the output
  feature_short_label		: Set value to 1 to include Feature short label in the output
- feature_type			: Set value to 1 to include Feature type in the output
  feature_annotation		: Set value to 1 to include Feature annotation in the output
  ap_ac				: Set value to 1 to include Affected protein AC in the output
  interaction_participants	: Set value to 1 to include Interaction participants in the output
  pmid				: Set value to 1 to include PubMedID in the output
- interaction_ac			: (redundant) Set value to 1 to include Interaction AC in the output. Adding
- 				  this option redundant as it is already included by default or mimimal options.
- 
+
+ There are also two other options for customizing the output - 
+ all                            : Set value to 1 to include all the fields
+ minimal                        : Set value to 1 to overwrite default behavior and include only interaction_ac 
+				  in the output by default
+
  See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
  
  Note that, interaction accession can be used to link to full details on the interaction website. For example, 
@@ -137,14 +136,14 @@ sub new {
   
   $self->{feature_type} = 1 unless defined $param_hash->{minimal};
 
-  $self->{feature_ac} = 1 if defined $param_hash->{feature_ac};   
-  $self->{feature_short_label} = 1 if defined $param_hash->{feature_short_label};
-  $self->{feature_type} = 1 if defined $param_hash->{feature_type};
-  $self->{feature_annotation} = 1 if defined $param_hash->{feature_annotation};
-  $self->{ap_ac} = 1 if defined $param_hash->{ap_ac};
-  $self->{interaction_participants} = 1 if defined $param_hash->{interaction_participants};
-  $self->{pmid} = 1 if defined $param_hash->{pmid};
-  
+  $self->{feature_ac} = 1 if $param_hash->{feature_ac} || $param_hash->{all};   
+  $self->{feature_short_label} = 1 if $param_hash->{feature_short_label} || $param_hash->{all};
+  $self->{feature_type} = 1 if $param_hash->{all};
+  $self->{feature_annotation} = 1 if $param_hash->{feature_annotation} || $param_hash->{all};
+  $self->{ap_ac} = 1 if $param_hash->{ap_ac} || $param_hash->{all};
+  $self->{interaction_participants} = 1 if $param_hash->{interaction_participants} || $param_hash->{all};
+  $self->{pmid} = 1 if $param_hash->{pmid} || $param_hash->{all};
+
   if($self->{config}->{output_format} eq "vcf") {
     $output_vcf = 1;
   }
@@ -179,16 +178,16 @@ sub get_header_info {
   
   my (%header, %field_des);
 
-  $field_des{"feature_ac"} = "Feature AC - Accession number for that particular mutation feature. ";
-  $field_des{"feature_short_label"} = "Feature short label - Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant). ";
-  $field_des{"feature_type"} = "Feature type - Mutation type following the PSI-MI controlled vocabularies. ";
-  $field_des{"feature_annotation"} = "Feature annotation - Specific comments about the feature that can be of interest. ";
-  $field_des{"ap_ac"} = "Affected protein AC - Affected protein identifier (preferably UniProtKB accession, if available). ";
-  $field_des{"interaction_participants"} = "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets. ";
-  $field_des{"pmid"} = "PubMedID - Reference to the publication where the interaction evidence was reported. ";
-  $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases. ";
+  $field_des{"feature_ac"} = "Feature AC - Accession number for that particular mutation feature; ";
+  $field_des{"feature_short_label"} = "Feature short label - Human-readable short label summarizing the amino acid changes and their positions (HGVS compliant); ";
+  $field_des{"feature_type"} = "Feature type - Mutation type following the PSI-MI controlled vocabularies; ";
+  $field_des{"feature_annotation"} = "Feature annotation - Specific comments about the feature that can be of interest; ";
+  $field_des{"ap_ac"} = "Affected protein AC - Affected protein identifier (preferably UniProtKB accession, if available); ";
+  $field_des{"interaction_participants"} = "Interaction participants- Identifiers for all participants in the affected interaction along with their species and molecule type between brackets; ";
+  $field_des{"pmid"} = "PubMedID - Reference to the publication where the interaction evidence was reported; ";
+  $field_des{"interaction_ac"} = "Interaction AC - Interaction accession within IntAct databases; ";
 
-  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by ,. Fields in each interaction data are separated by |. Output field includes :- " unless $output_vcf;
+  $header{"IntAct"} = "Molecular interaction data from IntAct database. Output may contain multiple interaction data separated by ,. Fields in each interaction data are separated by |. Output field includes: " unless $output_vcf;
 
   my $i = 0;
   my $total_fields = scalar keys %$valid_fields;
