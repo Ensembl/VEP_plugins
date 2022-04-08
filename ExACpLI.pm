@@ -77,10 +77,10 @@ use strict;
 use warnings;
 
 use DBI;
-
+use Data::Dumper;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 use List::MoreUtils qw/zip/;
-use Data::Dumper;
+
 
 my %include_columns = (
   "transcript" => {
@@ -134,7 +134,8 @@ sub new {
       chomp;
       my ($transcript, $score) = split;
       next if $score eq "pLI";
-      $scores{lc($transcript)} = sprintf("%.2f", $score) ;
+      $scores{lc($transcript)} = sprintf("%.2f", $score);
+      print Dumper(%scores);
     }
     close $fh;
   }
