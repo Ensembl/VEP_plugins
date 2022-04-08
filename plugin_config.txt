@@ -706,7 +706,7 @@ my $VEP_PLUGIN_CONFIG = {
         #"/path/to/whole_genome_SNVs.tsv.gz"
       ]
     },
-    
+
     # CAPICE
     # https://github.com/ensembl-variation/VEP_plugins/blob/master/CAPICE.pm
     # Requires tabix-indexed data files as params (one for InDels, another for SNVs)
@@ -1645,14 +1645,17 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/neXtProt.pm"
     },
 
+    ## PROTEIN ANNOTATION
+    #####################
+
     # IntAct
     {
       "key" => "IntAct",
       "label" => "IntAct",
       "available" => 0,
       "enabled" => 0,
-      "section" => "Protein data",
-      "helptip" => "IntAct provides molecular interaction data for variants as reprted by IntAct database",
+      "section" => "Protein annotation",
+      "helptip" => "IntAct provides molecular interaction data for variants as reported by IntAct database",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/IntAct.pm",
       "requires_data" => 1,
       "params"  => [
@@ -1661,9 +1664,30 @@ my $VEP_PLUGIN_CONFIG = {
         "@*"
       ],
       "species" => [
-        "homo_sapiens"
+	"homo_sapiens",
+	"mus_musculus"
+      ],
+      "form" => [
+        {
+          "name" => "IntAct_efields",
+          "label" => "Extra fields to include",
+          "helptip" => "Extra fields to show; hold down the Ctrl (Windows) / Command (Mac) button to select multiple options",
+          "value" => "",
+          "type" => "dropdown",
+          "multiple" => 1,
+          "style" => "height:150px",
+          "values" => [
+            { "value" => "feature_ac=1", "caption" => "Feature AC" },
+            { "value" => "feature_short_label=1", "caption" => "Feature short label" },
+            { "value" => "feature_annotation=1", "caption" => "Feature annotation" },
+            { "value" => "ap_ac=1", "caption" => "Affected protein AC" },
+            { "value" => "interaction_participants=1", "caption" => "Interaction participants" },
+            { "value" => "pmid=1", "caption" => "PubMedID" },
+          ],
+        },
       ]
     },
+
 
     ## OTHER
     ########
