@@ -59,9 +59,6 @@ ExACpLI - Add ExAC pLI to the VEP output
     
     ftp://ftp.broadinstitute.org/pub/ExAC_release/release0.3/functional_gene_constraint/
       fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt
-  
-  From this file to extract transcript and transcipt score:
-  awk '{print $1, $20 }'  fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt > pli_transcript.txt 
 
   To use another values file, add it as a parameter i.e.
 
