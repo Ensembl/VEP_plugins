@@ -27,13 +27,13 @@ limitations under the License.
 
 =head1 NAME
 
-ExACpLI - Add ExAC pLI to the VEP output 
+pLI - Add pLI score to the VEP output 
 
 =head1 SYNOPSIS
 
-  mv ExACpLI.pm ~/.vep/Plugins
-  mv ExACpLI_values.txt ~/.vep/Plugins
-  ./vep -i variants.vcf --plugin ExACpLI
+  mv pLI.pm ~/.vep/Plugins
+  mv pLI_values.txt ~/.vep/Plugins
+  ./vep -i variants.vcf --plugin pLI
 
 =head1 DESCRIPTION
 
@@ -53,7 +53,7 @@ ExACpLI - Add ExAC pLI to the VEP output
   See https://www.ncbi.nlm.nih.gov/pubmed/27535533 for a description 
   of the dataset and analysis.
 
-  The ExACpLI_values.txt file is found alongside the plugin in the 
+  The pLI_values.txt file is found alongside the plugin in the 
   VEP_plugins GitHub repository. The file contains the fields gene and pLI 
   extracted from the file at 
     
@@ -68,7 +68,7 @@ ExACpLI - Add ExAC pLI to the VEP output
 
 =cut
 
-package ExACpLI;
+package pLI;
 
 use strict;
 use warnings;
@@ -97,12 +97,12 @@ sub new {
   my $value = $self->params->[1] if (defined ($self->params->[1]));
   
   if(!$file) {
-    my $plugin_dir = $INC{'ExACpLI.pm'};
-    $plugin_dir =~ s/ExACpLI\.pm//i;
-    $file = $plugin_dir.'/ExACpLI_values.txt';
+    my $plugin_dir = $INC{'pLI.pm'};
+    $plugin_dir =~ s/pLI\.pm//i;
+    $file = $plugin_dir.'/pLI_values.txt';
   }
   
-  die("ERROR: ExACpLI values file $file not found\n") unless $file && -e $file;
+  die("ERROR: pLI values file $file not found\n") unless $file && -e $file;
 
   # to get only the first line
   open IN, "<",  $file;
@@ -161,11 +161,6 @@ sub run {
   my $symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
   return {} unless $symbol;
   return $self->{scores}->{lc($symbol)} ? { $include_columns{"gene"}{"name"} => $self->{scores}->{lc($symbol)}} : {};
-  
-
-
-
-
   
 }
 

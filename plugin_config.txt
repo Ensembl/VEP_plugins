@@ -882,10 +882,10 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
-    # ExACpLI
-    # Requires ExACpLI_values.txt file as first param (available in VEP_plugins GitHub repo)
+    # pLI
+    # Requires pLI_values.txt file as first param (available in VEP_plugins GitHub repo)
     {
-      "key" => "ExACpLI",
+      "key" => "pLI",
       "helptip" => "Provides a per-gene probability of being loss-of-function intolerant (pLI) from ExAC data",
       "available" => 0,
       "enabled" => 0,
@@ -896,7 +896,7 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "params" => [
-        # "/path/to/ExACpLI_values.txt"
+        # "/path/to/pLI_values.txt"
       ]
     },
 
