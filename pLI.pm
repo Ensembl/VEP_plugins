@@ -64,10 +64,10 @@ pLI - Add pLI score to the VEP output
   awk '{print $1, $20 }'  fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt > pli_transcript.txt 
 
   NB: Using this file, No transcript score will be returned.
+  
   To use another values file, add it as a parameter i.e.
-
-     ./vep -i variants.vcf --plugin pLI,values_file.txt
-     ./vep -i variants.vcf --plugin plI,values_file.txt,transcript to check for the transcript score.
+    /vep -i variants.vcf --plugin pLI,values_file.txt
+    /vep -i variants.vcf --plugin plI,values_file.txt,transcript to check for the transcript score.
 
 
 =cut
