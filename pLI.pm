@@ -59,11 +59,15 @@ pLI - Add pLI score to the VEP output
     
     ftp://ftp.broadinstitute.org/pub/ExAC_release/release0.3/functional_gene_constraint/
       fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt
+  
+  From this file to extract transcript and transcipt score:
+  awk '{print $1, $20 }'  fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt > pli_transcript.txt 
 
+  NB: Using this file, No transcript score will be returned.
   To use another values file, add it as a parameter i.e.
 
      ./vep -i variants.vcf --plugin pLI,values_file.txt
-    
+     ./vep -i variants.vcf --plugin plI,values_file.txt,transcript to check for the transcript score.
 
 
 =cut
@@ -80,6 +84,9 @@ use List::MoreUtils qw/zip/;
 
 
 my %include_columns = (
+  "transcript" => {
+    "name" =>  "pLI_transcript value"
+  },
   "gene" => {
     "name" => "pLI_gene value"
   }
@@ -107,9 +114,9 @@ sub new {
   # to get only the first line
   open IN, "<",  $file;
   while (<IN>){
-    next unless  m/gene/;
+    next unless  m/gene|transcript/;
     chomp;
-    $_ =~   m/gene|pLI/;
+    $_ =~   m/gene|transcript|pLI/;
     $self->{headers} = [split];
     
   }
@@ -119,18 +126,31 @@ sub new {
 
   die "ERROR: Could not read headers from $file\n" unless defined($self->{headers});
 
-
-  die "Error: File does not have a gene column " unless grep {$_ eq "gene"} @{$self->{headers}};
-  $self->{header}{$include_columns{"gene"}{"name"}}  =  "pLI value by gene";
-  open my $fh, "<", $file;
-  while (<$fh>) {
-    chomp;
-    my ($gene, $score) = split;
-    next if $score eq 'pLI';
-    $scores{lc($gene)} = sprintf("%.2f", $score);
+  if (!defined ($self->params->[1]) || defined($self->params->[1]) eq 'gene' ){
+    die "Error: File does not have a gene column " unless grep {$_ eq "gene"} @{$self->{headers}};
+    $self->{header}{$include_columns{"gene"}{"name"}}  =  "pLI value by gene";
+    open my $fh, "<", $file;
+    while (<$fh>) {
+      chomp;
+      my ($gene, $score) = split;
+      next if $score eq 'pLI';
+      $scores{lc($gene)} = sprintf("%.2f", $score);
+    }
+    close $fh;
   } 
-  close $fh;
-  
+
+  if ( defined($self->params->[1]) && $self->params->[1] eq 'transcript') { 
+    die "Error: Could not find transcript in the headers"  unless grep {$_ eq "transcript"} @{$self->{headers}};
+    $self->{header}{$include_columns{"transcript"}{"name"}} = "pLI value by transcript";
+    open my $fh, "<", $file;
+    while (<$fh>) {
+      chomp;
+      my ($transcript, $score) = split;
+      next if $score eq "pLI";
+      $scores{lc($transcript)} = sprintf("%.2f", $score) ;
+    }
+    close $fh;
+  }
   
   die("ERROR: No scores read from $file\n") unless scalar keys %scores;
 
@@ -157,11 +177,21 @@ sub run {
   my $self = shift;
   my $tva = shift;
   
-
-  my $symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
-  return {} unless $symbol;
-  return $self->{scores}->{lc($symbol)} ? { $include_columns{"gene"}{"name"} => $self->{scores}->{lc($symbol)}} : {};
+  my $transcript = $tva->transcript;
+  return {} unless $transcript;
   
+  if (!defined ($self->params->[1]) || defined($self->{option}) eq "gene") {
+    my $symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+    return {} unless $symbol;
+    return $self->{scores}->{lc($symbol)} ? { $include_columns{"gene"}{"name"} => $self->{scores}->{lc($symbol)}} : {};
+  }
+
+  if (defined($self->{option}) eq "transcript" || defined ($self->params->[1]) ) { 
+    my $transcript = $tva->transcript->stable_id;
+    return {} unless $transcript;
+    return $self->{scores}->{lc($transcript)} ? { $include_columns{"transcript"}{"name"} => $self->{scores}->{lc($transcript)}} : {};
+  }
+
 }
 
 
