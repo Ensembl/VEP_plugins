@@ -886,11 +886,11 @@ my $VEP_PLUGIN_CONFIG = {
     # Requires pLI_values.txt file as first param (available in VEP_plugins GitHub repo)
     {
       "key" => "pLI",
-      "helptip" => "Provides a per-gene probability of being loss-of-function intolerant (pLI) from ExAC data",
+      "helptip" => "Provides a per-gene or per transcript probability of being loss-of-function intolerant (pLI)",
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/ExACpLI.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/107/pLI.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
