@@ -176,6 +176,10 @@ my %NON_TRANSCRIPT_SPECIFIC_FIELDS = map {$_ => 1} qw(
   MutationTaster_pred
   MutationTaster_model
   Interpro_domain
+  MutPred_Top5features
+  Transcript_id_VEST3
+  Transcript_var_VEST3
+  VEST3_score
 );
 
 sub new {
@@ -472,10 +476,21 @@ sub run {
       my @refine_fields = grep {defined($data->{$_}) && defined($self->{cols}->{$_})} @{$self->{transcript_specific_fields}};
 
       foreach my $key(@refine_fields) {
+	next if $data->{$key} eq '.';
+
         my @split = split(';', $data->{$key});
-        die("ERROR: Transcript index out of range") if $tr_index > $#split;
-        die("ERROR: Number of transcript IDs does not match number of data entries for field $key") if scalar @split != scalar @tr_ids;
-        $data->{$key} = $split[$tr_index];
+
+	if($tr_index > $#split) {
+          warn("ERROR: Transcript index out of range for field $key\n");
+	  next;
+        }
+
+	if(scalar @split != scalar @tr_ids) {
+	  warn("ERROR: Number of transcript IDs does not match number of data entries for field $key\n");
+	  next;
+        }
+	
+	$data->{$key} = $split[$tr_index];
       }
     }
     last;
