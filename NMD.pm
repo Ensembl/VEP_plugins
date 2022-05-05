@@ -62,6 +62,7 @@ use warnings;
 
 use base  qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+my %INCLUDE_SO = map{$_ => 1} qw(stop_gained frameshift_variant splice_donor_variant splice_acceptor_variant);
 my %TERM = (
   1 => "NMD_escaping_variant"
 );
@@ -79,12 +80,12 @@ sub run {
   my $self = shift; 
   my $tva = shift;
   # using stop_gained for now as advised. 
-  return {} unless grep {$_->SO_term eq 'stop_gained'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   my $tr = $tva->transcript;
   my $tv = $tva->transcript_variation;
   # position of the variant in respect to the coding sequence. 
-  my $variant_coding_region = $tv->cds_end;
+  my $variant_coding_region = $tv->cds_end if (defined $tv->cds_end);
   # checking for if the transcript is an intronless transcript 
   my @introns = $tr->get_all_Introns; 
   my $number = scalar @introns;
@@ -92,7 +93,7 @@ sub run {
   my $check = $self->variant_exon_check($tva);
 
   # if statement to check if any of the rules is true
-  if ($variant_coding_region < 101 || $check || $number == 0 ) {
+  if (defined($variant_coding_region) < 101 || $check || $number == 0 ) {
     return {NMD => $TERM{1}};
   }
   else {
@@ -145,4 +146,3 @@ sub variant_exon_check {
 
 
 1;
-
