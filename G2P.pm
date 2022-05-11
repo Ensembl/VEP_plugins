@@ -686,11 +686,9 @@ sub gene_overlap_filtering {
   my $gene_stable_id = get_gene_stable_id($transcript);
   my $pass_gene_overlap_filter = $self->{g2p_gene_cache}->{$gene_stable_id};
   my @gene_xrefs = ();
-  my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
-  my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
   if (! defined $pass_gene_overlap_filter && ! defined $self->{user_params}->{filter_by_gene_symbol}) {
     my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
-    my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
+    my $hgnc_id = $gene_hgnc[0] if (@gene_hgnc);
     foreach my $gene_id ($hgnc_id){
       foreach my $id (keys $self->{hgnc_mapping}) {
         if ( defined($gene_id) && $gene_id == $id) {
