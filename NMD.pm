@@ -152,9 +152,6 @@ sub variant_exon_check {
   if (defined($second_last_exon)){
     my $coding_region_end = $second_last_exon->end;
     my $diff_end = $coding_region_end - 51;
-    use Data::Dumper;
-    print Dumper ($coding_region_end);
-    print Dumper($diff_end);
     if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ){
       return 1; 
     }
