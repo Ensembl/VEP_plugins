@@ -104,8 +104,9 @@ sub run {
     return {};
   }
 
+
   # if statement to check if any of the rules is true
-  if (defined ($position_check) == 1 || $check || $number == 0 ) {
+  if ( ( defined ($position_check) && $position_check == 1) || $check || $number == 0 ) {
     return {NMD => $TERM{1}};
   }
   else {
@@ -135,19 +136,26 @@ sub variant_exon_check {
   my $tr = $tva->transcript;
   my $vf_end = $vf->seq_region_end;
   my @exons = @{ $tr->get_all_Exons }; 
+
   # to get the last exon 
+
   my $last_exon = $exons[-1]; 
+  
   # to get the second to the last exon (penultimate exon)
   my $second_last_exon = $exons[-2];
-  my $coding_region_end = $last_exon->coding_region_end($tr);
-  my $coding_region_start = $last_exon->coding_region_start($tr);
+  my $coding_region_end = $last_exon->end;
+  my $coding_region_start = $last_exon->start;
   if (defined($coding_region_start) && $vf_end >= $coding_region_start && $vf_end <= $coding_region_end){
     return 1; 
   }
   # to check if the second to the last exon exists 
   if (defined($second_last_exon)){
-    my $coding_region_end = $second_last_exon->coding_region_end($tr);
-    if (defined($coding_region_end) && $vf_end >= $coding_region_end - (51) ){
+    my $coding_region_end = $second_last_exon->end;
+    my $diff_end = $coding_region_end - 51;
+    use Data::Dumper;
+    print Dumper ($coding_region_end);
+    print Dumper($diff_end);
+    if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ){
       return 1; 
     }
   }
