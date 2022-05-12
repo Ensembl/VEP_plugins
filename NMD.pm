@@ -89,22 +89,30 @@ sub run {
   # checking for if the transcript is an intronless transcript 
   my @introns = $tr->get_all_Introns; 
   my $number = scalar @introns;
+
   # to check for if the variant location falls in the last exon
   my $check = $self->variant_exon_check($tva);
   
+  # to check what position the transcript variation coding sequence end is at 
+  # former method gave room for a bug 
+  my $position_check = 1 if ( defined ($variant_coding_region) && $variant_coding_region <= 101) ;
 
+  
+ 
   # to check if the variant is not on the coding sequence.
   if (!defined ($tv->cds_end) || !defined ($tv->cds_start)){
     return {};
   }
 
   # if statement to check if any of the rules is true
-  if (defined($variant_coding_region) < 101 || $check || $number == 0 ) {
+  if (defined ($position_check) == 1 || $check || $number == 0 ) {
     return {NMD => $TERM{1}};
   }
   else {
     return {};
   }
+
+  
 }
 
 =head2 variant_exon_check 
