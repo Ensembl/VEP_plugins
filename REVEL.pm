@@ -133,7 +133,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { REVEL => 'Rare Exome Variant Ensemble Learner '};
+  return { REVEL => 'Rare Exome Variant Ensemble Learner'};
 }
 
 sub run {
