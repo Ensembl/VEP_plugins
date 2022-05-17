@@ -62,6 +62,7 @@ use warnings;
 
 use base  qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+my %INCLUDE_SO = map{$_ => 1} qw(stop_gained frameshift_variant splice_donor_variant splice_acceptor_variant);
 my %TERM = (
   1 => "NMD_escaping_variant"
 );
@@ -79,25 +80,40 @@ sub run {
   my $self = shift; 
   my $tva = shift;
   # using stop_gained for now as advised. 
-  return {} unless grep {$_->SO_term eq 'stop_gained'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   my $tr = $tva->transcript;
   my $tv = $tva->transcript_variation;
   # position of the variant in respect to the coding sequence. 
-  my $variant_coding_region = $tv->cds_end;
+  my $variant_coding_region = $tv->cds_end if (defined $tv->cds_end);
   # checking for if the transcript is an intronless transcript 
   my @introns = $tr->get_all_Introns; 
   my $number = scalar @introns;
+
   # to check for if the variant location falls in the last exon
   my $check = $self->variant_exon_check($tva);
+  
+  # to check what position the transcript variation coding sequence end is at 
+  # former method gave room for a bug 
+  my $position_check = 1 if ( defined ($variant_coding_region) && $variant_coding_region <= 101) ;
+
+  
+ 
+  # to check if the variant is not on the coding sequence.
+  if (!defined ($tv->cds_end) || !defined ($tv->cds_start)){
+    return {};
+  }
+
 
   # if statement to check if any of the rules is true
-  if ($variant_coding_region < 101 || $check || $number == 0 ) {
+  if ( ( defined ($position_check) && $position_check == 1) || $check || $number == 0 ) {
     return {NMD => $TERM{1}};
   }
   else {
     return {};
   }
+
+  
 }
 
 =head2 variant_exon_check 
@@ -120,19 +136,24 @@ sub variant_exon_check {
   my $tr = $tva->transcript;
   my $vf_end = $vf->seq_region_end;
   my @exons = @{ $tr->get_all_Exons }; 
+
   # to get the last exon 
+
   my $last_exon = $exons[-1]; 
+  
   # to get the second to the last exon (penultimate exon)
   my $second_last_exon = $exons[-2];
-  my $coding_region_end = $last_exon->coding_region_end($tr);
-  my $coding_region_start = $last_exon->coding_region_start($tr);
+  my $coding_region_end = $last_exon->end;
+  my $coding_region_start = $last_exon->start;
   if (defined($coding_region_start) && $vf_end >= $coding_region_start && $vf_end <= $coding_region_end){
     return 1; 
   }
   # to check if the second to the last exon exists 
   if (defined($second_last_exon)){
-    my $coding_region_end = $second_last_exon->coding_region_end($tr);
-    if (defined($coding_region_end) && $vf_end >= $coding_region_end - (51) ){
+    # this method has been changed because of the reverse strand consideration
+    my $coding_region_end = $second_last_exon->end;
+    my $diff_end = $coding_region_end - 51;
+    if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ){
       return 1; 
     }
   }
@@ -145,4 +166,3 @@ sub variant_exon_check {
 
 
 1;
-
