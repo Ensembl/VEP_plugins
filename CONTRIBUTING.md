@@ -1,8 +1,8 @@
 # Contribution Guide
 
-We welcome contributions from outside the Ensembl team and our full contribution guidelines are available [here](https://github.com/Ensembl/ensembl/blob/master/CONTRIBUTING.md).
+We welcome contributions from outside the Ensembl team and our full contribution guidelines are available [here](https://github.com/Ensembl/ensembl/blob/main/CONTRIBUTING.md).
 
-Please submit new plugins and updates as pull requests against the MASTER branch unless otherwise discussed.
+Please submit new plugins and updates as pull requests against the MAIN branch unless otherwise discussed.
 
 ## Plugin Development
 
