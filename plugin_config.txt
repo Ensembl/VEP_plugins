@@ -5,7 +5,7 @@ my $VEP_PLUGIN_CONFIG = {
     ############################
 
     # dbNSFP
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/dbNSFP.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/dbNSFP.pm
     # Requires tabix-indexed data file as first param
     # Field names are listed below and rendered as a multi-selectable autocomplete text field
     # Human, GRCh38 only (3.x), for GRCh37 use 2.9.x
@@ -688,7 +688,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # CADD
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/CADD.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
     # Requires tabix-indexed data file as first param
     # No other parameters so no form required
     {
@@ -709,7 +709,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # CAPICE
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/CAPICE.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/CAPICE.pm
     # Requires tabix-indexed data files as params (one for InDels, another for SNVs)
     # No other parameters so no form required
     # data file currently only available for GRCh37
@@ -742,7 +742,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # FATHMM-MKL
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/FATHMM_MKL.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/FATHMM_MKL.pm
     # Requires tabix-indexed data file as first param
     # No other parameters so no form required
     # data file currently only available for GRCh37
@@ -799,7 +799,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # Carol
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/Carol.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/Carol.pm
     # Requires Math/CDF Perl module
     {
       "key" => "Carol",
@@ -815,7 +815,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # Condel
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/Condel.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/Condel.pm
     # Requires path to config directory as first param
     # config directory is checked out as part of VEP_plugins repo, as /[path]/VEP_plugins/config/Condel/config
     # Within that dir, edit condel_SP.conf so that condel.dir points to /[path]/VEP_plugins/config/Condel
@@ -1022,7 +1022,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # EVE
-    # https://github.com/ensembl-variation/VEP_plugins/blob/master/EVE.pm
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/EVE.pm
     # Requires tabix-indexed data file as params
     # No other parameters so no form required
     # data file currently only available for GRCh38
