@@ -80,7 +80,7 @@ sub new {
   $reg = 'Bio::EnsEMBL::Registry';
   
   # Check if parameter "remote" is provided to revert to old GO.pm functionality
-  $self->{use_remote} = grep($_ eq "remote", @{$self->params});
+  $self->{use_remote} = grep($_ eq "remote", @{$self->{params}});
   
   # Check if the tabix command is available
   if ( !$self->{use_remote} and !`which tabix 2>&1` =~ /tabix$/ ) {
@@ -199,8 +199,8 @@ sub _prepare_filename {
   
   # Prepare directory to store files
   my $dir = ""; # work in current directory by default
-  if (@{$self->params}) {
-    $dir = $self->params->[0];
+  if (@{$self->{params}}) {
+    $dir = $self->{params}->[0];
     $dir =~ s/\/?$/\//; # ensure path ends with slash
     die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
   }
@@ -209,13 +209,12 @@ sub _prepare_filename {
   my $pkg      = __PACKAGE__.'.pm';
   my $species  = $config->{species};
   my $version  = $config->{db_version} || $reg->software_version;
-  my $assembly = $config->{assembly};
-  die "specify assembly using --assembly [assembly]\n" unless defined($assembly);
-
   my @basename = ($pkg, $species, $version);
+
   if( $species eq 'homo_sapiens' || $species eq 'human'){
-    $assembly ||= $config->{human_assembly};
-    push @basename, $assembly;
+    my $assembly = $config->{assembly} || $config->{human_assembly};
+    die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
+    push @basename, $assembly if defined $assembly;
   }
   return $dir.join("_", @basename).".gff.gz";
 }
@@ -225,7 +224,7 @@ sub _generate_gff {
 
   my $config = $self->{config};
   die("ERROR: Cannot create GFF file in offline mode\n") if $config->{offline};
-  # die("ERROR: Cannot create GFF file in REST mode\n") if $config->{rest};
+  die("ERROR: Cannot create GFF file in REST mode\n") if $config->{rest};
   
   # test bgzip
   die "ERROR: bgzip does not seem to be in your path\n" unless `which bgzip 2>&1` =~ /bgzip$/;
@@ -255,7 +254,7 @@ sub _generate_gff {
       '.' AS frame,
       transcript.stable_id AS transcript_stable_id,
       x.display_label AS go_term,
-      REPLACE(x.description, " ", "_") AS go_term_description
+      x.description AS go_term_description
       
     FROM transcript
     $join_translation_table
@@ -339,8 +338,20 @@ sub _write_GO_terms_to_file {
       # Append comma before appending another GO term
       $transcript_info .= ","
     }
+
+    if ( defined($description) ) {
+      $description =~ s/ /_/g; # Replace spaces with underscores
+
+      $description =~ s/,_/_-_/g; # Avoid commas followed by an underscore, e.g.:
+      # GO:0045892:negative_regulation_of_transcription,_DNA-templated
+
+      $description =~ s/,/-/g; # Avoid commas in other situtations, e.g.:
+      # GO:0016316:phosphatidylinositol-3,4-bisphosphate_4-phosphatase_activity
+    } else {
+      $description = "";
+    }
+
     # Append GO term and its description
-    $description = "" unless defined($description);
     $transcript_info .= "$go_term:$description";
   }
   # Write info of last transcript to file
