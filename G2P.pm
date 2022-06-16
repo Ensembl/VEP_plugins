@@ -338,6 +338,11 @@ sub new {
     $self->{_files} = [$params->{variant_include_list}];
   }
   
+  if (defined($params->{filter_by_gene_symbol}) and $params->{filter_by_gene_symbol} != 1) {
+    $params->{filter_by_gene_symbol} = undef;
+    die "The option --filter_by_gene_symbol needs to be set to 1 \n";
+  }
+  
    
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
@@ -366,6 +371,7 @@ sub new {
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
   $self->{cache}->{g2p_in_vcf} = {};
+  
 
 
   return $self;
@@ -1372,14 +1378,18 @@ sub write_report {
   } elsif ($flag eq 'G2P_gene_data') {
     my ($gene_id, $gene_data, $gene_xrefs, $hgnc) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
-    my $id = 
     my %seen;
     $seen{$_} = 1 foreach @{$gene_xrefs};
     my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     my $hgnc_id = "HGNC:".@{$hgnc}[0] if (defined $hgnc);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n" if (defined $hgnc_id);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n" 
+    if (defined $hgnc_id){
+      print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n";
+    }
+    else {
+      print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
+    }
+    
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
