@@ -89,6 +89,9 @@ limitations under the License.
 
   html_report          : write all G2P complete genes and attributes to html file
 
+  filter_by_gene_symbol: set to 1 if filter by gene symbol.
+                         N/B: Do not set if filter by HGNC_id. 
+
  Example:
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
@@ -334,7 +337,13 @@ sub new {
     }
     $self->{_files} = [$params->{variant_include_list}];
   }
-
+  
+  if (defined($params->{filter_by_gene_symbol}) and $params->{filter_by_gene_symbol} != 1) {
+    $params->{filter_by_gene_symbol} = undef;
+    die "The option --filter_by_gene_symbol needs to be set to 1 \n";
+  }
+  
+   
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
@@ -343,6 +352,9 @@ sub new {
   # read data from file
   $self->{gene_data} = $self->read_gene_data_from_file($file);
   $self->synonym_mappings();
+  $self->hgnc_mappings();
+
+
 
   # force some config params
   $self->{config}->{individual} //= ['all'];
@@ -359,6 +371,7 @@ sub new {
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
   $self->{cache}->{g2p_in_vcf} = {};
+  
 
 
   return $self;
@@ -679,7 +692,31 @@ sub gene_overlap_filtering {
   my $gene_stable_id = get_gene_stable_id($transcript);
   my $pass_gene_overlap_filter = $self->{g2p_gene_cache}->{$gene_stable_id};
   my @gene_xrefs = ();
-  if (! defined $pass_gene_overlap_filter) {
+  if (! defined $pass_gene_overlap_filter && ! defined $self->{user_params}->{filter_by_gene_symbol}) {
+    my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
+    my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
+    foreach my $gene_id ($hgnc_id){
+      foreach my $id (keys $self->{hgnc_mapping}) {
+        if ( defined($gene_id) && $gene_id == $id) {
+          my $gene_symbol = $self->{hgnc_mapping}{$id};
+          my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
+          if (defined $gene_data) {
+            if (defined $gene_data->{'allelic requirement'} && scalar @{$gene_data->{'allelic requirement'}}) {
+              foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
+                $self->{ar}->{$gene_stable_id}->{$ar} = 1;
+              }
+              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'} );
+            }
+            $self->write_report('G2P_in_vcf', $gene_stable_id);
+            $pass_gene_overlap_filter = 1;
+            last;
+          }
+        }
+      }
+    }
+    $self->{g2p_gene_cache}->{$gene_stable_id} = $pass_gene_overlap_filter;
+  }
+  if (! defined $pass_gene_overlap_filter && defined $self->{user_params}->{filter_by_gene_symbol} == 1) {
     my $gene_symbol = $transcript->{_gene_symbol} || $transcript->{_gene_hgnc};
     $pass_gene_overlap_filter = 0;
     foreach my $gene_id ($gene_symbol, $gene_stable_id) {
@@ -777,6 +814,7 @@ sub get_cache_name {
 sub get_gene_stable_id {
   my $transcript = shift;
   return $transcript->{_gene}->stable_id;
+  
 }
 
 =head2 frequency_filtering
@@ -1227,12 +1265,13 @@ sub read_gene_data_from_file {
       else {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
-        $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"DDD category"});
+        $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
         my $confidence_value = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
         next if (!grep{$_ eq $confidence_value} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
+        push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
       }
     }
@@ -1271,6 +1310,7 @@ sub gene_data {
   return $gene_data;
 }
 
+
 =head2 synonym_mappings
 
   Description: Create a hashref in the internal cache under the key prev_symbol_mappings which
@@ -1293,6 +1333,18 @@ sub synonym_mappings {
   $self->{prev_symbol_mappings} = $synonym_mappings;
 }
 
+sub hgnc_mappings {
+  my $self = shift;
+  my $gene_data = $self->{gene_data};
+  my $hgnc_mapping = {};
+  foreach my $gene_symbol (keys %$gene_data){
+    foreach my $hgnc_id (@{$gene_data->{$gene_symbol}->{'HGNC'}}) {
+      $hgnc_mapping->{$hgnc_id} = $gene_symbol;
+    }
+  }
+  $self->{hgnc_mapping} = $hgnc_mapping;
+  
+}
 =head2 write_report
 
   Arg [1]    : String $flag
@@ -1324,13 +1376,20 @@ sub write_report {
     my ($vf_name) = @_;
     print $fh "$flag\t$vf_name\n";
   } elsif ($flag eq 'G2P_gene_data') {
-    my ($gene_id, $gene_data, $gene_xrefs) = @_;
+    my ($gene_id, $gene_data, $gene_xrefs, $hgnc) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
     my %seen;
     $seen{$_} = 1 foreach @{$gene_xrefs};
     my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
+    my $hgnc_id = "HGNC:".@{$hgnc}[0] if (defined $hgnc);
+    if (defined $hgnc_id){
+      print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n";
+    }
+    else {
+      print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
+    }
+    
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
@@ -1503,9 +1562,10 @@ sub write_html_output {
   print $fh_out "<dd>G2P complete genes in input VCF file</dd>";
   print $fh_out "</dl>";
 
-
+  
   print $fh_out "<h1>Summary of G2P complete genes per individual</h1>";
   print $fh_out "<p>G2P complete gene: A sufficient number of variant hits for the observed allelic requirement in at least one of the gene's transcripts. Variants are filtered by frequency.</p>";
+  print $fh_out "<p>G2P gene was filtered using HGNC_id</p>" if (!defined $self->{user_params}->{filter_by_gene_symbol});
   print $fh_out "<p>Frequency thresholds and number of required variant hits for each allelic requirement:</p>";
 
   print $fh_out "<table class='table table-bordered'>";
@@ -1764,6 +1824,7 @@ sub parse_log_files {
   my $ar_data = {}; # all allelic requirements that have been reported for the gene in the G2P database
   my $g2p_transcripts = {};
   my $gene_xrefs = {};
+  
 
   foreach my $file (@files) {
     my $fh = FileHandle->new($file, 'r');
@@ -1797,13 +1858,22 @@ sub parse_log_files {
         my ($flag, $vf_cache_name, $annotations) = split/\t/;
         $vf_annotation_data->{$vf_cache_name} = $annotations;
       }
-      #G2P_gene_data ENSG00000141556 biallelic TBCD
+      #G2P_gene_data ENSG00000141556 biallelic TBCD HGNC:15432 if not filter_by_gene_symbol
       elsif (/^G2P_gene_data/) {
-        my ($flag, $gene_id, $ars, $xrefs) = split/\t/;
+        my ($flag, $gene_id, $ars, $xrefs, $hgnc) = split/\t/;
         foreach my $ar (split(',', $ars)) {
           $ar_data->{$gene_id}->{$ar} = 1;
         }
-        $gene_xrefs->{$gene_id} = $xrefs;
+        
+        if (defined $hgnc && !defined $self->{user_params}->{filter_by_gene_symbol}){
+          my $x_hgnc = $xrefs . " " .$hgnc;
+          $gene_xrefs->{$gene_id} = $x_hgnc;
+        }
+        if (!defined $hgnc && defined $self->{user_params}->{filter_by_gene_symbol} ) {
+          $gene_xrefs->{$gene_id} = $xrefs;
+
+        }
+     
       }
       #G2P_in_vcf  ENSG00000141556
       elsif (/^G2P_in_vcf/) {
