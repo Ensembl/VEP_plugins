@@ -695,24 +695,22 @@ sub gene_overlap_filtering {
   if (! defined $pass_gene_overlap_filter && ! defined $self->{user_params}->{filter_by_gene_symbol}) {
     my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
     my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
-    foreach my $gene_id ($hgnc_id){
-      foreach my $id (keys $self->{hgnc_mapping}) {
-        if ( defined($gene_id) && $gene_id == $id) {
-          my $gene_symbol = $self->{hgnc_mapping}{$id};
-          my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
-          if (defined $gene_data) {
-            if (defined $gene_data->{'allelic requirement'} && scalar @{$gene_data->{'allelic requirement'}}) {
-              foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
-                $self->{ar}->{$gene_stable_id}->{$ar} = 1;
-              }
-              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'} );
+    foreach my $id (keys $self->{hgnc_mapping}) {
+      if ( defined($hgnc_id) && $hgnc_id == $id) {
+        my $gene_symbol = $self->{hgnc_mapping}{$id};
+        my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
+        if (defined $gene_data) {
+          if (defined $gene_data->{'allelic requirement'} && scalar @{$gene_data->{'allelic requirement'}}) {
+            foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
+              $self->{ar}->{$gene_stable_id}->{$ar} = 1;
             }
-            $self->write_report('G2P_in_vcf', $gene_stable_id);
-            $pass_gene_overlap_filter = 1;
-            last;
+            $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'} );
           }
+          $self->write_report('G2P_in_vcf', $gene_stable_id);
+          $pass_gene_overlap_filter = 1;
+          last;
         }
-      }
+      } 
     }
     $self->{g2p_gene_cache}->{$gene_stable_id} = $pass_gene_overlap_filter;
   }
