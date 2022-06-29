@@ -90,7 +90,7 @@ limitations under the License.
   html_report          : write all G2P complete genes and attributes to html file
 
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
-                         N/B: Do not set if filter by HGNC_id. 
+                         N/B: Do not set if filtering should be by HGNC_id. 
 
  Example:
 
