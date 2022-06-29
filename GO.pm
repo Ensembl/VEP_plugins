@@ -199,8 +199,8 @@ sub _prepare_filename {
   
   # Prepare directory to store files
   my $dir = ""; # work in current directory by default
-  if (@{$self->params}) {
-    $dir = $self->params->[0];
+  if (@{$self->{params}}) {
+    $dir = $self->{params}->[0];
     $dir =~ s/\/?$/\//; # ensure path ends with slash
     die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
   }
