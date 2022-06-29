@@ -64,8 +64,8 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
                          all available VCF collections are included. 
-                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg, gnomADg_r3.0
-                         Separate multiple values with '&'
+                         Available VCF collections: topmed_GRCh37, topmed_GRCh38, uk10k_GRCh37, uk10k_GRCh38, gnomADe_GRCh37, gnomADe_r2.1.1_GRCh38, gnomADg_GRCh37, gnomADg_v3.1.2_GRCh38.
+                         Separate multiple values with '&'or '|'.
                          VCF collections contain the following populations: 
                          topmed: TOPMed
                          uk10k: ALSPAC, TWINSUK
@@ -96,8 +96,8 @@ limitations under the License.
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg,confidence_levels='confirmed&probable&both RD and IF'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38|gnomADe_r2.1.1_GRCh38'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38|gnomADe_r2.1.1_GRCh38',confidence_levels='confirmed&probable&both RD and IF'
  --plugin G2P,file=G2P.csv
 =cut
 
@@ -133,7 +133,7 @@ my %DEFAULTS = (
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
-  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg gnomADg_r3.0)],
+  af_from_vcf_keys => [qw(uk10k_GRCh37 uk10k_GRCh38 topmed_GRCh37 topmed_GRCh38 gnomADe_GRCh37 gnomADe_r2.1.1_GRCh38 gnomADg_GRCh37 gnomADg_v3.1.2_GRCh38)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
