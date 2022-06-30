@@ -67,10 +67,11 @@ limitations under the License.
                          Available VCF collections: topmed_GRCh37, topmed_GRCh38, uk10k_GRCh37, uk10k_GRCh38, gnomADe_GRCh37, gnomADe_r2.1.1_GRCh38, gnomADg_GRCh37, gnomADg_v3.1.2_GRCh38.
                          Separate multiple values with '&'or '|'.
                          VCF collections contain the following populations: 
-                         topmed: TOPMed
-                         uk10k: ALSPAC, TWINSUK
-                         gnomADe: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
-                         gnomADg: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                         topmed_GRCh37 & topmed_GRCh38 : TOPMed
+                         uk10k_GRCh37 & uk10k_GRCh38 : ALSPAC, TWINSUK
+                         gnomADe_GRCh37 & gnomADe_r2.1.1_GRCh38: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
+                         gnomADg_GRCh37 & gnomADg_v3.1.2_GRCh38: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                         Need to use af_from_vcf paramter to use this option. 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
@@ -96,8 +97,10 @@ limitations under the License.
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38|gnomADe_r2.1.1_GRCh38'
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38|gnomADe_r2.1.1_GRCh38',confidence_levels='confirmed&probable&both RD and IF'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38&gnomADe_r2.1.1_GRCh38'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38&gnomADe_r2.1.1_GRCh38',confidence_levels='confirmed&probable&both RD and IF'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='uk10k_GRCh38:ALSPAC&gnomADg_v3.1.2_GRCh38:gnomADg:ALL'
+
  --plugin G2P,file=G2P.csv
 =cut
 
