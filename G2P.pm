@@ -65,7 +65,7 @@ limitations under the License.
                          af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
                          all available VCF collections are included. 
                          Available VCF collections: topmed_GRCh37, topmed_GRCh38, uk10k_GRCh37, uk10k_GRCh38, gnomADe_GRCh37, gnomADe_r2.1.1_GRCh38, gnomADg_GRCh37, gnomADg_v3.1.2_GRCh38.
-                         Separate multiple values with '&'or '|'.
+                         Separate multiple values with '&'.
                          VCF collections contain the following populations: 
                          topmed_GRCh37 & topmed_GRCh38 : TOPMed
                          uk10k_GRCh37 & uk10k_GRCh38 : ALSPAC, TWINSUK
@@ -196,6 +196,17 @@ my $supported_confidence_levels = {
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
 
+my $afvcf_keys = {
+    "uk10k_GRCh37" => 1, 
+    "uk10k_GRCh38" => 1, 
+    "topmed_GRCh37" => 1, 
+    "topmed_GRCh38" => 1,
+    "gnomADe_GRCh37" => 1, 
+    "gnomADe_r2.1.1_GRCh38" => 1,
+    "gnomADg_GRCh37" => 1, 
+    "gnomADg_v3.1.2_GRCh38" => 1
+};
+
 sub new {
   my $class = shift;
 
@@ -205,6 +216,7 @@ sub new {
 
   my $params = $self->params_to_hash();
   my $file = '';
+
 
   # user only supplied file as first param?
   if (!keys %$params) {
@@ -289,12 +301,16 @@ sub new {
       my $assembly =  $self->{config}->{assembly};
       if ($params->{af_from_vcf_keys}) {
         foreach my $key (split(/[\;\&\|]/, $params->{af_from_vcf_keys})) {
-          push @vcf_collection_ids, $key;
-          push @vcf_collection_ids, "$key\_$assembly";
+          if (!$afvcf_keys->{$key}){
+            die "$key is not a supported key. Supported keys are: ", join(',', keys %$afvcf_keys),".\n" ;
+          }
+          else {
+            push @vcf_collection_ids, $key
+          }
         }
       } else {
         foreach my $key (@{$DEFAULTS{af_from_vcf_keys}}) {
-          push @vcf_collection_ids, "$key\_$assembly";
+          push @vcf_collection_ids, $key;
         }
       }
 
