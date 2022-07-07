@@ -96,7 +96,7 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
-  my $assembly = $self->{config}->{assembly};
+  my $assembly = $self->{config}->{assembly} || $config->{human_assembly};
 
   die "\nAssembly is not GRCh38, EVE only works with GRCh38. \n" if ($assembly ne "GRCh38");
 
