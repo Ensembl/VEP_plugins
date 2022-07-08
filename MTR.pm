@@ -79,6 +79,10 @@ sub new {
   }
   close HEAD;
 
+  if(!exists($self->{headers}->{'Genomic_position'})) {
+    die "Required header Genomic_position not found.\n";
+  }
+
   return $self;
 }
 
