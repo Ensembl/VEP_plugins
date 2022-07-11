@@ -724,7 +724,7 @@ sub gene_overlap_filtering {
               foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
                 $self->{ar}->{$gene_stable_id}->{$ar} = 1;
               }
-              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'} );
+              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_value'} );
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
             $pass_gene_overlap_filter = 1;
@@ -745,7 +745,7 @@ sub gene_overlap_filtering {
           foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
             $self->{ar}->{$gene_stable_id}->{$ar} = 1;
           } 
-          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'});
+          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'},  $gene_data->{'confidence_value'});
         } 
         $self->write_report('G2P_in_vcf', $gene_stable_id);
         $pass_gene_overlap_filter = 1;
@@ -1292,6 +1292,7 @@ sub read_gene_data_from_file {
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
+        push @{$gene_data{$gene_symbol}->{'confidence_value'}}, $tmp{"confidence value flag"}  if ($tmp{"confidence value flag"});
       }
     }
     $fh->close;
@@ -1364,6 +1365,7 @@ sub hgnc_mappings {
   $self->{hgnc_mapping} = $hgnc_mapping;
   
 }
+
 =head2 write_report
 
   Arg [1]    : String $flag
@@ -1395,20 +1397,18 @@ sub write_report {
     my ($vf_name) = @_;
     print $fh "$flag\t$vf_name\n";
   } elsif ($flag eq 'G2P_gene_data') {
-    my ($gene_id, $gene_data, $gene_xrefs, $hgnc) = @_;
+    my ($gene_id, $gene_data, $gene_xrefs, $hgnc, $con_flag) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
     my %seen;
     $seen{$_} = 1 foreach @{$gene_xrefs};
     my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     my $hgnc_id = "HGNC:".@{$hgnc}[0] if (defined $hgnc);
-    if (defined $hgnc_id){
-      print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n";
-    }
-    else {
-      print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
-    }
-    
+    my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n"  if (defined $hgnc_id && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n" if (!defined $hgnc && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n"  if (defined $hgnc_id && !defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n"  if (!defined $hgnc_id && defined $conf);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
@@ -1879,21 +1879,21 @@ sub parse_log_files {
       }
       #G2P_gene_data ENSG00000141556 biallelic TBCD HGNC:15432 if not filter_by_gene_symbol
       elsif (/^G2P_gene_data/) {
-        my ($flag, $gene_id, $ars, $xrefs, $hgnc) = split/\t/;
+        my ($flag, $gene_id, $ars, $xrefs, $hgnc, $con_flag) = split/\t/;
         foreach my $ar (split(',', $ars)) {
           $ar_data->{$gene_id}->{$ar} = 1;
         }
         
         if (defined $hgnc && !defined $self->{user_params}->{filter_by_gene_symbol}){
-          my $x_hgnc = $xrefs . " " .$hgnc;
+          my $x_hgnc = $xrefs . " $hgnc  $con_flag" if (defined $con_flag);
+          $x_hgnc = $xrefs . " $hgnc " if (!defined $con_flag);
           $gene_xrefs->{$gene_id} = $x_hgnc;
         }
         if (!defined $hgnc && defined $self->{user_params}->{filter_by_gene_symbol} ) {
-          $gene_xrefs->{$gene_id} = $xrefs;
-
+          $gene_xrefs->{$gene_id} = $xrefs . " $con_flag" if (defined $con_flag) ;
+          $gene_xrefs->{$gene_id} = $xrefs if (!defined $con_flag);
         }
-     
-      }
+     }
       #G2P_in_vcf  ENSG00000141556
       elsif (/^G2P_in_vcf/) {
         my ($flag, $gene_id) = split/\t/;
