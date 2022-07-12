@@ -99,8 +99,7 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38&gnomADe_r2.1.1_GRCh38'
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38&gnomADe_r2.1.1_GRCh38',confidence_levels='confirmed&probable&both RD and IF'
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='uk10k_GRCh38:ALSPAC&gnomADg_v3.1.2_GRCh38:gnomADg:ALL'
-
+ 
  --plugin G2P,file=G2P.csv
 =cut
 
