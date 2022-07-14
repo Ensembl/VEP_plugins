@@ -64,7 +64,7 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
                          all available VCF collections are included. 
-                         Available VCF collections: topmed_GRCh37, topmed_GRCh38, uk10k_GRCh37, uk10k_GRCh38, gnomADe_GRCh37, gnomADe_r2.1.1_GRCh38, gnomADg_GRCh37, gnomADg_v3.1.2_GRCh38.
+                         Available VCF collections: topmed, uk10k, gnomADe, gnomADe_r2.1.1, gnomADg, gnomADg_v3.1.2.
                          Separate multiple values with '&'.
                          VCF collections contain the following populations: 
                          topmed_GRCh37 & topmed_GRCh38 : TOPMed
@@ -97,8 +97,8 @@ limitations under the License.
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38&gnomADe_r2.1.1_GRCh38'
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed_GRCh38&gnomADe_r2.1.1_GRCh38',confidence_levels='confirmed&probable&both RD and IF'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1',confidence_levels='confirmed&probable&both RD and IF'
  
  --plugin G2P,file=G2P.csv
 =cut
@@ -135,7 +135,7 @@ my %DEFAULTS = (
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
-  af_from_vcf_keys => [qw(uk10k_GRCh37 uk10k_GRCh38 topmed_GRCh37 topmed_GRCh38 gnomADe_GRCh37 gnomADe_r2.1.1_GRCh38 gnomADg_GRCh37 gnomADg_v3.1.2_GRCh38)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -195,6 +195,7 @@ my $supported_confidence_levels = {
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
 
+# keys containing the assembly and the key to do a quick key and assembly lookup
 my $afvcf_keys = {
     "uk10k_GRCh37" => 1, 
     "uk10k_GRCh38" => 1, 
@@ -297,19 +298,25 @@ sub new {
   if ($params->{af_from_vcf}) {
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
+      # adding a die if assembly is not used and af_from_vcf keys option is used
       my $assembly =  $self->{config}->{assembly};
+      die "Assembly needs to be defined to use af_from_vcf option" if (!defined ($assembly));
       if ($params->{af_from_vcf_keys}) {
         foreach my $key (split(/[\;\&\|]/, $params->{af_from_vcf_keys})) {
-          if (!$afvcf_keys->{$key}){
+          my $key_assembly = $key."_".$assembly;
+          if (!$afvcf_keys->{$key_assembly}){
+            # to die if key is not supported, checking with the key and the assembly 
             die "$key is not a supported key. Supported keys are: ", join(',', keys %$afvcf_keys),".\n" ;
           }
           else {
-            push @vcf_collection_ids, $key
+            push @vcf_collection_ids, $key;
+            push @vcf_collection_ids, $key_assembly;
           }
         }
       } else {
         foreach my $key (@{$DEFAULTS{af_from_vcf_keys}}) {
           push @vcf_collection_ids, $key;
+          push @vcf_collection_ids, "$key\_$assembly";
         }
       }
 
@@ -723,6 +730,8 @@ sub gene_overlap_filtering {
               foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
                 $self->{ar}->{$gene_stable_id}->{$ar} = 1;
               }
+              # this is for the log data, G2P gene data is called in the write report 
+              # adding the new clinical review also added in line 1399 
               $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_value'} );
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
@@ -1291,7 +1300,7 @@ sub read_gene_data_from_file {
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
-        push @{$gene_data{$gene_symbol}->{'confidence_value'}}, $tmp{"confidence value flag"}  if ($tmp{"confidence value flag"});
+        push @{$gene_data{$gene_symbol}->{'confidence_value'}}, $tmp{"confidence value flag"}  if ($tmp{"confidence value flag"}); # adding the confidence value flag "Requires clinical review if defined"
       }
     }
     $fh->close;
