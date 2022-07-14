@@ -1413,6 +1413,7 @@ sub write_report {
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     my $hgnc_id = "HGNC:".@{$hgnc}[0] if (defined $hgnc);
     my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
+    # if statements to determine what should be printed based on $hgnc and $conf 
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n"  if (defined $hgnc_id && defined $conf);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n" if (!defined $hgnc && defined $conf);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n"  if (defined $hgnc_id && !defined $conf);
