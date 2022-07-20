@@ -1428,6 +1428,7 @@ sub write_report {
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n"  if (defined $hgnc_id && defined $conf);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n" if (!defined $hgnc_id && defined $conf);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n"  if (defined $hgnc_id && !defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n"  if (!defined $hgnc_id && !defined $conf);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
