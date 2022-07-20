@@ -67,10 +67,10 @@ limitations under the License.
                          Available VCF collections: topmed, uk10k, gnomADe, gnomADe_r2.1.1, gnomADg, gnomADg_v3.1.2.
                          Separate multiple values with '&'.
                          VCF collections contain the following populations: 
-                         topmed_GRCh37 & topmed_GRCh38 : TOPMed
-                         uk10k_GRCh37 & uk10k_GRCh38 : ALSPAC, TWINSUK
-                         gnomADe_GRCh37 & gnomADe_r2.1.1_GRCh38: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
-                         gnomADg_GRCh37 & gnomADg_v3.1.2_GRCh38: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                         topmed : TOPMed (available for GRCh37 and GRCh38).
+                         uk10k : ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
+                         gnomADe_GRCh37 & gnomADg - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37).
+                         gnomADe_r2.1.1 & gnomADg_v3.1.2 - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh38).
                          Need to use af_from_vcf paramter to use this option. 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
@@ -91,7 +91,7 @@ limitations under the License.
   html_report          : write all G2P complete genes and attributes to html file
 
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
-                         N/B: Do not set if filtering should be by HGNC_id. 
+                         Do not set if filtering by HGNC_id.
 
  Example:
 
@@ -207,6 +207,15 @@ my $afvcf_keys = {
     "gnomADg_v3.1.2_GRCh38" => 1
 };
 
+my $a_keys = {
+  "uk10k" => 1,
+  "topmed" => 1,
+  "gnomADe" => 1,
+  "gnomADe_r2.1.1" => 1,
+  "gnomADg" => 1,
+  "gnomADg_v3.1.2" => 1
+}
+
 sub new {
   my $class = shift;
 
@@ -306,7 +315,9 @@ sub new {
           my $key_assembly = $key."_".$assembly;
           if (!$afvcf_keys->{$key_assembly}){
             # to die if key is not supported, checking with the key and the assembly 
-            die "$key is not a supported key. Supported keys are: ", join(',', keys %$afvcf_keys),".\n" ;
+            die "$key is not a supported key. Supported keys and assembly are: ", join(',', keys %$a_keys), ".\n
+                 gnomADe and gnomADg is supported for assembly GRCh37 \n
+                 gnomADe_r2.1.1 and gnomADg_v3.1.2 is supported for assembly GRCh38 \n" ;
           }
           else {
             push @vcf_collection_ids, $key;
@@ -731,7 +742,7 @@ sub gene_overlap_filtering {
                 $self->{ar}->{$gene_stable_id}->{$ar} = 1;
               }
               # this is for the log data, G2P gene data is called in the write report 
-              # adding the new clinical review also added in line 1399 
+              # added in the write_report method also 
               $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_value'} );
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
@@ -753,7 +764,7 @@ sub gene_overlap_filtering {
           foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
             $self->{ar}->{$gene_stable_id}->{$ar} = 1;
           } 
-          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'},  $gene_data->{'confidence_value'});
+          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, undef, $gene_data->{'confidence_value'});
         } 
         $self->write_report('G2P_in_vcf', $gene_stable_id);
         $pass_gene_overlap_filter = 1;
@@ -1415,9 +1426,8 @@ sub write_report {
     my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
     # if statements to determine what should be printed based on $hgnc and $conf 
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n"  if (defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n" if (!defined $hgnc && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n" if (!defined $hgnc_id && defined $conf);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n"  if (defined $hgnc_id && !defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n"  if (!defined $hgnc_id && defined $conf);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
