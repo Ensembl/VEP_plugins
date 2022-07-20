@@ -214,7 +214,7 @@ my $a_keys = {
   "gnomADe_r2.1.1" => 1,
   "gnomADg" => 1,
   "gnomADg_v3.1.2" => 1
-}
+};
 
 sub new {
   my $class = shift;
