@@ -171,13 +171,17 @@ my $af_key_2_population_name = {
 my $allelic_requirements = {
   'biallelic' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
+  'biallelic_PAR' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_Y_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_het' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'mitochondrial' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_PAR' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
 };
 
 my $supported_confidence_levels = {
