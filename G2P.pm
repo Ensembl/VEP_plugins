@@ -93,6 +93,7 @@ limitations under the License.
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
                          Do not set if filtering by HGNC_id.
 
+ For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
