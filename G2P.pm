@@ -1309,7 +1309,7 @@ sub read_gene_data_from_file {
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
         my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
-        next if (!grep{$_ eq $confidence_value} @confidence_levels);
+        next if (!grep{$_ eq $confidence_category} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
