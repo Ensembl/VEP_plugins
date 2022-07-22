@@ -1308,13 +1308,13 @@ sub read_gene_data_from_file {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
-        my $confidence_value = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
+        my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
         next if (!grep{$_ eq $confidence_value} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
-        push @{$gene_data{$gene_symbol}->{"confidence_category"}}, $confidence_value;
+        push @{$gene_data{$gene_symbol}->{"confidence_category"}}, $confidence_category;
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
         push @{$gene_data{$gene_symbol}->{'confidence_value'}}, $tmp{"confidence value flag"}  if ($tmp{"confidence value flag"}); # adding the confidence value flag "Requires clinical review if defined"
       }
