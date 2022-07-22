@@ -93,6 +93,7 @@ limitations under the License.
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
                          Do not set if filtering by HGNC_id.
 
+ For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
@@ -173,13 +174,17 @@ my $af_key_2_population_name = {
 my $allelic_requirements = {
   'biallelic' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
+  'biallelic_PAR' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_Y_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_het' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'mitochondrial' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_PAR' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
 };
 
 my $supported_confidence_levels = {
@@ -399,7 +404,6 @@ sub new {
   $self->{config}->{failed} = 1;
   $self->{config}->{af} = 1;
   $self->{config}->{af_1kg} = 1;
-  $self->{config}->{af_esp} = 1;
   $self->{config}->{af_gnomad} = 1;
   $self->{config}->{sift} = 'b';
   $self->{config}->{polyphen} = 'b';
@@ -743,7 +747,7 @@ sub gene_overlap_filtering {
               }
               # this is for the log data, G2P gene data is called in the write report 
               # added in the write_report method also 
-              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_value'} );
+              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'} );
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
             $pass_gene_overlap_filter = 1;
@@ -764,7 +768,7 @@ sub gene_overlap_filtering {
           foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
             $self->{ar}->{$gene_stable_id}->{$ar} = 1;
           } 
-          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, undef, $gene_data->{'confidence_value'});
+          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, undef,  $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'});
         } 
         $self->write_report('G2P_in_vcf', $gene_stable_id);
         $pass_gene_overlap_filter = 1;
@@ -1304,12 +1308,13 @@ sub read_gene_data_from_file {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
-        my $confidence_value = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
-        next if (!grep{$_ eq $confidence_value} @confidence_levels);
+        my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
+        next if (!grep{$_ eq $confidence_category} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
+        push @{$gene_data{$gene_symbol}->{"confidence_category"}}, $confidence_category;
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
         push @{$gene_data{$gene_symbol}->{'confidence_value'}}, $tmp{"confidence value flag"}  if ($tmp{"confidence value flag"}); # adding the confidence value flag "Requires clinical review if defined"
       }
@@ -1416,19 +1421,20 @@ sub write_report {
     my ($vf_name) = @_;
     print $fh "$flag\t$vf_name\n";
   } elsif ($flag eq 'G2P_gene_data') {
-    my ($gene_id, $gene_data, $gene_xrefs, $hgnc, $con_flag) = @_;
+    my ($gene_id, $gene_data, $gene_xrefs, $hgnc, $con_category, $con_flag) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
     my %seen;
     $seen{$_} = 1 foreach @{$gene_xrefs};
     my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
-    my $hgnc_id = "HGNC:".@{$hgnc}[0] if (defined $hgnc);
+    my $hgnc_id = "HGNC:".@{$hgnc}[0].";" if (defined $hgnc);
     my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
+    my $category = "G2P confidence category:".@{$con_category}[0];
     # if statements to determine what should be printed based on $hgnc and $conf 
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n"  if (defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $conf), "\n" if (!defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n"  if (defined $hgnc_id && !defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n"  if (!defined $hgnc_id && !defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
