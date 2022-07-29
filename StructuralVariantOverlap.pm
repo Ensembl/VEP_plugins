@@ -258,7 +258,8 @@ sub get_data{
 
   ## adjust coords for tabix
   my $s  = $start - 1;
-  my $pos_string = sprintf("%s:%i-%i", $svf->seq_region_name, $s, $end);
+
+  my $pos_string = sprintf("%s:%i-%i", $svf->seq_region_name || $svf->{chr}, $s, $end);
 
   # check if chromosome has prefix 'chr'
   my $pos_string_chr = $pos_string;
