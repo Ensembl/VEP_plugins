@@ -90,7 +90,7 @@ use Compress::Zlib;
 use Digest::MD5 qw(md5_hex);
 use List::MoreUtils qw(first_index);
 
-use Bio::EnsEMBL::Utils::Exception qw(warning);
+use Bio::EnsEMBL::Utils::Exception qw(throw warning);
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
@@ -98,12 +98,10 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my @ALL_AAS = qw(A C D E F G H I K L M N P Q R S T V W Y);
 
-# dispatch table for frunctions to retrieve items
-my $retrieve_item = {
-  motif_elm => \&retrieve_motif_elm,
-  motif_lost => \&retrieve_motif_lost,
-  int_evidence => \&retrieve_int_evidence,
-  energy => \&retrieve_energy
+# dispatch table for frunctions that parse item values
+my $parse_item_value = {
+  motif => \&parse_motif,
+  tfbs  => \&parse_tfbs
 };
 
 sub new {
@@ -119,6 +117,8 @@ sub new {
 
   $self->{motif} = 1 if $param_hash->{motif} || $param_hash->{all};
   $self->{int} = 1 if $param_hash->{int} || $param_hash->{all};
+  $self->{mod} = 1 if $param_hash->{mod} || $param_hash->{all};
+  $self->{exp} = 1 if $param_hash->{exp} || $param_hash->{all};
 
   $self->{initial_pid} = $$;
 
@@ -137,70 +137,94 @@ sub get_header_info {
   $header{"mutfunc_motif"} = "Nonsynonymous mutations impact on linear motif from mutfunc db. ".
   "Output fields are seperated by comma and include: ".
   "elm - ELM accession of the linear motif, ".
-  "lost - '1' if the mutation causes the motif to be lost and '0' otherwise";
+  "lost - '1' if the mutation causes the motif to be lost and '0' otherwise" if defined $self->{motif};
 
   $header{"mutfunc_int"} = "Interaction interfaces destabilization analysis from mutfunc db. ".
   "Output fields are seperated by comma and include: ".
   "evidence - 'EXP' for experimental model and 'MDL' for homology models and 'MDD' for domain-domain homology models, ".
   "dG_wt - reference interface energy (kcal/mol), ".
   "dG_mt - mutated interface energy (kcal/mol), ".
-  "ddG - change in interface stability between mutated and reference structure (kcal/mol) mutations with ddG >= 2 kcal/mol can be considered deleterious, ".
+  "ddG - change in interface stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ".
   "dG_wt_sd - dG_wt standard deviation (kcal/mol), ".
   "dG_mt_sd - dG_mt standard deviation (kcal/mol), ".
-  "ddG_sd - ddG standard deviation (kcal/mol), ";
+  "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{int};
+
+  $header{"mutfunc_mod"} = "Protein structure destabilization analysis (homology models) from mutfunc db. ".
+  "Output fields are seperated by comma and include: ".
+  "dG_wt - reference structure energy (kcal/mol), ".
+  "dG_mt - mutated structure energy (kcal/mol), ".
+  "ddG - change in structure stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ".
+  "dG_wt_sd - dG_wt standard deviation (kcal/mol), ".
+  "dG_mt_sd - dG_mt standard deviation (kcal/mol), ".
+  "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{mod};
+
+  $header{"mutfunc_exp"} = "Protein structure destabilization analysis (experimental models) from mutfunc db. ".
+  "Output fields are seperated by comma and include: ".
+  "dG_wt - reference structure energy (kcal/mol), ".
+  "dG_mt - mutated structure energy (kcal/mol), ".
+  "ddG - change in structure stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ".
+  "dG_wt_sd - dG_wt standard deviation (kcal/mol), ".
+  "dG_mt_sd - dG_mt standard deviation (kcal/mol), ".
+  "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{exp};
    
   return \%header;
 }
 
 sub expand_matrix {
   my ($matrix) = @_;
-
   my $expanded_matrix = Compress::Zlib::memGunzip($matrix) or 
     throw("Failed to gunzip: $gzerrno");
 
   return $expanded_matrix;
 }
 
-sub retrieve_motif_elm {
-  my ($matrix, $pos, $aa) = @_;
+sub retrieve_item_value {
+  my ($matrix, $pos, $aa, $tot_packed_len) = @_;
 
-  my $packed_len = 24;
-  my $item_value = (unpack "A24", substr($matrix, $pos * $packed_len * 20 + $aa * $packed_len, $packed_len) );
+  my $item_value = (substr $matrix, $pos * $tot_packed_len * 20 + $aa * $tot_packed_len, $tot_packed_len );
 
-  return undef if $item_value eq "undefined";
   return $item_value;
 }
 
-sub retrieve_motif_lost {
-  my ($matrix, $pos, $aa) = @_;
+sub parse_motif {
+  my ($item_value) = @_;
 
-  my $packed_len = 2;
-  my $item_value = (unpack "v", substr($matrix, $pos * $packed_len * 20 + $aa * $packed_len, $packed_len) );
+  my ($elm, $lost) = unpack "A24v", $item_value;
 
-  return undef if $item_value == 0xFFFF;
-  return $item_value;
+  $elm = undef if $elm eq "undefined";
+  $lost = undef if $lost == 0xFFFF;
+
+  return $elm, $lost;
 }
 
-sub retrieve_int_evidence {
-  my ($matrix, $pos, $aa) = @_;
+sub parse_destabilizers {
+  my ($item_value, $item) = @_;
+  my @evidence_lval = qw(EXP MDD MDL);
+  my $evidence_val;
 
-  my @evidence_sval = qw(EXP MDD MDL);
+  # only int item type have evidence
+  if ($item eq "int"){
+    my $evidence = unpack "v", $item_value;
 
-  my $packed_len = 2;
-  my $item_value = (unpack "v", substr($matrix, $pos * $packed_len * 20 + $aa * $packed_len, $packed_len) );
+    # now omit the evidence part from item value
+    $item_value = substr $item_value, 2; 
 
-  return undef if $item_value == 0xFFFF;
-  return $evidence_sval[$item_value];
-}
+    # get the value of the evidence
+    $evidence = undef $evidence == 0xFFFF;
+    my $evidence_val = defined $evidence ? $evidence_lval[$evidence] : undef;
+  }
+  
+  # get the rest
+  my ($dG_wt, $ddG, $dG_wt_sd, $dG_mt_sd, $ddG_sd) = unpack "A8A8A8A8A8", $item_value;
 
-sub retrieve_energy {
-  my ($matrix, $pos, $aa) = @_;
+  $dG_wt = undef if $dG_wt eq "10000000";
+  $ddG = undef if $ddG eq "10000000";
+  $dG_wt_sd = undef if $dG_wt_sd eq "10000000";
+  $dG_mt_sd = undef if $dG_mt_sd eq "10000000";
+  $ddG_sd = undef if $ddG_sd eq "10000000";
 
-  my $packed_len = 8;
-  my $item_value = (unpack "A8", substr($matrix, $pos * $packed_len * 20 + $aa * $packed_len, $packed_len) );
-
-  return undef if $item_value eq "100000000";
-  return $item_value;
+  return $evidence_val, $dG_wt, $ddG, $dG_wt_sd, $dG_mt_sd, $ddG_sd if $item eq "int";
+  return $dG_wt, $ddG, $dG_wt_sd, $dG_mt_sd, $ddG_sd;
 }
 
 sub run {
@@ -244,31 +268,68 @@ sub run {
     # we need position of peptide in the ALL_AAS array
     my $peptide_number = (first_index { $_ eq $peptide } @ALL_AAS);
 
-    if ($item =~ /motif*/ && $self->{motif}) {
-      my $item_value = $retrieve_item->{$item}($expanded_matrix, $pos, $peptide_number);
+    # get matrix for each item value and parse them
+    if ($item eq "motif" && $self->{motif}) {
+      my $tot_packed_len = 26;
+      my $item_value = retrieve_item_value($expanded_matrix, $pos, $peptide_number, $tot_packed_len);
 
       if ($item_value){
-        unless (defined $result->{mutfunc_motif}) {
-          $result->{mutfunc_motif} = $item_value;
-        }
-        else{
-          $result->{mutfunc_motif} = $result->{mutfunc_motif}.",".$item_value;
+        my ($elm, $lost) = $parse_item_value->{$item}($item_value);
+
+        $result->{mutfunc_motif} = $elm if defined $elm;
+        $result->{mutfunc_motif} .= defined $lost ? ",".$lost : ",";
+
+        # delete if there is no defined value
+        delete $result->{mutfunc_motif} unless $result->{mutfunc_motif} =~ /[^,]/;
+      }
+    }
+    elsif ($item eq "int" && $self->{int}) {
+      my $tot_packed_len = 42;
+      my $item_value = retrieve_item_value($expanded_matrix, $pos, $peptide_number, $tot_packed_len);
+
+      if ($item_value){
+        my ($evidence, $dG_wt, $ddG, $dG_wt_sd, $dG_mt_sd, $ddG_sd) = parse_destabilizers($item_value, $item);
+
+        # dG_mt can be calculated from dG_wt and ddG
+        my $dG_mt = (defined $dG_wt && defined $ddG) ? $dG_wt + $ddG : undef;
+
+        $result->{mutfunc_int} = $evidence if defined $evidence;
+        $result->{mutfunc_int} .= defined $dG_wt ? ",".$dG_wt : ",";
+        $result->{mutfunc_int} .= defined $dG_mt ? ",".$dG_mt : ",";
+        $result->{mutfunc_int} .= defined $ddG ? ",".$ddG : ",";
+        $result->{mutfunc_int} .= defined $dG_wt_sd ? ",".$dG_wt_sd : ",";
+        $result->{mutfunc_int} .= defined $dG_mt_sd ? ",".$dG_mt_sd : ",";
+        $result->{mutfunc_int} .= defined $ddG_sd ? ",".$ddG_sd : ",";
+
+        # delete if there is no defined value
+        delete $result->{mutfunc_int} unless $result->{mutfunc_int} =~ /[^,]/;
+      }
+    }
+    elsif ($item eq "mod" || $item eq "exp") {
+      if ($self->{$item}) {
+        my $tot_packed_len = 40;
+        my $item_value = retrieve_item_value($expanded_matrix, $pos, $peptide_number, $tot_packed_len);
+
+        if ($item_value){
+          my ($dG_wt, $ddG, $dG_wt_sd, $dG_mt_sd, $ddG_sd) = parse_destabilizers($item_value, $item);;
+
+          # dG_mt can be calculated from dG_wt and ddG
+          my $dG_mt = (defined $dG_wt && defined $ddG) ? $dG_wt + $ddG : undef;
+
+          my $hash_key = "mutfunc_" . $item;
+          $result->{$hash_key} = $dG_wt if defined $dG_wt;
+          $result->{$hash_key} .= defined $dG_mt ? ",".$dG_mt : ",";
+          $result->{$hash_key} .= defined $ddG ? ",".$ddG : ",";
+          $result->{$hash_key} .= defined $dG_wt_sd ? ",".$dG_wt_sd : ",";
+          $result->{$hash_key} .= defined $dG_mt_sd ? ",".$dG_mt_sd : ",";
+          $result->{$hash_key} .= defined $ddG_sd ? ",".$ddG_sd : ",";
+
+          # delete if there is no defined value
+          delete $result->{$hash_key} unless $result->{$hash_key} =~ /[^,]/;
         }
       }
     }
-    elsif ($item =~ /int*/ && $self->{int}) {
-      my $item_retrieval = $item eq "int_evidence" ? $item : "energy";
-      my $item_value = $retrieve_item->{$item_retrieval}($expanded_matrix, $pos, $peptide_number);
-
-      if ($item_value){
-        unless (defined $result->{mutfunc_int}) {
-          $result->{mutfunc_int} = $item_value;
-        }
-        else{
-          $result->{mutfunc_int} = $result->{mutfunc_int}.",".$item_value;
-        }
-      }
-    }
+    
   }
 
   return $result;
