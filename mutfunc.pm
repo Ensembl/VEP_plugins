@@ -29,7 +29,7 @@ limitations under the License.
 
  mv mutfunc.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin mutfunc,motif=1,db=/FULL_PATH_TO/mutfunc_human_data.db
- ./vep -i variations.vcf --plugin mutfunc,all=1,file=/FULL_PATH_TO/tfbs_tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
+ ./vep -i variations.vcf --plugin mutfunc,all=1,file=/FULL_PATH_TO/mutfunc_tfbs.tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
 
 =head1 DESCRIPTION
 
@@ -49,10 +49,10 @@ limitations under the License.
 
   a) sort and zip
   sed -i -e '1s/^/#/‘ tfbs.tab
-  grep -v ^"#" tfbs.tab | sort -k1,1 -k2,2n | bgzip > sorted_tfbs.tab.gz
+  grep -v ^"#" tfbs.tab | sort -k1,1 -k2,2n | bgzip > mutfunc_tfbs.tab.gz
   
   b) create tabix indexed file -
-  tabix -s 1 -b 2 -e 2 -f sorted_tfbs.tab.gz
+  tabix -s 1 -b 2 -e 2 -f mutfunc_tfbs.tab.gz
 
  3) As you have already noticed, tabix utility must be installed in your path to use this plugin.
  
