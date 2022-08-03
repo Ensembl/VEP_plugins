@@ -28,56 +28,44 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv mutfunc.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,mapping_file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz
- ./vep -i variations.vcf --plugin IntAct,mutation_file=/FULL_PATH_TO_IntAct_FILE/mutations.tsv,mapping_file=/FULL_PATH_TO_IntAct_FILE/mutation_gc_map.txt.gz,minimal=1
+ ./vep -i variations.vcf --plugin mutfunc,motif=1,db=/FULL_PATH_TO/mutfunc_human_data.db
+ ./vep -i variations.vcf --plugin mutfunc,all=1,file=/FULL_PATH_TO/tfbs_tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves molecular interaction data for variants as reprted by IntAct database.
+ A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction. regulatory region etc.
  
  Please cite the IntAct publication alongside the VEP if you use this resource:
- https://pubmed.ncbi.nlm.nih.gov/24234451/
+ https://www.embopress.org/doi/full/10.15252/msb.20188430
  
  Pre-requisites:
  
- 1) IntAct files can be downloaded from -
- http://ftp.ebi.ac.uk/pub/databases/intact/current/various
- 
- 2) The genomic location mapped file needs to be tabix indexed. You can 
- do this by following commands -
+ 1) mutfunc tfbs file can be downloaded from -
+ http://ftp.ebi.ac.uk/pub/databases/mutfunc/mutfunc_v2/ 
 
-  a) filter, sort and then zip
-  grep -v -e '^$' -e '^[#\-]' mutation_gc_map.txt | sed '1s/.*/#&/' | sort -k1,1 -k2,2n -k3,3n | bgzip > mutation_gc_map.txt.gz
+ mutfunc db can be downloaded from - ???
+ 
+ 2) The tfbs file needs to be tabix indexed. You can do this by following commands -
+
+  a) sort and zip
+  sed -i -e '1s/^/#/‘ tfbs.tab
+  grep -v ^"#" tfbs.tab | sort -k1,1 -k2,2n | bgzip > sorted_tfbs.tab.gz
   
   b) create tabix indexed file -
-  tabix -s 1 -b 2 -e 3 -f mutation_gc_map.txt.gz
+  tabix -s 1 -b 2 -e 2 -f sorted_tfbs.tab.gz
 
  3) As you have already noticed, tabix utility must be installed in your path to use this plugin.
  
  Options are passed to the plugin as key=value pairs:
 
- mapping_file			: (mandatory) Path to tabix-indexed genomic location mapped file
- mutation_file			: (mandatory) Path to IntAct data file
- 
- By default the output will always contain feature_type and interaction_ac from the IntAct data file. You can also add more fields using the following options -
- feature_ac			: Set value to 1 to include Feature AC in the output
- feature_short_label		: Set value to 1 to include Feature short label in the output
- feature_annotation		: Set value to 1 to include Feature annotation in the output
- ap_ac				: Set value to 1 to include Affected protein AC in the output
- interaction_participants	: Set value to 1 to include Interaction participants in the output
- pmid				: Set value to 1 to include PubMedID in the output
-
- There are also two other options for customizing the output - 
- all                            : Set value to 1 to include all the fields
- minimal                        : Set value to 1 to overwrite default behavior and include only interaction_ac 
-				  in the output by default
-
- See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
- 
- Note that, interaction accession can be used to link to full details on the interaction website. For example, 
- where the VEP output reports an interaction_ac of EBI-12501485, the URL would be : 
-
-   https://www.ebi.ac.uk/intact/details/interaction/EBI-12501485
+ file		: Path to tabix-indexed tfbs data file. Mandatory if 'tfbs' or 'all' is selected
+ db			: Path to SQLite database containing data for other analysis. Mandatory 'motif', 'int', 'mod', 'exp' or 'all' is selected
+ motif  : Select this option to have mutfunc motif analysis in the output
+ int    : Select this option to have mutfunc protein interection analysis in the output
+ mod    : Select this option to have mutfunc protein structure analysis in the output
+ exp    : Select this option to have mutfunc protein structure (experimental) analysis in the output
+ tfbs   : Select this option to have mutfunc transcription factor binding site analysis in the output
+ all    : Select this option to have all of the above analysis in the output
 
 =cut
 
