@@ -30,6 +30,7 @@ limitations under the License.
  mv mutfunc.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin mutfunc,motif=1,db=/FULL_PATH_TO/mutfunc_human_data.db
  ./vep -i variations.vcf --plugin mutfunc,all=1,file=/FULL_PATH_TO/mutfunc_tfbs.tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
+ ./vep -i variations.vcf --plugin mutfunc,all=1,extended=1,file=/FULL_PATH_TO/mutfunc_tfbs.tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
 
 =head1 DESCRIPTION
 
@@ -58,14 +59,15 @@ limitations under the License.
  
  Options are passed to the plugin as key=value pairs:
 
- file		: Path to tabix-indexed tfbs data file. Mandatory if 'tfbs' or 'all' is selected
- db			: Path to SQLite database containing data for other analysis. Mandatory 'motif', 'int', 'mod', 'exp' or 'all' is selected
- motif  : Select this option to have mutfunc motif analysis in the output
- int    : Select this option to have mutfunc protein interection analysis in the output
- mod    : Select this option to have mutfunc protein structure analysis in the output
- exp    : Select this option to have mutfunc protein structure (experimental) analysis in the output
- tfbs   : Select this option to have mutfunc transcription factor binding site analysis in the output
- all    : Select this option to have all of the above analysis in the output
+ file		  : Path to tabix-indexed tfbs data file. Mandatory if 'tfbs' or 'all' is selected
+ db			  : Path to SQLite database containing data for other analysis. Mandatory 'motif', 'int', 'mod', 'exp' or 'all' is selected
+ motif    : Select this option to have mutfunc motif analysis in the output
+ int      : Select this option to have mutfunc protein interection analysis in the output
+ mod      : Select this option to have mutfunc protein structure analysis in the output
+ exp      : Select this option to have mutfunc protein structure (experimental) analysis in the output
+ tfbs     : Select this option to have mutfunc transcription factor binding site analysis in the output
+ all      : Select this option to have all of the above analysis in the output
+ extended : By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.
 
 =cut
 
@@ -127,6 +129,8 @@ sub new {
   );
   $self->{db} = $param_hash->{db};
 
+  $self->{extended} = 1 if $param_hash->{extended};
+
   if( ($self->{config}->{output_format} eq "json") || $self->{config}->{rest}){
     $self->{output_json} = 1;
   }
@@ -145,51 +149,48 @@ sub get_header_info {
   
   my %header;
 
-  $header{"mutfunc_motif"} = "Nonsynonymous mutations impact on linear motif from mutfunc db. ".
-  "Output fields are separated by ',' (or '&' for vcf format) and include: ".
-  "elm - ELM accession of the linear motif, ".
-  "lost - '1' if the mutation causes the motif to be lost and '0' otherwise" if defined $self->{motif};
+  if (defined $self->{motif}){
+    $header{mutfunc_motif} = "Nonsynonymous mutations impact on linear motif from mutfunc db. Output field(s) include: ";
+    if (defined $self->{extended}){
+      $header{mutfunc_motif} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
+    }
+    $header{mutfunc_motif} .= "elm - ELM accession of the linear motif, " if defined $self->{extended};
+    $header{mutfunc_motif} .= "lost - '1' if the mutation causes the motif to be lost and '0' otherwise";
+  }
 
-  $header{"mutfunc_int"} = "Interaction interfaces destabilization analysis from mutfunc db. ".
-  "Output fields are separated by ',' (or '&' for vcf format) and include: ".
-  "evidence - 'EXP' for experimental model and 'MDL' for homology models and 'MDD' for domain-domain homology models, ".
-  "dG_wt - reference interface energy (kcal/mol), ".
-  "dG_mt - mutated interface energy (kcal/mol), ".
-  "ddG - change in interface stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ".
-  "dG_wt_sd - dG_wt standard deviation (kcal/mol), ".
-  "dG_mt_sd - dG_mt standard deviation (kcal/mol), ".
-  "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{int};
+  foreach (qw(int mod exp)){
+    if (defined $self->{$_}) {
+      my $key = "mutfunc_" . $_;
+      $header{$key} = "Interaction interfaces destabilization analysis from mutfunc db. Output field(s) include: ";
+      if (defined $self->{extended}){
+        $header{$key} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
+      }
+      $header{$key} .= "evidence - 'EXP' for experimental model and 'MDL' for homology models and 'MDD' for domain-domain homology models, " if ($_ eq "int" && (defined $self->{extended}));
+      $header{$key} .= "dG_wt - reference interface energy (kcal/mol), " if defined $self->{extended};
+      $header{$key} .= "dG_mt - mutated interface energy (kcal/mol), " if defined $self->{extended};
+      $header{$key} .= "ddG - change in interface stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ";
+      $header{$key} .= "dG_wt_sd - dG_wt standard deviation (kcal/mol), " if defined $self->{extended};
+      $header{$key} .= "dG_mt_sd - dG_mt standard deviation (kcal/mol), " if defined $self->{extended};
+      $header{$key} .= "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{extended};
+    }
+  }
 
-  $header{"mutfunc_mod"} = "Protein structure destabilization analysis (homology models) from mutfunc db. ".
-  "Output fields are separated by ',' (or '&' for vcf format) and include: ".
-  "dG_wt - reference structure energy (kcal/mol), ".
-  "dG_mt - mutated structure energy (kcal/mol), ".
-  "ddG - change in structure stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ".
-  "dG_wt_sd - dG_wt standard deviation (kcal/mol), ".
-  "dG_mt_sd - dG_mt standard deviation (kcal/mol), ".
-  "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{mod};
+  if (defined $self->{tfbs}) {
+    $header{mutfunc_tfbs} = "Transcription binding sites disruption analysis from mutfunc db. Output field(s) include: ";
+    if (defined $self->{extended}){
+      $header{mutfunc_tfbs} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
+    }
+    $header{mutfunc_tfbs} .= "impact -  1 if mutation is expected to disrupt the TFBS and 0 otherwise, ";
+    $header{mutfunc_tfbs} .= "tf - transcription factor predicted to bind this binding site, " if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "downstream - gene downstream from this TFBS, " if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "g_strand - strand containing the downstream gene, " if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "s_strand - strand containing binding site, " if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "wt_score - binding score of the transcription factor to the wildtype site, " if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "mt_score - binding score of the transcription factor to the mutated site" if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "ic_diff - information content difference between the wildtype and mutant bases" if defined $self->{extended};
+    $header{mutfunc_tfbs} .= "cells - cell lines or tissues with evidence of chip-seq (human only) multiple cells are separated by 'and'" if defined $self->{extended};
+  }
 
-  $header{"mutfunc_exp"} = "Protein structure destabilization analysis (experimental models) from mutfunc db. ".
-  "Output fields are separated by ',' (or '&' for vcf format) and include: ".
-  "dG_wt - reference structure energy (kcal/mol), ".
-  "dG_mt - mutated structure energy (kcal/mol), ".
-  "ddG - change in structure stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ".
-  "dG_wt_sd - dG_wt standard deviation (kcal/mol), ".
-  "dG_mt_sd - dG_mt standard deviation (kcal/mol), ".
-  "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{exp};
-
-  $header{"mutfunc_tfbs"} = "Transcription binding sites disruption analysis from mutfunc db. ".
-  "Output fields are separated by ',' (or '&' for vcf format) and include: ".
-  "impact -  1 if mutation is expected to disrupt the TFBS and 0 otherwise, ".
-  "tf - transcription factor predicted to bind this binding site, ".
-  "downstream - gene downstream from this TFBS, ".
-  "g_strand - strand containing the downstream gene, ".
-  "s_strand - strand containing binding site, ".
-  "wt_score - binding score of the transcription factor to the wildtype site, ".
-  "mt_score - binding score of the transcription factor to the mutated site".
-  "ic_diff - information content difference between the wildtype and mutant bases".
-  "cells - cell lines or tissues with evidence of chip-seq (human only) multiple cells are separated by 'and'" if defined $self->{tfbs};
-   
   return \%header;
 }
 
@@ -256,12 +257,23 @@ sub format_output{
   my $result = {};
 
   if ($self->{output_json}){
-    my %hash = map { $_ => $data->{$_} } @{ $field_order->{$item} };
+    my %hash;
+    if( $self->{extended}){
+      %hash = map { $_ => $data->{$_} } @{ $field_order->{$item} };
+    }
+    else{
+      %hash = map { $_ => $data->{$_} } keys %$data;
+    }
     $result->{$item} = \%hash;
   }
   else{
     my $key = "mutfunc_" . $item;
-    $result->{$key} = join(",", map { $data->{$_} } @{ $field_order->{$item} });
+    if( $self->{extended}){
+      $result->{$key} = join(",", map { $data->{$_} } @{ $field_order->{$item} });
+    }
+    else {
+      $result->{$key} = join(",", map { $data->{$_} } keys %$data );
+    }
   }
 
   return $result;
@@ -298,11 +310,19 @@ sub process_from_file {
 
     if (@$matches){
       my $result = $_->{result}; 
-      
-      $result->{cells} =~ s/,/and/g;
+
+      my $data = {};
+
+      if ($self->{extended}){
+        $result->{cells} =~ s/,/and/g;
+        $data = $result;
+      }
+      else {
+        $data->{impact} = $result->{impact};
+      }
 
       # we are not expecting multiple results so no code for joiing multiple results
-      $result_from_file = $self->format_output($result, "tfbs");
+      $result_from_file = $self->format_output($data, "tfbs");
     }
   }
 
@@ -363,15 +383,17 @@ sub process_from_db {
         my ($elm, $lost) = parse_motif($item_value);
 
         # format the output
-        my $formatted_output = {};
         if(defined $elm || defined $lost){
-          $formatted_output = $self->format_output({
+          my $data = $self->{extended} ? {
             elm   => $elm,
             lost  => $lost
-          }, $item);
-        }
+          } : {
+            lost  => $lost
+          };
 
-        @$result_from_db{ keys %$formatted_output } = values %$formatted_output;
+          my $formatted_output = $self->format_output($data, $item);
+          @$result_from_db{ keys %$formatted_output } = values %$formatted_output;
+        }
       }
     }
     # int and mod and exp
@@ -395,23 +417,23 @@ sub process_from_db {
           my $dG_mt = (defined $dG_wt && defined $ddG) ? $dG_wt + $ddG : undef;
 
           # format the output
-          my $formatted_output = {};
           if(defined $evidence || defined $dG_wt || defined $ddG || defined $dG_wt_sd || defined $dG_mt_sd || defined $ddG_sd){
-            my $data = {
+            my $data = $self->{extended} ? {
               dG_wt   => $dG_wt,
               dG_mt  => $dG_mt,
               ddG   => $ddG,
               dG_wt_sd  => $dG_wt_sd,
               dG_mt_sd   => $dG_mt_sd,
               ddG_sd  => $ddG_sd
+            } : {
+              ddG   => $ddG
             };
-
-            $data->{evidence} = $evidence if (defined $evidence && $item eq "int");
-
-            $formatted_output = $self->format_output($data, $item);
+            
+            $data->{evidence} = $evidence if (defined $evidence && $item eq "int" && $self->{extended});  
+            
+            my $formatted_output = $self->format_output($data, $item);
+            @$result_from_db{ keys %$formatted_output } = values %$formatted_output;
           }
-
-          @$result_from_db{ keys %$formatted_output } = values %$formatted_output;
         }
       }
     }
