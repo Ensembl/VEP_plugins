@@ -91,9 +91,9 @@ my @ALL_AAS = qw(A C D E F G H I K L M N P Q R S T V W Y);
 
 my $field_order = {
   motif => ["elm", "lost"],
-  int   => ["evidence", "dG_wt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
-  mod   => ["dG_wt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
-  exp   => ["dG_wt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
+  int   => ["evidence", "dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
+  mod   => ["dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
+  exp   => ["dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
   tfbs  => ["impact", "tf", "downstream", "g_strand", "s_strand", "wt_score", "mt_score", "ic_diff", "cells"]
 };
 
@@ -302,9 +302,9 @@ sub process_from_file {
         strand => $vf->strand
       },
       {
-       ref  => $_->{ref},
-       alts => [$_->{alt}],
-       pos  => $_->{start},
+        ref  => $_->{ref},
+        alts => [$_->{alt}],
+        pos  => $_->{start},
       }
     );
 
