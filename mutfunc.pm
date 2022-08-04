@@ -44,7 +44,8 @@ limitations under the License.
  1) mutfunc tfbs file can be downloaded from -
  http://ftp.ebi.ac.uk/pub/databases/mutfunc/mutfunc_v2/ 
 
- mutfunc db can be downloaded from - ???
+ mutfunc db can be downloaded from - 
+ http://ftp.ensembl.org/pub/current_variation/variation/mutfunc/
  
  2) The tfbs file needs to be tabix indexed. You can do this by following commands -
 
