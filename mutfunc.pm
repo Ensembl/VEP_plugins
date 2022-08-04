@@ -458,6 +458,7 @@ sub run {
     @$result{ keys %$hash_from_db } = values %$hash_from_db;
   }
 
+  return {} unless %$result;
   return $self->{output_json} ? {"mutfunc" => $result} : $result;
 }
 
