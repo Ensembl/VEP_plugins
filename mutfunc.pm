@@ -41,22 +41,8 @@ limitations under the License.
  
  Pre-requisites:
  
- 1) mutfunc tfbs file can be downloaded from -
- http://ftp.ebi.ac.uk/pub/databases/mutfunc/mutfunc_v2/ 
-
- mutfunc db can be downloaded from - 
+ 1) The data file. mutfunc SQLite db can be downloaded from - 
  http://ftp.ensembl.org/pub/current_variation/variation/mutfunc/
- 
- 2) The tfbs file needs to be tabix indexed. You can do this by following commands -
-
-  a) sort and zip
-  sed -i -e '1s/^/#/‘ tfbs.tab
-  grep -v ^"#" tfbs.tab | sort -k1,1 -k2,2n | bgzip > mutfunc_tfbs.tab.gz
-  
-  b) create tabix indexed file -
-  tabix -s 1 -b 2 -e 2 -f mutfunc_tfbs.tab.gz
-
- 3) As you have already noticed, tabix utility must be installed in your path to use this plugin.
  
  Options are passed to the plugin as key=value pairs:
 
@@ -66,7 +52,6 @@ limitations under the License.
  int      : Select this option to have mutfunc protein interection analysis in the output
  mod      : Select this option to have mutfunc protein structure analysis in the output
  exp      : Select this option to have mutfunc protein structure (experimental) analysis in the output
- tfbs     : Select this option to have mutfunc transcription factor binding site analysis in the output
  all      : Select this option to have all of the above analysis in the output
  extended : By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.
 
@@ -74,7 +59,6 @@ limitations under the License.
 
 package mutfunc;
 
-use Data::Dumper;
 use strict;
 use warnings;
 use DBI;
@@ -84,9 +68,9 @@ use List::MoreUtils qw(first_index);
 
 use Bio::EnsEMBL::Utils::Exception qw(throw warning);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
-use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
+use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my @ALL_AAS = qw(A C D E F G H I K L M N P Q R S T V W Y);
 
@@ -94,26 +78,15 @@ my $field_order = {
   motif => ["elm", "lost"],
   int   => ["evidence", "dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
   mod   => ["dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
-  exp   => ["dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"],
-  tfbs  => ["impact", "tf", "downstream", "g_strand", "s_strand", "wt_score", "mt_score", "ic_diff", "cells"]
+  exp   => ["dG_wt", "dG_mt", "ddG", "dG_wt_sd", "dG_mt_sd", "ddG_sd"]
 };
 
 sub new {
   my $class = shift;
   
   my $self = $class->SUPER::new(@_);
-
-  $self->expand_left(0);
-  $self->expand_right(0);
   
   my $param_hash = $self->params_to_hash();
-
-  $self->{tfbs} = 1 if $param_hash->{tfbs} || $param_hash->{all};
-
-  die "ERROR: tfbs file not specified but tfbs output is enabled\n" if ( (defined $self->{tfbs}) && !(defined $param_hash->{file}) );
-  $self->{file} = $param_hash->{file};
-
-  $self->add_file($self->{file}) if defined $self->{file};
 
   $self->{motif} = 1 if $param_hash->{motif} || $param_hash->{all};
   $self->{int} = 1 if $param_hash->{int} || $param_hash->{all};
@@ -142,7 +115,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Transcript', 'Intergenic'];
+  return ['Transcript'];
 }
 
 sub get_header_info {
@@ -174,22 +147,6 @@ sub get_header_info {
       $header{$key} .= "dG_mt_sd - dG_mt standard deviation (kcal/mol), " if defined $self->{extended};
       $header{$key} .= "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{extended};
     }
-  }
-
-  if (defined $self->{tfbs}) {
-    $header{mutfunc_tfbs} = "Transcription binding sites disruption analysis from mutfunc db. Output field(s) include: ";
-    if (defined $self->{extended}){
-      $header{mutfunc_tfbs} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
-    }
-    $header{mutfunc_tfbs} .= "impact -  1 if mutation is expected to disrupt the TFBS and 0 otherwise, ";
-    $header{mutfunc_tfbs} .= "tf - transcription factor predicted to bind this binding site, " if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "downstream - gene downstream from this TFBS, " if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "g_strand - strand containing the downstream gene, " if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "s_strand - strand containing binding site, " if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "wt_score - binding score of the transcription factor to the wildtype site, " if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "mt_score - binding score of the transcription factor to the mutated site" if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "ic_diff - information content difference between the wildtype and mutant bases" if defined $self->{extended};
-    $header{mutfunc_tfbs} .= "cells - cell lines or tissues with evidence of chip-seq (human only) multiple cells are separated by 'and'" if defined $self->{extended};
   }
 
   return \%header;
@@ -280,61 +237,10 @@ sub format_output{
   return $result;
 }
 
-sub process_from_file {
-  my ($self, $tva) = @_;
-
-  my $vf = $tva->variation_feature;
-  
-  # get allele
-  my $allele = $tva->variation_feature_seq;
-  return {} unless $allele =~ /^[ACGT-]+$/;
-
-  # get matched line from the file
-  my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
-
-  # parse data and generate output
-  my $result_from_file = {};
-  foreach (@data) {
-    my $matches = get_matched_variant_alleles(
-      {
-        ref    => $vf->ref_allele_string,
-        alts   => [$allele],
-        pos    => $vf->{start},
-        strand => $vf->strand
-      },
-      {
-        ref  => $_->{ref},
-        alts => [$_->{alt}],
-        pos  => $_->{start},
-      }
-    );
-
-    if (@$matches){
-      my $result = $_->{result}; 
-
-      my $data = {};
-
-      if ($self->{extended}){
-        $result->{cells} =~ s/,/and/g;
-        $data = $result;
-      }
-      else {
-        $data->{impact} = $result->{impact};
-      }
-
-      # we are not expecting multiple results so no code for joiing multiple results
-      $result_from_file = $self->format_output($data, "tfbs");
-    }
-  }
-
-  return $result_from_file;
-}
-
 sub process_from_db {
   my ($self, $tva) = @_;
 
   # get the trascript related to the variant
-  return {} unless $tva->can('transcript');
   my $tr = $tva->transcript;
 
   # get the translation
@@ -448,54 +354,11 @@ sub run {
   
   my $result = {};
 
-  # parse data file and generate result for tfbs
-  if($self->{tfbs}){
-    my $hash_from_file = $self->process_from_file($tva);
-    @$result{ keys %$hash_from_file } = values %$hash_from_file;
-  }
-  # connect to db and generate result from matrix for the other type of analysis
-  if($self->{motif} || $self->{int} || $self->{mod} || $self->{exp}){
-    my $hash_from_db = $self->process_from_db($tva);
-    @$result{ keys %$hash_from_db } = values %$hash_from_db;
-  }
+  my $hash_from_db = $self->process_from_db($tva);
+  @$result{ keys %$hash_from_db } = values %$hash_from_db;
 
   return {} unless %$result;
   return $self->{output_json} ? {"mutfunc" => $result} : $result;
-}
-
-sub parse_data {
-  my ($self, $line) = @_;
-  my ($c, $s, $ref, $alt, $del, undef, undef, undef, undef, undef, 
-    $tf, $downstream, undef, undef, $g_strand, $s_strand, 
-    $wt_score, $mt_score, undef, $ic_diff, undef, 
-    $cells) = split /\t/, $line;
-  
-  return {
-    chr => $c,
-    start => $s,
-    end => $s,
-    ref => $ref,
-    alt => $alt,
-    result => {
-      impact => $del, 
-      tf => $tf, 
-      downstream => $downstream, 
-      g_strand => $g_strand,
-      s_strand => $s_strand, 
-      wt_score => $wt_score,
-      mt_score => $mt_score,
-      ic_diff => $ic_diff,
-      cells => $cells
-    }
-  };
-}
-
-sub get_start { 
-  return $_[1]->{start};
-}
-
-sub get_end {
-  return $_[1]->{end};
 }
 
 1;
