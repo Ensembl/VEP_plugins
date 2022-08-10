@@ -28,7 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv REVEL.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin REVEL,/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh37 --plugin REVEL,/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
 
 =head1 DESCRIPTION
 
@@ -45,7 +46,7 @@ limitations under the License.
  - REVEL file version Dec 2017, which has 7 columns and only GRCh37 coordinates
  - REVEL file version Feb 2020, which has 8 columns with GRCh37 and GRCh38 coordinates
  - REVEL file version May 2021, which has 9 columns with GRCh37 and GRCh38 coordinates and a new column with transcript ids
-
+ 
  These files can be tabix-processed by:
  Unzip revel-v1.3_all_chromosomes.zip
  cat revel_with_transcript_ids | tr "," "\t" > tabbed_revel.tsv
@@ -61,7 +62,8 @@ limitations under the License.
  tabix -f -s 1 -b 3 -e 3 new_tabbed_revel_grch38.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
-
+ 
+ The --assembly flag is required to use this plugin.
 =cut
 
 package REVEL;
@@ -105,6 +107,7 @@ sub new {
   $self->{revel_file_columns} = $column_count;
 
   my $assembly = $self->{config}->{assembly};
+  die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
 
   my %assembly_to_hdr = ('GRCh37' => 'hg19_pos',
                          'GRCh38' => 'grch38_pos');
@@ -131,7 +134,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { REVEL => 'Rare Exome Variant Ensemble Learner '};
+  return { REVEL => 'Rare Exome Variant Ensemble Learner'};
 }
 
 sub run {

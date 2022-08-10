@@ -1,14 +1,14 @@
 # Contribution Guide
 
-We welcome contributions from outside the Ensembl team and our full contribution guidelines are available [here](https://github.com/Ensembl/ensembl/blob/master/CONTRIBUTING.md).
+We welcome contributions from outside the Ensembl team and our full contribution guidelines are available [here](https://github.com/Ensembl/ensembl/blob/main/CONTRIBUTING.md).
 
-Please submit new plugins and updates as pull requests against the MASTER branch unless otherwise discussed.
+Please submit new plugins and updates as pull requests against the MAIN branch unless otherwise discussed.
 
 ## Plugin Development
 
-To make development of plugins easier, we suggest you use the [Bio::EnsEMBL::Variation::Utils::BaseVepPlugin](https://github.com/Ensembl/ensembl-variation/blob/master/modules/Bio/EnsEMBL/Variation/Utils/BaseVepPlugin.pm) module as your base class, as this provides default implementations of all the necessary methods which can be overridden as required.
+To make development of plugins easier, we suggest you use the [Bio::EnsEMBL::Variation::Utils::BaseVepPlugin](https://github.com/Ensembl/ensembl-variation/blob/main/modules/Bio/EnsEMBL/Variation/Utils/BaseVepPlugin.pm) module as your base class, as this provides default implementations of all the necessary methods which can be overridden as required.
 The documentation in this module provides details of all required methods and a simple example of a plugin implementation. 
-Also see [Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin](https://github.com/Ensembl/ensembl-variation/blob/master/modules/Bio/EnsEMBL/Variation/Utils/BaseVepTabixPlugin.pm) for reading tabix-indexed files.
+Also see [Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin](https://github.com/Ensembl/ensembl-variation/blob/main/modules/Bio/EnsEMBL/Variation/Utils/BaseVepTabixPlugin.pm) for reading tabix-indexed files.
 
 Ensembl VEP provides multiple output formats; it is worth testing plugins with each format for ease of parsing.
 

@@ -92,11 +92,12 @@ sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
+  my $config = $self->{config};
 
   $self->expand_left(0);
   $self->expand_right(0);
 
-  my $assembly = $self->{config}->{assembly};
+  my $assembly = $config->{assembly} || $config->{human_assembly};
 
   die "\nAssembly is not GRCh38, EVE only works with GRCh38. \n" if ($assembly ne "GRCh38");
 
