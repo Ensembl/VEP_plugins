@@ -735,9 +735,9 @@ sub gene_overlap_filtering {
   if (! defined $pass_gene_overlap_filter && ! defined $self->{user_params}->{filter_by_gene_symbol}) {
     my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
     my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
-    my $gene_id = defined($hgnc_id) ? $hgnc_id : 0; 
+    $hgnc_id = defined($hgnc_id) ? $hgnc_id : 0; 
     foreach my $id (keys $self->{hgnc_mapping}) {
-      if ( $gene_id == $id) {
+      if ( $hgnc_id == $id) {
         my $gene_symbol = $self->{hgnc_mapping}{$id};
         my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
         if (defined $gene_data) {
