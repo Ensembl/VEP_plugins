@@ -744,7 +744,7 @@ sub gene_overlap_filtering {
             foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
               $self->{ar}->{$gene_stable_id}->{$ar} = 1;
             }
-            $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'} );
+            $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'} );
           }
           $self->write_report('G2P_in_vcf', $gene_stable_id);
           $pass_gene_overlap_filter = 1;
