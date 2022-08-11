@@ -274,6 +274,7 @@ sub uAUG_gained {
         ################################################################################
   		$uAUG_gained_DistanceToCDS = $mut_utr_length-$pos_A;
   		$uAUG_gained_DistanceFromCap = $pos_A;
+        
         ################################################################################
         #annotator 2: determine kozak context;
         ################################################################################
@@ -301,9 +302,9 @@ sub uAUG_gained {
         $uAUG_gained_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
 
 
-  ################################################################################
-  #annotator 3: Type of new ORF with respect the main ORF: uORF/Overlapping_inFrame/Overlapping_outofframe
-  ################################################################################
+        ################################################################################
+        #annotator 3: Type of new ORF with respect the main ORF: uORF/Overlapping_inFrame/Overlapping_outofframe
+        ################################################################################
 
         #check what kind of uORF does that correspond to?
         #first check whether it's overlapping with CDS
@@ -324,11 +325,11 @@ sub uAUG_gained {
         my @overlapping_seq = split //, $mut_utr_seq.$UTR_info->{cds_seq};
         my %existing_uORF = %{$self->existing_uORF(\@overlapping_seq)};
         if(exists($existing_uORF{$pos_A})){
-        my @stop_pos_array = sort{$a<=>$b}@{$existing_uORF{$pos_A}};
-        my $stop_pos = $stop_pos_array[0];
-        $uAUG_gained_DistanceToStop = $stop_pos-$pos_A;
-        }else{
-        $uAUG_gained_DistanceToStop = "NA";
+            my @stop_pos_array = sort{$a<=>$b}@{$existing_uORF{$pos_A}};
+            my $stop_pos = $stop_pos_array[0];
+            $uAUG_gained_DistanceToStop = $stop_pos-$pos_A;
+        } else {
+            $uAUG_gained_DistanceToStop = "NA";
         }
 
 
