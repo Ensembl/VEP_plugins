@@ -24,7 +24,7 @@ limitations under the License.
 
 =head1 SYNOPSIS
  
-    mv UTRannotator/* $HOME/.vep/Plugins
+    mv UTRannotator.pm ~/.vep/Plugins
     vep -i variations.vcf --tab --plugin UTRannotator,/path/to/uORF_starts_ends_GRCh37_PUBLIC.txt
 
 =head1 DESCRIPTION
@@ -499,7 +499,7 @@ sub uSTOP_gained {
 
                     #find evidence from sorfs.org
 
-                    $uSTOP_gained_evidence = $self->find_uorf_evidence($UTR_info,$chr,$start_pos);
+                    $uSTOP_gained_evidence = (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
                     my %uORF_effect = (
                         "uSTOP_gained_ref_type" => $uSTOP_gained_ref_type,
@@ -682,7 +682,7 @@ sub uSTOP_lost {
                     }
             	#find evidence from sorf
 
-                $uSTOP_lost_evidence=$self->find_uorf_evidence($UTR_info,$chr,$start_pos);
+                $uSTOP_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
                 my %uORF_effect = (
                 "uSTOP_lost_AltStop" => $uSTOP_lost_AltStop,
@@ -865,7 +865,7 @@ sub uAUG_lost {
 
 
 
-                $uAUG_lost_evidence=$self->find_uorf_evidence($UTR_info,$chr,$start_pos);
+                $uAUG_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
                 my %uORF_effect = (
                 "uAUG_lost_type" => $uAUG_lost_type,
@@ -1063,7 +1063,7 @@ sub uFrameshift {
 
             	#find evidence from sorfs.org
 
-                $uFrameshift_evidence=$self->find_uorf_evidence($UTR_info,$chr,$start_pos);
+                $uFrameshift_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
                 my %uORF_effect = (
                 "uFrameShift_ref_type" => $uFrameshift_ref_type,
@@ -1113,20 +1113,22 @@ sub count_number_ATG {
     my $flag=0;
 
     foreach my $atg (@atg_pos){
-    $flag=0;
+        
+        $flag=0;
+        
         #indicate whether there is a stop codon with respect to this ATG
-    foreach my $mes (@mes_pos){
-        if !((($mes-$atg) % 3)||($mes-$atg)<0){
-            $flag=1;
-            last;
-        };
-    }
-    #if there is no stop codon, then look at whether it's Out_of_frame or Inframe
-    if($flag==1){
-        $inframe_stop_num++;
-    } else {
-        (($length-$atg) % 3)? $outofframe_atg_num++ : $inframeORF_num++;
-    }
+        foreach my $mes (@mes_pos){
+            unless (($mes-$atg) % 3 || ($mes-$atg) < 0 ){
+                $flag=1;
+                last;
+            };
+        }
+        #if there is no stop codon, then look at whether it's Out_of_frame or Inframe
+        if($flag==1){
+            $inframe_stop_num++;
+        } else {
+            (($length-$atg) % 3)? $outofframe_atg_num++ : $inframeORF_num++;
+        }
 
     }
 
