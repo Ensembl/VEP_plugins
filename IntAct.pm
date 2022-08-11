@@ -221,7 +221,11 @@ sub _get_species_tax_id {
     return;
   }
 
-  my $url = "http://rest.ensembl.org/taxonomy/id/${species}?";
+  # remove any gca from species name
+  my $species_formatted = $species;
+  $species_formatted =~  s/_gca.*//;
+
+  my $url = "http://rest.ensembl.org/taxonomy/id/${species_formatted}?";
   my $response = HTTP::Tiny->new->get($url, { headers => {"content-type" => "application/json"} } );
 
   unless( $response->{success} ) {
@@ -249,6 +253,9 @@ sub _get_species_tax_id {
 sub _match_id {
   my ($self, $id_ref, $id_des) = @_;
 
+  # remove any 'p.' prefix if exists
+  $id_des =~ s/p\.//;
+
   my $param_hash = $self->params_to_hash();
   my $mutation_file = $param_hash->{mutation_file};
 
@@ -261,8 +268,11 @@ sub _match_id {
     my (undef, $des) = split /:/, $fields[1];
     
     next unless ($ref and $des);
-       
-    if( ($des eq $id_des) && ($ref eq $id_ref) ) {
+    
+    # remove any 'p.' prefix if exists
+    $des =~ s/p\.//;
+
+    if( ($des =~ /$id_des/) && ($ref eq $id_ref) ) {
         push @matches, $_;
     }
   }
@@ -398,7 +408,7 @@ sub run {
     # match variation
     next unless ($id_des eq $hgvs_des and $_->{ref} eq $ref_codon);
 
-    # get matched lines from IntAct data file on hgvs id     
+    # get matched lines from IntAct data file on the hgvs like description 
     my $intact_matches = $self->_match_id($id_ref, $id_des);
 
     # keep only the unique interaction data from IntAct
