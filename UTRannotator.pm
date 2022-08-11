@@ -77,9 +77,8 @@ sub new {
             $self->{uORF_evidence} = \%uORF_evidence;
         
         } else {
-            printf "Warning: small ORF file not found. For human, you could use our curated list of uORFs(from http://www.sorfs.org/) at the repository:" .
-            "'uORF_starts_ends_GRCh37_PUBLIC.txt' for GRCh37 or 'uORF_starts_ends_GRCh38_PUBLIC.txt' for GRCh38. " .
-            "All uFrameShift_Evidence will be set to `False`.\n";
+            printf "Warning: small ORF file not found. For human, you could use our curated list of uORFs at the repository (https://github.com/Ensembl/UTRannotator):\n" .
+            "'uORF_starts_ends_GRCh37_PUBLIC.txt' for GRCh37 or 'uORF_starts_ends_GRCh38_PUBLIC.txt' for GRCh38.\n";
         }
 
     return $self;
