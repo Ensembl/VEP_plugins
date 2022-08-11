@@ -208,15 +208,9 @@ sub run {
 
 
 sub uAUG_gained {
-	#Description: annotate if a five_prime_UTR_variant creates ATG
-	#Returntype: hashref
+	# Description: annotate if a five_prime_UTR_variant creates ATG
 
 	my ($self, $variant_info,$UTR_info) = @_;
-	my %flip;
-	$flip{'A'}='T';
-	$flip{'C'}='G';
-	$flip{'G'}='C';
-	$flip{'T'}='A';
 
     my %kozak_strength;
     $kozak_strength{1}='Weak';
@@ -360,15 +354,9 @@ sub uAUG_gained {
 }
 
 sub uSTOP_gained {
-	#Description: annotate whether a five_prime_UTR_variant creates new stop codon. It only evaluate SNVs.
-	#Returntype: hashref
+	# Description: annotate whether a five_prime_UTR_variant creates new stop codon. It only evaluate SNVs.
 
 	my ($self, $variant_info,$UTR_info) = @_;
-	my %flip;
-	$flip{'A'}='T';
-	$flip{'C'}='G';
-	$flip{'G'}='C';
-	$flip{'T'}='A';
 
     my %kozak_strength;
     $kozak_strength{1}='Weak';
@@ -525,26 +513,9 @@ sub uSTOP_gained {
 
 sub uSTOP_lost {
 
-    #Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF(given that uORF doesn't not change)
-
-
-    #Returntype: hashref
-
-    #output annotations
-    #    If the variant removes the stop codon of an existing uORF
-    #    uSTOP_AltStop => 'Whether there is another stop codon in the uORF',
-    #    uSTOP_AltStopDistanceToCDS => 'The distance of an alternative stop codon to CDS',
-    #    uSTOP_FrameWithCDS => 'Consequence: Frame with respect to the main ORF coding sequence ',
-    #    uSTOP_KozakContext => 'The surrounding Kozak sequence of the uAUG in the existing uORF',
-    #    uSTOP_KozakStrength => 'Strength of the surrounding Kozak consensus of the uAUG in the existing uORF',
-    #    uSTOP_Evidence => 'Whether there is prior evidence of translation documented in sorfs.org',
+    # Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF(given that uORF doesn't not change)
 
     my ($self, $variant_info, $UTR_info) = @_;
-    my %flip;
-    $flip{'A'}='T';
-    $flip{'C'}='G';
-    $flip{'G'}='C';
-    $flip{'T'}='A';
 
     my %kozak_strength;
     $kozak_strength{1}='Weak';
@@ -710,22 +681,9 @@ sub uSTOP_lost {
 }
 
 sub uAUG_lost {
-    #Description: annotate if a five_prime_UTR_varint removes a start codon of an existing uORF
-    #Returntype: hashref
-
-    #output annotations
-    #    If the variant removes the start codon of an existing uORF
-    #    uAUG_loss_FrameWithCDS => 'Frame with respect to the main ORF coding sequence'
-    #    uAUG_loss_KozakContext => 'The surrounding Kozak sequence of the lost uAUG',
-    #    uAUG_loss_KozakStrength => 'Strength of the surrounding Kozak consensus of the lost uAUG',
-    #    uAUG_loss_Evidence => 'Whether there is prior evidence of translation documented in sorfs.org',
+    # Description: annotate if a five_prime_UTR_varint removes a start codon of an existing uORF
 
     my ($self, $variant_info, $UTR_info) = @_;
-    my %flip;
-    $flip{'A'}='T';
-    $flip{'C'}='G';
-    $flip{'G'}='C';
-    $flip{'T'}='A';
 
     my %kozak_strength;
     $kozak_strength{1}='Weak';
@@ -894,15 +852,9 @@ sub uAUG_lost {
 
 sub uFrameshift {
 
-    #Description: annotate if a five_prime_UTR_varint create a frameshift in existing uORFs
-    #Returntype: hashref
+    # Description: annotate if a five_prime_UTR_varint create a frameshift in existing uORFs
 
     my ($self, $variant_info, $UTR_info) = @_;
-    my %flip;
-    $flip{'A'}='T';
-    $flip{'C'}='G';
-    $flip{'G'}='C';
-    $flip{'T'}='A';
 
     my %kozak_strength;
     $kozak_strength{1}='Weak';
