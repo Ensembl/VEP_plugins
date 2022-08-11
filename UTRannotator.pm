@@ -156,11 +156,16 @@ sub run {
         "cds_seq" => $cds,
 	);
 
-	my %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info)};
-  	my %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info)};
-  	my %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info)};
-	my %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info)};
-    my %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info)};
+    my %kozak_strength;
+    $kozak_strength{1}='Weak';
+    $kozak_strength{2}='Moderate';
+    $kozak_strength{3}='Strong';
+
+	my %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, %kozak_strength)};
+  	my %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, %kozak_strength)};
+  	my %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, %kozak_strength)};
+	my %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, %kozak_strength)};
+    my %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, %kozak_strength)};
 
     my %five_prime_flag = (
         "uAUG_gained" => $uAUG_gained{'uAUG_gained_flag'},
@@ -210,12 +215,7 @@ sub run {
 sub uAUG_gained {
 	# Description: annotate if a five_prime_UTR_variant creates ATG
 
-	my ($self, $variant_info,$UTR_info) = @_;
-
-    my %kozak_strength;
-    $kozak_strength{1}='Weak';
-    $kozak_strength{2}='Moderate';
-    $kozak_strength{3}='Strong';
+	my ($self, $variant_info,$UTR_info, %kozak_strength) = @_;
 
 	my $pos = $variant_info->{pos};
 	my $ref = $variant_info->{ref};
@@ -356,12 +356,7 @@ sub uAUG_gained {
 sub uSTOP_gained {
 	# Description: annotate whether a five_prime_UTR_variant creates new stop codon. It only evaluate SNVs.
 
-	my ($self, $variant_info,$UTR_info) = @_;
-
-    my %kozak_strength;
-    $kozak_strength{1}='Weak';
-    $kozak_strength{2}='Moderate';
-    $kozak_strength{3}='Strong';
+	my ($self, $variant_info,$UTR_info, %kozak_strength) = @_;
 
 	my $chr = $variant_info->{chr};
 	my $pos = $variant_info->{pos};
@@ -515,12 +510,7 @@ sub uSTOP_lost {
 
     # Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF(given that uORF doesn't not change)
 
-    my ($self, $variant_info, $UTR_info) = @_;
-
-    my %kozak_strength;
-    $kozak_strength{1}='Weak';
-    $kozak_strength{2}='Moderate';
-    $kozak_strength{3}='Strong';
+    my ($self, $variant_info, $UTR_info, %kozak_strength) = @_;
 
     my $chr = $variant_info->{chr};
     my $pos = $variant_info->{pos};
@@ -683,12 +673,7 @@ sub uSTOP_lost {
 sub uAUG_lost {
     # Description: annotate if a five_prime_UTR_varint removes a start codon of an existing uORF
 
-    my ($self, $variant_info, $UTR_info) = @_;
-
-    my %kozak_strength;
-    $kozak_strength{1}='Weak';
-    $kozak_strength{2}='Moderate';
-    $kozak_strength{3}='Strong';
+    my ($self, $variant_info, $UTR_info, %kozak_strength) = @_;
 
     my $chr = $variant_info->{chr};
     my $pos = $variant_info->{pos};
@@ -854,12 +839,7 @@ sub uFrameshift {
 
     # Description: annotate if a five_prime_UTR_varint create a frameshift in existing uORFs
 
-    my ($self, $variant_info, $UTR_info) = @_;
-
-    my %kozak_strength;
-    $kozak_strength{1}='Weak';
-    $kozak_strength{2}='Moderate';
-    $kozak_strength{3}='Strong';
+    my ($self, $variant_info, $UTR_info, %kozak_strength) = @_;
 
     my $chr = $variant_info->{chr};
     my $pos = $variant_info->{pos};
