@@ -111,6 +111,8 @@ sub new {
 
   $self->{initial_pid} = $$;
 
+  $self->{species} = $self->config->{species};
+
   return $self;
 }
 
@@ -253,7 +255,7 @@ sub process_from_db {
   # forked, reconnect to DB
   if($$ != $self->{initial_pid}) {
     $self->{dbh} = DBI->connect("dbi:SQLite:dbname=".$self->{db},"","");
-    $self->{get_sth} = $self->{dbh}->prepare("SELECT md5, item, matrix FROM consequences WHERE md5 = ?");
+    $self->{get_sth} = $self->{dbh}->prepare("SELECT species, md5, item, matrix FROM consequences WHERE md5 = ?");
 
     # set this so only do once per fork
     $self->{initial_pid} = $$;
@@ -262,8 +264,12 @@ sub process_from_db {
 
   my $result_from_db = {};
   while (my $arrayref = $self->{get_sth}->fetchrow_arrayref) {
-    my $item = $arrayref->[1];
-    my $matrix = $arrayref->[2];
+    # skip if species does not match
+    my $species = $arrayref->[0];  
+    next unless $species eq $self->{species};
+    
+    my $item = $arrayref->[2];
+    my $matrix = $arrayref->[3];
 
     # expand the compressed matrix
     my $expanded_matrix = expand_matrix($matrix);
