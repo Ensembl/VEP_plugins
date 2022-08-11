@@ -274,7 +274,7 @@ sub uAUG_gained {
         ################################################################################
   		$uAUG_gained_DistanceToCDS = $mut_utr_length-$pos_A;
   		$uAUG_gained_DistanceFromCap = $pos_A;
-        
+
         ################################################################################
         #annotator 2: determine kozak context;
         ################################################################################
@@ -470,12 +470,11 @@ sub uSTOP_gained {
                     #the annotation of the original uORF
                     if (exists($existing_ref_uORF{$start_pos})){ #if there is stop codon within 5'UTR
                         $uSTOP_gained_ref_type = "uORF"
-                    }elsif (($utr_length-$start_pos) % 3){
+                    } elsif (($utr_length-$start_pos) % 3){
                         $uSTOP_gained_ref_type = "OutOfFrame_oORF";
-                        }
-                    else{
+                    } else {
                         $uSTOP_gained_ref_type = "InFrame_oORF";
-                        }
+                    }
 
                     $uSTOP_gained_ref_StartDistanceToCDS = $utr_length - $start_pos;
                     $uSTOP_gained_newSTOPDistanceToCDS = $mut_utr_length - $mut_stop;
@@ -491,7 +490,7 @@ sub uSTOP_gained {
                         "uSTOP_gained_KozakContext" => $uSTOP_gained_KozakContext,
                         "uSTOP_gained_KozakStrength" => $uSTOP_gained_KozakStrength,
                         "uSTOP_gained_Evidence" => $uSTOP_gained_evidence,
-                        );
+                    );
 
                     $output_flag = $output_flag? $output_flag."&"."uSTOP_gained":"uSTOP_gained";
                     $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
@@ -561,108 +560,108 @@ sub uSTOP_lost {
     my @start = sort {$a <=> $b} (keys %existing_uORF);
 
     if(%existing_uORF){
-    for (my $i=0;$i<@start;$i++){
-        $flag_uORF=0;
-        my $start_pos = $start[$i];
-        my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
-        my $stop_pos=$stops[0];
+        for (my $i=0;$i<@start;$i++){
+            $flag_uORF=0;
+            my $start_pos = $start[$i];
+            my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
+            my $stop_pos=$stops[0];
 
-        if ($mut_pos-$stop_pos>2) {next;}
-
-
-        if (length($ref_coding)){
-
-        #for snps and deletion
-        if ($mut_pos+length($ref_coding)-1<$stop_pos) {next;}
-
-        } elsif ($mut_pos<$stop_pos) {next;}   #for insertion
+            if ($mut_pos-$stop_pos>2) {next;}
 
 
-        #for deletion, it definitely disrupting the stop codon.
+            if (length($ref_coding)){
 
-        if (length($alt_coding) eq 0) {
-        $flag_uORF=1;
-        }else{
-        my $mut_codon = $mut_utr_seq[$stop_pos].$mut_utr_seq[$stop_pos+1].$mut_utr_seq[$stop_pos+2];
+            #for snps and deletion
+            if ($mut_pos+length($ref_coding)-1<$stop_pos) {next;}
 
-        if ( grep( /^$mut_codon$/, @stop_codons ) ) {next;}
-        $flag_uORF=1;
-        }
-
-        if($flag_uORF){
-
-                #getting the Kozak context and Kozak strength of the start codon
-
-  				if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-  					$current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-  				}
-  				else{
-  					$current_kozak = '-';
-  				}
-
-                if ($current_kozak !~ /-/){
-                    my @split_kozak = split //, $current_kozak;
-                    $current_kozak_strength = 1;
-                    if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-                        $current_kozak_strength = 3;
-                    }
-                    elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-                        $current_kozak_strength = 2;
-                    }
-                }
-
-                $uSTOP_lost_KozakContext=$current_kozak;
-                $uSTOP_lost_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
-
-                #if there is an alternative stop codon in the mutant uORF sequence
-                my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
-
-                # the sequence before mut_pos should not be changed. Thus start_pos shall still correspond to a start codon;
-                # if the sequence is indeed very short as such ATGTGA
-
-                my @mut_stops;
-                if(exists($mut_uORF{$start_pos})){
-                @mut_stops = sort {$a <=> $b} @{$mut_uORF{$start_pos}}};
+            } elsif ($mut_pos<$stop_pos) {next;}   #for insertion
 
 
-                if (@mut_stops>0){
-                $uSTOP_lost_AltStop = "True";
-             #   $uSTOP_AltStopDistance = $mut_stops[0]-$stops[0];
-                $uSTOP_lost_AltStopDistanceToCDS = $length-$mut_stops[0];
-                } #if there is no alternative stop codon
-                else{
-                    $uSTOP_lost_AltStop = "False";
-                #    $uSTOP_AltStopDistance = "-";
-                    $uSTOP_lost_AltStopDistanceToCDS = "NA";
-                }
-            	if (($length-$start_pos) % 3){
-                	$uSTOP_lost_FrameWithCDS = "outOfFrame";
-                    }
-                else{
-                    $uSTOP_lost_FrameWithCDS = "inFrame";
-                    }
-            	#find evidence from sorf
+            #for deletion, it definitely disrupting the stop codon.
 
-                $uSTOP_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
+            if (length($alt_coding) eq 0) {
+            $flag_uORF=1;
+            }else{
+            my $mut_codon = $mut_utr_seq[$stop_pos].$mut_utr_seq[$stop_pos+1].$mut_utr_seq[$stop_pos+2];
 
-                my %uORF_effect = (
-                "uSTOP_lost_AltStop" => $uSTOP_lost_AltStop,
-                "uSTOP_lost_AltStopDistanceToCDS" => $uSTOP_lost_AltStopDistanceToCDS,
-                "uSTOP_lost_FrameWithCDS" => $uSTOP_lost_FrameWithCDS,
-                "uSTOP_lost_KozakContext" => $uSTOP_lost_KozakContext,
-                "uSTOP_lost_KozakStrength" => $uSTOP_lost_KozakStrength,
-                "uSTOP_lost_Evidence" => $uSTOP_lost_evidence,
-	             );
-
-                $output_flag = $output_flag? $output_flag."&"."uSTOP_lost":"uSTOP_lost";
-                $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
-
+            if ( grep( /^$mut_codon$/, @stop_codons ) ) {next;}
+            $flag_uORF=1;
             }
 
+            if($flag_uORF){
+
+                    #getting the Kozak context and Kozak strength of the start codon
+
+                    if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
+                        $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
+                    }
+                    else{
+                        $current_kozak = '-';
+                    }
+
+                    if ($current_kozak !~ /-/){
+                        my @split_kozak = split //, $current_kozak;
+                        $current_kozak_strength = 1;
+                        if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
+                            $current_kozak_strength = 3;
+                        }
+                        elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
+                            $current_kozak_strength = 2;
+                        }
+                    }
+
+                    $uSTOP_lost_KozakContext=$current_kozak;
+                    $uSTOP_lost_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+
+                    #if there is an alternative stop codon in the mutant uORF sequence
+                    my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
+
+                    # the sequence before mut_pos should not be changed. Thus start_pos shall still correspond to a start codon;
+                    # if the sequence is indeed very short as such ATGTGA
+
+                    my @mut_stops;
+                    if(exists($mut_uORF{$start_pos})){
+                    @mut_stops = sort {$a <=> $b} @{$mut_uORF{$start_pos}}};
+
+
+                    if (@mut_stops>0){
+                    $uSTOP_lost_AltStop = "True";
+                #   $uSTOP_AltStopDistance = $mut_stops[0]-$stops[0];
+                    $uSTOP_lost_AltStopDistanceToCDS = $length-$mut_stops[0];
+                    } #if there is no alternative stop codon
+                    else{
+                        $uSTOP_lost_AltStop = "False";
+                    #    $uSTOP_AltStopDistance = "-";
+                        $uSTOP_lost_AltStopDistanceToCDS = "NA";
+                    }
+                    if (($length-$start_pos) % 3){
+                        $uSTOP_lost_FrameWithCDS = "outOfFrame";
+                        }
+                    else{
+                        $uSTOP_lost_FrameWithCDS = "inFrame";
+                        }
+                    #find evidence from sorf
+
+                    $uSTOP_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
+
+                    my %uORF_effect = (
+                    "uSTOP_lost_AltStop" => $uSTOP_lost_AltStop,
+                    "uSTOP_lost_AltStopDistanceToCDS" => $uSTOP_lost_AltStopDistanceToCDS,
+                    "uSTOP_lost_FrameWithCDS" => $uSTOP_lost_FrameWithCDS,
+                    "uSTOP_lost_KozakContext" => $uSTOP_lost_KozakContext,
+                    "uSTOP_lost_KozakStrength" => $uSTOP_lost_KozakStrength,
+                    "uSTOP_lost_Evidence" => $uSTOP_lost_evidence,
+                    );
+
+                    $output_flag = $output_flag? $output_flag."&"."uSTOP_lost":"uSTOP_lost";
+                    $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+
+                }
 
 
 
-    }
+
+        }
     }
 
     $result{'uSTOP_lost_flag'} = $output_flag;
