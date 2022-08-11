@@ -428,12 +428,11 @@ sub uSTOP_gained {
 
             # only check the ones between start and stop codons
             # ignore the cases at the boundary of start and stop codon since the effect on start/stop would be evaluated anyway
-            if(($mut_pos<$start_pos+3)|($end_pos>$check_point)) {next;}
+            next if(($mut_pos<$start_pos+3)|($end_pos>$check_point));
             #check whether there are new stop codon induced by this mutation
             my @mut_stops;
-            if(exists($mut_uORF{$start_pos})){
-                @mut_stops = sort {$a <=> $b} @{$mut_uORF{$start_pos}};
-            }else{next;};
+            next unless(exists($mut_uORF{$start_pos}));
+            @mut_stops = sort {$a <=> $b} @{$mut_uORF{$start_pos}};
 
             my $mut_stop = $mut_stops[0];
             if($mut_stop<$check_point){
@@ -564,7 +563,7 @@ sub uSTOP_lost {
             my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
             my $stop_pos=$stops[0];
 
-            if ($mut_pos-$stop_pos>2) {next;}
+            next if ($mut_pos-$stop_pos>2);
 
 
             if (length($ref_coding)){
@@ -572,7 +571,7 @@ sub uSTOP_lost {
                 next if ($mut_pos+length($ref_coding)-1<$stop_pos);
                 next if ($mut_pos<$stop_pos);   #for insertion
             }
-            
+
             #for deletion, it definitely disrupting the stop codon.
             if (length($alt_coding) eq 0) {
                 $flag_uORF=1;
