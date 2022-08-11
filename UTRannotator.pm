@@ -262,9 +262,9 @@ sub uAUG_gained {
     #if there is a ATG codon, flag it and output the relative positive of A
     my $pos_A;
     if (@mut_atg_pos){
-    #get the pos of A (in ATG) in the UTR sequence
-    $pos_A=$mut_pos-2+$mut_atg_pos[0];
-    $flag=1;
+        #get the pos of A (in ATG) in the UTR sequence
+        $pos_A=$mut_pos-2+$mut_atg_pos[0];
+        $flag=1;
     }
 
     if ($flag){
@@ -334,18 +334,16 @@ sub uAUG_gained {
 
 
   		my %uORF_effect = (
-        "uAUG_gained_KozakContext" => $uAUG_gained_KozakContext,
-        "uAUG_gained_KozakStrength" => $uAUG_gained_KozakStrength,
-        "uAUG_gained_DistanceToCDS" => $uAUG_gained_DistanceToCDS,
-        "uAUG_gained_type" => $uAUG_gained_type,
-        "uAUG_gained_DistanceToStop" => $uAUG_gained_DistanceToStop,
-        "uAUG_gained_CapDistanceToStart" => $uAUG_gained_DistanceFromCap,
-      );
+            "uAUG_gained_KozakContext" => $uAUG_gained_KozakContext,
+            "uAUG_gained_KozakStrength" => $uAUG_gained_KozakStrength,
+            "uAUG_gained_DistanceToCDS" => $uAUG_gained_DistanceToCDS,
+            "uAUG_gained_type" => $uAUG_gained_type,
+            "uAUG_gained_DistanceToStop" => $uAUG_gained_DistanceToStop,
+            "uAUG_gained_CapDistanceToStart" => $uAUG_gained_DistanceFromCap,
+        );
 
-       $output_flag = "uAUG_gained";
-       $output_effects = $self->transform_hash_to_string(\%uORF_effect);
-
-
+        $output_flag = "uAUG_gained";
+        $output_effects = $self->transform_hash_to_string(\%uORF_effect);
   	}
     $result{'uAUG_gained_flag'} = $output_flag;
     $result{'uAUG_gained_effect'} = $output_effects;
@@ -570,22 +568,19 @@ sub uSTOP_lost {
 
 
             if (length($ref_coding)){
-
-            #for snps and deletion
-            if ($mut_pos+length($ref_coding)-1<$stop_pos) {next;}
-
-            } elsif ($mut_pos<$stop_pos) {next;}   #for insertion
-
-
+                #for snps and deletion
+                next if ($mut_pos+length($ref_coding)-1<$stop_pos);
+                next if ($mut_pos<$stop_pos);   #for insertion
+            }
+            
             #for deletion, it definitely disrupting the stop codon.
-
             if (length($alt_coding) eq 0) {
-            $flag_uORF=1;
-            }else{
-            my $mut_codon = $mut_utr_seq[$stop_pos].$mut_utr_seq[$stop_pos+1].$mut_utr_seq[$stop_pos+2];
+                $flag_uORF=1;
+            } else {
+                my $mut_codon = $mut_utr_seq[$stop_pos].$mut_utr_seq[$stop_pos+1].$mut_utr_seq[$stop_pos+2];
 
-            if ( grep( /^$mut_codon$/, @stop_codons ) ) {next;}
-            $flag_uORF=1;
+                next if (grep( /^$mut_codon$/, @stop_codons));
+                $flag_uORF=1;
             }
 
             if($flag_uORF){
@@ -626,31 +621,29 @@ sub uSTOP_lost {
 
                     if (@mut_stops>0){
                     $uSTOP_lost_AltStop = "True";
-                #   $uSTOP_AltStopDistance = $mut_stops[0]-$stops[0];
+
                     $uSTOP_lost_AltStopDistanceToCDS = $length-$mut_stops[0];
                     } #if there is no alternative stop codon
                     else{
                         $uSTOP_lost_AltStop = "False";
-                    #    $uSTOP_AltStopDistance = "-";
                         $uSTOP_lost_AltStopDistanceToCDS = "NA";
                     }
                     if (($length-$start_pos) % 3){
                         $uSTOP_lost_FrameWithCDS = "outOfFrame";
-                        }
-                    else{
+                    } else {
                         $uSTOP_lost_FrameWithCDS = "inFrame";
-                        }
+                    }
                     #find evidence from sorf
 
                     $uSTOP_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
                     my %uORF_effect = (
-                    "uSTOP_lost_AltStop" => $uSTOP_lost_AltStop,
-                    "uSTOP_lost_AltStopDistanceToCDS" => $uSTOP_lost_AltStopDistanceToCDS,
-                    "uSTOP_lost_FrameWithCDS" => $uSTOP_lost_FrameWithCDS,
-                    "uSTOP_lost_KozakContext" => $uSTOP_lost_KozakContext,
-                    "uSTOP_lost_KozakStrength" => $uSTOP_lost_KozakStrength,
-                    "uSTOP_lost_Evidence" => $uSTOP_lost_evidence,
+                        "uSTOP_lost_AltStop" => $uSTOP_lost_AltStop,
+                        "uSTOP_lost_AltStopDistanceToCDS" => $uSTOP_lost_AltStopDistanceToCDS,
+                        "uSTOP_lost_FrameWithCDS" => $uSTOP_lost_FrameWithCDS,
+                        "uSTOP_lost_KozakContext" => $uSTOP_lost_KozakContext,
+                        "uSTOP_lost_KozakStrength" => $uSTOP_lost_KozakStrength,
+                        "uSTOP_lost_Evidence" => $uSTOP_lost_evidence,
                     );
 
                     $output_flag = $output_flag? $output_flag."&"."uSTOP_lost":"uSTOP_lost";
@@ -728,88 +721,76 @@ sub uAUG_lost {
         my $start_pos = $start[$i];
 
 
-        if ($mut_pos-$start_pos>2) {
-        next;
-        }
+        next if ($mut_pos-$start_pos>2);
 
         if (length($ref_coding) ne 0){
-        if ($mut_pos+length($ref_coding)-1<$start_pos) {
-        next;
-
+            next if ($mut_pos+length($ref_coding)-1<$start_pos);
         }
-        } elsif ($mut_pos<$start_pos) {next;}   #for insertion
-
+        next if ($mut_pos<$start_pos);   #for insertion
 
         #for deletion, it definitely disrupting the uORF.
 
         if (length($alt_coding) eq 0) {
-        $flag_uORF=1;
-        }else{
-
-        my $mut_codon = $mut_utr_seq[$start_pos].$mut_utr_seq[$start_pos+1].$mut_utr_seq[$start_pos+2];
-
-        if ($mut_codon eq "ATG") {next;}
-        $flag_uORF=1;
+            $flag_uORF=1;
+        } else {
+            my $mut_codon = $mut_utr_seq[$start_pos].$mut_utr_seq[$start_pos+1].$mut_utr_seq[$start_pos+2];
+            next if ($mut_codon eq "ATG");
+            $flag_uORF=1;
         }
-
-
 
         if($flag_uORF){
 
 
-                #getting the Kozak context and Kozak strength of the lost start codon
-  				if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-  					$current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-  				}
-  				else{
-  					$current_kozak = '-';
-  				}
+            #getting the Kozak context and Kozak strength of the lost start codon
+            if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
+                $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
+            } else {
+                $current_kozak = '-';
+            }
 
-                if ($current_kozak !~ /-/){
-                    my @split_kozak = split //, $current_kozak;
-                    $current_kozak_strength = 1;
-                    if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-                        $current_kozak_strength = 3;
-                    }
-                    elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-                        $current_kozak_strength = 2;
-                    }
+            if ($current_kozak !~ /-/){
+                my @split_kozak = split //, $current_kozak;
+                $current_kozak_strength = 1;
+                if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
+                    $current_kozak_strength = 3;
+                } elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
+                    $current_kozak_strength = 2;
                 }
-                $uAUG_lost_KozakContext=$current_kozak;
-                $uAUG_lost_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+            }
+            $uAUG_lost_KozakContext=$current_kozak;
+            $uAUG_lost_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
 
-                #check what kind of uORF does that correspond to?
-                #first check whether it's overlapping with CDS
+            #check what kind of uORF does that correspond to?
+            #first check whether it's overlapping with CDS
 
 
-                if (exists($existing_ref_uORF{$start_pos})){ #if there is stop codon within 5'UTR
-                    $uAUG_lost_type = "uORF"
-                }elsif (($utr_length-$start_pos) % 3){
-                	$uAUG_lost_type = "OutOfFrame_oORF";
-                    }
-                else{
-                    $uAUG_lost_type = "InFrame_oORF";
-                    }
+            if (exists($existing_ref_uORF{$start_pos})){ #if there is stop codon within 5'UTR
+                $uAUG_lost_type = "uORF"
+            } elsif(($utr_length-$start_pos) % 3){
+                $uAUG_lost_type = "OutOfFrame_oORF";
+            } else {
+                $uAUG_lost_type = "InFrame_oORF";
+            }
 
-                $uAUG_lost_DistanceToCDS = $utr_length - $start_pos;
+            $uAUG_lost_DistanceToCDS = $utr_length - $start_pos;
 
-                my @overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
-                my %existing_overlapping_uORF = %{$self->existing_uORF(\@overlapping_seq)};
-                if(exists($existing_overlapping_uORF{$start_pos})){
+            my @overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
+            my %existing_overlapping_uORF = %{$self->existing_uORF(\@overlapping_seq)};
+            if(exists($existing_overlapping_uORF{$start_pos})){
 
                 my @stop_pos_array = sort{$a<=>$b}@{$existing_overlapping_uORF{$start_pos}};
                 my $stop_pos = $stop_pos_array[0];
                 $uAUG_lost_DistanceToSTOP = $stop_pos-$start_pos;
 
-                }else{
+            } else {
                 $uAUG_lost_DistanceToSTOP = "NA"
-                }
+            }
 
 
 
-                $uAUG_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
+            $uAUG_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
-                my %uORF_effect = (
+            my %uORF_effect = (
                 "uAUG_lost_type" => $uAUG_lost_type,
                 "uAUG_lost_CapDistanceToStart" =>$start_pos,
                 "uAUG_lost_DistanceToCDS" => $uAUG_lost_DistanceToCDS,
@@ -817,12 +798,12 @@ sub uAUG_lost {
                 "uAUG_lost_KozakContext" => $uAUG_lost_KozakContext,
                 "uAUG_lost_KozakStrength" => $uAUG_lost_KozakStrength,
                 "uAUG_lost_Evidence" => $uAUG_lost_evidence,
-	             );
+                );
 
-                $output_flag = $output_flag? $output_flag."&"."uAUG_lost":"uAUG_lost";
-                $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+            $output_flag = $output_flag? $output_flag."&"."uAUG_lost":"uAUG_lost";
+            $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
 
-            }
+        }
 
 
 
@@ -894,124 +875,122 @@ sub uFrameshift {
 
 	#check for each uORF
     if(@start){
-    for (my $i=0;$i<@start;$i++){
-        $flag_uORF=0;
-        my $start_pos = $start[$i];
+        for (my $i=0;$i<@start;$i++){
+            $flag_uORF=0;
+            my $start_pos = $start[$i];
 
 
-        my $check_point = $start_pos;
-        # the checking end point of eligible area
-        #For uORF: start_pos .. check_point
-        #For overlapping ORF: start_pos .. 3' end of 5'UTR sequence
+            my $check_point = $start_pos;
+            # the checking end point of eligible area
+            #For uORF: start_pos .. check_point
+            #For overlapping ORF: start_pos .. 3' end of 5'UTR sequence
 
-        #if the variant is entirely in the uORF (within 5'UTR)
+            #if the variant is entirely in the uORF (within 5'UTR)
 
-        if(exists($existing_uORF{$start_pos})) {
-            my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
-            $check_point = $stops[0]-1;;
-        }else{
-        #if the existing uORF is an oORF
-            $check_point = $utr_length-1;
-        }
-
-        # only check the ones between start and stop codons and
-        # ignore the cases at the boundary of start and stop codon since the effect on start/stop would be evaluated anyway
-		if(($mut_pos>=$start_pos+3)&($end_pos<=$check_point)){
-		#snp and insertion could only be annotated here
-			$flag_uORF = abs(length($ref_coding)-length($alt_coding))%3;
-		}
-
-        if($flag_uORF){
-
-                #getting the Kozak context and Kozak strength of the start codon
-
-  				if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-  					$current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-  				}
-  				else{
-  					$current_kozak = '-';
-  				}
-
-                if ($current_kozak !~ /-/){
-                    my @split_kozak = split //, $current_kozak;
-                    $current_kozak_strength = 1;
-                    if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-                        $current_kozak_strength = 3;
-                    }
-                    elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-                        $current_kozak_strength = 2;
-                    }
-                }
-
-                $uFrameshift_KozakContext=$current_kozak;
-                $uFrameshift_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
-
-
-                #the annotation of the original uORF
-                my @ref_overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
-                my %ref_existing_oORF = %{$self->existing_uORF(\@ref_overlapping_seq)};
-
-                if (exists($existing_uORF{$start_pos})){ #if there is stop codon within 5'UTR
-                    $uFrameshift_ref_type = "uORF";
-                }elsif (($utr_length-$start_pos) % 3) {
-                    $uFrameshift_ref_type = "OutOfFrame_oORF";
-
-                }else{
-                    $uFrameshift_ref_type = "InFrame_oORF";
-                    }
-
-                if (exists($ref_existing_oORF{$start_pos})){
-                    my @stops = sort {$a <=> $b} @{$ref_existing_oORF{$start_pos}};
-                    $uFrameshift_ref_type_length = $stops[0]-$start_pos+3;
-                    }else{
-                     $uFrameshift_ref_type_length = "NA";
-                }
-
-                $uFrameshift_StartDistanceToCDS = $utr_length - $start_pos;
-
-                #if there is an alternative stop codon in the mutant uORF sequence
-                my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
-                my @alt_overlapping_seq = split //, $mut_utr_seq.$UTR_info->{cds_seq};
-                my %alt_existing_oORF = %{$self->existing_uORF(\@alt_overlapping_seq)};
-
-                if (exists($mut_uORF{$start_pos})){
-                $uFrameshift_alt_type = "uORF";
-                } #if there is no alternative stop codon
-                elsif(($length-$start_pos)%3) {
-                    $uFrameshift_alt_type = "OutOfFrame_oORF";
-                }
-                else{
-                    $uFrameshift_alt_type = "InFrame_oORF";
-                }
-
-                #get the length
-                if (exists($alt_existing_oORF{$start_pos})){
-                    my @stops = sort {$a <=> $b} @{$alt_existing_oORF{$start_pos}};
-                    $uFrameshift_alt_type_length = $stops[0]-$start_pos+3;
-                    }else{
-                     $uFrameshift_alt_type_length = "NA";
-                }
-
-            	#find evidence from sorfs.org
-
-                $uFrameshift_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
-
-                my %uORF_effect = (
-                "uFrameShift_ref_type" => $uFrameshift_ref_type,
-                "uFrameShift_ref_type_length" => $uFrameshift_ref_type_length,
-                "uFrameShift_ref_StartDistanceToCDS" => $uFrameshift_StartDistanceToCDS,
-                "uFrameShift_alt_type" => $uFrameshift_alt_type,
-                "uFrameShift_alt_type_length" => $uFrameshift_alt_type_length,
-                "uFrameShift_KozakContext" => $uFrameshift_KozakContext,
-                "uFrameShift_KozakStrength" => $uFrameshift_KozakStrength,
-                "uFrameShift_Evidence" => $uFrameshift_evidence,
-	             );
-
-                $output_flag = $output_flag? $output_flag."&"."uFrameShift":"uFrameShift";
-                $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+            if(exists($existing_uORF{$start_pos})) {
+                my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
+                $check_point = $stops[0]-1;;
+            } else {
+                #if the existing uORF is an oORF
+                $check_point = $utr_length-1;
             }
 
-    }
+            # only check the ones between start and stop codons and
+            # ignore the cases at the boundary of start and stop codon since the effect on start/stop would be evaluated anyway
+            if(($mut_pos>=$start_pos+3)&($end_pos<=$check_point)){
+                #snp and insertion could only be annotated here
+                $flag_uORF = abs(length($ref_coding)-length($alt_coding))%3;
+            }
+
+            if($flag_uORF){
+
+                    #getting the Kozak context and Kozak strength of the start codon
+
+                    if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
+                        $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
+                    }
+                    else{
+                        $current_kozak = '-';
+                    }
+
+                    if ($current_kozak !~ /-/){
+                        my @split_kozak = split //, $current_kozak;
+                        $current_kozak_strength = 1;
+                        if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
+                            $current_kozak_strength = 3;
+                        }
+                        elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
+                            $current_kozak_strength = 2;
+                        }
+                    }
+
+                    $uFrameshift_KozakContext=$current_kozak;
+                    $uFrameshift_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+
+
+                    #the annotation of the original uORF
+                    my @ref_overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
+                    my %ref_existing_oORF = %{$self->existing_uORF(\@ref_overlapping_seq)};
+
+                    if (exists($existing_uORF{$start_pos})){ #if there is stop codon within 5'UTR
+                        $uFrameshift_ref_type = "uORF";
+                    }elsif (($utr_length-$start_pos) % 3) {
+                        $uFrameshift_ref_type = "OutOfFrame_oORF";
+
+                    }else{
+                        $uFrameshift_ref_type = "InFrame_oORF";
+                        }
+
+                    if (exists($ref_existing_oORF{$start_pos})){
+                        my @stops = sort {$a <=> $b} @{$ref_existing_oORF{$start_pos}};
+                        $uFrameshift_ref_type_length = $stops[0]-$start_pos+3;
+                    } else {
+                        $uFrameshift_ref_type_length = "NA";
+                    }
+
+                    $uFrameshift_StartDistanceToCDS = $utr_length - $start_pos;
+
+                    #if there is an alternative stop codon in the mutant uORF sequence
+                    my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
+                    my @alt_overlapping_seq = split //, $mut_utr_seq.$UTR_info->{cds_seq};
+                    my %alt_existing_oORF = %{$self->existing_uORF(\@alt_overlapping_seq)};
+
+                    if (exists($mut_uORF{$start_pos})){
+                    $uFrameshift_alt_type = "uORF";
+                    } elsif(($length-$start_pos)%3){
+                        $uFrameshift_alt_type = "OutOfFrame_oORF";
+                    } else {
+                        $uFrameshift_alt_type = "InFrame_oORF";
+                    }
+
+                    #get the length
+                    if (exists($alt_existing_oORF{$start_pos})){
+                        my @stops = sort {$a <=> $b} @{$alt_existing_oORF{$start_pos}};
+                        $uFrameshift_alt_type_length = $stops[0]-$start_pos+3;
+                    } else {
+                        $uFrameshift_alt_type_length = "NA";
+                    }
+
+                    #find evidence from sorfs.org
+
+                    $uFrameshift_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
+
+                    my %uORF_effect = (
+                        "uFrameShift_ref_type" => $uFrameshift_ref_type,
+                        "uFrameShift_ref_type_length" => $uFrameshift_ref_type_length,
+                        "uFrameShift_ref_StartDistanceToCDS" => $uFrameshift_StartDistanceToCDS,
+                        "uFrameShift_alt_type" => $uFrameshift_alt_type,
+                        "uFrameShift_alt_type_length" => $uFrameshift_alt_type_length,
+                        "uFrameShift_KozakContext" => $uFrameshift_KozakContext,
+                        "uFrameShift_KozakStrength" => $uFrameshift_KozakStrength,
+                        "uFrameShift_Evidence" => $uFrameshift_evidence,
+                    );
+
+                    $output_flag = $output_flag? $output_flag."&"."uFrameShift":"uFrameShift";
+                    $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+                }
+
+        }
     }
 
     $result{'uFrameShift_flag'} = $output_flag;
@@ -1088,8 +1067,7 @@ sub existing_uORF {
         foreach my $mes (@mes_pos){
             if ((($mes-$atg) % 3)||($mes-$atg)<0){
 
-            }
-            else{
+            } else {
                 push @stop_pos,$mes;
             }
         }
@@ -1127,15 +1105,15 @@ sub get_stopcodon_pos {
 
 	my @met_pos;
     if($length){
-	for (my $seq_n=0; $seq_n<$length; $seq_n++){
-	if ((($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'A')&&($sequence[$seq_n+2] eq 'A'))
-	||(($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'A')&&($sequence[$seq_n+2] eq 'G'))
-	||(($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'G')&&($sequence[$seq_n+2] eq 'A')))
-				{
-					push @met_pos,$seq_n;
-				}
-	}}
-	#return a reference
+	    for (my $seq_n=0; $seq_n<$length; $seq_n++){
+            if ((($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'A')&&($sequence[$seq_n+2] eq 'A'))
+            ||(($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'A')&&($sequence[$seq_n+2] eq 'G'))
+            ||(($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'G')&&($sequence[$seq_n+2] eq 'A'))){
+                push @met_pos,$seq_n;
+            }
+        }
+    }
+
 	return \@met_pos;
 }
 
