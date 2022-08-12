@@ -37,6 +37,16 @@ limitations under the License.
                         - Download from https://github.com/Ensembl/UTRannotator
                         - Download from http://www.sorfs.org/
 
+    Citation
+
+    About the role of 5'UTR variants in human genetic disease:
+
+    Whiffin, N., Karczewski, K.J., Zhang, X. et al. Characterising the loss-of-function impact of 5’ untranslated region variants in 15,708 individuals. Nat Commun 11, 2523 (2020). https://doi.org/10.1038/s41467-019-10717-9
+
+    About UTRannotator:
+
+    Annotating high-impact 5'untranslated region variants with the UTRannotator Zhang, X., Wakeling, M.N., Ware, J.S, Whiffin, N. Bioinformatics; doi: https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa783/5905476
+
 =cut
 
 
