@@ -268,6 +268,21 @@ sub _parse_intact_data {
   return \%parsed_data;
 }
 
+# check if the data has correct species
+sub _match_species{
+  my ($self, $ap_organism) = @_;
+
+  if( defined $self->{species_tax_id} ){
+    # get taxonomy id from the ap_organism field
+    my $ap_organism_tax_id = (split /-/, $ap_organism)[0];
+    $ap_organism_tax_id =~ s/^\s+|\s+$//;
+
+    return 1 if $self->{species_tax_id} eq $ap_organism_tax_id;
+  }
+  
+  return 0;
+}
+
 # remove duplicate interactions
 sub _remove_duplicates {
   my ($self, $intact_matches) = @_;
@@ -279,17 +294,8 @@ sub _remove_duplicates {
     my $is_unique = 0;
 
     my $parsed_data = $self->_parse_intact_data($_);
-    
-    # check if the data has correct species
-    if( defined $self->{species_tax_id} ){
-      my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
-      $ap_organism_tax_id =~ s/^\s+|\s+$//;
 
-      next unless $self->{species_tax_id} eq $ap_organism_tax_id;
-    }
-    else {
-      next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
-    }
+    next unless $self->_match_species($parsed_data->{ap_organism});
 
     foreach (keys %$parsed_data) {
       next unless defined $self->{$_};
@@ -357,6 +363,9 @@ sub _filter_fields {
 
 sub run {
   my ($self, $tva) = @_;
+
+  # skip if the species is not supported
+  next unless exists $taxonomy_lookup->{ $self->{species} };
 
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
