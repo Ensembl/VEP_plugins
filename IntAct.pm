@@ -243,9 +243,14 @@ sub _get_species_tax_id {
   unless( defined $json_response->{id} and $json_response->{id} ne "" ) {
     warning "WARNING: cannot parse taxonomy id from response content; only human will be supported\n";
     return;
-  }  
-  
-  $self->{species_tax_id} = $json_response->{id};
+  }
+
+  # add taxonomy id including the children
+  $self->{species_tax_id} = [ $json_response->{id} ]; 
+  foreach (@{ $json_response->{children} }){
+    push $self->{species_tax_id}, $_->{id};
+  }
+
   return $self->{species_tax_id};
 }
 
@@ -317,7 +322,7 @@ sub _remove_duplicates {
       my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
       $ap_organism_tax_id =~ s/^\s+|\s+$//;
 
-      next if $ap_organism_tax_id ne $self->{species_tax_id};
+      next unless exists $self->{species_tax_id}, $ap_organism_tax_id;
     }
     else {
       next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
