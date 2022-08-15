@@ -239,6 +239,12 @@ sub new {
   }
   else {
     $file = $params->{file};
+    open IN, "<",  $file;
+    # supporting panelapp by always filtering by gene symbol if PanelApp file 
+    while (<IN>){
+      $params->{filter_by_gene_symbol} = 1 if (/Model_Of_Inheritance/);
+    }
+    close $file;
 
     # process types
     if ($params->{types}) {
