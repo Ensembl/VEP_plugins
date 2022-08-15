@@ -28,16 +28,15 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv mutfunc.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin mutfunc,motif=1,db=/FULL_PATH_TO/mutfunc_human_data.db
- ./vep -i variations.vcf --plugin mutfunc,all=1,file=/FULL_PATH_TO/mutfunc_tfbs.tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
- ./vep -i variations.vcf --plugin mutfunc,all=1,extended=1,file=/FULL_PATH_TO/mutfunc_tfbs.tab.gz,db=/FULL_PATH_TO/mutfunc_human_data.db
+ ./vep -i variations.vcf --plugin mutfunc,motif=1,db=/FULL_PATH_TO/mutfunc_data.db
+ ./vep -i variations.vcf --plugin mutfunc,all=1,extended=1,db=/FULL_PATH_TO/mutfunc_data.db
 
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction. regulatory region etc.
  
- Please cite the IntAct publication alongside the VEP if you use this resource:
- https://www.embopress.org/doi/full/10.15252/msb.20188430
+ Please cite the mutfunc publication alongside the VEP if you use this resource:
+ http://msb.embopress.org/content/14/12/e8430
  
  Pre-requisites:
  
@@ -46,7 +45,6 @@ limitations under the License.
  
  Options are passed to the plugin as key=value pairs:
 
- file		  : Path to tabix-indexed tfbs data file. Mandatory if 'tfbs' or 'all' is selected
  db			  : Path to SQLite database containing data for other analysis. Mandatory 'motif', 'int', 'mod', 'exp' or 'all' is selected
  motif    : Select this option to have mutfunc motif analysis in the output
  int      : Select this option to have mutfunc protein interection analysis in the output
