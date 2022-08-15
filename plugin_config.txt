@@ -1720,11 +1720,10 @@ my $VEP_PLUGIN_CONFIG = {
           "multiple" => 1,
           "style" => "height:150px",
           "values" => [
-            { "value" => "motif=1", "caption" => "motif", "helptip" => "Effect on linear motifs", 'checked' => 1 },
-            { "value" => "int=1", "caption" => "int", "helptip" => "Effect on protein interactions", 'checked' => 1 },
-            { "value" => "mod=1", "caption" => "mod", "helptip" => "Effect on protein structure", 'checked' => 1 },
-            { "value" => "exp=1", "caption" => "exp", "helptip" => "Effect on protein structure (experimental)", 'checked' => 1 },
-            { "value" => "tfbs=1", "caption" => "tfbs", "helptip" => "Effect on transcription factor binding site", 'checked' => 1 },
+            { "value" => "motif=1", "caption" => "Linear Motifs", "helptip" => "Effect on linear motifs", 'checked' => 1 },
+            { "value" => "int=1", "caption" => "Protein Interactions", "helptip" => "Effect on protein interactions", 'checked' => 1 },
+            { "value" => "mod=1", "caption" => "Protein Structure", "helptip" => "Effect on protein structure", 'checked' => 1 },
+            { "value" => "exp=1", "caption" => "Protein Structure (exp.)", "helptip" => "Effect on protein structure (experimental)", 'checked' => 1 }
           ],
         },
         {
