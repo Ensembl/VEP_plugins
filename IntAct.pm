@@ -115,6 +115,16 @@ my $valid_fields = {
   14 => "interaction_ac"
 };
 
+# taxomy id for supported species
+my $taxonomy_lookup = {
+	"homo_sapiens" => 9606,
+	"mus_musculus" => 10090,
+  "rattus_norvegicus" => 10116,
+  "gallus_gallus_gca000002315v5" => 9031,
+  "saccharomyces_cerevisiae" => 559292,
+  "arabidopsis_thaliana" => 3702
+};
+
 sub new {
   my $class = shift;
   
@@ -159,11 +169,11 @@ sub new {
   my $species = $self->config->{species};
   $self->{species} = $species;
 
-  # get species taxonomy id using ensembl REST API
-  my $species_tax_id = $self->_get_species_tax_id($species);
+  # get species taxonomy id using lookup
+  my $species_tax_id = $taxonomy_lookup->{$species};
+  $self->{species_tax_id} = $species_tax_id;
 
-  die "ERROR: could not get species taxonomy id and the species is not human\n" 
-    if not defined $species_tax_id and $species ne "homo_sapiens";
+  die "ERROR: could not get species taxonomy id\n" unless defined $species_tax_id;
 
   return $self;
 }
@@ -205,53 +215,6 @@ sub get_header_info {
   }
    
   return \%header;
-}
-
-# get species taxonomy id
-sub _get_species_tax_id {
-  my ($self, $species) = @_;  
-
-  # check if we can use required packages to call REST and parse response
-  unless( eval q{ use HTTP::Tiny; 1 } ) {
-    warning "WARNING: unable to get species taxonomy id without HTTP:tiny; only human will be supported\n";
-    return;
-  }
-  unless( eval q{ use JSON; 1 } ) {
-    warning "WARNING: unable to get species taxonomy id without JSON; only human will be supported\n";
-    return;
-  }
-
-  # remove any gca from species name
-  my $species_formatted = $species;
-  $species_formatted =~  s/_gca.*//;
-
-  my $url = "http://rest.ensembl.org/taxonomy/id/${species_formatted}?";
-  my $response = HTTP::Tiny->new->get($url, { headers => {"content-type" => "application/json"} } );
-
-  unless( $response->{success} ) {
-    my $failure_message = $response->{status};
-    $failure_message = $failure_message . " - " . $response->{content} if defined $response->{content};
-    chomp $failure_message;
-
-    warning "WARNING: REST call failed with error '$failure_message' while getting species taxonomy id; only human will be supported\n";
-    return;
-  }
-
-  my $html = $response->{content};
-  my $json_response = decode_json($html);
-  
-  unless( defined $json_response->{id} and $json_response->{id} ne "" ) {
-    warning "WARNING: cannot parse taxonomy id from response content; only human will be supported\n";
-    return;
-  }
-
-  # add taxonomy id including the children
-  $self->{species_tax_id} = [ $json_response->{id} ]; 
-  foreach (@{ $json_response->{children} }){
-    push $self->{species_tax_id}, $_->{id};
-  }
-
-  return $self->{species_tax_id};
 }
 
 # match lines of IntAct data file using HGVS id
@@ -322,7 +285,7 @@ sub _remove_duplicates {
       my $ap_organism_tax_id = (split /-/, $parsed_data->{ap_organism})[0];
       $ap_organism_tax_id =~ s/^\s+|\s+$//;
 
-      next unless exists $self->{species_tax_id}, $ap_organism_tax_id;
+      next unless $self->{species_tax_id} eq $ap_organism_tax_id;
     }
     else {
       next if $parsed_data->{ap_organism} ne "9606 - Homo sapiens";
