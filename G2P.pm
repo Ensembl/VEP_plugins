@@ -1436,12 +1436,14 @@ sub write_report {
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     my $hgnc_id = "HGNC:".@{$hgnc}[0].";" if (defined $hgnc);
     my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
-    my $category = "G2P confidence category:".@{$con_category}[0];
+    my $category = "G2P confidence category:".@{$con_category}[0] if defined ($con_category);
     # if statements to determine what should be printed based on $hgnc and $conf 
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n" if (defined $hgnc_id && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf & defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n"  if (!defined $hgnc_id && !defined $conf && !defined $category);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
