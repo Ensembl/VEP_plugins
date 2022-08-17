@@ -91,7 +91,7 @@ limitations under the License.
   html_report          : write all G2P complete genes and attributes to html file
 
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
-                         Do not set if filtering by HGNC_id.
+                         This option is set to 1 when using PanelApp files. 
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
