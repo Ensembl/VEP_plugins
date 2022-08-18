@@ -711,7 +711,7 @@ sub variants_filtered_by_frequency_threshold {
   foreach my $variant (@$variants) {
     # get the highest frequency that has been observed for the variant
     my $highest_frequency = $self->highest_frequency($variant);
-    if (! defined $highest_frequency || $highest_frequency <= $af_threshold ||
+    if (! defined $highest_frequency || (defined $af_threshold && $highest_frequency <= $af_threshold) ||
          $self->{g2p_vf_cache}->{$variant}->{is_on_variant_include_list}
     ) {
       push @pass_variants, $variant;
