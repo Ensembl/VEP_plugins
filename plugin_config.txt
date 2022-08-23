@@ -1703,7 +1703,7 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/mutfunc.pm",
       "requires_data" => 1,
       "params"  => [
-        "#db=/path/to/mutfunc_human_data.db",
+        "#db=/path/to/mutfunc_data.db",
         "@*"
       ],
       "species" => [
