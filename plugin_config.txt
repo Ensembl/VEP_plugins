@@ -1692,6 +1692,51 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # mutfunc
+    {
+      "key" => "mutfunc",
+      "label" => "mutfunc",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Protein annotation",
+      "helptip" => "mutfunc predicts destabilization effect of protein structure, interaction, regulatory region etc. caused by a variant",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/mutfunc.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#db=/path/to/mutfunc_data.db",
+        "@*"
+      ],
+      "species" => [
+        "homo_sapiens",
+        "saccharomyces_cerevisiae"
+      ],
+      "form" => [
+        {
+          "name" => "mutfunc_fields",
+          "label" => "Fields to include",
+          "helptip" => "Select which analysis you want to see in the output",
+          "value" => "",
+          "type" => "checklist",
+          "multiple" => 1,
+          "style" => "height:150px",
+          "values" => [
+            { "value" => "motif=1", "caption" => "Linear Motifs", "helptip" => "Effect on linear motifs", 'checked' => 1 },
+            { "value" => "int=1", "caption" => "Protein Interactions", "helptip" => "Effect on protein interactions", 'checked' => 1 },
+            { "value" => "mod=1", "caption" => "Protein Structure", "helptip" => "Effect on protein structure", 'checked' => 1 },
+            { "value" => "exp=1", "caption" => "Protein Structure (exp.)", "helptip" => "Effect on protein structure (experimental)", 'checked' => 1 }
+          ],
+        },
+        {
+          "name" => "mutfunc_extend",
+          "label" => "Extended output",
+          "helptip" => "By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.",
+          "value" => "extended=1",
+          "type" => "checkbox",
+          "style" => "height:150px"
+        }
+      ]
+    },
+
 
     ## OTHER
     ########
