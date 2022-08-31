@@ -98,14 +98,7 @@ limitations under the License.
  or with an option to also return the Mastermind URL (third flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,0,1
 
- Note: While running this plugin as default, i.e. filtering by mutation, if a variant doesn't affect 
-       the protein sequence, the citation data can be appended to a transcript with different consequence.
- Example
-  VEP: upstream_gene_variant
-  Mastermind: intronic
-  VEP output: var_1|1:154173185-154173187|C|ENSG00000143549|ENST00000368545|Transcript|upstream_gene_variant|
-    -|-|-|-|-|-|IMPACT=MODIFIER;DISTANCE=508;STRAND=-1;Mastermind_MMID3=TPM3:E62int;Mastermind_counts=1|1|1;
-
+ Note: when running VEP in offline mode Mastermind requires a fasta file (--fasta)
 
 =cut
 
@@ -227,6 +220,7 @@ sub run {
     if($data_value->{data}) {
 
       # convert to vcf format to compare the alleles
+      # the method to_VCF_record requires a fasta file in offline mode to be able to lookup the alleles
       if($vf->allele_string =~ /-/) {
         my $convert_to_vcf = $vf->to_VCF_record;
         $ref_allele = ${$convert_to_vcf}[3];
