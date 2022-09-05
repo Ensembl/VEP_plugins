@@ -56,6 +56,8 @@ package UTRannotator;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
+use Scalar::Util qw(looks_like_number);
+
 use strict;
 
 
@@ -64,21 +66,25 @@ sub feature_types {
 }
 
 sub new {
-        my $class = shift;
-        my $self = $class->SUPER::new(@_);
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    
+    printf "\nWarning: no FASTA file specified (--fasta). VEP running will take a long time." if ($self->config->{fasta} eq "");
 
-        printf "\nWarning: no FASTA file specified (--fasta). VEP running will take a long time." if ($self->config->{fasta} eq "");
+    my $param_hash = $self->params_to_hash();
 
-        my $param_hash = $self->params_to_hash();
-
-        if (-e $param_hash->{file}){
+    if (-e $param_hash->{file}){
             open my $fh, "<", $param_hash->{file} or die $!;
             my %uORF_evidence;
 
             while (<$fh>) {
                 chomp;
                 my ($chr, $pos, $gene, $strand, $type, $stop_pos) = split /\t/;
-                
+                next if $chr eq "chr" && $pos eq "pos";
+
+                die "$chr does not exist; Check your reference file." unless ($chr =~ m/^(chr*)/);
+                die "Position $pos is not a number; Check your reference file." unless looks_like_number($pos);
+
                 my $key = $chr . ":" . $pos; # chr has 'chr' prefix
                 $uORF_evidence{$key} = 1;
             }
@@ -87,10 +93,10 @@ sub new {
 
             $self->{uORF_evidence} = \%uORF_evidence;
         
-        } else {
-            printf "Warning: small ORF file not found. For human, you could use the curated list of uORFs found in the repository (https://github.com/Ensembl/UTRannotator):\n" .
-            "'uORF_starts_ends_GRCh37_PUBLIC.txt' for GRCh37 or 'uORF_starts_ends_GRCh38_PUBLIC.txt' for GRCh38.\n";
-        }
+    } else {
+        printf "Warning: small ORF file not found. For human, you could use the curated list of uORFs found in the repository (https://github.com/Ensembl/UTRannotator):\n" .
+        "'uORF_starts_ends_GRCh37_PUBLIC.txt' for GRCh37 or 'uORF_starts_ends_GRCh38_PUBLIC.txt' for GRCh38.\n";
+    }
 
     return $self;
 }
