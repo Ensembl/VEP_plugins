@@ -487,7 +487,7 @@ sub uSTOP_gained {
                     $uSTOP_gained_ref_StartDistanceToCDS = $utr_length - $start_pos;
                     $uSTOP_gained_newSTOPDistanceToCDS = $mut_utr_length - $mut_stop;
 
-                    #find evidence from sorfs.org
+                    #find evidence in added reference file
 
                     $uSTOP_gained_evidence = (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
@@ -981,7 +981,7 @@ sub uFrameshift {
                         $uFrameshift_alt_type_length = "NA";
                     }
 
-                    #find evidence from sorfs.org
+                    #find evidence in added reference file
 
                     $uFrameshift_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
