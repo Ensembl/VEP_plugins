@@ -110,7 +110,7 @@ sub get_header_info {
 sub run {
     my ($self, $tva) = @_;
 
-    #only annotate the effect if the variant is (1)5_prime_UTR_variant
+    #only annotate the effect if the variant is 5_prime_UTR_variant
 	return {} unless grep {$_->SO_term eq '5_prime_UTR_variant'}  @{$tva->get_all_OverlapConsequences};
 
     my $bvfo = $tva->base_variation_feature_overlap;
