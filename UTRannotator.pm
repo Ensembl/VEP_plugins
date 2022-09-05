@@ -79,7 +79,7 @@ sub new {
                 chomp;
                 my ($chr, $pos, $gene, $strand, $type, $stop_pos) = split /\t/;
                 
-                my $key = $chr . ":" . $pos; # chr has 'chr' proceeding
+                my $key = $chr . ":" . $pos; # chr has 'chr' prefix
                 $uORF_evidence{$key} = 1;
             }
 
