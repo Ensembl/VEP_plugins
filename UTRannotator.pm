@@ -1013,11 +1013,16 @@ sub uFrameshift {
 # Utils #
 #########
 
-sub count_number_ATG {
+=head2 count_number_ATG
 
-    #Description: count the number of existing ATGs in the five prime UTR sequence
-    #Return: two numbers: the number of uORFs and the number of oORFs
-    #Returntype: listref
+  Arg [1]    : $seq
+  Description: Count the number of existing ATGs in the five prime UTR sequence.
+  Return: returns the number of uORFs and the number of oORFs
+  Returntype : listref
+
+=cut
+
+sub count_number_ATG {
 
     my ($self,$seq) = @_;
     my @sequence = split //, $seq;
@@ -1062,9 +1067,19 @@ sub count_number_ATG {
 
 }
 
+
+=head2 existing_uORF
+
+  Arg [1]    : $seq
+  Description: obtaining the relative coordinates of start and end pos of existing uORF in the five prime UTR sequence.
+  Return: returns as the key the position of the first nucleotide of start codon and the value is all the positions of the first nucleotide of the stop codon.
+  Returntype : hashref
+
+=cut
+
+
 sub existing_uORF {
-    #Description: obtaining the relative coordinates of start and end pos of existing uORF in the five prime UTR sequence
-    #Return: hashref(key:the pos of the first nucleotide of start codon; value:all the positions of the first nucleotide of stop codon)
+    
     my ($self,$seq) = @_;
     my $length = @{$seq};
 
@@ -1089,6 +1104,17 @@ sub existing_uORF {
     return \%uORF;
 }
 
+
+=head2 get_ATG_pos
+
+  Arg [1]    : $seq
+  Description:  get all the relative position of A in ATG of the five prime UTR sequence
+  Return: returns ATG position in sequence.
+  Returntype : listref
+
+=cut
+
+
 sub get_ATG_pos {
 
       #Description: get all the relative position of A in ATG of the five prime UTR sequence
@@ -1105,9 +1131,19 @@ sub get_ATG_pos {
 
 }
 
+
+=head2 get_stopcodon_pos
+
+  Arg [1]    : $seq
+  Description:  get all the relative position of stop codons in the five prime UTR sequence
+  Return: returns stop-codon position in sequence.
+  Returntype : listref
+
+=cut
+
+
 sub get_stopcodon_pos {
-	#Description: get all the relative position of stop codons in the five prime UTR sequence
-	#Returntype: listref
+
 	my ($self,$seq) = @_;
 
   	my @sequence = @{$seq};
@@ -1152,10 +1188,17 @@ sub get_alt_coding {
 
 }
 
-sub mut_utr_sequence {
 
-    #Description: get the mutated five prime UTR sequence
-    #Returntype: a string of sequence
+=head2 mut_utr_sequence
+
+  Description:  get the mutated five prime UTR sequence
+  Return: Mutated UTR sequence
+  Returntype : String
+
+=cut
+
+
+sub mut_utr_sequence {
 
     my ($self,$seq,$mut_pos,$ref_coding,$alt_coding,$strand) = @_;
     my @sequence = @{$seq};
@@ -1187,7 +1230,7 @@ sub transform_hash_to_string {
 }
 
 sub utr_exon_position {
-    #give chr position, output utr position
+
     my ($self,$UTR_info) = @_;
     my @sorted_starts = @{$UTR_info->{start}};
     my @sorted_ends = @{$UTR_info->{end}};
@@ -1222,7 +1265,6 @@ sub utr_exon_position {
 }
 
 sub chr_position {
-    #give utr position, output chr position
 
     my ($self,$UTR_info) = @_;
     my @sorted_starts = @{$UTR_info->{start}};
