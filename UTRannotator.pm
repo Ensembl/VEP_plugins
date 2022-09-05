@@ -516,7 +516,7 @@ sub uSTOP_gained {
 
 sub uSTOP_lost {
 
-    # Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF(given that uORF doesn't not change)
+    # Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF (given that uORF does not not change)
 
     my ($self, $variant_info, $UTR_info, %kozak_strength) = @_;
 
