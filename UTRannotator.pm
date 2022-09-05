@@ -98,7 +98,7 @@ sub new {
 sub get_header_info {
 
 	my $self->{_header_info} = {
-	     five_prime_UTR_variant_consequence => "Output the variant consequences of a given 5 prime UTR variant: uAUG_gained, uAUG_lost, uSTOP_lost or uFrameshift",
+	     five_prime_UTR_variant_consequence => "Output the variant consequences of a given 5 prime UTR variant: uAUG_gained, uSTOP_gained, uAUG_lost, uSTOP_lost or uFrameshift",
 	     five_prime_UTR_variant_annotation => "Output the annotation of a given 5 prime UTR variant",
          existing_uORFs => 'The number of existing uORFs with a stop codon within the 5 prime UTR',
          existing_OutOfFrame_oORFs => 'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR',
