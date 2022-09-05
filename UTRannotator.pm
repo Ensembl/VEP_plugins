@@ -1018,7 +1018,7 @@ sub uFrameshift {
   Arg [1]    : $seq
   Description: Count the number of existing ATGs in the five prime UTR sequence.
   Return: returns the number of uORFs and the number of oORFs
-  Returntype : listref
+  Returntype : hashref
 
 =cut
 
