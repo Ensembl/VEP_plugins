@@ -25,7 +25,7 @@ limitations under the License.
 =head1 SYNOPSIS
  
     mv UTRannotator.pm ~/.vep/Plugins
-    vep -i variations.vcf --tab --plugin UTRannotator,/path/to/uORF_starts_ends_GRCh37_PUBLIC.txt
+    vep -i variations.vcf --tab --plugin UTRannotator,file=/path/to/uORF_starts_ends_GRCh37_PUBLIC.txt
 
 =head1 DESCRIPTION
  
