@@ -264,8 +264,7 @@ sub uAUG_gained {
   my $output_effects = "";
 
   my $ref_coding = $self->get_ref_coding($ref);
-  my $alt_coding = $alt eq "-"? "" : $alt;
-  reverse_comp(\$alt_coding) if($strand < 0);
+  my $alt_coding = $self->get_alt_coding($alt,$strand);
 
   my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
   return {} unless(defined($mut_pos)&defined($end_pos));
@@ -408,8 +407,7 @@ sub uSTOP_gained {
     my %existing_ref_uORF = %{$self->existing_uORF(\@sequence)};
 
     my $ref_coding = $self->get_ref_coding($ref);
-    my $alt_coding = $alt eq "-"? "" : $alt;
-    reverse_comp(\$alt_coding) if($strand < 0);
+    my $alt_coding = $self->get_alt_coding($alt,$strand);
 
     #only evaluate SNVs and MNVs, for deletion and insertion it would be evaluated in the uframeshift
     return{} unless(length($ref_coding) eq length($alt_coding));
