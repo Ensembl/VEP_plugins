@@ -179,11 +179,33 @@ sub run {
         "cds_seq" => $cds,
   );
 
-  my %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info)};
-  my %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info)};
-  my %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info)};
-  my %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info)};
-  my %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info)};
+  $self->{ref_coding} = $self->get_ref_coding($ref);
+  $self->{alt_coding} = $self->get_alt_coding($alt,$tr_strand);
+  
+  my %uAUG_gained = {};
+  my %uSTOP_lost = {};
+  my %uAUG_lost = {};
+  my %uSTOP_gained = {};
+  my %uFrameshift = {};
+  my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($tr_strand, $pos, $self->{ref_coding}, \%UTR_info);
+
+  if(defined($mut_pos) && defined($end_pos)) {
+
+    my @sequence = split //, $five_prime_seq;
+    my $mut_utr_seq = $self->mut_utr_sequence(
+        \@sequence,$mut_pos,
+        $self->{ref_coding},
+        $self->{alt_coding},
+        $tr_strand
+    );
+    
+    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info)};
+    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info)};
+    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info)};
+    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info)};
+    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info)};
+
+  }
 
   my %five_prime_flag = (
         "uAUG_gained" => $uAUG_gained{'uAUG_gained_flag'},
@@ -263,8 +285,8 @@ sub uAUG_gained {
   my $output_flag = "";
   my $output_effects = "";
 
-  my $ref_coding = $self->get_ref_coding($ref);
-  my $alt_coding = $self->get_alt_coding($alt,$strand);
+  my $ref_coding = $self->{ref_coding};
+  my $alt_coding = $self->{ref_coding};
 
   my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
   return {} unless(defined($mut_pos)&defined($end_pos));
@@ -406,8 +428,8 @@ sub uSTOP_gained {
 
     my %existing_ref_uORF = %{$self->existing_uORF(\@sequence)};
 
-    my $ref_coding = $self->get_ref_coding($ref);
-    my $alt_coding = $self->get_alt_coding($alt,$strand);
+    my $ref_coding = $self->{ref_coding};
+    my $alt_coding = $self->{alt_coding};
 
     #only evaluate SNVs and MNVs, for deletion and insertion it would be evaluated in the uframeshift
     return{} unless(length($ref_coding) eq length($alt_coding));
@@ -562,8 +584,8 @@ sub uSTOP_lost {
 
     my @stop_codons = ("TAA","TGA","TAG");
 
-    my $ref_coding = $self->get_ref_coding($ref);
-    my $alt_coding = $self->get_alt_coding($alt,$strand);
+    my $ref_coding = $self->{ref_coding};
+    my $alt_coding = $self->{alt_coding};
 
     #if it's a deletion at the boundary of exon and intron, we would skip the annotation
 
@@ -723,8 +745,8 @@ sub uAUG_lost {
     my %result = (); #result is a hash table with two elements: $flag and $output_effects
     my $output_effects="";
 
-    my $ref_coding = $self->get_ref_coding($ref);
-    my $alt_coding = $self->get_alt_coding($alt,$strand);
+    my $ref_coding = $self->{ref_coding};
+    my $alt_coding = $self->{alt_coding};
 
     my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
     return {} unless(defined($mut_pos)&defined($end_pos));
@@ -878,8 +900,8 @@ sub uFrameshift {
     my %result = (); #result is a hash table with two elements: $flag and $output_effects
     my $output_effects="";
 
-    my $ref_coding = $self->get_ref_coding($ref);
-    my $alt_coding = $self->get_alt_coding($alt,$strand);
+    my $ref_coding = $self->{ref_coding};
+    my $alt_coding = $self->{alt_coding};
 
 	#skip alleles with same length
 	return {} unless(length($ref_coding) ne length($alt_coding));
