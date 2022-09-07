@@ -261,8 +261,6 @@ sub uAUG_gained {
   my $ref = $variant_info->{ref};
   my $alt = $variant_info->{alt};
 
-  my %kozak_strength = $self->{kozak_strength};
-
   my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
 
@@ -334,7 +332,7 @@ sub uAUG_gained {
     }
 
     $uAUG_gained_KozakContext=$current_kozak;
-    $uAUG_gained_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+    $uAUG_gained_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
 
     ################################################################################
@@ -396,8 +394,6 @@ sub uSTOP_gained {
   my $pos = $variant_info->{pos};
   my $ref = $variant_info->{ref};
   my $alt = $variant_info->{alt};
-
-  my %kozak_strength = $self->{kozak_strength};
 
   my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
@@ -492,7 +488,7 @@ sub uSTOP_gained {
                     }
 
                     $uSTOP_gained_KozakContext=$current_kozak;
-                    $uSTOP_gained_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+                    $uSTOP_gained_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
 
                     #the annotation of the original uORF
@@ -544,8 +540,6 @@ sub uSTOP_lost {
     my $pos = $variant_info->{pos};
     my $ref = $variant_info->{ref};
     my $alt = $variant_info->{alt};
-
-    my %kozak_strength = $self->{kozak_strength};
 
     my @sequence = split //, $UTR_info->{seq};
     my $strand = $UTR_info->{strand};
@@ -630,7 +624,7 @@ sub uSTOP_lost {
                     }
 
                     $uSTOP_lost_KozakContext=$current_kozak;
-                    $uSTOP_lost_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+                    $uSTOP_lost_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
                     #if there is an alternative stop codon in the mutant uORF sequence
                     my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
@@ -696,8 +690,6 @@ sub uAUG_lost {
     my $pos = $variant_info->{pos};
     my $ref = $variant_info->{ref};
     my $alt = $variant_info->{alt};
-
-    my %kozak_strength = $self->{kozak_strength};
 
     my @sorted_starts = @{$UTR_info->{start}};
     my @sequence = split //, $UTR_info->{seq};
@@ -779,7 +771,7 @@ sub uAUG_lost {
                 }
             }
             $uAUG_lost_KozakContext=$current_kozak;
-            $uAUG_lost_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+            $uAUG_lost_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
             #check what kind of uORF does that correspond to?
             #first check whether it's overlapping with CDS
@@ -847,8 +839,6 @@ sub uFrameshift {
     my $pos = $variant_info->{pos};
     my $ref = $variant_info->{ref};
     my $alt = $variant_info->{alt};
-
-    my %kozak_strength = $self->{kozak_strength};
 
     my @sequence = split //, $UTR_info->{seq};
     my $strand = $UTR_info->{strand};
@@ -944,7 +934,7 @@ sub uFrameshift {
                     }
 
                     $uFrameshift_KozakContext=$current_kozak;
-                    $uFrameshift_KozakStrength=$kozak_strength{$current_kozak_strength}? $kozak_strength{$current_kozak_strength}:$current_kozak_strength;
+                    $uFrameshift_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
 
                     #the annotation of the original uORF
