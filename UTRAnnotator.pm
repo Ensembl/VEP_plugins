@@ -20,12 +20,12 @@ limitations under the License.
 
 =head1 NAME
 
-    UTRannotator
+    UTRAnnotator
 
 =head1 SYNOPSIS
  
-    mv UTRannotator.pm ~/.vep/Plugins
-    vep -i variations.vcf --tab --plugin UTRannotator,file=/path/to/uORF_starts_ends_GRCh37_PUBLIC.txt
+    mv UTRAnnotator.pm ~/.vep/Plugins
+    vep -i variations.vcf --tab --plugin UTRAnnotator,file=/path/to/uORF_starts_ends_GRCh37_PUBLIC.txt
 
 =head1 DESCRIPTION
  
@@ -34,7 +34,7 @@ limitations under the License.
 
     Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
-    file                : Path to UTRannotator data file.
+    file                : Path to UTRAnnotator data file.
                         - Download from https://github.com/Ensembl/UTRannotator
                         - Download from http://www.sorfs.org/
 
@@ -44,14 +44,14 @@ limitations under the License.
 
     Whiffin, N., Karczewski, K.J., Zhang, X. et al. Characterising the loss-of-function impact of 5’ untranslated region variants in 15,708 individuals. Nat Commun 11, 2523 (2020). https://doi.org/10.1038/s41467-019-10717-9
 
-    About UTRannotator:
+    About UTRAnnotator:
 
     Annotating high-impact 5'untranslated region variants with the UTRannotator Zhang, X., Wakeling, M.N., Ware, J.S, Whiffin, N. Bioinformatics; doi: https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa783/5905476
 
 =cut
 
 
-package UTRannotator;
+package UTRAnnotator;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
