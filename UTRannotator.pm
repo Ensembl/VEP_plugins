@@ -199,11 +199,11 @@ sub run {
         $tr_strand
     );
     
-    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info)};
-    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info)};
-    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info)};
-    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info)};
-    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info)};
+    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq)};
+    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq)};
+    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq)};
+    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq)};
+    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq)};
 
   }
 
@@ -255,7 +255,7 @@ sub run {
 sub uAUG_gained {
   # Description: annotate if a five_prime_UTR_variant creates ATG
 
-  my ($self, $variant_info,$UTR_info) = @_;
+  my ($self, $variant_info,$UTR_info, $mut_pos, $mut_utr_seq) = @_;
 
   my $pos = $variant_info->{pos};
   my $ref = $variant_info->{ref};
@@ -288,10 +288,6 @@ sub uAUG_gained {
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{ref_coding};
 
-  my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
-  return {} unless(defined($mut_pos)&defined($end_pos));
-
-  my $mut_utr_seq = $self->mut_utr_sequence(\@sequence,$mut_pos,$ref_coding,$alt_coding,$strand);
   my @mut_utr_seq = split //,$mut_utr_seq;
   my $mut_utr_length = @mut_utr_seq;
 
@@ -394,7 +390,7 @@ sub uAUG_gained {
 sub uSTOP_gained {
   # Description: annotate whether a five_prime_UTR_variant creates new stop codon. It only evaluate SNVs.
 
-  my ($self, $variant_info,$UTR_info) = @_;
+  my ($self, $variant_info,$UTR_info, $mut_pos, $end_pos, $mut_utr_seq) = @_;
 
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
@@ -435,11 +431,6 @@ sub uSTOP_gained {
     return{} unless(length($ref_coding) eq length($alt_coding));
     # the length of the 5'UTR won't change so as the coordinates of the nts
 
-
-	my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
-    return {} unless(defined($mut_pos)&defined($end_pos));
-
-	my $mut_utr_seq = $self->mut_utr_sequence(\@sequence, $mut_pos, $ref_coding, $alt_coding, $strand);
   	my @mut_utr_seq = split //,$mut_utr_seq;
     my $mut_utr_length = @mut_utr_seq;
     my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
@@ -547,7 +538,7 @@ sub uSTOP_lost {
 
     # Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF (given that uORF does not not change)
 
-    my ($self, $variant_info, $UTR_info) = @_;
+    my ($self, $variant_info, $UTR_info, $mut_pos, $mut_utr_seq) = @_;
 
     my $chr = $variant_info->{chr};
     my $pos = $variant_info->{pos};
@@ -587,12 +578,6 @@ sub uSTOP_lost {
     my $ref_coding = $self->{ref_coding};
     my $alt_coding = $self->{alt_coding};
 
-    #if it's a deletion at the boundary of exon and intron, we would skip the annotation
-
-    my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
-    return {} unless(defined($mut_pos)&defined($end_pos));
-
-	my $mut_utr_seq = $self->mut_utr_sequence(\@sequence,$mut_pos,$ref_coding,$alt_coding,$strand);
   	my @mut_utr_seq = split //,$mut_utr_seq;
     my $length = @mut_utr_seq;
 
@@ -607,12 +592,10 @@ sub uSTOP_lost {
 
             next if ($mut_pos-$stop_pos>2);
 
+            #for snps and deletion
+            next if (defined($ref_coding) & $mut_pos+length($ref_coding)-1<$stop_pos);
 
-            if (length($ref_coding)){
-                #for snps and deletion
-                next if ($mut_pos+length($ref_coding)-1<$stop_pos);
-                next if ($mut_pos<$stop_pos);   #for insertion
-            }
+            next if ($mut_pos<$stop_pos & !defined($ref_coding));   #for insertion
 
             #for deletion, it definitely disrupting the stop codon.
             if (length($alt_coding) eq 0) {
@@ -707,7 +690,7 @@ sub uSTOP_lost {
 sub uAUG_lost {
     # Description: annotate if a five_prime_UTR_varint removes a start codon of an existing uORF
 
-    my ($self, $variant_info, $UTR_info) = @_;
+    my ($self, $variant_info, $UTR_info, $mut_pos, $mut_utr_seq) = @_;
 
     my $chr = $variant_info->{chr};
     my $pos = $variant_info->{pos};
@@ -748,11 +731,6 @@ sub uAUG_lost {
     my $ref_coding = $self->{ref_coding};
     my $alt_coding = $self->{alt_coding};
 
-    my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
-    return {} unless(defined($mut_pos)&defined($end_pos));
-
-
-	my $mut_utr_seq = $self->mut_utr_sequence(\@sequence,$mut_pos,$ref_coding,$alt_coding,$strand);
   	my @mut_utr_seq = split //,$mut_utr_seq;
 
     my @start = @{$self->get_ATG_pos(\@sequence)};
@@ -863,7 +841,7 @@ sub uFrameshift {
 
     # Description: annotate if a five_prime_UTR_varint create a frameshift in existing uORFs
 
-    my ($self, $variant_info, $UTR_info) = @_;
+    my ($self, $variant_info, $UTR_info, $mut_pos, $end_pos, $mut_utr_seq) = @_;
 
     my $chr = $variant_info->{chr};
     my $pos = $variant_info->{pos};
@@ -906,12 +884,8 @@ sub uFrameshift {
 	#skip alleles with same length
 	return {} unless(length($ref_coding) ne length($alt_coding));
 
- 	my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($strand, $pos, $ref_coding, $UTR_info);
-    return {} unless(defined($mut_pos)&defined($end_pos));
-
     #if it's a deletion at the boundary of exon and intron, we would skip the annotation
 
-	my $mut_utr_seq = $self->mut_utr_sequence(\@sequence,$mut_pos,$ref_coding,$alt_coding,$strand);
   	my @mut_utr_seq = split //,$mut_utr_seq;
     my $length = @mut_utr_seq;
 
