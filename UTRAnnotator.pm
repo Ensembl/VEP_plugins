@@ -111,7 +111,8 @@ sub new {
 sub get_header_info {
 
   my $self->{_header_info} = {
-        five_prime_UTR_variant_consequence => "Output the variant consequences of a given 5 prime UTR variant: uAUG_gained, uSTOP_gained, uAUG_lost, uSTOP_lost or uFrameshift",
+        five_prime_UTR_variant_consequence => "Output the variant consequences of a given 5 prime UTR variant: 5_prime_UTR_premature_start_codon_gain_variant, " . 
+        "5_prime_UTR_stop_codon_gain_variant, 5_prime_UTR_premature_start_codon_loss_variant, 5_prime_UTR_stop_codon_loss_variant or 5_prime_UTR_uORF_frameshift_variant",
         five_prime_UTR_variant_annotation => "Output the annotation of a given 5 prime UTR variant",
         existing_uORFs => 'The number of existing uORFs with a stop codon within the 5 prime UTR',
         existing_OutOfFrame_oORFs => 'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR',
@@ -375,7 +376,7 @@ sub uAUG_gained {
             "uAUG_gained_CapDistanceToStart" => $uAUG_gained_DistanceFromCap,
     );
 
-    $output_flag = "uAUG_gained";
+    $output_flag = "5_prime_UTR_premature_start_codon_gain_variant";
     $output_effects = $self->transform_hash_to_string(\%uORF_effect);
   }
 
@@ -516,7 +517,7 @@ sub uSTOP_gained {
                         "uSTOP_gained_Evidence" => $uSTOP_gained_evidence,
                     );
 
-                    $output_flag = $output_flag? $output_flag."&"."uSTOP_gained":"uSTOP_gained";
+                    $output_flag = $output_flag? $output_flag."&"."5_prime_UTR_stop_codon_gain_variant":"5_prime_UTR_stop_codon_gain_variant";
                     $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
             }
 
@@ -664,7 +665,7 @@ sub uSTOP_lost {
                         "uSTOP_lost_Evidence" => $uSTOP_lost_evidence,
                     );
 
-                    $output_flag = $output_flag? $output_flag."&"."uSTOP_lost":"uSTOP_lost";
+                    $output_flag = $output_flag? $output_flag."&"."5_prime_UTR_stop_codon_loss_variant":"5_prime_UTR_stop_codon_loss_variant";
                     $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
 
                 }
@@ -813,7 +814,7 @@ sub uAUG_lost {
                 "uAUG_lost_Evidence" => $uAUG_lost_evidence,
                 );
 
-            $output_flag = $output_flag? $output_flag."&"."uAUG_lost":"uAUG_lost";
+            $output_flag = $output_flag? $output_flag."&"."5_prime_UTR_premature_start_codon_loss_variant": "5_prime_UTR_premature_start_codon_loss_variant";
             $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
 
         }
@@ -995,7 +996,7 @@ sub uFrameshift {
                         "uFrameShift_Evidence" => $uFrameshift_evidence,
                     );
 
-                    $output_flag = $output_flag? $output_flag."&"."uFrameShift":"uFrameShift";
+                    $output_flag = $output_flag? $output_flag . "&" . "5_prime_UTR_uORF_frameshift_variant": "5_prime_UTR_uORF_frameshift_variant";
                     $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
                 }
 
