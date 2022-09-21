@@ -92,6 +92,7 @@ limitations under the License.
 
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
                          Do not set if filtering by HGNC_id.
+                         This option is set to 1 when using PanelApp files. 
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
@@ -239,6 +240,13 @@ sub new {
   }
   else {
     $file = $params->{file};
+    open IN, "<",  $file;
+    # supporting panelapp by always filtering by gene symbol if PanelApp file 
+    while (<IN>){
+      $params->{filter_by_gene_symbol} = 1 if (/Model_Of_Inheritance/);
+      last;
+    }
+    close $file;
 
     # process types
     if ($params->{types}) {
@@ -703,7 +711,7 @@ sub variants_filtered_by_frequency_threshold {
   foreach my $variant (@$variants) {
     # get the highest frequency that has been observed for the variant
     my $highest_frequency = $self->highest_frequency($variant);
-    if (! defined $highest_frequency || $highest_frequency <= $af_threshold ||
+    if (! defined $highest_frequency || (defined $af_threshold && $highest_frequency <= $af_threshold) ||
          $self->{g2p_vf_cache}->{$variant}->{is_on_variant_include_list}
     ) {
       push @pass_variants, $variant;
@@ -1427,12 +1435,14 @@ sub write_report {
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
     my $hgnc_id = "HGNC:".@{$hgnc}[0].";" if (defined $hgnc);
     my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
-    my $category = "G2P confidence category:".@{$con_category}[0];
+    my $category = "G2P confidence category:".@{$con_category}[0] if defined ($con_category);
     # if statements to determine what should be printed based on $hgnc and $conf 
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n" if (defined $hgnc_id && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf & defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n"  if (!defined $hgnc_id && !defined $conf && !defined $category);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
