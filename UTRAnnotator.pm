@@ -127,14 +127,12 @@ sub run {
   #only annotate the effect if the variant is 5_prime_UTR_variant
   return {} unless grep {$_->SO_term eq '5_prime_UTR_variant'}  @{$tva->get_all_OverlapConsequences};
 
-  my $bvfo = $tva->base_variation_feature_overlap;
-  my $bvfoa = $tva;
-
   #retrieve the variant info
   my $vf = $tva->variation_feature;
   my $chr = ($vf->{chr}||$vf->seq_region_name);
   my $pos = ($vf->{start}||$vf->seq_region_start);
-  my $ref = $bvfo->get_reference_VariationFeatureOverlapAllele->variation_feature_seq;
+  my @alleles = split /\//, $vf->allele_string;
+  my $ref = shift @alleles;
   my $alt = $tva->variation_feature_seq;
   my %variant = (
         "chr" => $chr,
@@ -144,7 +142,7 @@ sub run {
   );
 
   #retrieve the UTR info: transcript id, strand, five prime UTR sequence, start and end genomic coordinates.
-  my $t = $bvfo->transcript;
+  my $t = $tva->transcript;
   my $transcript_id = (defined $t? $t->stable_id: undef);
 
   #retrieve the gene symbol of the transcript
@@ -239,8 +237,8 @@ sub run {
   @output_five_prime_annotation=("-") if(!@output_five_prime_annotation);
 
   my %utr_effect = (
-        "five_prime_UTR_variant_consequence" => (join "&", @output_five_prime_flag),
-        "five_prime_UTR_variant_annotation" => (join "&", @output_five_prime_annotation),
+        "UTRAnnotator_five_prime_UTR_variant_consequence" => (join "&", @output_five_prime_flag),
+        "UTRAnnotator_five_prime_UTR_variant_annotation" => (join "&", @output_five_prime_annotation),
   );
 
   my $existing_uORF_num = $self->count_number_ATG($five_prime_seq);
