@@ -111,12 +111,12 @@ sub new {
 sub get_header_info {
 
   my $self->{_header_info} = {
-        five_prime_UTR_variant_consequence => "Output the variant consequences of a given 5 prime UTR variant: 5_prime_UTR_premature_start_codon_gain_variant, " . 
-        "5_prime_UTR_stop_codon_gain_variant, 5_prime_UTR_premature_start_codon_loss_variant, 5_prime_UTR_stop_codon_loss_variant or 5_prime_UTR_uORF_frameshift_variant",
-        five_prime_UTR_variant_annotation => "Output the annotation of a given 5 prime UTR variant",
-        existing_uORFs => 'The number of existing uORFs with a stop codon within the 5 prime UTR',
-        existing_OutOfFrame_oORFs => 'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR',
-        existing_InFrame_oORFs => 'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR',
+        UTRAnnotator_five_prime_UTR_variant_consequence => "'Output the variant consequences of a given 5 prime UTR variant: 5_prime_UTR_premature_start_codon_gain_variant, " . 
+        "5_prime_UTR_stop_codon_gain_variant, 5_prime_UTR_premature_start_codon_loss_variant, 5_prime_UTR_stop_codon_loss_variant or 5_prime_UTR_uORF_frameshift_variant'",
+        UTRAnnotator_five_prime_UTR_variant_annotation => "'Output the annotation of a given 5 prime UTR variant'",
+        UTRAnnotator_existing_uORFs => "'The number of existing uORFs with a stop codon within the 5 prime UTR'",
+        UTRAnnotator_existing_OutOfFrame_oORFs => "'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR'",
+        UTRAnnotator_existing_InFrame_oORFs => "'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR'",
   };
   return $self->{_header_info};
 }
