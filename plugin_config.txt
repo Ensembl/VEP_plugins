@@ -1621,6 +1621,18 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/StructuralVariantOverlap.pm"
     },
 
+    # UTRAnnotator
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/UTRAnnotator.pm
+    {
+      "key" => "UTRAnnotator",
+      "label" => "UTRAnnotator",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Structural variant data",
+      "helptip" => "A VEP plugin that annotates the effect of 5' UTR variant especially for variant creating/disrupting upstream ORFs.",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/UTRAnnotator.pm"
+    },
+
     ## TRANSCRIPT ANNOTATION
     ############
 
