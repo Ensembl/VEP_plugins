@@ -16,7 +16,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "dbNSFP provides pathogenicity predictions for missense variants from various algorithms",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/dbNSFP.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/dbNSFP.pm",
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
@@ -698,7 +698,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "Combined Annotation Dependent Depletion (CADD) is a tool for scoring the deleteriousness of single nucleotide variants and insertion/deletion variants in the human genome. CADD integrates multiple annotations into one metric by contrasting variants that survived natural selection with simulated mutations.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/CADD.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/CADD.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -720,7 +720,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "Consequence-Agnostic Pathogenicity Interpretation of Clinical Exome variations (CAPICE) is a tool for scoring the pathogenicity of single nucleotide variants and insertion/deletion variants in the human genome. CAPICE uses a gradient boosting tree model trained with multiple genomic annotations used by CADD score and based on clinical significance.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/CAPICE.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/CAPICE.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -738,7 +738,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/FATHMM.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/FATHMM.pm"
     },
 
     # FATHMM-MKL
@@ -753,7 +753,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "FATHMM-MKL predicts functional consequences of variants, both coding and non-coding.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/FATHMM_MKL.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/FATHMM_MKL.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -807,7 +807,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Carol.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Carol.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -825,7 +825,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Condel.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Condel.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -873,7 +873,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/LoFtool.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/LoFtool.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -891,7 +891,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/pLI.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/pLI.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -909,7 +909,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/MPC.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/MPC.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -927,7 +927,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/MTR.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/MTR.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -945,7 +945,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/PrimateAI.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/PrimateAI.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -963,7 +963,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/REVEL.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/REVEL.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -980,7 +980,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/PON_P2.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/PON_P2.pm"
     },
 
     # ClinPred
@@ -991,7 +991,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/ClinPred.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/ClinPred.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -1010,7 +1010,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/LOEUF.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/LOEUF.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -1035,7 +1035,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
       "helptip" => "EVE (evolutionary model of variant effect) is a computational method for the classification of human genetic variants trained solely on evolutionary sequences.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/EVE.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/EVE.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -1056,7 +1056,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Splicing predictions",
       "helptip" => "Retrieves data for splicing variants from a tabix-indexed dbscSNV file",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/dbscSNV.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/dbscSNV.pm",
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
@@ -1075,7 +1075,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/GeneSplicer.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/GeneSplicer.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -1095,7 +1095,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/MaxEntScan.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/MaxEntScan.pm",
       "requires_install" => 1,
       "species" => [
         "homo_sapiens"
@@ -1113,7 +1113,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/SpliceRegion.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/SpliceRegion.pm",
     },
 
     # SpliceAI
@@ -1124,7 +1124,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Splicing predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/SpliceAI.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/SpliceAI.pm",
       "form" => [
         {
           "name" => "file_type",
@@ -1152,7 +1152,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Conservation",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Blosum62.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Blosum62.pm",
     },
 
     # Conservation
@@ -1174,7 +1174,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Conservation",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Conservation.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Conservation.pm",
       "params" => [
         "@*"
       ],
@@ -1210,7 +1210,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Conservation",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/AncestralAllele.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/AncestralAllele.pm",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
@@ -1232,7 +1232,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/ExAC.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/ExAC.pm",
       "section" => "Frequency data",
       "requires_data" => 1,
       "species" => [
@@ -1251,7 +1251,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Frequency data",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/gnomADc.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/gnomADc.pm",
       "requires_data" => 1,
        "species" => [
         "homo_sapiens"
@@ -1272,7 +1272,7 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Phenotypes.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Phenotypes.pm",
       "params" => [
         #"/path/to/Phenotypes_data_files/phenotypes_dir_with_dumps_for_all_species.gvf.gz"
       ]
@@ -1285,7 +1285,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Retrieves Gene Ontology terms associated with transcripts/translations",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/GO.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/GO.pm",
       "section" => "Phenotype data and citations",
       "params" => [
         #"/path/to/GO_data_dir"
@@ -1301,7 +1301,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "requires_data" => 1,
       "section" => "Phenotype data and citations",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/G2P.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/G2P.pm",
     },
 
     # PostGAP
@@ -1311,7 +1311,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Phenotype data and citations",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/PostGAP.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/PostGAP.pm"
     },
 
     # satMutMPRA
@@ -1321,7 +1321,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Phenotype data and citations",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/satMutMPRA.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/satMutMPRA.pm",
     },
 
     # DisGeNET
@@ -1334,7 +1334,7 @@ my $VEP_PLUGIN_CONFIG = {
       "species" => [
         "homo_sapiens"
       ],
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/DisGeNET.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/DisGeNET.pm",
     },
 
     # Mastermind
@@ -1348,7 +1348,7 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "section" => "Phenotype data and citations",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Mastermind.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Mastermind.pm"
     },
 
 
@@ -1363,7 +1363,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Finds variants in linkage disequilibrium with any overlapping existing variants from the Ensembl variation databases",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/LD.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/LD.pm",
       "section" => "Variant data",
       "params" => [
         "@*"
@@ -1419,7 +1419,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports existing variants that fall in the same codon",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/SameCodon.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/SameCodon.pm",
       "section" => "Variant data",
     },
 
@@ -1430,7 +1430,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Retrieves LOVD variation data",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/LOVD.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/LOVD.pm",
       "section" => "Variant data",
     },
 
@@ -1441,7 +1441,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Variant data",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/SubsetVCF.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/SubsetVCF.pm"
     },
 
 
@@ -1457,7 +1457,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Nearby features",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/NearestGene.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/NearestGene.pm",
     },
 
     # NearestExonJB
@@ -1467,7 +1467,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Nearby features",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/NearestExonJB.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/NearestExonJB.pm"
     },
 
     # Downstream
@@ -1478,7 +1478,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Nearby features",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Downstream.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Downstream.pm",
     },
 
     # TSSDistance
@@ -1489,7 +1489,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Nearby features",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/TSSDistance.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/TSSDistance.pm",
     },
 
 
@@ -1505,7 +1505,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Sequence",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/ProteinSeqs.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/ProteinSeqs.pm",
     },
 
     # ReferenceQuality
@@ -1515,7 +1515,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Sequence",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/ReferenceQuality.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/ReferenceQuality.pm"
     },
 
 
@@ -1532,7 +1532,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "requires_install" => 1,
       "section" => "Visualisation",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/Draw.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Draw.pm",
     },
 
 
@@ -1548,7 +1548,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Look up",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/LocalID.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/LocalID.pm",
     },
 
 
@@ -1563,7 +1563,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "External ID",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/FlagLRG.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/FlagLRG.pm"
     },
 
 
@@ -1578,7 +1578,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Motif",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/FunMotifs.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/FunMotifs.pm"
     },
 
 
@@ -1593,7 +1593,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "HGVS",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/HGVSIntronOffset.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/HGVSIntronOffset.pm"
     },
 
     # SingleLetterAA
@@ -1603,7 +1603,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "HGVS",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/SingleLetterAA.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/SingleLetterAA.pm"
     },
 
 
@@ -1618,7 +1618,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Structural variant data",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/StructuralVariantOverlap.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/StructuralVariantOverlap.pm"
     },
 
     # UTRAnnotator
@@ -1643,7 +1643,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Transcript annotation",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/NMD.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/NMD.pm"
     },
 
     ## PROTEIN DATA
@@ -1658,7 +1658,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Protein data",
       "requires_data" => 1,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/neXtProt.pm"
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/neXtProt.pm"
     },
 
     ## PROTEIN ANNOTATION
@@ -1672,7 +1672,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Protein annotation",
       "helptip" => "IntAct provides molecular interaction data for variants as reported by IntAct database",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/IntAct.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/IntAct.pm",
       "requires_data" => 1,
       "params"  => [
         "#mapping_file=/path/to/mutation_gc_map.txt.gz",
@@ -1704,6 +1704,51 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # mutfunc
+    {
+      "key" => "mutfunc",
+      "label" => "mutfunc",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Protein annotation",
+      "helptip" => "mutfunc predicts destabilization effect of protein structure, interaction, regulatory region etc. caused by a variant",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/mutfunc.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#db=/path/to/mutfunc_data.db",
+        "@*"
+      ],
+      "species" => [
+        "homo_sapiens",
+        "saccharomyces_cerevisiae"
+      ],
+      "form" => [
+        {
+          "name" => "mutfunc_fields",
+          "label" => "Fields to include",
+          "helptip" => "Select which analysis you want to see in the output",
+          "value" => "",
+          "type" => "checklist",
+          "multiple" => 1,
+          "style" => "height:150px",
+          "values" => [
+            { "value" => "motif=1", "caption" => "Linear Motifs", "helptip" => "Effect on linear motifs", 'checked' => 1 },
+            { "value" => "int=1", "caption" => "Protein Interactions", "helptip" => "Effect on protein interactions", 'checked' => 1 },
+            { "value" => "mod=1", "caption" => "Protein Structure", "helptip" => "Effect on protein structure", 'checked' => 1 },
+            { "value" => "exp=1", "caption" => "Protein Structure (exp.)", "helptip" => "Effect on protein structure (experimental)", 'checked' => 1 }
+          ],
+        },
+        {
+          "name" => "mutfunc_extend",
+          "label" => "Extended output",
+          "helptip" => "By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.",
+          "value" => "extended=1",
+          "type" => "checkbox",
+          "style" => "height:150px"
+        }
+      ]
+    },
+
 
     ## OTHER
     ########
@@ -1714,7 +1759,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Reports Clinical Sequencing Nomenclature (CSN) for variants",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/CSN.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/CSN.pm",
     },
 
     # miRNA
@@ -1724,7 +1769,7 @@ my $VEP_PLUGIN_CONFIG = {
       "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/108/miRNA.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/miRNA.pm",
     }
 
   ]

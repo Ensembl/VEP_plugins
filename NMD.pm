@@ -24,7 +24,7 @@ limitations under the License.
 
 =head1 DESCRIPTION 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) 
- that predicts if a stop_gained variant allows the 
+ that predicts if a variant allows the 
  transcript escape nonsense-mediated mRNA decay based on certain rules.
  
  The rules are : 

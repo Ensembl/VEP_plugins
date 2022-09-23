@@ -64,13 +64,14 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
                          all available VCF collections are included. 
-                         Available VCF collections: topmed, uk10k, gnomADe, gnomADg, gnomADg_r3.0
-                         Separate multiple values with '&'
+                         Available VCF collections: topmed, uk10k, gnomADe, gnomADe_r2.1.1, gnomADg, gnomADg_v3.1.2.
+                         Separate multiple values with '&'.
                          VCF collections contain the following populations: 
-                         topmed: TOPMed
-                         uk10k: ALSPAC, TWINSUK
-                         gnomADe: gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS
-                         gnomADg: gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH
+                         topmed : TOPMed (available for GRCh37 and GRCh38).
+                         uk10k : ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
+                         gnomADe & gnomADe_r2.1.1 - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
+                         gnomADg & gnomADg_v3.1.2 - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
+                         Need to use af_from_vcf paramter to use this option. 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
@@ -90,14 +91,17 @@ limitations under the License.
   html_report          : write all G2P complete genes and attributes to html file
 
   filter_by_gene_symbol: set to 1 if filter by gene symbol.
-                         N/B: Do not set if filter by HGNC_id. 
+                         Do not set if filtering by HGNC_id.
+                         This option is set to 1 when using PanelApp files. 
 
+ For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
 
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys=topmed&gnomADg,confidence_levels='confirmed&probable&both RD and IF'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1'
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1',confidence_levels='confirmed&probable&both RD and IF'
+ 
  --plugin G2P,file=G2P.csv
 =cut
 
@@ -133,7 +137,7 @@ my %DEFAULTS = (
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
 
-  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADg gnomADg_r3.0)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -171,13 +175,17 @@ my $af_key_2_population_name = {
 my $allelic_requirements = {
   'biallelic' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
+  'biallelic_PAR' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_Y_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_het' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'mitochondrial' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_PAR' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
 };
 
 my $supported_confidence_levels = {
@@ -193,6 +201,27 @@ my $supported_confidence_levels = {
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
 
+# keys containing the assembly and the key to do a quick key and assembly lookup
+my $afvcf_keys = {
+    "uk10k_GRCh37" => 1, 
+    "uk10k_GRCh38" => 1, 
+    "topmed_GRCh37" => 1, 
+    "topmed_GRCh38" => 1,
+    "gnomADe_GRCh37" => 1, 
+    "gnomADe_r2.1.1_GRCh38" => 1,
+    "gnomADg_GRCh37" => 1, 
+    "gnomADg_v3.1.2_GRCh38" => 1
+};
+
+my $a_keys = {
+  "uk10k" => 1,
+  "topmed" => 1,
+  "gnomADe" => 1,
+  "gnomADe_r2.1.1" => 1,
+  "gnomADg" => 1,
+  "gnomADg_v3.1.2" => 1
+};
+
 sub new {
   my $class = shift;
 
@@ -203,6 +232,7 @@ sub new {
   my $params = $self->params_to_hash();
   my $file = '';
 
+
   # user only supplied file as first param?
   if (!keys %$params) {
     $file = $self->params->[0];
@@ -210,6 +240,13 @@ sub new {
   }
   else {
     $file = $params->{file};
+    open IN, "<",  $file;
+    # supporting panelapp by always filtering by gene symbol if PanelApp file 
+    while (<IN>){
+      $params->{filter_by_gene_symbol} = 1 if (/Model_Of_Inheritance/);
+      last;
+    }
+    close $file;
 
     # process types
     if ($params->{types}) {
@@ -283,14 +320,26 @@ sub new {
   if ($params->{af_from_vcf}) {
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
+      # adding a die if assembly is not used and af_from_vcf keys option is used
       my $assembly =  $self->{config}->{assembly};
+      die "Assembly needs to be defined to use af_from_vcf option" if (!defined ($assembly));
       if ($params->{af_from_vcf_keys}) {
         foreach my $key (split(/[\;\&\|]/, $params->{af_from_vcf_keys})) {
-          push @vcf_collection_ids, $key;
-          push @vcf_collection_ids, "$key\_$assembly";
+          my $key_assembly = $key."_".$assembly;
+          if (!$afvcf_keys->{$key_assembly}){
+            # to die if key is not supported, checking with the key and the assembly 
+            die "$key is not a supported key. Supported keys and assembly are: ", join(',', keys %$a_keys), ".\n
+                 gnomADe and gnomADg is supported for assembly GRCh37 \n
+                 gnomADe_r2.1.1 and gnomADg_v3.1.2 is supported for assembly GRCh38 \n" ;
+          }
+          else {
+            push @vcf_collection_ids, $key;
+            push @vcf_collection_ids, $key_assembly;
+          }
         }
       } else {
         foreach my $key (@{$DEFAULTS{af_from_vcf_keys}}) {
+          push @vcf_collection_ids, $key;
           push @vcf_collection_ids, "$key\_$assembly";
         }
       }
@@ -363,7 +412,6 @@ sub new {
   $self->{config}->{failed} = 1;
   $self->{config}->{af} = 1;
   $self->{config}->{af_1kg} = 1;
-  $self->{config}->{af_esp} = 1;
   $self->{config}->{af_gnomad} = 1;
   $self->{config}->{sift} = 'b';
   $self->{config}->{polyphen} = 'b';
@@ -663,7 +711,7 @@ sub variants_filtered_by_frequency_threshold {
   foreach my $variant (@$variants) {
     # get the highest frequency that has been observed for the variant
     my $highest_frequency = $self->highest_frequency($variant);
-    if (! defined $highest_frequency || $highest_frequency <= $af_threshold ||
+    if (! defined $highest_frequency || (defined $af_threshold && $highest_frequency <= $af_threshold) ||
          $self->{g2p_vf_cache}->{$variant}->{is_on_variant_include_list}
     ) {
       push @pass_variants, $variant;
@@ -696,7 +744,7 @@ sub gene_overlap_filtering {
     my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
     my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
     foreach my $gene_id ($hgnc_id){
-      foreach my $id (keys $self->{hgnc_mapping}) {
+      foreach my $id (keys %{$self->{hgnc_mapping}}) {
         if ( defined($gene_id) && $gene_id == $id) {
           my $gene_symbol = $self->{hgnc_mapping}{$id};
           my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
@@ -705,7 +753,9 @@ sub gene_overlap_filtering {
               foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
                 $self->{ar}->{$gene_stable_id}->{$ar} = 1;
               }
-              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'} );
+              # this is for the log data, G2P gene data is called in the write report 
+              # added in the write_report method also 
+              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'} );
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
             $pass_gene_overlap_filter = 1;
@@ -726,7 +776,7 @@ sub gene_overlap_filtering {
           foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
             $self->{ar}->{$gene_stable_id}->{$ar} = 1;
           } 
-          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'});
+          $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, undef,  $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'});
         } 
         $self->write_report('G2P_in_vcf', $gene_stable_id);
         $pass_gene_overlap_filter = 1;
@@ -1266,13 +1316,15 @@ sub read_gene_data_from_file {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
-        my $confidence_value = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
-        next if (!grep{$_ eq $confidence_value} @confidence_levels);
+        my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
+        next if (!grep{$_ eq $confidence_category} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"});
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
+        push @{$gene_data{$gene_symbol}->{"confidence_category"}}, $confidence_category;
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if ($tmp{"allelic requirement"});
+        push @{$gene_data{$gene_symbol}->{'confidence_value'}}, $tmp{"confidence value flag"}  if ($tmp{"confidence value flag"}); # adding the confidence value flag "Requires clinical review if defined"
       }
     }
     $fh->close;
@@ -1345,6 +1397,7 @@ sub hgnc_mappings {
   $self->{hgnc_mapping} = $hgnc_mapping;
   
 }
+
 =head2 write_report
 
   Arg [1]    : String $flag
@@ -1376,20 +1429,22 @@ sub write_report {
     my ($vf_name) = @_;
     print $fh "$flag\t$vf_name\n";
   } elsif ($flag eq 'G2P_gene_data') {
-    my ($gene_id, $gene_data, $gene_xrefs, $hgnc) = @_;
+    my ($gene_id, $gene_data, $gene_xrefs, $hgnc, $con_category, $con_flag) = @_;
     my $ar = join(',', @{$gene_data->{'allelic requirement'}});
     my %seen;
     $seen{$_} = 1 foreach @{$gene_xrefs};
     my @unique = keys %seen;
     my $xrefs = join(',', grep {$_ !~ /^ENS/} sort @unique);
-    my $hgnc_id = "HGNC:".@{$hgnc}[0] if (defined $hgnc);
-    if (defined $hgnc_id){
-      print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id), "\n";
-    }
-    else {
-      print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n";
-    }
-    
+    my $hgnc_id = "HGNC:".@{$hgnc}[0].";" if (defined $hgnc);
+    my $conf = "Note:".@{$con_flag}[0] if (defined $con_flag);
+    my $category = "G2P confidence category:".@{$con_category}[0] if defined ($con_category);
+    # if statements to determine what should be printed based on $hgnc and $conf 
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n" if (defined $hgnc_id && defined $conf);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf & defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf && defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n"  if (!defined $hgnc_id && !defined $conf && !defined $category);
   } elsif ($flag eq 'G2P_frequencies') {
     my ($vf_name, $frequencies) = @_;
     print $fh join("\t", $flag, $vf_name, join(',', @$frequencies)), "\n";
@@ -1860,21 +1915,21 @@ sub parse_log_files {
       }
       #G2P_gene_data ENSG00000141556 biallelic TBCD HGNC:15432 if not filter_by_gene_symbol
       elsif (/^G2P_gene_data/) {
-        my ($flag, $gene_id, $ars, $xrefs, $hgnc) = split/\t/;
+        my ($flag, $gene_id, $ars, $xrefs, $hgnc, $con_flag) = split/\t/;
         foreach my $ar (split(',', $ars)) {
           $ar_data->{$gene_id}->{$ar} = 1;
         }
         
         if (defined $hgnc && !defined $self->{user_params}->{filter_by_gene_symbol}){
-          my $x_hgnc = $xrefs . " " .$hgnc;
+          my $x_hgnc = $xrefs . " $hgnc  $con_flag" if (defined $con_flag);
+          $x_hgnc = $xrefs . " $hgnc " if (!defined $con_flag);
           $gene_xrefs->{$gene_id} = $x_hgnc;
         }
         if (!defined $hgnc && defined $self->{user_params}->{filter_by_gene_symbol} ) {
-          $gene_xrefs->{$gene_id} = $xrefs;
-
+          $gene_xrefs->{$gene_id} = $xrefs . " $con_flag" if (defined $con_flag) ;
+          $gene_xrefs->{$gene_id} = $xrefs if (!defined $con_flag);
         }
-     
-      }
+     }
       #G2P_in_vcf  ENSG00000141556
       elsif (/^G2P_in_vcf/) {
         my ($flag, $gene_id) = split/\t/;

@@ -98,14 +98,7 @@ limitations under the License.
  or with an option to also return the Mastermind URL (third flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,0,1
 
- Note: While running this plugin as default, i.e. filtering by mutation, if a variant doesn't affect 
-       the protein sequence, the citation data can be appended to a transcript with different consequence.
- Example
-  VEP: upstream_gene_variant
-  Mastermind: intronic
-  VEP output: var_1|1:154173185-154173187|C|ENSG00000143549|ENST00000368545|Transcript|upstream_gene_variant|
-    -|-|-|-|-|-|IMPACT=MODIFIER;DISTANCE=508;STRAND=-1;Mastermind_MMID3=TPM3:E62int;Mastermind_counts=1|1|1;
-
+ Note: when running VEP in offline mode Mastermind requires a fasta file (--fasta)
 
 =cut
 
@@ -227,6 +220,7 @@ sub run {
     if($data_value->{data}) {
 
       # convert to vcf format to compare the alleles
+      # the method to_VCF_record requires a fasta file in offline mode to be able to lookup the alleles
       if($vf->allele_string =~ /-/) {
         my $convert_to_vcf = $vf->to_VCF_record;
         $ref_allele = ${$convert_to_vcf}[3];
@@ -277,9 +271,13 @@ sub run {
             if($data_value->{is_utr} == 1 && (defined($is_intron) || defined($is_splice) || defined($is_5utr) || defined($is_3utr))) {
               $result_data = $data_value->{result};
             }
-            # checks if it is a frameshift or nonsense
+            # checks if it is a frameshift
             elsif($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
               $result_data = $data_value->{result};
+            }
+            # checks if it is nonsense
+            elsif($data_value->{is_nonsense} == 1 && $peptide_start && $aa_string =~ /\*/) {
+              $result_data = $data_value->{result} if ($peptide_start == $aa_alteration);
             }
             elsif($data_value->{is_other} == 1 && defined($is_intron)) {
               $result_data = $data_value->{result};
@@ -321,16 +319,21 @@ sub parse_data {
 
   my $mm_data = $mmcnt1 . ';' . $mmcnt2 . ';' . $mmcnt3 . ';' . $mmid3;
 
-  # Frameshift or nonsense
+  # Frameshift
   my $is_fs = 0;
+  # Nonsense
+  my $is_nonsense = 0;
   # UTR 
   my $is_only_utr = 0;
   my $is_utr = 0;
   # Intronic or splice
   my $is_other = 0;
 
-  if($mmid3 =~ /fs|([0-9]+X)/) {
+  if($mmid3 =~ /fs/) {
     $is_fs = 1;
+  }
+  if($mmid3 =~ /[0-9]+X/) {
+    $is_nonsense = 1;
   }
   elsif($mmid3 =~ /UTR$/) {
     $is_only_utr = 1;
@@ -378,6 +381,7 @@ sub parse_data {
     data   => $mm_data,
     result => \%mm_hash,
     is_fs  => $is_fs,
+    is_nonsense => $is_nonsense,
     is_only_utr => $is_only_utr,
     is_utr      => $is_utr,
     is_other    => $is_other,
