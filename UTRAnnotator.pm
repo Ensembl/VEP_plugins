@@ -88,7 +88,7 @@ sub new {
       $uORF_evidence{$key} = 1;
     }
 
-  close $fh;
+    close $fh;
 
   $self->{uORF_evidence} = \%uORF_evidence;
 
