@@ -197,12 +197,20 @@ sub run {
         $self->{alt_coding},
         $tr_strand
     );
-    
-    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq)};
-    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq)};
-    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq)};
-    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq)};
-    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq)};
+
+    my @utr_sequence = split //, $UTR_info{seq};
+    my %existing_uORF = %{$self->existing_uORF(\@utr_sequence)};
+
+    my @mut_utr_seq = split //,$mut_utr_seq;
+    my %existing_utr_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
+
+    my @start = @{$self->get_ATG_pos(\@utr_sequence)};
+
+    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_utr_uORF)};
+    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF)};
+    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \@start)};
+    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start)};
+    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start)};
 
   }
 
@@ -254,7 +262,7 @@ sub run {
 sub uAUG_gained {
   # Description: annotate if a five_prime_UTR_variant creates ATG
 
-  my ($self, $variant_info,$UTR_info, $mut_pos, $mut_utr_seq) = @_;
+  my ($self, $variant_info,$UTR_info, $mut_pos, $mut_utr_seq, $existing_utr_uorf) = @_;
 
   my $pos = $variant_info->{pos};
   my $ref = $variant_info->{ref};
@@ -338,11 +346,7 @@ sub uAUG_gained {
     #annotator 3: Type of new ORF with respect the main ORF: uORF/Overlapping_inFrame/Overlapping_outofframe
     ################################################################################
 
-    #check what kind of uORF does that correspond to?
-    #first check whether it's overlapping with CDS
-    my %existing_utr_uorf = %{$self->existing_uORF(\@mut_utr_seq)};
-
-    if(exists($existing_utr_uorf{$pos_A})){ #if there is stop codon within 5'UTR
+    if(exists($existing_utr_uorf->{$pos_A})){ #if there is stop codon within 5'UTR
       $uAUG_gained_type = "uORF";
     }
     else{
@@ -387,7 +391,7 @@ sub uAUG_gained {
 sub uSTOP_gained {
   # Description: annotate whether a five_prime_UTR_variant creates new stop codon. It only evaluate SNVs.
 
-  my ($self, $variant_info,$UTR_info, $mut_pos, $end_pos, $mut_utr_seq) = @_;
+  my ($self, $variant_info,$UTR_info, $mut_pos, $end_pos, $mut_utr_seq, $existing_ref_uORF, $mut_uORF, $start) = @_;
 
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
@@ -417,8 +421,6 @@ sub uSTOP_gained {
   my $output_flag = 0;
   my $output_effects = "";
 
-  my %existing_ref_uORF = %{$self->existing_uORF(\@sequence)};
-
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
 
@@ -428,9 +430,9 @@ sub uSTOP_gained {
 
   my @mut_utr_seq = split //,$mut_utr_seq;
   my $mut_utr_length = @mut_utr_seq;
-  my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
 
-  my @start = @{$self->get_ATG_pos(\@sequence)};
+  # my @start = @{$self->get_ATG_pos(\@sequence)};
+  my @start = @{$start};
 
   if(@start){
     for (my $i=0;$i<@start;$i++){
@@ -444,8 +446,8 @@ sub uSTOP_gained {
       #For uORF: start_pos .. check_point
       #For overlapping ORF: start_pos .. 3' end of 5'UTR sequence
       #if the variant is entirely in the uORF (within 5'UTR
-      if(exists($existing_ref_uORF{$start_pos})) {
-        my @stops = sort {$a <=> $b} @{$existing_ref_uORF{$start_pos}};
+      if(exists($existing_ref_uORF->{$start_pos})) {
+        my @stops = sort {$a <=> $b} @{$existing_ref_uORF->{$start_pos}};
         $check_point = $stops[0]-1;
       } else{
         #if the existing uORF is an oORF
@@ -457,8 +459,8 @@ sub uSTOP_gained {
       next if(($mut_pos<$start_pos+3)|($end_pos>$check_point));
       #check whether there are new stop codon induced by this mutation
       my @mut_stops;
-      next unless(exists($mut_uORF{$start_pos}));
-      @mut_stops = sort {$a <=> $b} @{$mut_uORF{$start_pos}};
+      next unless(exists($mut_uORF->{$start_pos}));
+      @mut_stops = sort {$a <=> $b} @{$mut_uORF->{$start_pos}};
 
       my $mut_stop = $mut_stops[0];
       if($mut_stop<$check_point){
@@ -489,7 +491,7 @@ sub uSTOP_gained {
         $uSTOP_gained_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
         #the annotation of the original uORF
-        if (exists($existing_ref_uORF{$start_pos})){ #if there is stop codon within 5'UTR
+        if (exists($existing_ref_uORF->{$start_pos})){ #if there is stop codon within 5'UTR
           $uSTOP_gained_ref_type = "uORF"
         } elsif (($utr_length-$start_pos) % 3){
           $uSTOP_gained_ref_type = "OutOfFrame_oORF";
@@ -529,7 +531,7 @@ sub uSTOP_lost {
 
   # Description: annotate if a five_prime_UTR_varint removes a stop codon of an existing uORF (given that uORF does not not change)
 
-  my ($self, $variant_info, $UTR_info, $mut_pos, $mut_utr_seq) = @_;
+  my ($self, $variant_info, $UTR_info, $mut_pos, $mut_utr_seq, $existing_uORF, $mut_uORF) = @_;
 
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
@@ -538,8 +540,6 @@ sub uSTOP_lost {
 
   my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
-
-  my %existing_uORF = %{$self->existing_uORF(\@sequence)};
 
   #return annotators
   my $uSTOP_lost_AltStop = "";  #whether there is an alternative stop codon downstream
@@ -570,13 +570,13 @@ sub uSTOP_lost {
   my @mut_utr_seq = split //,$mut_utr_seq;
   my $length = @mut_utr_seq;
 
-  my @start = sort {$a <=> $b} (keys %existing_uORF);
+  my @start = sort {$a <=> $b} (keys %{$existing_uORF});
 
-  if(%existing_uORF){
+  if(%{$existing_uORF}){
     for (my $i=0;$i<@start;$i++){
       $flag_uORF=0;
       my $start_pos = $start[$i];
-      my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
+      my @stops = sort {$a <=> $b} @{$existing_uORF->{$start_pos}};
       my $stop_pos=$stops[0];
 
       next if ($mut_pos-$stop_pos>2);
@@ -620,15 +620,12 @@ sub uSTOP_lost {
         $uSTOP_lost_KozakContext=$current_kozak;
         $uSTOP_lost_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
-        #if there is an alternative stop codon in the mutant uORF sequence
-        my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
-
         # the sequence before mut_pos should not be changed. Thus start_pos shall still correspond to a start codon;
         # if the sequence is indeed very short as such ATGTGA
 
         my @mut_stops;
-        if(exists($mut_uORF{$start_pos})){
-          @mut_stops = sort {$a <=> $b} @{$mut_uORF{$start_pos}}
+        if(exists($mut_uORF->{$start_pos})){
+          @mut_stops = sort {$a <=> $b} @{$mut_uORF->{$start_pos}}
         }
 
         if (@mut_stops>0){
@@ -673,7 +670,7 @@ sub uSTOP_lost {
 sub uAUG_lost {
   # Description: annotate if a five_prime_UTR_varint removes a start codon of an existing uORF
 
-  my ($self, $variant_info, $UTR_info, $mut_pos, $mut_utr_seq) = @_;
+  my ($self, $variant_info, $UTR_info, $mut_pos, $mut_utr_seq, $existing_ref_uORF, $start) = @_;
 
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
@@ -684,8 +681,6 @@ sub uAUG_lost {
   my @sequence = split //, $UTR_info->{seq};
   my $utr_length = @sequence;
   my $strand = $UTR_info->{strand};
-
-  my %existing_ref_uORF = %{$self->existing_uORF(\@sequence)};
 
   #return annotators
   my $uAUG_lost_type = "";   # the uORF type with the reference allele - uORF, inframe_oORF, outOfFrame_oORF
@@ -713,7 +708,8 @@ sub uAUG_lost {
 
   my @mut_utr_seq = split //,$mut_utr_seq;
 
-  my @start = @{$self->get_ATG_pos(\@sequence)};
+  # my @start = @{$self->get_ATG_pos(\@sequence)};
+  my @start = @{$start};
 
   for (my $i=0;$i<@start;$i++){
     $flag_uORF=0;
@@ -760,7 +756,7 @@ sub uAUG_lost {
       #check what kind of uORF does that correspond to?
       #first check whether it's overlapping with CDS
 
-      if (exists($existing_ref_uORF{$start_pos})){ #if there is stop codon within 5'UTR
+      if (exists($existing_ref_uORF->{$start_pos})){ #if there is stop codon within 5'UTR
         $uAUG_lost_type = "uORF"
       } elsif(($utr_length-$start_pos) % 3){
         $uAUG_lost_type = "OutOfFrame_oORF";
@@ -808,7 +804,7 @@ sub uFrameshift {
 
   # Description: annotate if a five_prime_UTR_varint create a frameshift in existing uORFs
 
-  my ($self, $variant_info, $UTR_info, $mut_pos, $end_pos, $mut_utr_seq) = @_;
+  my ($self, $variant_info, $UTR_info, $mut_pos, $end_pos, $mut_utr_seq, $existing_uORF, $mut_uORF, $start) = @_;
 
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
@@ -818,9 +814,6 @@ sub uFrameshift {
   my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
   my $utr_length = @sequence;
-
-  my %existing_uORF = %{$self->existing_uORF(\@sequence)};
-
 
   #return annotators
   my $uFrameshift_ref_type = ""; # the type of uORF with the reference allele
@@ -853,7 +846,8 @@ sub uFrameshift {
   my @mut_utr_seq = split //,$mut_utr_seq;
   my $length = @mut_utr_seq;
 
-  my @start = @{$self->get_ATG_pos(\@sequence)};
+  # my @start = @{$self->get_ATG_pos(\@sequence)};
+  my @start = @{$start};
 
   #check for each uORF
   if(@start){
@@ -868,8 +862,8 @@ sub uFrameshift {
 
       #if the variant is entirely in the uORF (within 5'UTR)
 
-      if(exists($existing_uORF{$start_pos})) {
-        my @stops = sort {$a <=> $b} @{$existing_uORF{$start_pos}};
+      if(exists($existing_uORF->{$start_pos})) {
+        my @stops = sort {$a <=> $b} @{$existing_uORF->{$start_pos}};
         $check_point = $stops[0]-1;;
       } else {
         #if the existing uORF is an oORF
@@ -910,7 +904,7 @@ sub uFrameshift {
         my @ref_overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
         my %ref_existing_oORF = %{$self->existing_uORF(\@ref_overlapping_seq)};
 
-        if (exists($existing_uORF{$start_pos})){ #if there is stop codon within 5'UTR
+        if (exists($existing_uORF->{$start_pos})){ #if there is stop codon within 5'UTR
           $uFrameshift_ref_type = "uORF";
         } elsif (($utr_length-$start_pos) % 3) {
           $uFrameshift_ref_type = "OutOfFrame_oORF";
@@ -927,12 +921,10 @@ sub uFrameshift {
 
         $uFrameshift_StartDistanceToCDS = $utr_length - $start_pos;
 
-        #if there is an alternative stop codon in the mutant uORF sequence
-        my %mut_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
         my @alt_overlapping_seq = split //, $mut_utr_seq.$UTR_info->{cds_seq};
         my %alt_existing_oORF = %{$self->existing_uORF(\@alt_overlapping_seq)};
 
-        if (exists($mut_uORF{$start_pos})){
+        if (exists($mut_uORF->{$start_pos})){
           $uFrameshift_alt_type = "uORF";
         } elsif(($length-$start_pos)%3){
           $uFrameshift_alt_type = "OutOfFrame_oORF";
@@ -996,7 +988,6 @@ sub count_number_ATG {
   my @atg_pos = @{$self->get_ATG_pos(\@sequence)};
   my @mes_pos = @{$self->get_stopcodon_pos(\@sequence)};
 
-  my $atg_num = $self->get_ATG_pos(\@sequence);
   my $inframe_stop_num=0;
   my $outofframe_atg_num=0;
   my $inframeORF_num=0;
