@@ -86,7 +86,7 @@ sub new {
 
       my $key = $chr . ":" . $pos; # chr has 'chr' prefix
       $uORF_evidence{$key} = 1;
-  }
+    }
 
   close $fh;
 
