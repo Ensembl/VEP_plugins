@@ -33,7 +33,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction. regulatory region etc.
+ A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction interface, and motif.
 
  Please cite the mutfunc publication alongside the VEP if you use this resource:
  http://msb.embopress.org/content/14/12/e8430
@@ -45,7 +45,10 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
 
- db			  : Path to SQLite database containing data for other analysis.
+ By default all the fields (motif, int, mod, and exp) are added in the output. But if you want to have some selected fields and not all of
+ them just select the relevant options. The default behavior will then go away outputting only the selected fields.
+
+ db			  : (mandatory) Path to SQLite database containing data for other analysis.
  motif    : Select this option to have mutfunc motif analysis in the output
  int      : Select this option to have mutfunc protein interection analysis in the output
  mod      : Select this option to have mutfunc protein structure analysis in the output
