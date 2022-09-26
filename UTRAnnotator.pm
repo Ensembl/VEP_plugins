@@ -1046,8 +1046,7 @@ sub existing_uORF {
   foreach my $atg (@atg_pos){
     my @stop_pos;
     foreach my $mes (@mes_pos){
-      if ((($mes-$atg) % 3)||($mes-$atg)<0){
-      } else {
+      if !( (($mes-$atg) % 3) && ($mes-$atg) >= 0){
         push @stop_pos,$mes;
       }
     }
