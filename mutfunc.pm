@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -28,29 +28,31 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv mutfunc.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin mutfunc,motif=1,db=/FULL_PATH_TO/mutfunc_data.db
- ./vep -i variations.vcf --plugin mutfunc,all=1,extended=1,db=/FULL_PATH_TO/mutfunc_data.db
+ ./vep -i variations.vcf --plugin mutfunc,motif=1,extended=1,db=/FULL_PATH_TO/mutfunc_data.db
+ ./vep -i variations.vcf --plugin mutfunc,db=/FULL_PATH_TO/mutfunc_data.db
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction. regulatory region etc.
- 
+ A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction interface, and motif.
+
  Please cite the mutfunc publication alongside the VEP if you use this resource:
  http://msb.embopress.org/content/14/12/e8430
- 
+
  Pre-requisites:
- 
- 1) The data file. mutfunc SQLite db can be downloaded from - 
+
+ 1) The data file. mutfunc SQLite db can be downloaded from -
  http://ftp.ensembl.org/pub/current_variation/variation/mutfunc/mutfunc_data.db
- 
+
  Options are passed to the plugin as key=value pairs:
 
- db			  : Path to SQLite database containing data for other analysis. Mandatory 'motif', 'int', 'mod', 'exp' or 'all' is selected
+ By default all the fields (motif, int, mod, and exp) are added in the output. But if you want to have some selected fields and not all of
+ them just select the relevant options. The default behavior will then go away outputting only the selected fields.
+
+ db			  : (mandatory) Path to SQLite database containing data for other analysis.
  motif    : Select this option to have mutfunc motif analysis in the output
  int      : Select this option to have mutfunc protein interection analysis in the output
  mod      : Select this option to have mutfunc protein structure analysis in the output
  exp      : Select this option to have mutfunc protein structure (experimental) analysis in the output
- all      : Select this option to have all of the above analysis in the output
  extended : By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.
 
 =cut
@@ -81,23 +83,26 @@ my $field_order = {
 
 sub new {
   my $class = shift;
-  
+
   my $self = $class->SUPER::new(@_);
-  
+
   my $param_hash = $self->params_to_hash();
+
+  # default behavior is to output all field
+  $param_hash->{all} = 1 if (
+    (!defined $param_hash->{motif}) &&
+    (!defined $param_hash->{int}) &&
+    (!defined $param_hash->{mod}) &&
+    (!defined $param_hash->{exp})
+  );
 
   $self->{motif} = 1 if $param_hash->{motif} || $param_hash->{all};
   $self->{int} = 1 if $param_hash->{int} || $param_hash->{all};
   $self->{mod} = 1 if $param_hash->{mod} || $param_hash->{all};
   $self->{exp} = 1 if $param_hash->{exp} || $param_hash->{all};
 
-  die "ERROR: db is not specified but some of the options enabled require it\n" if ( 
-    ( (defined $self->{motif}) || 
-      (defined $self->{int}) || 
-      (defined $self->{mod}) || 
-      (defined $self->{exp}) 
-    ) && 
-    !(defined $param_hash->{db}) 
+  die "ERROR: please provide the SQLite database using 'db' parameter\n" if (
+    !(defined $param_hash->{db})
   );
   $self->{db} = $param_hash->{db};
 
@@ -120,7 +125,7 @@ sub feature_types {
 
 sub get_header_info {
   my ($self) = shift;
-  
+
   my %header;
 
   if (defined $self->{motif}){
@@ -154,7 +159,7 @@ sub get_header_info {
 
 sub expand_matrix {
   my ($matrix) = @_;
-  my $expanded_matrix = Compress::Zlib::memGunzip($matrix) or 
+  my $expanded_matrix = Compress::Zlib::memGunzip($matrix) or
     throw("Failed to gunzip: $gzerrno");
 
   return $expanded_matrix;
@@ -189,13 +194,13 @@ sub parse_destabilizers {
     my $evidence = unpack "v", $item_value;
 
     # now omit the evidence part from item value
-    $item_value = substr $item_value, 2; 
+    $item_value = substr $item_value, 2;
 
     # get the value of the evidence
     $evidence = undef if $evidence == 0xFFFF;
     $evidence_val = defined $evidence ? $evidence_lval[$evidence] : undef;
   }
-  
+
   # get the rest
   my ($dG_wt, $ddG, $dG_wt_sd, $dG_mt_sd, $ddG_sd) = unpack "A8A8A8A8A8", $item_value;
 
@@ -263,9 +268,9 @@ sub process_from_db {
   my $result_from_db = {};
   while (my $arrayref = $self->{get_sth}->fetchrow_arrayref) {
     # skip if species does not match
-    my $species = $arrayref->[0];  
+    my $species = $arrayref->[0];
     next unless $species eq $self->{species};
-    
+
     my $item = $arrayref->[2];
     my $matrix = $arrayref->[3];
 
@@ -339,9 +344,9 @@ sub process_from_db {
             } : {
               ddG   => $ddG
             };
-            
-            $data->{evidence} = $evidence if (defined $evidence && $item eq "int" && $self->{extended});  
-            
+
+            $data->{evidence} = $evidence if (defined $evidence && $item eq "int" && $self->{extended});
+
             my $formatted_output = $self->format_output($data, $item);
             @$result_from_db{ keys %$formatted_output } = values %$formatted_output;
           }
@@ -355,7 +360,7 @@ sub process_from_db {
 
 sub run {
   my ($self, $tva) = @_;
-  
+
   my $result = {};
 
   my $hash_from_db = $self->process_from_db($tva);
