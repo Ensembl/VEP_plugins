@@ -1014,9 +1014,9 @@ sub count_number_ATG {
   }
 
   my %existing_uORF_num = (
-    "existing_uORFs" => $inframe_stop_num,
-    "existing_OutOfFrame_oORFs" => $outofframe_atg_num,
-    "existing_InFrame_oORFs" => $inframeORF_num,
+    "UTRAnnotator_existing_uORFs" => $inframe_stop_num,
+    "UTRAnnotator_existing_OutOfFrame_oORFs" => $outofframe_atg_num,
+    "UTRAnnotator_existing_InFrame_oORFs" => $inframeORF_num,
   );
 
   return \%existing_uORF_num;
