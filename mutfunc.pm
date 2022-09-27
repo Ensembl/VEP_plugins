@@ -113,6 +113,9 @@ sub new {
   }
 
   $self->{initial_pid} = $$;
+  
+  $self->{dbh} = DBI->connect("dbi:SQLite:dbname=".$self->{db},"","");
+  $self->{get_sth} = $self->{dbh}->prepare("SELECT species, md5, item, matrix FROM consequences WHERE md5 = ?");
 
   $self->{species} = $self->config->{species};
 
