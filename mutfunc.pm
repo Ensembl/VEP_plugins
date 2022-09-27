@@ -113,7 +113,7 @@ sub new {
   }
 
   $self->{initial_pid} = $$;
-  
+
   $self->{dbh} = DBI->connect("dbi:SQLite:dbname=".$self->{db},"","");
   $self->{get_sth} = $self->{dbh}->prepare("SELECT species, md5, item, matrix FROM consequences WHERE md5 = ?");
 
@@ -143,7 +143,10 @@ sub get_header_info {
   foreach (qw(int mod exp)){
     if (defined $self->{$_}) {
       my $key = "mutfunc_" . $_;
-      $header{$key} = "Interaction interfaces destabilization analysis from mutfunc db. Output field(s) include: ";
+      $header{$key} = "Protein interaction interface destabilization analysis from mutfunc db. Output field(s) include: " if $_ eq "int";
+      $header{$key} = "Protein structure destabilization analysis from mutfunc db. Output field(s) include: " if $_ eq "mod";
+      $header{$key} = "Protein structure destabilization analysis (experimental) from mutfunc db. Output field(s) include: " if $_ eq "exp";
+
       if (defined $self->{extended}){
         $header{$key} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
       }
