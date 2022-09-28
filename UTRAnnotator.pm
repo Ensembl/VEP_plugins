@@ -431,7 +431,6 @@ sub uSTOP_gained {
   my @mut_utr_seq = split //,$mut_utr_seq;
   my $mut_utr_length = @mut_utr_seq;
 
-  # my @start = @{$self->get_ATG_pos(\@sequence)};
   my @start = @{$start};
 
   if(@start){
@@ -708,7 +707,6 @@ sub uAUG_lost {
 
   my @mut_utr_seq = split //,$mut_utr_seq;
 
-  # my @start = @{$self->get_ATG_pos(\@sequence)};
   my @start = @{$start};
 
   for (my $i=0;$i<@start;$i++){
@@ -846,7 +844,6 @@ sub uFrameshift {
   my @mut_utr_seq = split //,$mut_utr_seq;
   my $length = @mut_utr_seq;
 
-  # my @start = @{$self->get_ATG_pos(\@sequence)};
   my @start = @{$start};
 
   #check for each uORF
@@ -864,7 +861,7 @@ sub uFrameshift {
 
       if(exists($existing_uORF->{$start_pos})) {
         my @stops = sort {$a <=> $b} @{$existing_uORF->{$start_pos}};
-        $check_point = $stops[0]-1;;
+        $check_point = $stops[0]-1;
       } else {
         #if the existing uORF is an oORF
         $check_point = $utr_length-1;
@@ -1073,7 +1070,7 @@ sub get_ATG_pos {
 
   my @sequence = @{$seq};
   my $length = @sequence;
-  my $seq_str=join '', @sequence;;
+  my $seq_str=join '', @sequence;
   my @atg_pos = grep {(substr ($seq_str, $_,3) eq 'ATG')} 0..($length);
 
   return \@atg_pos;
