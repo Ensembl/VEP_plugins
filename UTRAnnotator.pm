@@ -985,6 +985,10 @@ sub count_number_ATG {
   my @atg_pos = @{$self->get_ATG_pos(\@sequence)};
   my @mes_pos = @{$self->get_stopcodon_pos(\@sequence)};
 
+  my $inframe_stop_num=0;
+  my $outofframe_atg_num=0;
+  my $inframeORF_num=0;
+
   foreach my $atg (@atg_pos){
 
     my $flag=0;
