@@ -1033,8 +1033,6 @@ sub count_number_ATG {
 sub existing_uORF {
   my ($self,$seq) = @_;
 
-  my $length = @{$seq};
-
   my @atg_pos = @{$self->get_ATG_pos($seq)};
   my @mes_pos = @{$self->get_stopcodon_pos($seq)};
   my %uORF;
