@@ -74,9 +74,9 @@ limitations under the License.
    Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
   Gene matching:
-  If SpliceAI contains scores for multiple genes that overlap the same genomic location,
-  the plugin compares the gene from the SpliceAI file with the gene symbol from the input variant.
-  If none of the gene symbols match, the plugin does not return any scores.
+  SpliceAI can contain scores for multiple genes that overlap a variant,
+  and VEP can also predict consequences on multiple genes for a given variant.
+  The plugin only returns SpliceAI scores for the gene symbols that match (if any).
 
  If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
  passes the cutoff, 'FAIL' otherwise. 
@@ -281,18 +281,10 @@ sub run {
 
   my $result = {};
 
-  my $n_genes = scalar keys %hash_aux;
-  if($n_genes == 1) {
-    # Get the only gene from the hash of results
-    my $key_gene = (keys %hash_aux)[0];
-    $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$key_gene}} : $hash_aux{$key_gene};
-  }
-  elsif($n_genes > 1) {
-    # Compare genes from SpliceAI with the variant gene symbol
-    my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
-    if(($gene_symbol) && ($hash_aux{$gene_symbol})) {
+  # find the SpliceAI gene matching the variant gene symbol, if there is a match
+  my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+  if(($gene_symbol) && ($hash_aux{$gene_symbol})) {
       $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
-    }
   }
 
   return $result;
