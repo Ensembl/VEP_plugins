@@ -40,8 +40,7 @@ limitations under the License.
  For optimal retrieval speed, you should pre-process the FASTA files into a single
  bgzipped file that can be accessed via Bio::DB::HTS::Faidx (installed by VEP's
  INSTALL.pl):
-  
- 
+
  wget ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
  tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
  cat homo_sapiens_ancestor_GRCh38/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38.fa.gz
@@ -49,13 +48,11 @@ limitations under the License.
  ./vep -i variations.vcf --plugin AncestralAllele,homo_sapiens_ancestor_GRCh38.fa.gz
  
  Data file is only available for GRCh38. 
-
  The plugin is also compatible with Bio::DB::Fasta and an uncompressed FASTA file.
 
  Note the first time you run the plugin with a newly generated FASTA file it will
  spend some time indexing the file. DO NOT INTERRUPT THIS PROCESS, particularly
  if you do not have Bio::DB::HTS installed.
- 
  Special cases:
    "-" represents an insertion
    "?" indicates the chromosome could not be looked up in the FASTA
