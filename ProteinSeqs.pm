@@ -94,7 +94,8 @@ sub run {
     if (my $mut_aa = $tva->peptide) {
         
 	return {} if !defined($tva->hgvs_protein);
-        
+    
+    return {} if grep {$_->SO_term eq 'frameshift_variant'} @{$tva->get_all_OverlapConsequences};
 	# get the peptide coordinates
 	
 	my $tl_start = $tva->transcript_variation->translation_start;
@@ -103,17 +104,18 @@ sub run {
         # and our reference sequence
 
         my $ref_seq = $tva->transcript_variation->_peptide;
-
+      
         # splice the mutant peptide sequence into the reference sequence
 
         my $mut_seq = $ref_seq;
 
         substr($mut_seq, $tl_start-1, $tl_end - $tl_start + 1) = $mut_aa;
+        
 
         # print out our reference and mutant sequences
 
         my $translation_id = $tva->transcript->translation->stable_id;
-        
+        #print Dumper ($translation_id);
         # only print the reference sequence if we haven't printed it yet
 
         $self->print_fasta($ref_seq, $translation_id, $self->{ref_file})
@@ -121,7 +123,6 @@ sub run {
 
         # we always print the mutated sequence as each mutation may have
         # a different consequence
-        
         $self->print_fasta($mut_seq, $tva->hgvs_protein, $self->{mut_file});
     }
 
