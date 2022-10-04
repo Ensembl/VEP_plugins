@@ -104,18 +104,15 @@ sub run {
         # and our reference sequence
 
         my $ref_seq = $tva->transcript_variation->_peptide;
-      
         # splice the mutant peptide sequence into the reference sequence
 
         my $mut_seq = $ref_seq;
 
         substr($mut_seq, $tl_start-1, $tl_end - $tl_start + 1) = $mut_aa;
         
-
         # print out our reference and mutant sequences
 
         my $translation_id = $tva->transcript->translation->stable_id;
-        #print Dumper ($translation_id);
         # only print the reference sequence if we haven't printed it yet
 
         $self->print_fasta($ref_seq, $translation_id, $self->{ref_file})
