@@ -1202,7 +1202,7 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     # AncestralAllele
-    # Requires processed FASTA file from ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
+    # Requires processed FASTA file from https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
     {
       "key" => "AncestralAllele",
       "label" => "Ancestral allele",

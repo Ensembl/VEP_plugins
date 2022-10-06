@@ -41,7 +41,7 @@ limitations under the License.
  Pre-requisites:
  
  1) The data file. mutfunc SQLite db can be downloaded from - 
- http://ftp.ensembl.org/pub/current_variation/variation/mutfunc/mutfunc_data.db
+ https://ftp.ensembl.org/pub/current_variation/variation/mutfunc/mutfunc_data.db
  
  Options are passed to the plugin as key=value pairs:
 

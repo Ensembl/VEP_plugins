@@ -98,21 +98,21 @@ limitations under the License.
 
    mkdir variation_genotype
    cd variation_genotype
-   lftp -e "mget ALL.chr*.phase3_shapeit2_mvncall_integrated_v3plus_nounphased.rsID.genotypes.GRCh38_dbSNP.vcf.gz*" ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_genotype/
+   lftp -e "mget ALL.chr*.phase3_shapeit2_mvncall_integrated_v3plus_nounphased.rsID.genotypes.GRCh38_dbSNP.vcf.gz*" https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_genotype/
    cd ..
 
  For GRCh37 replace the lftp command with:
 
-   lftp -e "mget ALL.chr*.phase3_shapeit2_mvncall_integrated_v3plus_nounphased.rsID.genotypes.vcf.gz*" ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh37/variation_genotype/
+   lftp -e "mget ALL.chr*.phase3_shapeit2_mvncall_integrated_v3plus_nounphased.rsID.genotypes.vcf.gz*" https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh37/variation_genotype/
 
  We must now modify the JSON configuration file used to find the data. Starting
  in the ensembl-vep directory:
 
-   perl -pi -e "s|ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38|$PWD|" Bio/EnsEMBL/Variation/DBSQL/vcf_config.json
+   perl -pi -e "s|https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38|$PWD|" Bio/EnsEMBL/Variation/DBSQL/vcf_config.json
 
  Or for GRCh37:
 
-   perl -pi -e "s|ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh37|$PWD|" Bio/EnsEMBL/Variation/DBSQL/vcf_config.json 
+   perl -pi -e "s|https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh37|$PWD|" Bio/EnsEMBL/Variation/DBSQL/vcf_config.json 
 
 =cut
 
