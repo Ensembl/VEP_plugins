@@ -92,13 +92,13 @@ sub run {
     # check if we have a mutant amino acid, if not there isn't much we can do!
 
     if (my $mut_aa = $tva->peptide) {
-        
-	return {} if !defined($tva->hgvs_protein);
+    
+	  return {} if !defined($tva->hgvs_protein);
     
       return {} if grep {$_->SO_term eq 'frameshift_variant'} @{$tva->get_all_OverlapConsequences};
 	  # get the peptide coordinates
 	
-	my $tl_start = $tva->transcript_variation->translation_start;
+      my $tl_start = $tva->transcript_variation->translation_start;
       my $tl_end = $tva->transcript_variation->translation_end;
 
         # and our reference sequence
