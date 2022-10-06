@@ -87,13 +87,13 @@ sub get_header_info {
   my $self = shift;
 
   my %header;
-  $header{"GWAS_associated_gene"} = "";
-  $header{"GWAS_risk_allele"} = "";
-  $header{"GWAS_p_value"} = "";
-  $header{"GWAS_study"} = "";
-  $header{"GWAS_accessions"} = "";
-  $header{"GWAS_beta_coef"} = "";
-  $header{"GWAS_odds_ratio"} = "";
+  $header{"GWAS_associated_gene"} = "Gene(s) reported by author in GWAS catalog";
+  $header{"GWAS_risk_allele"} = "Allele associated with the variant that is strongly associated with the trait";
+  $header{"GWAS_p_value"} = "P-value reported for the variant";
+  $header{"GWAS_study"} = "Pubmed identifier of the paper published";
+  $header{"GWAS_accessions"} = "URI with trait mapped to a ontology term";
+  $header{"GWAS_beta_coef"} = "Beta co-efficient reported for the variant";
+  $header{"GWAS_odds_ratio"} = "Odds ratio reported for the variant";
 
   return \%header;
 }
