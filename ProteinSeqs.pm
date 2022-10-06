@@ -93,8 +93,7 @@ sub run {
 
     if (my $mut_aa = $tva->peptide) {
     
-	  return {} if !defined($tva->hgvs_protein);
-    
+      return {} if !defined($tva->hgvs_protein);
       return {} if grep {$_->SO_term eq 'frameshift_variant'} @{$tva->get_all_OverlapConsequences};
 	  # get the peptide coordinates
 	
