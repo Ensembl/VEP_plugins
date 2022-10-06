@@ -57,7 +57,7 @@ pLI - Add pLI score to the VEP output
   VEP_plugins GitHub repository. The file contains the fields gene and pLI 
   extracted from the file at 
     
-    ftp://ftp.broadinstitute.org/pub/ExAC_release/release0.3/functional_gene_constraint/
+    https://ftp.broadinstitute.org/pub/ExAC_release/release0.3/functional_gene_constraint/
       fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt
 
   From this file, extract gene or transcipt pLI scores:

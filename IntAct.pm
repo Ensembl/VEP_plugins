@@ -41,7 +41,7 @@ limitations under the License.
  Pre-requisites:
  
  1) IntAct files can be downloaded from -
- http://ftp.ebi.ac.uk/pub/databases/intact/current/various
+ https://ftp.ebi.ac.uk/pub/databases/intact/current/various
  
  2) The genomic location mapped file needs to be tabix indexed. You can 
  do this by following commands -

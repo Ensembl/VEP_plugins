@@ -34,7 +34,7 @@ limitations under the License.
  A VEP plugin that retrieves the LRG ID matching either the RefSeq or Ensembl
  transcript IDs. You can obtain the 'list_LRGs_transcripts_xrefs.txt' using:
 
- > wget ftp://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_transcripts_xrefs.txt
+ > wget https://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_transcripts_xrefs.txt
 
 =cut
 
