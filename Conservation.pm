@@ -47,7 +47,7 @@ limitations under the License.
  the 2 flanking bases will be returned.
 
  The plugin uses the ensembl-compara API module (optional, see http://www.ensembl.org/info/docs/api/index.html)
- or obtains data directly from BigWig files (optional, see ftp://ftp.ensembl.org/pub/current_compara/conservation_scores/)
+ or obtains data directly from BigWig files (optional, see https://ftp.ensembl.org/pub/current_compara/conservation_scores/)
 
 =cut
 package Conservation;
@@ -140,7 +140,7 @@ sub run {
   #if it doesn't look like the user has given an FTP link or a file, try and find the correct data
   if(@{$self->params}[0] !~ /ftp.ensembl.org/ && not -f @{$self->params}[0])
   {
-    my $FTP_URL = "ftp://ftp.ensembl.org/pub/current_compara/conservation_scores/";
+    my $FTP_URL = "https://ftp.ensembl.org/pub/current_compara/conservation_scores/";
     my $FTP_USER = 'anonymous';  
 
     $FTP_URL =~ m/(ftp:\/\/)?(.+?)\/(.+)/;  

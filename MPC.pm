@@ -42,7 +42,7 @@ limitations under the License.
  
  The MPC score file is available to download from:
 
- ftp://ftp.broadinstitute.org/pub/ExAC_release/release1/regional_missense_constraint/
+ https://ftp.broadinstitute.org/pub/ExAC_release/release1/regional_missense_constraint/
 
  The data are currently mapped to GRCh37 only. Not all transcripts are included; see
  README in the above directory for exclusion criteria.

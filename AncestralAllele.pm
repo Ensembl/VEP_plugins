@@ -35,13 +35,13 @@ limitations under the License.
  A VEP plugin that retrieves ancestral allele sequences from a FASTA file.
 
  Ensembl produces FASTA file dumps of the ancestral sequences of key species.
- They are available from ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
+ They are available from https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
 
  For optimal retrieval speed, you should pre-process the FASTA files into a single
  bgzipped file that can be accessed via Bio::DB::HTS::Faidx (installed by VEP's
  INSTALL.pl):
 
- wget ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
+ wget https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
  tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
  cat homo_sapiens_ancestor_GRCh38/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38.fa.gz
  rm -rf homo_sapiens_ancestor_GRCh38/ homo_sapiens_ancestor_GRCh38.tar.gz
