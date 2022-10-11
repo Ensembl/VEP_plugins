@@ -32,7 +32,7 @@ limitations under the License.
  https://www.sciencedirect.com/science/article/pii/S0002929718302714?via%3Dihub 
 
  ClinPred scores can be downloaded from 
- https://sites.google.com/site/clinpred/products-services
+ https://sites.google.com/site/clinpred/download
  
  The following steps are neccessary to tabix the ClinPred.txt.gz file before running the plugin:
  gzip -d ClinPred.txt.gz # to unzip the text file 
