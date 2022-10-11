@@ -45,48 +45,25 @@ limitations under the License.
  
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin. The dbNSFP data file can be downloaded from
- https://sites.google.com/site/jpopgen/dbNSFP.
+ https://sites.google.com/site/jpopgen/dbNSFP
 
  The file must be processed and indexed with tabix before use by this plugin.
  The file must be processed according to the dbNSFP release version and the assembly you use.
  It is recommended to use the -T option with the sort command to specify a temporary directory with sufficient space.
 
- Release 3.5a of dbNSFP uses GRCh38/hg38 coordinates and GRCh37/hg19
- coordinates. 
- To use plugin with GRCh37/hg19 data:
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.5a.zip
- > unzip dbNSFPv3.5a.zip
- > head -n1 dbNSFP3.5a_variant.chr1 > h
- > cat dbNSFP3.5a_variant.chr* | grep -v ^#chr | awk '$8 != "."' | sort -T /path/to/tmp_folder -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP_hg19.gz
- > tabix -s 8 -b 9 -e 9 dbNSFP_hg19.gz
-
- To use plugin with GRCh38/hg38 data:
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFPv3.5a.zip
- > unzip dbNSFPv3.5a.zip
- > head -n1 dbNSFP3.5a_variant.chr1 > h
- > cat dbNSFP3.5a_variant.chr* | grep -v ^#chr | sort -T /path/to/tmp_folder -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP.gz
- > tabix -s 1 -b 2 -e 2 dbNSFP.gz
- 
- For release 4.0a with GRCh38/hg38 data:
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.0a.zip
- > unzip dbNSFP4.0a.zip
- > zcat dbNSFP4.0a_variant.chr1.gz | head -n1 > h
- > zgrep -h -v ^#chr dbNSFP4.0a_variant.chr* | sort -T /path/to/tmp_folder -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.0a.gz
- > tabix -s 1 -b 2 -e 2 dbNSFP4.0a.gz
-
- For release 4.1a with GRCh38/hg38 data:
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.1a.zip
- > unzip dbNSFP4.1a.zip
- > zcat dbNSFP4.1a_variant.chr1.gz | head -n1 > h
- > zgrep -h -v ^#chr dbNSFP4.1a_variant.chr* | sort -T /path/to/tmp_folder -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.1a_grch38.gz
- > tabix -s 1 -b 2 -e 2 dbNSFP4.1a_grch38.gz
-
- For release 4.1a with GRCh37/hg19 data:
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP4.1a.zip
- > unzip dbNSFP4.1a.zip
- > zcat dbNSFP4.1a_variant.chr1.gz | head -n1 > h
- > zgrep -h -v ^#chr dbNSFP4.1a_variant.chr* | awk '$8 != "." ' | sort -T /path/to/tmp_folder -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP4.1a_grch37.gz
- > tabix -s 8 -b 9 -e 9 dbNSFP4.1a_grch37.gz
+ For release 4.3a:
+ > version=4.3a
+ > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP${version}.zip
+ > unzip dbNSFP${version}.zip
+ > zcat dbNSFP${version}_variant.chr1.gz | head -n1 > h
+ > 
+ > # GRCh38/hg38 data
+ > zgrep -h -v ^#chr dbNSFP${version}_variant.chr* | sort -T /path/to/tmp_folder -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP${version}_grch38.gz
+ > tabix -s 1 -b 2 -e 2 dbNSFP${version}_grch38.gz
+ >
+ > # GRCh37/hg19 data
+ > zgrep -h -v ^#chr dbNSFP${version}_variant.chr* | awk '$8 != "." ' | sort -T /path/to/tmp_folder -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP${version}_grch37.gz
+ > tabix -s 8 -b 9 -e 9 dbNSFP${version}_grch37.gz
 
 When running the plugin you must list at least one column to retrieve from the
  dbNSFP file, specified as parameters to the plugin e.g.
