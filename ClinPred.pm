@@ -38,7 +38,7 @@ limitations under the License.
  gzip -d ClinPred.txt.gz # to unzip the text file 
  cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
  sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  # to add a # in the first line of the file 
- sed '1s/C/c' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr 
+ sed '1s/C/c/' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr 
  bgzip ClinPred_tabbed.tsv 
 
  tabix -f -s 1 -b 2 -e 2 ClinPred_tabbed.tsv.gz
