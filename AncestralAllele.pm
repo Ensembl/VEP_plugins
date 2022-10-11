@@ -41,7 +41,7 @@ limitations under the License.
  bgzipped file that can be accessed via Bio::DB::HTS::Faidx (installed by VEP's
  INSTALL.pl):
 
- wget ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
+ wget https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
  tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
  cat homo_sapiens_ancestor_GRCh38/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38.fa.gz
  rm -rf homo_sapiens_ancestor_GRCh38/ homo_sapiens_ancestor_GRCh38.tar.gz
