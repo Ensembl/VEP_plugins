@@ -109,7 +109,6 @@ use strict;
 use warnings;
 use List::Util qw(max);
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
@@ -203,13 +202,9 @@ sub run {
     my $ref_allele;
     my $alt_allele;
 
-    # get alt allele
-    my $allele = $tva->variation_feature_seq;
-    reverse_comp(\$allele) if $vf->{strand} < 0;
-    my $new_allele_string = $vf->ref_allele_string.'/'.$allele;
+    my $new_allele_string = $vf->ref_allele_string.'/'.$tva->variation_feature_seq;
 
     if($vf->ref_allele_string =~ /-/) {
-
       # convert to vcf format to compare the alt alleles
       my $vf_2 = Bio::EnsEMBL::Variation::VariationFeature->new
         (-start => $start,
@@ -223,7 +218,7 @@ sub run {
     }
     else {
       $ref_allele = $vf->ref_allele_string;
-      $alt_allele = $allele;
+      $alt_allele = $tva->variation_feature_seq;
     }
 
     my $matches = get_matched_variant_alleles(
@@ -321,4 +316,3 @@ sub parse_data {
 }
 
 1;
-
