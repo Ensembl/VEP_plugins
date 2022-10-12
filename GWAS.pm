@@ -55,19 +55,12 @@ use warnings;
 use Path::Tiny qw(path);
 use Storable qw(dclone);
 
-# use Bio::EnsEMBL::Utils::Exception qw(warning);
-# use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-# use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
-
-  # $self->expand_left(0);
-  # $self->expand_right(0);
 
   die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $self->params->[0];
   $self->{file} = $self->params->[0];
@@ -240,7 +233,6 @@ sub parse_input_file {
       while ($rs_id =~ m/(rs[0-9]+)/g) {
         push(@ids, $1);
       }
-      # $data{'variation_names'} = join(',', @ids);
 
       # Setting pubmed prefix fixed here - would be better to be get from the API
       $data{'GWAS_study'} = "PMID:" . $pubmed_id if (defined($pubmed_id));
@@ -249,11 +241,6 @@ sub parse_input_file {
       print $err_FH "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
       next if (!scalar(@ids));
 
-      # map {
-      #   my $t_data = dclone \%data;
-      #   $t_data->{"id"} = $_;
-      #   push(@phenotypes, $t_data)
-      # } @ids;
       map {
         $phenotypes->{$_} = [] unless defined $phenotypes->{$_};
 
