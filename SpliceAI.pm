@@ -74,9 +74,9 @@ limitations under the License.
    Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
   Gene matching:
-  If SpliceAI contains scores for multiple genes that overlap the same genomic location,
-  the plugin compares the gene from the SpliceAI file with the gene symbol from the input variant.
-  If none of the gene symbols match, the plugin does not return any scores.
+  SpliceAI can contain scores for multiple genes that overlap a variant,
+  and VEP can also predict consequences on multiple genes for a given variant.
+  The plugin only returns SpliceAI scores for the gene symbols that match (if any).
 
  If plugin is run with option 2, the output also contains a flag: 'PASS' if delta score
  passes the cutoff, 'FAIL' otherwise. 
@@ -109,7 +109,6 @@ use strict;
 use warnings;
 use List::Util qw(max);
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
@@ -203,13 +202,9 @@ sub run {
     my $ref_allele;
     my $alt_allele;
 
-    # get alt allele
-    my $allele = $tva->variation_feature_seq;
-    reverse_comp(\$allele) if $vf->{strand} < 0;
-    my $new_allele_string = $vf->ref_allele_string.'/'.$allele;
+    my $new_allele_string = $vf->ref_allele_string.'/'.$tva->variation_feature_seq;
 
     if($vf->ref_allele_string =~ /-/) {
-
       # convert to vcf format to compare the alt alleles
       my $vf_2 = Bio::EnsEMBL::Variation::VariationFeature->new
         (-start => $start,
@@ -223,7 +218,7 @@ sub run {
     }
     else {
       $ref_allele = $vf->ref_allele_string;
-      $alt_allele = $allele;
+      $alt_allele = $tva->variation_feature_seq;
     }
 
     my $matches = get_matched_variant_alleles(
@@ -281,18 +276,10 @@ sub run {
 
   my $result = {};
 
-  my $n_genes = scalar keys %hash_aux;
-  if($n_genes == 1) {
-    # Get the only gene from the hash of results
-    my $key_gene = (keys %hash_aux)[0];
-    $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$key_gene}} : $hash_aux{$key_gene};
-  }
-  elsif($n_genes > 1) {
-    # Compare genes from SpliceAI with the variant gene symbol
-    my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
-    if(($gene_symbol) && ($hash_aux{$gene_symbol})) {
+  # find the SpliceAI gene matching the variant gene symbol, if there is a match
+  my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+  if(($gene_symbol) && ($hash_aux{$gene_symbol})) {
       $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
-    }
   }
 
   return $result;
@@ -329,4 +316,3 @@ sub parse_data {
 }
 
 1;
-

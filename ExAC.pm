@@ -39,7 +39,7 @@ limitations under the License.
 
  A VEP plugin that retrieves ExAC allele frequencies.
  
- Visit ftp://ftp.broadinstitute.org/pub/ExAC_release/current to download the latest ExAC VCF.
+ Visit https://ftp.broadinstitute.org/pub/ExAC_release/current to download the latest ExAC VCF.
  
  Note that the currently available version of the ExAC data file (0.3) is only available
  on the GRCh37 assembly; therefore it can only be used with this plugin when using the
@@ -105,7 +105,7 @@ sub new {
 
   # check files exist
   else {
-    die "ERROR: ExAC file $file not found; you can download it from ftp://ftp.broadinstitute.org/pub/ExAC_release/current\n" unless -e $file;
+    die "ERROR: ExAC file $file not found; you can download it from https://ftp.broadinstitute.org/pub/ExAC_release/current\n" unless -e $file;
     die "ERROR: Tabix index file $file\.tbi not found - perhaps you need to create it first?\n" unless -e $file.'.tbi';
   }
   

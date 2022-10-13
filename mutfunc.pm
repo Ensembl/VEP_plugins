@@ -40,9 +40,9 @@ limitations under the License.
 
  Pre-requisites:
 
- 1) The data file. mutfunc SQLite db can be downloaded from -
- http://ftp.ensembl.org/pub/current_variation/variation/mutfunc/mutfunc_data.db
-
+ 1) The data file. mutfunc SQLite db can be downloaded from - 
+ https://ftp.ensembl.org/pub/current_variation/variation/mutfunc/mutfunc_data.db
+ 
  Options are passed to the plugin as key=value pairs:
 
  By default all the fields (motif, int, mod, and exp) are added in the output. But if you want to have some selected fields and not all of
