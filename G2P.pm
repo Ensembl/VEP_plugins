@@ -743,9 +743,9 @@ sub gene_overlap_filtering {
   if (! defined $pass_gene_overlap_filter && ! defined $self->{user_params}->{filter_by_gene_symbol}) {
     my @gene_hgnc = split /:/, $transcript->{_gene_hgnc_id} if (defined $transcript->{_gene_hgnc_id});
     my $hgnc_id = $gene_hgnc[1] if (@gene_hgnc);
-    foreach my $gene_id ($hgnc_id){
-      foreach my $id (keys %{$self->{hgnc_mapping}}) {
-        if ( defined($gene_id) && $gene_id == $id) {
+    if (defined $hgnc_id) {
+      foreach my $id (keys %{ $self->{hgnc_mapping} }) {
+        if ( $hgnc_id == $id) {
           my $gene_symbol = $self->{hgnc_mapping}{$id};
           my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
           if (defined $gene_data) {
@@ -753,15 +753,13 @@ sub gene_overlap_filtering {
               foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
                 $self->{ar}->{$gene_stable_id}->{$ar} = 1;
               }
-              # this is for the log data, G2P gene data is called in the write report 
-              # added in the write_report method also 
               $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'} );
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
             $pass_gene_overlap_filter = 1;
             last;
           }
-        }
+        } 
       }
     }
     $self->{g2p_gene_cache}->{$gene_stable_id} = $pass_gene_overlap_filter;
