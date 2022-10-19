@@ -117,15 +117,6 @@ sub new {
           " but REVEL file does not contain " .
           $assembly_to_hdr{$assembly} . " in header.\n";
   }
-
-  my ($start_key, $end_key) = ('start_grch38', 'end_grch38');
-  if ($assembly eq 'GRCh37') {
-    ($start_key, $end_key) = ('start_grch37', 'end_grch37');
-  }
-
-  $self->{revel_start_key} = $start_key;
-  $self->{revel_end_key} = $end_key;
-
   return $self;
 }
 
