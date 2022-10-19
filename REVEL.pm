@@ -144,15 +144,29 @@ sub run {
 
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
-
-  my ($res) = grep {
-    $_->{alt}                      eq $allele &&
-    $_->{$self->{revel_start_key}} == $vf->{start} &&
-    $_->{$self->{revel_end_key}}   == $vf->{end} &&
-    $_->{altaa}                    eq $tva->peptide
-  } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
-
-  return $res ? $res->{result} : {};
+  my $tr_stable_id = $tva->transcript->stable_id;
+  
+  if ($self->{revel_file_columns} == 8 || $self->{revel_file_columns} == 9) {
+    my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+    foreach (@data) {
+      if ($_->{transcript_ids}){
+        foreach my $tr_id (split /;/, $_->{transcript_ids}){
+          return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
+        }
+      }
+      else {
+        return $_->{result} if ($_->{altaa} eq $tva->peptide);
+      }
+      
+    }
+  }
+  else {
+    my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+    foreach (@data) {
+      return $_->{result} if ($_->{altaa} eq $tva->peptide);
+    }
+  }
+  return {};
 }
 
 sub parse_data {
@@ -162,14 +176,16 @@ sub parse_data {
   # the lastest version also contains GRCh38 coordinates
   if ($self->{revel_file_columns} == 8 || $self->{revel_file_columns} == 9) {
     my ($c, $s_grch37, $s_grch38, $ref, $alt, $refaa, $altaa, $revel_value, $transcript_id ) = @values;
-
+    
     return {
+      chr => $c,
       alt => $alt,
       start_grch37 => $s_grch37,
       end_grch37 => $s_grch37,
       start_grch38 => $s_grch38,
       end_grch38 => $s_grch38,
       altaa => $altaa,
+      transcript_ids => $transcript_id,
       result => {
         REVEL   => $revel_value,
       }
@@ -180,6 +196,7 @@ sub parse_data {
     my ($c, $s, $ref, $alt, $refaa, $altaa, $revel_value) = @values;
 
     return {
+      chr => $c,
       alt => $alt,
       start_grch37 => $s,
       end_grch37 => $s,
