@@ -140,10 +140,10 @@ sub run {
   #if it doesn't look like the user has given an FTP link or a file, try and find the correct data
   if(@{$self->params}[0] !~ /ftp.ensembl.org/ && not -f @{$self->params}[0])
   {
-    my $FTP_URL = "https://ftp.ensembl.org/pub/current_compara/conservation_scores/";
+    my $FTP_URL = "http://ftp.ensembl.org/pub/current_compara/conservation_scores/";
     my $FTP_USER = 'anonymous';  
-
-    $FTP_URL =~ m/(ftp:\/\/)?(.+?)\/(.+)/;  
+    $FTP_URL =~ m/(http:\/\/)?(.+?)\/(.+)/;  
+    
     my $ftp = Net::FTP->new($2, Passive => 1) or die "ERROR: Could not connect to FTP host $FTP_URL\n$@\n";
     $ftp->login($FTP_USER) or die "ERROR: Could not login as $FTP_USER\n$@\n";
     $ftp->binary();
@@ -176,13 +176,10 @@ sub run {
   else{
     $filename = @{$self->params}[0] if scalar(@{$self->params});
   }
-  
   #Parse and strip out the expected info from the BigWig file
   my $parser = Bio::EnsEMBL::IO::Parser::BigWig->open($filename);
-    
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
-
   unless($parser){
     warn ("No BigWig file found for plugin Conservation \n"); 
     return {};
@@ -193,7 +190,6 @@ sub run {
 
   $parser->seek($chr, $vf->{start} - 1, $vf->{end});
   $parser->next;  
-
   return $parser->get_raw_score ? { Conservation => sprintf("%.3f", $parser->get_raw_score)} : {};
 }
 
