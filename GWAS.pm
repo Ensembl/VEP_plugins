@@ -110,7 +110,8 @@ sub get_header_info {
   $header{"GWAS_associated_gene"} = "Gene(s) reported by author in GWAS catalog";
   $header{"GWAS_risk_allele"} = "Allele associated with the variant that is strongly associated with the trait";
   $header{"GWAS_p_value"} = "P-value reported for the variant";
-  $header{"GWAS_study"} = "Pubmed identifier of the paper published";
+  $header{"GWAS_study"} = "GWAS study id";
+  $header{"GWAS_pmid"} = "Pubmed identifier of the paper published";
   $header{"GWAS_accessions"} = "URI with trait mapped to a ontology term";
   $header{"GWAS_beta_coef"} = "Beta co-efficient reported for the variant";
   $header{"GWAS_odds_ratio"} = "Odds ratio reported for the variant";
@@ -177,13 +178,6 @@ sub get_vfs_from_id {
 sub parse_input_file {
   my ($self, $input_file, $output_file) = @_;
 
-  my $input_filename = path($input_file)->basename();
-  my $workdir = path($output_file)->parent->stringify();
-
-  my ($err_file, $err_FH);
-  $err_file = $workdir . '/log_' . $input_filename . ".err";
-  open($err_FH, ">", $err_file) || die ("Could not open $err_file for writing: $!\n");
-
   # Open the input file for reading
   my $input_FH;
   if($input_file =~ /gz$/) {
@@ -221,14 +215,8 @@ sub parse_input_file {
       my $ratio_info     = $content{'95% CI (TEXT)'};
       my @accessions     = split/\,/, $content{'MAPPED_TRAIT_URI'};
 
-      print $err_FH "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if ($phenotype eq '');
+      warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if ($phenotype eq '');
       next if ($phenotype eq '');
-
-      my $risk_frequency = '';
-      if ($rs_risk_allele =~ /^\s*$rs_id-+\s*(\w+)\s*$/i) {
-        # $rs_risk_allele = $1;
-        $risk_frequency = $content{'RISK ALLELE FREQUENCY'};
-      }
 
       $gene =~ s/\s+//g;
       $gene =~ s/–/-/g;
@@ -283,11 +271,11 @@ sub parse_input_file {
         push(@ids, $1);
       }
 
-      # Setting pubmed prefix fixed here - would be better to be get from the API
-      $data{'GWAS_study'} = "PMID:" . $pubmed_id if (defined($pubmed_id));
+      $data{'GWAS_pmid'} = $pubmed_id if (defined($pubmed_id));
+      $data{'GWAS_study'} = $study if (defined($study));
 
       # If we did not get any rsIds, skip this row (this will also get rid of the header)
-      print $err_FH "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
+      warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
       next if (!scalar(@ids));
 
       map {
@@ -304,7 +292,6 @@ sub parse_input_file {
     }
   }
   close($input_FH);
-  close($err_FH);
 
   my %result = ('phenotypes' => $phenotypes);
   return \%result;
