@@ -64,42 +64,54 @@ sub new {
 
   my $self = $class->SUPER::new(@_);
   
+  $self->expand_left(0);
+  $self->expand_right(0);
+  
   my $param_hash = $self->params_to_hash();
 
   die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $param_hash->{file};
   $self->{file} = $param_hash->{file};
   
   $self->{type} = $param_hash->{type} || "curated";
+  die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
+    $self->{type} eq "curated" || $self->{type} eq "sstates");
 
-  my $config = $self->{config};
-  
-  my $dir = $config->{dir};
-  my $input_filename = basename($self->{file});
-  $self->{processed_file} = $dir . "/" . $input_filename;
-  $self->{processed_file} .= ".gz" unless $self->{processed_file} =~ /gz$/;
-  
-  if ($self->{type} eq "curated" && not -e $self->{processed_file}){
-    my $reg = 'Bio::EnsEMBL::Registry';
+  if ($self->{type} eq "curated") {
+    my $config = $self->{config};
+    
+    my $dir = $config->{dir};
+    my $input_filename = basename($self->{file});
+    $self->{processed_file} = $dir . "/" . $input_filename;
+    $self->{processed_file} .= ".gz" unless $self->{processed_file} =~ /gz$/;
+    
+    unless (-e $self->{processed_file}){
+      my $reg = 'Bio::EnsEMBL::Registry';
 
-    # reconnect to DB without species param
-    if($config->{host}) {
-        $reg->load_registry_from_db(
-            -host       => $config->{host},
-            -user       => $config->{user},
-            -pass       => $config->{password},
-            -port       => $config->{port},
-            -species    => $config->{species},
-            -db_version => $config->{db_version},
-            -no_cache   => $config->{no_slice_cache},
-        );
+      # reconnect to DB without species param
+      if($config->{host}) {
+          $reg->load_registry_from_db(
+              -host       => $config->{host},
+              -user       => $config->{user},
+              -pass       => $config->{password},
+              -port       => $config->{port},
+              -species    => $config->{species},
+              -db_version => $config->{db_version},
+              -no_cache   => $config->{no_slice_cache},
+          );
+      }
+      
+      $self->{$va} = $reg->get_adaptor('human', 'variation', 'variation');
+      my $data = $self->parse_input_file($self->{file});
+      
+      $self->create_processed_file($data);
     }
     
-    $self->{$va} = $reg->get_adaptor('human', 'variation', 'variation');
-    my $data = $self->parse_input_file($self->{file});
-    
-    $self->create_processed_file($data);
+    $self->add_file($self->{"processed_file"});
   }
-
+  else {
+    $self->add_file($self->{"file"});
+  }
+  
   return $self;
 }
 
