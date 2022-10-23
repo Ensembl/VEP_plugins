@@ -52,7 +52,7 @@ package GWAS;
 
 use strict;
 use warnings;
-use Path::Tiny qw(path);
+use File::Basename;
 use Storable qw(dclone);
 
 use Bio::EnsEMBL::Registry
@@ -71,9 +71,14 @@ sub new {
   
   $self->{type} = $param_hash->{type} || "curated";
 
-  $self->{indexed_file} = $self->{file} . ".tbi";
-  if ($self->{type} eq "curated" && not -e $self->{indexed_file}){
-    my $config = $self->{config};
+  my $config = $self->{config};
+  
+  my $dir = $config->{dir};
+  my $input_filename = basename($self->{file});
+  $self->{processed_file} = $dir . "/" . $input_filename;
+  $self->{processed_file} .= ".gz" unless $self->{processed_file} =~ /gz$/;
+  
+  if ($self->{type} eq "curated" && not -e $self->{processed_file}){
     my $reg = 'Bio::EnsEMBL::Registry';
 
     # reconnect to DB without species param
@@ -89,12 +94,11 @@ sub new {
         );
     }
     
-    $self->{$vfa} = $reg->get_adaptor('human', 'variation', 'variationfeature');
     $self->{$va} = $reg->get_adaptor('human', 'variation', 'variation');
+    my $data = $self->parse_input_file($self->{file});
+    
+    $self->create_processed_file($data);
   }
-  
-  $self->{output_file} = $self->{config}->{output_file};
-  $self->{data} = $self->parse_input_file($self->{file}, $self->{output_file});
 
   return $self;
 }
@@ -176,7 +180,7 @@ sub get_vfs_from_id {
 }
 
 sub parse_input_file {
-  my ($self, $input_file, $output_file) = @_;
+  my ($self, $input_file) = @_;
 
   # Open the input file for reading
   my $input_FH;
@@ -295,6 +299,40 @@ sub parse_input_file {
 
   my %result = ('phenotypes' => $phenotypes);
   return \%result;
+}
+
+sub create_processed_file {
+  my ($self, $data) = @_;
+  
+  my $temp_processed_file = $self->{"processed_file"} . "_temp";
+  open(my $temp_processed_FH, '>', $self->{"processed_file"}) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
+  
+  foreach my $phenotype (@{ $data->{"phenotypes"} }){
+    foreach my $vf ($phenotype->{"vfs"}){
+      my $line = join("\t", (
+        $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
+        $phenotype{"GWAS_associated_gene"},
+        $phenotype{"GWAS_risk_allele"},
+        $phenotype{"GWAS_p_value"},
+        $phenotype{"GWAS_study"},
+        $phenotype{"GWAS_pmid"},
+        $phenotype{"GWAS_accessions"},
+        $phenotype{"GWAS_beta_coef"},
+        $phenotype{"GWAS_odds_ratio"},
+      ));
+      
+      print $temp_processed_FH $line . "\n";
+    }
+  }
+  
+  close($temp_processed_FH);
+  
+  system("bgzip -c $temp_processed_file > $self->{processed_file}") 
+    or die "Failed to compress $temp_processed_file: $?";
+  system("rm $temp_processed_FH")
+    or die "Failed to delete $temp_processed_file: $?";;
+  system("tabix -s 1 -b 2 -e 3 -f " . $self->{processed_file})
+    or die "Failed to create index " . $self->{processed_file} . ": $?";;
 }
 
 1;
