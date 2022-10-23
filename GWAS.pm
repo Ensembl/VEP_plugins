@@ -55,18 +55,45 @@ use warnings;
 use Path::Tiny qw(path);
 use Storable qw(dclone);
 
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+use Bio::EnsEMBL::Registry
+
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
+  
+  my $param_hash = $self->params_to_hash();
 
-  die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $self->params->[0];
-  $self->{file} = $self->params->[0];
+  die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $param_hash->{file};
+  $self->{file} = $param_hash->{file};
+  
+  $self->{type} = $param_hash->{type} || "curated";
 
+  $self->{indexed_file} = $self->{file} . ".tbi";
+  if ($self->{type} eq "curated" && not -e $self->{indexed_file}){
+    my $config = $self->{config};
+    my $reg = 'Bio::EnsEMBL::Registry';
+
+    # reconnect to DB without species param
+    if($config->{host}) {
+        $reg->load_registry_from_db(
+            -host       => $config->{host},
+            -user       => $config->{user},
+            -pass       => $config->{password},
+            -port       => $config->{port},
+            -species    => $config->{species},
+            -db_version => $config->{db_version},
+            -no_cache   => $config->{no_slice_cache},
+        );
+    }
+    
+    $self->{$vfa} = $reg->get_adaptor('human', 'variation', 'variationfeature');
+    $self->{$va} = $reg->get_adaptor('human', 'variation', 'variation');
+  }
+  
   $self->{output_file} = $self->{config}->{output_file};
-
   $self->{data} = $self->parse_input_file($self->{file}, $self->{output_file});
 
   return $self;
@@ -124,6 +151,28 @@ sub run {
   return {};
 }
 
+sub get_vfs_from_id {
+  my ($self, $id) = @_;
+  
+  return {} unless defined $self->{vfa};
+  
+  my $v = $self->{va}->fetch_by_name($id);
+  return {} unless defined $v;
+  
+  my $locations = [];
+  foreach my $vf (@{ $v->get_all_VariationFeatures() })
+    my $location = {
+      "seq"   => $vf->seq_region_name(),
+      "start" => $vf->seq_region_start(),
+      "end"   => $vf->seq_region_end(),
+      "ref"   => $vf->ref_allele_string()
+    };
+    
+    push @{ $locations }, $location;
+  }
+  
+  return $locations;
+}
 
 sub parse_input_file {
   my ($self, $input_file, $output_file) = @_;
@@ -245,7 +294,10 @@ sub parse_input_file {
         $phenotypes->{$_} = [] unless defined $phenotypes->{$_};
 
         my $t_data = dclone \%data;
+        
+        my $vfs = $self->get_vfs_from_id($_);
         $t_data->{"id"} = $_;
+        $t_data->{"vfs"} = $vfs;
 
         push($phenotypes->{$_}, $t_data);
       } @ids;
