@@ -101,7 +101,7 @@ sub new {
       }
       
       $self->{$va} = $reg->get_adaptor('human', 'variation', 'variation');
-      my $data = $self->parse_input_file($self->{file});
+      my $data = $self->parse_curated_file($self->{file});
       
       $self->create_processed_file($data);
     }
@@ -110,6 +110,13 @@ sub new {
   }
   else {
     $self->add_file($self->{"file"});
+    
+    $self->{"file"} =~ m/(.+?)-(.+?)-(.+?)-(.+)/;
+    $self->{"pmid"} = $1;
+    $self->{"study"} = $2;
+    $self->{"accession"} = $3;
+    
+    $self->{"sstate_colmap"} = $self->parse_sstate_header();
   }
   
   return $self;
@@ -139,9 +146,13 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature();
-  my $variant_name = $vf->name();
-
-  my $phenotypes = $self->{data}->{phenotypes};
+  return {} unless $vf;
+  
+  my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+  
+  foreach (@data){
+    
+  }
 
   my $result;
   if ( exists $phenotypes->{$variant_name} ) {
@@ -191,7 +202,7 @@ sub get_vfs_from_id {
   return $locations;
 }
 
-sub parse_input_file {
+sub parse_curated_file {
   my ($self, $input_file) = @_;
 
   # Open the input file for reading
@@ -340,11 +351,78 @@ sub create_processed_file {
   close($temp_processed_FH);
   
   system("bgzip -c $temp_processed_file > $self->{processed_file}") 
-    or die "Failed to compress $temp_processed_file: $?";
+    or die "Failed to compress $temp_processed_file: $?\n";
   system("rm $temp_processed_FH")
-    or die "Failed to delete $temp_processed_file: $?";;
+    or die "Failed to delete $temp_processed_file: $?\n";;
   system("tabix -s 1 -b 2 -e 3 -f " . $self->{processed_file})
-    or die "Failed to create index " . $self->{processed_file} . ": $?";;
+    or die "Failed to create index " . $self->{processed_file} . ": $?\n";;
+}
+
+sub parse_sstate_header {
+  my ($self) = @_;
+  
+  my $header = `tabix $self->{"file"} -H` or die "Cannot get header from $self->{"file"}: $?\n";
+  $header =~ s/^#//;
+  
+  my @cols = (split("\t", $header));
+  my @required_cols = qw/chromosome base_pair_location p-value beta odds_ratio effect_allele/;
+  
+  my $colmap = {};
+  map {
+    my $matched = (grep {$cols[$_]} @required_cols);
+    $colmap{$_} = $matched if $matched;
+  } 0 .. $#cols;
+  
+  return $colmap;
+}
+
+sub parse_data {
+  my ($self, $line) = @_;
+  my ($c, $s, $e, $ref, $a_gene, $r_allele, $p_val, $study, $pmid, $acc, $beta, $odds);
+  
+  if ($self->{"type"} eq "curated"){
+    ($c, $s, $e, $ref, $a_gene, $r_allele, $p_val, $study, $pmid, $acc, $beta, $odds) = split /\t/, $line;
+  }
+  else {
+    $study = $self->{"study"};
+    $pmid = $self->{"pmid"};
+    $acc = $self->{"accession"};
+    
+    my @cols = split /\t/, $line;
+    my $parsed_data = {};
+    map {
+      if ($self->{"sstate_colmap"}->{$_}){
+        my $col_name = $self->{"sstate_colmap"}->{$_};
+        $parsed_data{$col_name} = $cols[$_] ;
+      }
+    } 0 .. $#cols;
+    
+    $c = $parsed_data->{"chromosome"};
+    $s = $parsed_data->{"base_pair_location"};
+    $e = $s;
+    $r_allele = $parsed_data->{"effect_allele"};
+    $p_val = $parsed_data->{"p-value"};
+    $beta = $parsed_data->{"beta"};
+    $odds = $parsed_data->{"odds_ratio"};
+    
+    $a_gene = "";
+    $ref = "";
+  }
+  
+  return {
+    chr => $chr,
+    start => $start,
+    end => $end,
+    ref => $ref,
+    GWAS_associated_gene => $a_gene,
+    GWAS_risk_allele => $r_allele,
+    GWAS_p_value => $p_val,
+    GWAS_study => $study,
+    GWAS_pmid => $pmid,
+    GWAS_accessions => $acc,
+    GWAS_beta_coef => $beta,
+    GWAS_odds_ratio => $odds
+  };
 }
 
 1;
