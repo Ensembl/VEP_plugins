@@ -55,7 +55,8 @@ use warnings;
 use File::Basename;
 use Storable qw(dclone);
 
-use Bio::EnsEMBL::Registry
+use Bio::EnsEMBL::Registry;
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
@@ -151,31 +152,24 @@ sub run {
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
   foreach (@data){
+    $_->{ref} = $vf->ref_allele_string if $_->{ref} eq "";
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => [$tva->variation_feature_seq;],
+        pos    => $vf->{"start"},
+        strand => $vf->strand
+      },
+      {
+        ref  => $_->{"ref"},
+        alts => [$_->{"result"}->{"GWAS_risk_allele"}],
+        pos  => $_->{"start"},
+      }
+    );
     
+    return $_->{"result"} if (@$matches);
   }
-
-  my $result;
-  if ( exists $phenotypes->{$variant_name} ) {
-    foreach my $phenotype ( @{ $phenotypes->{$variant_name} } ){
-      map {
-        my $field = $_;
-
-        if ($_ eq "GWAS_risk_allele") {
-          map {
-            if ($_ =~ /$variant_name/) {
-              my $risk_allele_with_id = $_;
-              $phenotype->{$field} = ( split("-", $risk_allele_with_id) )[1];
-            }
-          } split(";", $phenotype->{$_});
-        }
-
-        $result->{$_} = defined $result->{$_} ? $phenotype->{$_} : "," . $phenotype->{$_};
-      } keys %{ $phenotype };
-    }
-
-    return $result;
-  }
-
+  
   return {};
 }
 
@@ -252,7 +246,6 @@ sub parse_curated_file {
 
       my %data = (
         'GWAS_associated_gene' => $gene,
-        'GWAS_risk_allele' => $rs_risk_allele,
         'GWAS_p_value' => $pvalue,
         'GWAS_accessions'   => \@accessions
       );
@@ -313,6 +306,15 @@ sub parse_curated_file {
         my $vfs = $self->get_vfs_from_id($_);
         $t_data->{"id"} = $_;
         $t_data->{"vfs"} = $vfs;
+        
+        my $risk_allele
+        map {
+          if ($_ =~ /$id/) {
+            my $risk_allele_with_id = $_;
+            $risk_allele = ( split("-", $risk_allele_with_id) )[1];
+          }
+        } split(";", $rs_risk_allele);
+        $t_data->{"GWAS_risk_allele"} = $risk_allele;
 
         push($phenotypes->{$_}, $t_data);
       } @ids;
@@ -414,14 +416,16 @@ sub parse_data {
     start => $start,
     end => $end,
     ref => $ref,
-    GWAS_associated_gene => $a_gene,
-    GWAS_risk_allele => $r_allele,
-    GWAS_p_value => $p_val,
-    GWAS_study => $study,
-    GWAS_pmid => $pmid,
-    GWAS_accessions => $acc,
-    GWAS_beta_coef => $beta,
-    GWAS_odds_ratio => $odds
+    result => {
+      GWAS_associated_gene => $a_gene,
+      GWAS_risk_allele => $r_allele,
+      GWAS_p_value => $p_val,
+      GWAS_study => $study,
+      GWAS_pmid => $pmid,
+      GWAS_accessions => $acc,
+      GWAS_beta_coef => $beta,
+      GWAS_odds_ratio => $odds
+    }
   };
 }
 
