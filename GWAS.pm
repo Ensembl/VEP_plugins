@@ -101,7 +101,7 @@ sub new {
           );
       }
       
-      $self->{$va} = $reg->get_adaptor('human', 'variation', 'variation');
+      $self->{"va"} = $reg->get_adaptor('human', 'variation', 'variation');
       my $data = $self->parse_curated_file($self->{file});
       
       $self->create_processed_file($data);
@@ -151,12 +151,12 @@ sub run {
   
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
-  foreach (@data){
+  foreach (@data) {
     $_->{ref} = $vf->ref_allele_string if $_->{ref} eq "";
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
-        alts   => [$tva->variation_feature_seq;],
+        alts   => [$tva->variation_feature_seq],
         pos    => $vf->{"start"},
         strand => $vf->strand
       },
@@ -182,7 +182,7 @@ sub get_vfs_from_id {
   return {} unless defined $v;
   
   my $locations = [];
-  foreach my $vf (@{ $v->get_all_VariationFeatures() })
+  foreach my $vf (@{ $v->get_all_VariationFeatures() }) {
     my $location = {
       "seq"   => $vf->seq_region_name(),
       "start" => $vf->seq_region_start(),
@@ -208,7 +208,7 @@ sub parse_curated_file {
     open($input_FH, '<', $input_file) || die ("Could not open $input_file for reading: $!\n");
   }
 
-  my (%headers, $phenotypes);
+  my (%headers, @phenotypes);
   # Read through the file and parse out the desired fields
   while (<$input_FH>) {
     chomp;
@@ -299,15 +299,16 @@ sub parse_curated_file {
       next if (!scalar(@ids));
 
       map {
-        $phenotypes->{$_} = [] unless defined $phenotypes->{$_};
+        my $id = $_;
+        # $phenotypes->{$id} = [] unless defined $phenotypes->{$id};
 
         my $t_data = dclone \%data;
         
-        my $vfs = $self->get_vfs_from_id($_);
-        $t_data->{"id"} = $_;
+        my $vfs = $self->get_vfs_from_id($id);
+        $t_data->{"id"} = $id;
         $t_data->{"vfs"} = $vfs;
         
-        my $risk_allele
+        my $risk_allele;
         map {
           if ($_ =~ /$id/) {
             my $risk_allele_with_id = $_;
@@ -316,13 +317,13 @@ sub parse_curated_file {
         } split(";", $rs_risk_allele);
         $t_data->{"GWAS_risk_allele"} = $risk_allele;
 
-        push($phenotypes->{$_}, $t_data);
+        push(@phenotypes, $t_data);
       } @ids;
     }
   }
   close($input_FH);
 
-  my %result = ('phenotypes' => $phenotypes);
+  my %result = ('phenotypes' => \@phenotypes);
   return \%result;
 }
 
@@ -330,20 +331,20 @@ sub create_processed_file {
   my ($self, $data) = @_;
   
   my $temp_processed_file = $self->{"processed_file"} . "_temp";
-  open(my $temp_processed_FH, '>', $self->{"processed_file"}) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
+  open(my $temp_processed_FH, '>', $temp_processed_file) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
   
   foreach my $phenotype (@{ $data->{"phenotypes"} }){
     foreach my $vf ($phenotype->{"vfs"}){
       my $line = join("\t", (
         $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
-        $phenotype{"GWAS_associated_gene"},
-        $phenotype{"GWAS_risk_allele"},
-        $phenotype{"GWAS_p_value"},
-        $phenotype{"GWAS_study"},
-        $phenotype{"GWAS_pmid"},
-        $phenotype{"GWAS_accessions"},
-        $phenotype{"GWAS_beta_coef"},
-        $phenotype{"GWAS_odds_ratio"},
+        $phenotype->{"GWAS_associated_gene"},
+        $phenotype->{"GWAS_risk_allele"},
+        $phenotype->{"GWAS_p_value"},
+        $phenotype->{"GWAS_study"},
+        $phenotype->{"GWAS_pmid"},
+        $phenotype->{"GWAS_accessions"},
+        $phenotype->{"GWAS_beta_coef"},
+        $phenotype->{"GWAS_odds_ratio"},
       ));
       
       print $temp_processed_FH $line . "\n";
@@ -352,18 +353,18 @@ sub create_processed_file {
   
   close($temp_processed_FH);
   
-  system("bgzip -c $temp_processed_file > $self->{processed_file}") 
+  system("bgzip -c $temp_processed_file > $self->{processed_file}") == 0
     or die "Failed to compress $temp_processed_file: $?\n";
-  system("rm $temp_processed_FH")
-    or die "Failed to delete $temp_processed_file: $?\n";;
-  system("tabix -s 1 -b 2 -e 3 -f " . $self->{processed_file})
+  system("rm $temp_processed_file") == 0
+    or die "Failed to delete $temp_processed_file: $?\n";
+  system("tabix -s 1 -b 2 -e 3 -f " . $self->{processed_file}) == 0
     or die "Failed to create index " . $self->{processed_file} . ": $?\n";;
 }
 
 sub parse_sstate_header {
   my ($self) = @_;
   
-  my $header = `tabix $self->{"file"} -H` or die "Cannot get header from $self->{"file"}: $?\n";
+  my $header = `tabix $self->{"file"} -H` or die "Cannot get header from " . $self->{"file"} . ": $?\n";
   $header =~ s/^#//;
   
   my @cols = (split("\t", $header));
@@ -372,7 +373,7 @@ sub parse_sstate_header {
   my $colmap = {};
   map {
     my $matched = (grep {$cols[$_]} @required_cols);
-    $colmap{$_} = $matched if $matched;
+    $colmap->{$_} = $matched if $matched;
   } 0 .. $#cols;
   
   return $colmap;
@@ -395,7 +396,7 @@ sub parse_data {
     map {
       if ($self->{"sstate_colmap"}->{$_}){
         my $col_name = $self->{"sstate_colmap"}->{$_};
-        $parsed_data{$col_name} = $cols[$_] ;
+        $parsed_data->{$col_name} = $cols[$_] ;
       }
     } 0 .. $#cols;
     
@@ -412,9 +413,9 @@ sub parse_data {
   }
   
   return {
-    chr => $chr,
-    start => $start,
-    end => $end,
+    chr => $c,
+    start => $s,
+    end => $e,
     ref => $ref,
     result => {
       GWAS_associated_gene => $a_gene,
