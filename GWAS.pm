@@ -166,7 +166,6 @@ sub run {
         pos  => $_->{"start"},
       }
     );
-    
     return $_->{"result"} if (@$matches);
   }
   
@@ -176,10 +175,10 @@ sub run {
 sub get_vfs_from_id {
   my ($self, $id) = @_;
   
-  return {} unless defined $self->{vfa};
+  return [] unless defined $self->{va};
   
   my $v = $self->{va}->fetch_by_name($id);
-  return {} unless defined $v;
+  return [] unless defined $v;
   
   my $locations = [];
   foreach my $vf (@{ $v->get_all_VariationFeatures() }) {
@@ -226,7 +225,7 @@ sub parse_curated_file {
       $content{$_} = $row_data[$headers{$_}] for keys %headers;
 
       my $pubmed_id      = $content{'PUBMEDID'};
-      my $study          = $content{'STUDY'};
+      my $study          = $content{'STUDY ACCESSION'};
       my $phenotype      = $content{'DISEASE/TRAIT'};
       my $gene           = ($content{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content{'REPORTED GENE(S)'};
       my $rs_risk_allele = ($content{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content{'STRONGEST SNP-RISK ALLELE'};
@@ -247,7 +246,9 @@ sub parse_curated_file {
       my %data = (
         'GWAS_associated_gene' => $gene,
         'GWAS_p_value' => $pvalue,
-        'GWAS_accessions'   => \@accessions
+        'GWAS_accessions'   => \@accessions,
+        'GWAS_pmid' => $pubmed_id,
+        'GWAS_study' => $study 
       );
 
       # Post process the ratio data
@@ -291,9 +292,6 @@ sub parse_curated_file {
         push(@ids, $1);
       }
 
-      $data{'GWAS_pmid'} = $pubmed_id if (defined($pubmed_id));
-      $data{'GWAS_study'} = $study if (defined($study));
-
       # If we did not get any rsIds, skip this row (this will also get rid of the header)
       warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
       next if (!scalar(@ids));
@@ -334,17 +332,30 @@ sub create_processed_file {
   open(my $temp_processed_FH, '>', $temp_processed_file) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
   
   foreach my $phenotype (@{ $data->{"phenotypes"} }){
-    foreach my $vf ($phenotype->{"vfs"}){
+    foreach my $vf (@{ $phenotype->{"vfs"} }){
+      next unless $vf;
+      
+      next unless $phenotype->{"GWAS_risk_allele"};
+      my $GWAS_risk_allele = $phenotype->{"GWAS_risk_allele"} || "";
+      
+      my $GWAS_associated_gene = $phenotype->{"GWAS_associated_gene"} || "";
+      my $GWAS_p_value = $phenotype->{"GWAS_p_value"} || "";
+      my $GWAS_study = $phenotype->{"GWAS_study"} || "";
+      my $GWAS_pmid = $phenotype->{"GWAS_pmid"} || "";
+      my $accessions = join(",", @{ $phenotype->{"GWAS_accessions"} }) || "";
+      my $GWAS_beta_coef = $phenotype->{"GWAS_beta_coef"} || "";
+      my $GWAS_odds_ratio = $phenotype->{"GWAS_odds_ratio"} || "";
+
       my $line = join("\t", (
         $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
-        $phenotype->{"GWAS_associated_gene"},
-        $phenotype->{"GWAS_risk_allele"},
-        $phenotype->{"GWAS_p_value"},
-        $phenotype->{"GWAS_study"},
-        $phenotype->{"GWAS_pmid"},
-        $phenotype->{"GWAS_accessions"},
-        $phenotype->{"GWAS_beta_coef"},
-        $phenotype->{"GWAS_odds_ratio"},
+        $GWAS_associated_gene,
+        $GWAS_risk_allele,
+        $GWAS_p_value,
+        $GWAS_study,
+        $GWAS_pmid,
+        $accessions,
+        $GWAS_beta_coef,
+        $GWAS_odds_ratio,
       ));
       
       print $temp_processed_FH $line . "\n";
@@ -353,8 +364,8 @@ sub create_processed_file {
   
   close($temp_processed_FH);
   
-  system("bgzip -c $temp_processed_file > $self->{processed_file}") == 0
-    or die "Failed to compress $temp_processed_file: $?\n";
+  system("sort -k1,1 -k2,2n -k3,3n $temp_processed_file | bgzip -c > $self->{processed_file}") == 0
+    or die "Failed to sort and compress $temp_processed_file: $?\n";
   system("rm $temp_processed_file") == 0
     or die "Failed to delete $temp_processed_file: $?\n";
   system("tabix -s 1 -b 2 -e 3 -f " . $self->{processed_file}) == 0
