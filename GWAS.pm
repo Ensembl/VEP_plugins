@@ -384,10 +384,10 @@ sub parse_sstate_header {
   my $colmap = {};
   map {
     my $index = $_;
-    my @matched = (grep {/$cols[$index]/} @required_cols);
+    my @matched = (grep {/^$cols[$index]$/} @required_cols);
     $colmap->{$index} = $matched[0] if @matched;
   } 0 .. $#cols;
-  
+
   return $colmap;
 }
 
