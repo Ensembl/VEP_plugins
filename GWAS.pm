@@ -76,7 +76,8 @@ sub new {
   $self->{type} = $param_hash->{type} || "curated";
   die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
     $self->{type} eq "curated" || $self->{type} eq "sstate");
-    
+  
+  # process for cureated file 
   if ($self->{type} eq "curated") {
     my $config = $self->{config};
     
@@ -85,10 +86,10 @@ sub new {
     $self->{processed_file} = $dir . "/" . $input_filename;
     $self->{processed_file} .= ".gz" unless $self->{processed_file} =~ /gz$/;
     
+    # create processed file with genomic location and index - only run if already not created
     unless (-e $self->{processed_file}){
       my $reg = 'Bio::EnsEMBL::Registry';
 
-      # reconnect to DB without species param
       if($config->{host}) {
           $reg->load_registry_from_db(
               -host       => $config->{host},
@@ -102,21 +103,26 @@ sub new {
       }
       
       $self->{"va"} = $reg->get_adaptor('human', 'variation', 'variation');
-      my $data = $self->parse_curated_file($self->{file});
       
+      # parse the raw file
+      my $data = $self->parse_curated_file($self->{file});
+      # create the processed file
       $self->create_processed_file($data);
     }
     
     $self->add_file($self->{"processed_file"});
   }
+  # process for summary statistics file
   else {
     $self->add_file($self->{"file"});
     
+    # get some information from the filename
     basename($self->{"file"}) =~ m/(.+?)-(.+?)-(.+?)\.(.+)/;
     $self->{"pmid"} = $1;
     $self->{"study"} = $2;
     $self->{"accession"} = $3;
     
+    # parse the header to know the desired column location
     $self->{"sstate_colmap"} = $self->parse_sstate_header();
   }
   
@@ -198,7 +204,7 @@ sub get_vfs_from_id {
 sub parse_curated_file {
   my ($self, $input_file) = @_;
 
-  # Open the input file for reading
+  # open the input file for reading
   my $input_FH;
   if($input_file =~ /gz$/) {
     open($input_FH, "zcat " . $input_file . " |") || die ("Could not open $input_file for reading: $!\n");
@@ -208,7 +214,7 @@ sub parse_curated_file {
   }
 
   my (%headers, @phenotypes);
-  # Read through the file and parse out the desired fields
+  # read through the file and parse out the desired fields
   while (<$input_FH>) {
     chomp;
 
@@ -251,7 +257,7 @@ sub parse_curated_file {
         'GWAS_study' => $study 
       );
 
-      # Post process the ratio data
+      # post process the ratio data
       if (defined($ratio)) {
         if ($ratio =~ /(\d+)?(\.\d+)$/) {
           my $pre  = $1;
@@ -263,9 +269,9 @@ sub parse_curated_file {
         }
       }
 
-      # Add ratio/coef
+      # add ratio/coef
       if (defined($ratio)) {
-        # Parse the ratio info column to extract the unit information (we are not interested in the confidence interval)
+        # parse the ratio info column to extract the unit information (we are not interested in the confidence interval)
         if ($ratio_info =~ /^\s*(\[.+\])?\s*(.+)$/) {
           my $unit = $2;
              $unit =~ s/\(//g;
@@ -285,20 +291,19 @@ sub parse_curated_file {
       $data{'GWAS_odds_ratio'} = "" unless defined $data{'GWAS_odds_ratio'};
       $data{'GWAS_beta_coef'} = "" unless defined $data{'GWAS_beta_coef'};
 
-      # Parse the ids
+      # parse the ids
       my @ids;
       $rs_id ||= "";
       while ($rs_id =~ m/(rs[0-9]+)/g) {
         push(@ids, $1);
       }
 
-      # If we did not get any rsIds, skip this row (this will also get rid of the header)
+      # if we did not get any rsIds, skip this row (this will also get rid of the header)
       warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
       next if (!scalar(@ids));
 
       map {
         my $id = $_;
-        # $phenotypes->{$id} = [] unless defined $phenotypes->{$id};
 
         my $t_data = dclone \%data;
         
