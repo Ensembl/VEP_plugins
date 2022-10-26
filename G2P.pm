@@ -94,6 +94,8 @@ limitations under the License.
                          Do not set if filtering by HGNC_id.
                          This option is set to 1 when using PanelApp files. 
 
+  only_mane            : 
+
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
 
@@ -392,6 +394,15 @@ sub new {
     die "The option --filter_by_gene_symbol needs to be set to 1 \n";
   }
   
+  if (defined($params->{only_mane}) and $params->{only_mane} != 1) {
+     $params->{only_mane} = undef;
+    die "The option only_mane needs to be set to 1 \n";
+  }
+  
+  if (defined($params->{only_mane}) and $params->{only_mane} == 1 and $self->{config}->{assembly} ne "GRCh38") {
+    die "The option only_mane only works with GRCh38 assembly \n";
+  }
+  
    
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
@@ -480,10 +491,12 @@ sub get_header_info {
 =cut
 sub run {
   my ($self, $tva, $line) = @_;
-
+  
   # only interested if we know the zygosity
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
+
+  return {} if ($self->{user_params}->{only_mane} == 1 && !$tva->transcript->is_mane);
   # filter by G2P gene overlap
   return {} if (!$self->gene_overlap_filtering($tva));
 
@@ -491,7 +504,7 @@ sub run {
 
   # filter by variant consequence
   return {} if (!$self->consequence_filtering($tva));
-
+  
   # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
 
