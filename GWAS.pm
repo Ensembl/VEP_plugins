@@ -37,7 +37,7 @@ limitations under the License.
  
  This plugin supports both the curated data that is found in the download section of the GWAS catalog website and the 
  summary statistics file. By default the plugin assumes the file provided is the curated file but you can pass "type=sstate" 
- to say you want to annotate with a summary statistics file
+ to say you want to annotate with a summary statistics file.
 
  Please cite the following publication alongside the VEP if you use this resource:
  https://pubmed.ncbi.nlm.nih.gov/30445434/
@@ -47,17 +47,17 @@ limitations under the License.
  For curated GWAS catalog file -
  GWAS files can be downloaded from - https://www.ebi.ac.uk/gwas/api/search/downloads/alternative
  When run for the first time the plugin will create a processed file that have genomic locations and indexed and put it under 
- the --dir determined by Ensembl VEP. It may take >1 hour to create the processed file depending on the file size. But subsequent 
- runs will be faster as the plugin will use the already generated processed file.
+ the --dir location determined by Ensembl VEP. It may take >1 hour to create the processed file depending on the file size. But subsequent 
+ runs will be faster as the plugin will be using the already generated processed file.
  
  For summary statistics file -
- The plugin can understand the harmonised version of the summary statistics file. Which can be downloaded from the FTP site - 
+ The plugin can process the harmonised version of the summary statistics file. Which can be downloaded from the FTP site - 
  http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics
  
- They are under the directory with specific GCST id. For example -
+ They are under directory with related to their specific GCST id. For example -
  http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST000001-GCST001000/GCST000028/harmonised/17463246-GCST000028-EFO_0001360.h.tsv.gz
  
- Please keep the filename format same as it is because filename is parsed to get information.
+ Please keep the filename format as it is because filename is parsed to get information.
  
  Follow the following steps -
  1. filter out lines that don't have genomic locations -
@@ -77,8 +77,8 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
 
- file			: (mandatory) Path to GWAS curated or summary statistics file
- type     : type of the file. Valid values are "curated" and "sstate".
+ file   : (mandatory) Path to GWAS curated or summary statistics file
+ type   : type of the file. Valid values are "curated" and "sstate".
 
 =cut
 
