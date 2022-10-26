@@ -75,8 +75,8 @@ sub new {
   
   $self->{type} = $param_hash->{type} || "curated";
   die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
-    $self->{type} eq "curated" || $self->{type} eq "sstates");
-
+    $self->{type} eq "curated" || $self->{type} eq "sstate");
+    
   if ($self->{type} eq "curated") {
     my $config = $self->{config};
     
@@ -112,7 +112,7 @@ sub new {
   else {
     $self->add_file($self->{"file"});
     
-    $self->{"file"} =~ m/(.+?)-(.+?)-(.+?)-(.+)/;
+    basename($self->{"file"}) =~ m/(.+?)-(.+?)-(.+?)\.(.+)/;
     $self->{"pmid"} = $1;
     $self->{"study"} = $2;
     $self->{"accession"} = $3;
@@ -379,12 +379,13 @@ sub parse_sstate_header {
   $header =~ s/^#//;
   
   my @cols = (split("\t", $header));
-  my @required_cols = qw/chromosome base_pair_location p-value beta odds_ratio effect_allele/;
+  my @required_cols = qw/hm_chrom hm_pos p_value hm_beta hm_odds_ratio hm_effect_allele/;
   
   my $colmap = {};
   map {
-    my $matched = (grep {$cols[$_]} @required_cols);
-    $colmap->{$_} = $matched if $matched;
+    my $index = $_;
+    my @matched = (grep {/$cols[$index]/} @required_cols);
+    $colmap->{$index} = $matched[0] if @matched;
   } 0 .. $#cols;
   
   return $colmap;
@@ -411,13 +412,13 @@ sub parse_data {
       }
     } 0 .. $#cols;
     
-    $c = $parsed_data->{"chromosome"};
-    $s = $parsed_data->{"base_pair_location"};
+    $c = $parsed_data->{"hm_chrom"};
+    $s = $parsed_data->{"hm_pos"};
     $e = $s;
-    $r_allele = $parsed_data->{"effect_allele"};
-    $p_val = $parsed_data->{"p-value"};
-    $beta = $parsed_data->{"beta"};
-    $odds = $parsed_data->{"odds_ratio"};
+    $r_allele = $parsed_data->{"hm_effect_allele"} || "";
+    $p_val = $parsed_data->{"p_value"} || "";
+    $beta = $parsed_data->{"hm_beta"} || "";
+    $odds = $parsed_data->{"hm_odds_ratio"} || "";
     
     $a_gene = "";
     $ref = "";
