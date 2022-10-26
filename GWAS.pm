@@ -28,23 +28,57 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GWAS.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin GWAS,/FULL_PATH_TO/gwas_catalog_v1.0.2-associations_e107_r2022-09-14.tsv
+ ./vep -i variations.vcf --plugin GWAS,file=/FULL_PATH_TO/gwas_catalog_v1.0.2-associations_e107_r2022-09-14.tsv
+ ./vep -i variations.vcf --plugin GWAS,type=sstate,file=/FULL_PATH_TO/17463246-GCST000028-EFO_0001360.h.tsv.sorted.gz
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves GWAS catalog data given the file.
+ A VEP plugin that retrieves GWAS catalog data given the file. 
+ 
+ This plugin supports both the curated data that is found in the download section of the GWAS catalog website and the 
+ summary statistics file. By default the plugin assumes the file provided is the curated file but you can pass "type=sstate" 
+ to say you want to annotate with a summary statistics file
 
  Please cite the following publication alongside the VEP if you use this resource:
  https://pubmed.ncbi.nlm.nih.gov/30445434/
 
  Pre-requisites:
 
- GWAS files can be downloaded from -
- https://www.ebi.ac.uk/gwas/api/search/downloads/alternative
+ For curated GWAS catalog file -
+ GWAS files can be downloaded from - https://www.ebi.ac.uk/gwas/api/search/downloads/alternative
+ When run for the first time the plugin will create a processed file that have genomic locations and indexed and put it under 
+ the --dir determined by Ensembl VEP. It may take >1 hour to create the processed file depending on the file size. But subsequent 
+ runs will be faster as the plugin will use the already generated processed file.
+ 
+ For summary statistics file -
+ The plugin can understand the harmonised version of the summary statistics file. Which can be downloaded from the FTP site - 
+ http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics
+ 
+ They are under the directory with specific GCST id. For example -
+ http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST000001-GCST001000/GCST000028/harmonised/17463246-GCST000028-EFO_0001360.h.tsv.gz
+ 
+ Please keep the filename format same as it is because filename is parsed to get information.
+ 
+ Follow the following steps -
+ 1. filter out lines that don't have genomic locations -
+ tail -n +2 17463246-GCST000028-EFO_0001360.h.tsv | awk '$3 != "NA" && $4 != "NA" {print}' > 17463246-GCST000028-EFO_0001360.h.tsv.filtered
+
+ replace $3 and $4 with column location of the hm_chrom and hm_pos
+ 
+ 2. sort the file. Also keep the header and put # in front - 
+ (head -n 1 17463246-GCST000028-EFO_0001360.h.tsv && sort -k3,3 -k4,4n 17463246-GCST000028-EFO_0001360.h.tsv.filtered) > 17463246-GCST000028-EFO_0001360.h.tsv.sorted
+ sed -i '1 s/^/#/' 17463246-GCST000028-EFO_0001360.h.tsv.sorted
+
+ 3. zip the file -
+ bgzip -c 17463246-GCST000028-EFO_0001360.h.tsv.sorted > 17463246-GCST000028-EFO_0001360.h.tsv.sorted.gz
+
+ 4. index the file -
+ tabix -s 3 -b 4 -e 4 -c "#" -f 17463246-GCST000028-EFO_0001360.h.tsv.sorted.gz
 
  Options are passed to the plugin as key=value pairs:
 
- file			: (mandatory) Path to GWAS tsv file
+ file			: (mandatory) Path to GWAS curated or summary statistics file
+ type     : type of the file. Valid values are "curated" and "sstate".
 
 =cut
 
