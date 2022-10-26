@@ -94,7 +94,8 @@ limitations under the License.
                          Do not set if filtering by HGNC_id.
                          This option is set to 1 when using PanelApp files. 
 
-  only_mane            : 
+  only_mane            : set to 1 to ignore transcripts that are not MANE
+                         N/B - Information may be lost if this option is used.
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  Example:
