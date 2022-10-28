@@ -76,7 +76,6 @@ use warnings;
 
 use Digest::MD5 qw(md5_hex);
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::VariationEffect qw(overlap);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;

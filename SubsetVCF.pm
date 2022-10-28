@@ -57,8 +57,6 @@ use strict;
 use warnings;
 
 use Storable qw(dclone);
-use Data::Dumper;
-
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line get_all_consequences);
