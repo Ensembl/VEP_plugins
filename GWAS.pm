@@ -351,7 +351,7 @@ sub parse_curated_file {
             my $risk_allele_with_id = $_;
             $risk_allele = ( split("-", $risk_allele_with_id) )[1];
           }
-        } split(";", $rs_risk_allele);
+        } split(/[;,x]/, $rs_risk_allele);
         $t_data->{"GWAS_risk_allele"} = $risk_allele;
 
         push(@phenotypes, $t_data);
