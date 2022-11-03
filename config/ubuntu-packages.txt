@@ -1,8 +1,7 @@
-libgd-dev
-uuid-dev
-
 # Draw plugin: dependency required by Perl package GD
 pkg-config
+libgd-dev
+uuid-dev
 
 # PON_P2 and FATHMM plugins
 python
