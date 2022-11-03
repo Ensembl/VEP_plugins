@@ -137,23 +137,14 @@ sub run {
   my $allele = $tva->variation_feature_seq;
   my $tr_stable_id = $tva->transcript->stable_id;
   
-  if ($self->{revel_file_columns} == 8 || $self->{revel_file_columns} == 9) {
-    my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
-    foreach (@data) {
-      if ($_->{transcript_ids}){
-        foreach my $tr_id (split /;/, $_->{transcript_ids}){
-          return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
-        }
+  my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+  foreach (@data) {
+    if ($_->{transcript_ids}){
+      foreach my $tr_id (split /;/, $_->{transcript_ids}){
+        return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
       }
-      else {
-        return $_->{result} if ($_->{altaa} eq $tva->peptide);
-      }
-      
     }
-  }
-  else {
-    my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
-    foreach (@data) {
+    else {
       return $_->{result} if ($_->{altaa} eq $tva->peptide);
     }
   }
