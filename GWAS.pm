@@ -46,9 +46,6 @@ limitations under the License.
 
  For curated GWAS catalog file -
  GWAS files can be downloaded from - https://www.ebi.ac.uk/gwas/api/search/downloads/alternative
- When run for the first time the plugin will create a processed file that have genomic locations and indexed and put it under 
- the --dir location determined by Ensembl VEP. It may take >1 hour to create the processed file depending on the file size. But subsequent 
- runs will be faster as the plugin will be using the already generated processed file.
  
  For summary statistics file -
  The plugin can process the harmonised version of the summary statistics file. Which can be downloaded from the FTP site - 
@@ -59,21 +56,9 @@ limitations under the License.
  
  Please keep the filename format as it is because filename is parsed to get information.
  
- Follow the following steps -
- 1. filter out lines that don't have genomic locations -
- tail -n +2 17463246-GCST000028-EFO_0001360.h.tsv | awk '$3 != "NA" && $4 != "NA" {print}' > 17463246-GCST000028-EFO_0001360.h.tsv.filtered
-
- replace $3 and $4 with column location of the hm_chrom and hm_pos
- 
- 2. sort the file. Also keep the header and put # in front - 
- (head -n 1 17463246-GCST000028-EFO_0001360.h.tsv && sort -k3,3 -k4,4n 17463246-GCST000028-EFO_0001360.h.tsv.filtered) > 17463246-GCST000028-EFO_0001360.h.tsv.sorted
- sed -i '1 s/^/#/' 17463246-GCST000028-EFO_0001360.h.tsv.sorted
-
- 3. zip the file -
- bgzip -c 17463246-GCST000028-EFO_0001360.h.tsv.sorted > 17463246-GCST000028-EFO_0001360.h.tsv.sorted.gz
-
- 4. index the file -
- tabix -s 3 -b 4 -e 4 -c "#" -f 17463246-GCST000028-EFO_0001360.h.tsv.sorted.gz
+ When run for the first time the for either type of file plugin will create a processed file that have genomic locations and indexed and 
+ put it under the --dir location determined by Ensembl VEP. It might take 1~2 hour(s) to create the processed file depending on the file size. 
+ But subsequent runs will be faster as the plugin will be using the already generated processed file.
 
  Options are passed to the plugin as key=value pairs:
 
@@ -111,15 +96,15 @@ sub new {
   die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
     $self->{type} eq "curated" || $self->{type} eq "sstate");
   
+  # processed file is assumed to be present under --dir 
+  my $config = $self->{config};
+  my $dir = $config->{dir};
+  my $input_filename = basename($self->{file});
+  $self->{processed_file} = $dir . "/" . $input_filename;
+  $self->{processed_file} .= ".gz" unless $self->{processed_file} =~ /gz$/;
+  
   # process for cureated file 
   if ($self->{type} eq "curated") {
-    my $config = $self->{config};
-    
-    my $dir = $config->{dir};
-    my $input_filename = basename($self->{file});
-    $self->{processed_file} = $dir . "/" . $input_filename;
-    $self->{processed_file} .= ".gz" unless $self->{processed_file} =~ /gz$/;
-    
     # create processed file with genomic location and index - only run if already not created
     unless (-e $self->{processed_file}){
       my $reg = 'Bio::EnsEMBL::Registry';
@@ -141,24 +126,34 @@ sub new {
       # parse the raw file
       my $data = $self->parse_curated_file($self->{file});
       # create the processed file
-      $self->create_processed_file($data);
+      $self->create_curated_processed_file($data);
     }
-    
-    $self->add_file($self->{"processed_file"});
   }
   # process for summary statistics file
   else {
-    $self->add_file($self->{"file"});
+    # parse the header to know the desired column location
+    $self->{"sstate_colmap"} = $self->parse_sstate_header();
+    
+    # get the chr and pos column numbers in sstate file
+    my ($chr, $pos);
+    foreach (keys %{ $self->{"sstate_colmap"} }){ 
+      $chr = $_ + 1 if $self->{"sstate_colmap"}->{$_} eq "hm_chrom";
+      $pos = $_ + 1 if $self->{"sstate_colmap"}->{$_} eq "hm_pos";
+    };
+    
+    # create processed file for sstate - only run if already not created
+    unless (-e $self->{processed_file}){
+      $self->create_state_processed_file($chr, $pos);
+    }
     
     # get some information from the filename
     basename($self->{"file"}) =~ m/(.+?)-(.+?)-(.+?)\.(.+)/;
     $self->{"pmid"} = $1;
     $self->{"study"} = $2;
     $self->{"accession"} = $3;
-    
-    # parse the header to know the desired column location
-    $self->{"sstate_colmap"} = $self->parse_sstate_header();
   }
+    
+  $self->add_file($self->{"processed_file"});
   
   return $self;
 }
@@ -364,7 +359,7 @@ sub parse_curated_file {
   return \%result;
 }
 
-sub create_processed_file {
+sub create_curated_processed_file {
   my ($self, $data) = @_;
   
   my $temp_processed_file = $self->{"processed_file"} . "_temp";
@@ -414,7 +409,7 @@ sub create_processed_file {
 sub parse_sstate_header {
   my ($self) = @_;
   
-  my $header = `tabix $self->{"file"} -H` or die "Cannot get header from " . $self->{"file"} . ": $?\n";
+  my $header = `head -n 1 $self->{"file"}` or die "Cannot get header from " . $self->{"file"} . ": $?\n";
   $header =~ s/^#//;
   
   my @cols = (split("\t", $header));
@@ -428,6 +423,37 @@ sub parse_sstate_header {
   } 0 .. $#cols;
 
   return $colmap;
+}
+
+sub create_state_processed_file {
+  my ($self, $c, $p) = @_;
+  
+  my $file = $self->{"file"};
+  my $processed_file = $self->{"processed_file"};
+  
+  my $filtered_file = $file . ".filtered";
+  system("tail -n +2 $file | awk '\$$c != \"NA\" && \$$p != \"NA\" {print}' > $filtered_file") == 0
+    or die "Failed to filter $file: $?\n";
+  
+  my $sorted_file = $file . ".sorted";
+  system("sort -k${c},${c} -k${p},${p}n $filtered_file > $sorted_file") == 0
+    or die "Failed to sort $filtered_file: $?\n";
+
+  my $zipped_file = $sorted_file . ".gz";
+  system("bgzip -c $sorted_file > $zipped_file") == 0
+    or die "Failed to zip $sorted_file: $?\n";
+
+  system("tabix -s $c -b $p -e $p -f $zipped_file") == 0
+    or die "Failed to create index for $zipped_file: $?\n";
+    
+  # system("rm $filtered_file $sorted_file") == 0 
+  #   or die "Failed to remove files $filtered_file, $sorted_file: $?\n";
+    
+  system("mv $zipped_file $processed_file") == 0
+    or die "Failed to rename files $zipped_file to $processed_file: $?\n";
+    
+  system("mv $zipped_file.tbi $processed_file.tbi") == 0
+    or die "Failed to rename files $zipped_file.tbi to $processed_file: $?\n";
 }
 
 sub parse_data {
