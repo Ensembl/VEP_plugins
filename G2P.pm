@@ -400,7 +400,7 @@ sub new {
     die "The option only_mane needs to be set to 1 \n";
   }
   
-  if (defined($params->{only_mane}) and $params->{only_mane} == 1 and $self->{config}->{assembly} ne "GRCh38") {
+  if (defined($params->{only_mane}) and $self->{config}->{assembly} ne "GRCh38") {
     die "The option only_mane only works with GRCh38 assembly \n";
   }
   
@@ -497,7 +497,7 @@ sub run {
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
 
-  return {} if ($self->{user_params}->{only_mane} == 1 && !$tva->transcript->is_mane);
+  return {} if ($self->{user_params}->{only_mane} && !$tva->transcript->is_mane);
   # filter by G2P gene overlap
   return {} if (!$self->gene_overlap_filtering($tva));
 
@@ -1649,6 +1649,7 @@ sub write_html_output {
   print $fh_out "</tbody>";
   print $fh_out "</table>";
 
+
 my $switch =<<SHTML;
 <form>
 <div class="checkbox">
@@ -1659,7 +1660,7 @@ my $switch =<<SHTML;
 </form>
 SHTML
 
-  print $fh_out $switch;
+  print $fh_out $switch if (!$self->{user_params}->{only_mane}); 
  
   foreach my $individual (sort keys %$html_data) {
     foreach my $gene_id (keys %{$html_data->{$individual}}) {
