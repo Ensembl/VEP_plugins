@@ -47,6 +47,7 @@ use strict;
 use warnings;
 
 use Bio::Das::Lite;
+use Data::Dumper;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 

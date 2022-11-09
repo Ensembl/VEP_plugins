@@ -61,6 +61,7 @@ package CAPICE;
 use strict;
 use warnings;
 
+use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;

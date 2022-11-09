@@ -87,6 +87,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Exception qw(warning);
+use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);

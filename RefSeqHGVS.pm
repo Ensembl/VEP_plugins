@@ -84,6 +84,8 @@ use warnings;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+use Data::Dumper;
+
 my %mt_cache;								# cache of ENST -> NM mappings
 
 sub version {
