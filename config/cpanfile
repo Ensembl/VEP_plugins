@@ -1,0 +1,8 @@
+# Draw plugin
+recommends 'GD';
+
+# Carol plugin
+recommends 'Math::CDF';
+
+# LocalID, mutfunc and SIFT_PolyPhen plugins
+recommends 'DBD::SQLite';

@@ -1,0 +1,13 @@
+# Draw plugin: dependency required by Perl package GD
+pkg-config
+libgd-dev
+uuid-dev
+
+# PON_P2 and FATHMM plugins
+python
+python-pip
+python-setuptools
+python-dev
+
+# LocalID plugin
+sqlite3
