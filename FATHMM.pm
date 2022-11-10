@@ -38,7 +38,7 @@ limitations under the License.
  MySQLdb). You should create a "config.ini" file in the same directory as the
  fathmm.py script with the database connection options. More information about
  how to set up FATHMM can be found on the FATHMM website at
- https://github.com/HAShihab/fathmm.
+ https://github.com/HAShihab/fathmm
  
  A typical installation could consist of:
  
