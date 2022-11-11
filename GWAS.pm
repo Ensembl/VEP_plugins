@@ -432,7 +432,7 @@ sub create_state_processed_file {
   my $processed_file = $self->{"processed_file"};
   
   my $filtered_file = $file . ".filtered";
-  system("tail -n +2 $file | awk '\$$c != \"NA\" && \$$p != \"NA\" {print}' > $filtered_file") == 0
+  system("gunzip -cf $file | tail -n +2 $file | awk '\$$c != \"NA\" && \$$p != \"NA\" {print}' > $filtered_file") == 0
     or die "Failed to filter $file: $?\n";
   
   my $sorted_file = $file . ".sorted";
