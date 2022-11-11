@@ -1350,6 +1350,20 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/Mastermind.pm"
     },
+    
+    # GWAS
+    {
+      "key" => "GWAS",
+      "label" => "GWAS",
+      "helptip" => "Genome-wide associated study data from the GWAS Catalog (https://www.ebi.ac.uk/gwas/)",
+      "available" => 0,
+      "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "section" => "Phenotype data and citations",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/GWAS.pm"
+    },
 
 
 
