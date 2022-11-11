@@ -446,8 +446,6 @@ sub create_state_processed_file {
   system("tabix -s $c -b $p -e $p -f $zipped_file") == 0
     or die "Failed to create index for $zipped_file: $?\n";
     
-  # system("rm $filtered_file $sorted_file") == 0 
-  #   or die "Failed to remove files $filtered_file, $sorted_file: $?\n";
     
   system("mv $zipped_file $processed_file") == 0
     or die "Failed to rename files $zipped_file to $processed_file: $?\n";
