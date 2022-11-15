@@ -1225,24 +1225,6 @@ my $VEP_PLUGIN_CONFIG = {
     ## FREQUENCY DATA
     #################
 
-    # ExAC
-    {
-      "key" => "ExAC",
-      "label" => "ExAC frequencies",
-      "helptip" => "Reports allele frequencies from the Exome Aggregation Consortium",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/ExAC.pm",
-      "section" => "Frequency data",
-      "requires_data" => 1,
-      "species" => [
-        "homo_sapiens"
-      ],
-      "params" => [
-        # "/path/to/ExAC.r0.3.sites.vep.vcf.gz"
-      ]
-    },
-
     # gnomADc
     {
       "key" => "gnomADc",
@@ -1774,16 +1756,6 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/CSN.pm",
-    },
-
-    # miRNA
-    {
-      "key" => "miRNA",
-      "label" => "miRNA structure",
-      "helptip" => "Determines where in the secondary structure of a miRNA a variant falls",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/109/miRNA.pm",
     }
 
   ]
