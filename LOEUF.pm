@@ -51,7 +51,6 @@ limitations under the License.
  https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7334197/bin/41586_2020_2308_MOESM4_ESM.zip
 
  For GRCh37:
-
  These files can be tabix-processed by:
  Unzip 41586_2020_2308_MOESM4_ESM.zip
  cd supplement
@@ -59,6 +58,16 @@ limitations under the License.
  sed '1s/.*/#&/' loeuf_temp.tsv > loeuf_dataset.tsv
  bgzip loeuf_dataset.tsv
  tabix -f -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
+
+ For GRCh38:
+ The LOEUF scores are available for assembly GRCh37, to be able to run the plugin for GRCh38
+ please remap the regions from file supplementary_dataset_11_full_constraint_metrics.tsv
+ After the remapping the file can be tabix-processed by:
+ cat supplementary_dataset_11_full_constraint_metrics_grch38.tsv | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) > loeuf_grch38_temp.tsv
+ sed '1s/.*/#&/' loeuf_grch38_temp.tsv > loeuf_dataset_grch38.tsv
+ bgzip loeuf_dataset_grch38.tsv
+ tabix -f -s 76 -b 77 -e 78 loeuf_dataset_grch38.tsv.gz
+
 
  The tabix utility must be installed in your path to use this plugin.
 
@@ -123,12 +132,6 @@ sub new {
 
   else{
     die "ERROR: Argument 'match_by' is undefined\n" ;
-  }
-
-  # Check assembly
-  my $assembly = $self->{config}->{assembly};
-  if ($assembly ne "GRCh37") {
-    die "ERROR: Assembly is not GRCh37, LOEUF only works with GRCh37. \n";
   }
 
   return $self;
