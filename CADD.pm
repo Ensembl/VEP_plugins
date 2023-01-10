@@ -168,11 +168,12 @@ sub run {
   
   my $bvf = $tva->base_variation_feature;
 
-  my ($start, $allele, $ref, $so_term);
+  my ($start, $end, $allele, $ref, $so_term);
 
   # get allele
   if ($bvf->isa("Bio::EnsEMBL::Variation::VariationFeature")){
     $start = $bvf->{start};
+    $end = $bvf->{start};
     $allele = $bvf->alt_alleles->[0];
     $ref = $bvf->ref_allele_string;
 
@@ -180,14 +181,18 @@ sub run {
 
   } else {
     $start = $bvf->{start} - 1;
+    $end = $bvf->{end};
     $so_term = $bvf->class_SO_term();
     $allele = $SV_TERMS{$so_term};
     $ref = "-";
   };
 
-  my @data =  @{$self->get_data($bvf->{chr}, $start, $bvf->{end})};
+  my @data =  @{$self->get_data($bvf->{chr}, $start, $end)};
 
   foreach (@data) {
+
+    next if $end != $_->{end};
+
     my $matches = get_matched_variant_alleles(
       {
         ref    => $ref,
