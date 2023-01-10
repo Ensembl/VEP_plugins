@@ -185,7 +185,7 @@ sub run {
     $ref = "-";
   };
 
-  my @data =  @{$self->get_data($bvf->{chr}, $bvf->{start} - 2, $bvf->{end})};
+  my @data =  @{$self->get_data($bvf->{chr}, $start, $bvf->{end})};
 
   foreach (@data) {
     my $matches = get_matched_variant_alleles(
