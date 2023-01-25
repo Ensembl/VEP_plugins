@@ -1733,14 +1733,6 @@ my $VEP_PLUGIN_CONFIG = {
             { "value" => "mod=1", "caption" => "Protein Structure", "helptip" => "Effect on protein structure", 'checked' => 1 },
             { "value" => "exp=1", "caption" => "Protein Structure (exp.)", "helptip" => "Effect on protein structure (experimental)", 'checked' => 1 }
           ],
-        },
-        {
-          "name" => "mutfunc_extend",
-          "label" => "Extended output",
-          "helptip" => "By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.",
-          "value" => "extended=1",
-          "type" => "checkbox",
-          "style" => "height:150px"
         }
       ]
     },
