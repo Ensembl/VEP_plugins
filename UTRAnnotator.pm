@@ -111,8 +111,8 @@ sub new {
 sub get_header_info {
 
   my $self->{_header_info} = {
-        5UTR_consequence => "'Variant consequence from UTRAnnotator'",
-        5UTR_annotation => "'Variant annotation from UTRAnnotator'",
+        "5UTR_consequence" => "'Variant consequence from UTRAnnotator'",
+        "5UTR_annotation" => "'Variant annotation from UTRAnnotator'",
         Existing_uORFs => "'The number of existing uORFs with a stop codon within the 5 prime UTR'",
         Existing_OutOfFrame_oORFs => "'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR'",
         Existing_InFrame_oORFs => "'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR'",
