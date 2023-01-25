@@ -111,12 +111,11 @@ sub new {
 sub get_header_info {
 
   my $self->{_header_info} = {
-        UTRAnnotator_five_prime_UTR_variant_consequence => "'Output the variant consequences of a given 5 prime UTR variant: 5_prime_UTR_premature_start_codon_gain_variant, " . 
-        "5_prime_UTR_stop_codon_gain_variant, 5_prime_UTR_premature_start_codon_loss_variant, 5_prime_UTR_stop_codon_loss_variant or 5_prime_UTR_uORF_frameshift_variant'",
-        UTRAnnotator_five_prime_UTR_variant_annotation => "'Output the annotation of a given 5 prime UTR variant'",
-        UTRAnnotator_existing_uORFs => "'The number of existing uORFs with a stop codon within the 5 prime UTR'",
-        UTRAnnotator_existing_OutOfFrame_oORFs => "'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR'",
-        UTRAnnotator_existing_InFrame_oORFs => "'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR'",
+        5_UTR_consequence => "'Variant consequence from UTRAnnotator'",
+        5_UTR_annotation => "'Variant annotation from UTRAnnotator'",
+        Existing_uORFs => "'The number of existing uORFs with a stop codon within the 5 prime UTR'",
+        Existing_OutOfFrame_oORFs => "'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR'",
+        Existing_InFrame_oORFs => "'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR'",
   };
   return $self->{_header_info};
 }
@@ -245,8 +244,8 @@ sub run {
   @output_five_prime_annotation=("-") if(!@output_five_prime_annotation);
 
   my %utr_effect = (
-        "UTRAnnotator_five_prime_UTR_variant_consequence" => (join "&", @output_five_prime_flag),
-        "UTRAnnotator_five_prime_UTR_variant_annotation" => (join "&", @output_five_prime_annotation),
+        "5_UTR_consequence" => (join "&", @output_five_prime_flag),
+        "5_UTR_annotation" => (join "&", @output_five_prime_annotation),
   );
 
   my $existing_uORF_num = $self->count_number_ATG($five_prime_seq);
@@ -1010,9 +1009,9 @@ sub count_number_ATG {
   }
 
   my %existing_uORF_num = (
-    "UTRAnnotator_existing_uORFs" => $inframe_stop_num,
-    "UTRAnnotator_existing_OutOfFrame_oORFs" => $outofframe_atg_num,
-    "UTRAnnotator_existing_InFrame_oORFs" => $inframeORF_num,
+    "Existing_uORFs" => $inframe_stop_num,
+    "Existing_OutOfFrame_oORFs" => $outofframe_atg_num,
+    "Existing_InFrame_oORFs" => $inframeORF_num,
   );
 
   return \%existing_uORF_num;
