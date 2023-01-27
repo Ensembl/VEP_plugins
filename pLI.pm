@@ -43,7 +43,7 @@ pLI - Add pLI score to the VEP output
   
   Lek et al. (2016) estimated pLI using the expectation-maximization 
   (EM) algorithm and data from 60,706 individuals from 
-  ExAC (http://exac.broadinstitute.org/about). The closer pLI is to 1, 
+  ExAC (http://exac.broadinstitute.org). The closer pLI is to 1, 
   the more likely the gene is loss-of-function (LoF) intolerant. 
   
   Note: the pLI was calculated using a representative transcript and

@@ -48,7 +48,7 @@ limitations under the License.
  - REVEL file version May 2021, which has 9 columns with GRCh37 and GRCh38 coordinates and a new column with transcript ids
  
  These files can be tabix-processed by:
- Unzip revel-v1.3_all_chromosomes.zip
+ unzip revel-v1.3_all_chromosomes.zip
  cat revel_with_transcript_ids | tr "," "\t" > tabbed_revel.tsv
  sed '1s/.*/#&/' tabbed_revel.tsv > new_tabbed_revel.tsv
  bgzip new_tabbed_revel.tsv

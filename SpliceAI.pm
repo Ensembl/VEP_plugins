@@ -40,9 +40,9 @@ limitations under the License.
  Delta score of a variant, defined as the maximum of (DS_AG, DS_AL, DS_DG, DS_DL), 
  ranges from 0 to 1 and can be interpreted as the probability of the variant being 
  splice-altering. The author-suggested cutoffs are:
-   0.2 (high recall)
-   0.5 (recommended)
-   0.8 (high precision)
+   * 0.2 (high recall)
+   * 0.5 (recommended)
+   * 0.8 (high precision)
 
  This plugin is available for both GRCh37 and GRCh38.
 
@@ -96,10 +96,8 @@ limitations under the License.
  tabix -p vcf spliceai_scores.raw.indel.hg38.vcf.gz
 
  The plugin can then be run:
- ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,
- indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
- ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,
- indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,cutoff=0.5
+ ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
+ ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,cutoff=0.5
 
 =cut
 

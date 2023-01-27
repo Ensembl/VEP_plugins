@@ -69,16 +69,9 @@ limitations under the License.
  File can be downloaded from: https://www.disgenet.org/downloads
 
  gunzip all_variant_disease_pmid_associations.tsv.gz
-
- awk '($1 ~ /^snpId/ || $2 ~ /NA/) {next} {print $0}'
- all_variant_disease_pmid_associations.tsv > all_variant_disease_pmid_associations_clean.tsv
-
- sort -t $'\t' -k2,2 -k3,3n
- all_variant_disease_pmid_associations_clean.tsv > all_variant_disease_pmid_associations_sorted.tsv
-
- awk '{ gsub (/\t +/, "\t", $0); print}'
- all_variant_disease_pmid_associations_sorted.tsv > all_variant_disease_pmid_associations_final.tsv
-
+ awk '($1 ~ /^snpId/ || $2 ~ /NA/) {next} {print $0}' all_variant_disease_pmid_associations.tsv > all_variant_disease_pmid_associations_clean.tsv
+ sort -t $'\t' -k2,2 -k3,3n all_variant_disease_pmid_associations_clean.tsv > all_variant_disease_pmid_associations_sorted.tsv
+ awk '{ gsub (/\t +/, "\t", $0); print}' all_variant_disease_pmid_associations_sorted.tsv > all_variant_disease_pmid_associations_final.tsv
  bgzip all_variant_disease_pmid_associations_final.tsv
  tabix -s 2 -b 3 -e 3 all_variant_disease_pmid_associations_final.tsv.gz
 
@@ -86,10 +79,8 @@ limitations under the License.
  ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_final.tsv.gz
 
  or with an option to include optional data or/and filters: 
- ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_final.tsv.gz,
- disease=1
- ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_final.tsv.gz,
- disease=1,filter_source='GWASDB&GWASCAT'
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_final.tsv.gz,disease=1
+ ./vep -i variations.vcf --plugin DisGeNET,file=all_variant_disease_pmid_associations_final.tsv.gz,disease=1,filter_source='GWASDB&GWASCAT'
 
  Of notice: this plugin only matches the chromosome and the position in the
   chromosome, the alleles are not taken into account to append the DisGeNET data.
