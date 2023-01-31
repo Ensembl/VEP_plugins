@@ -230,23 +230,36 @@ sub run {
   );
 
 
-  my @output_five_prime_flag=();
-  my @output_five_prime_annotation=();
+  my %output_five_prime_flag;
+  my %output_five_prime_annotation;
 
   foreach my $flag (keys %five_prime_flag){
     if($five_prime_flag{$flag}){
-      push @output_five_prime_flag,$five_prime_flag{$flag};
-      push @output_five_prime_annotation,$five_prime_annotation{$flag};
+      $output_five_prime_flag{$flag} = $five_prime_flag{$flag};
+      $output_five_prime_annotation{$flag} = $five_prime_annotation{$flag};
     }
   };
 
-  @output_five_prime_flag=("-") if(!@output_five_prime_flag);
-  @output_five_prime_annotation=("-") if(!@output_five_prime_annotation);
+  # $output_five_prime_flag = ("-") if(!$output_five_prime_flag);
+  # $output_five_prime_annotation = ("-") if(!$output_five_prime_annotation);
 
-  my %utr_effect = (
-        "5UTR_consequence" => (join "&", @output_five_prime_flag),
-        "5UTR_annotation" => (join "&", @output_five_prime_annotation),
-  );
+  my %utr_effect;
+
+  if ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}){
+
+    %utr_effect = (
+        "5UTR_consequence" => \%output_five_prime_flag,
+        "5UTR_annotation" => \%output_five_prime_annotation,
+    );
+
+  } else {
+
+    %utr_effect = (
+        "5UTR_consequence" => join("&", map { "$_:$output_five_prime_flag{$_}" } keys %output_five_prime_flag),
+        "5UTR_annotation" => join("&", map { "$_:$output_five_prime_annotation{$_}" } keys %output_five_prime_annotation),
+    );
+
+  }
 
   my $existing_uORF_num = $self->count_number_ATG($five_prime_seq);
   my $output ={%utr_effect, %$existing_uORF_num};
