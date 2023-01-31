@@ -251,9 +251,15 @@ sub run {
 
   } else {
 
+    my $consequence;
+
+    foreach my $value (keys %{$output_five_prime_annotation}){
+      $consequence = $consequence . join(",", map { "$_:$output_five_prime_annotation->{$value}{$_}" } keys $output_five_prime_annotation->{$value});
+    };
+
     %utr_effect = (
-        "5UTR_consequence" => join("&", map { "$_:$output_five_prime_flag{$_}" } keys %output_five_prime_flag),
-        "5UTR_annotation" => join("&", map { "$_:$output_five_prime_annotation{$_}" } keys %output_five_prime_annotation),
+        "5UTR_consequence" => $output_five_prime_flag,
+        "5UTR_annotation" => $consequence,
     );
 
   }
