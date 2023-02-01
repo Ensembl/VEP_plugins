@@ -254,7 +254,7 @@ sub run {
     my $consequence;
 
     foreach my $value (keys %{$output_five_prime_annotation}){
-      $consequence = $consequence . join(",", map { "$_:$output_five_prime_annotation->{$value}{$_}" } keys $output_five_prime_annotation->{$value});
+      $consequence = $consequence . join(",", map { "$_:$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
     };
 
     %utr_effect = (
