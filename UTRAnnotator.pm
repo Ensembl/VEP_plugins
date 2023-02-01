@@ -254,14 +254,16 @@ sub run {
     my @consequences;
 
         foreach my $value (keys %{$output_five_prime_annotation}){
-          push @consequences, join(":", map { "$_:$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
+          push @consequences, join(":", map { "$_=$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
         };
 
-    my $consequence = join (",", @consequences);
+    my $consequence;
+
+    $consequence = join(",", @consequences);
 
     %utr_effect = (
-        "5UTR_consequence" => $output_five_prime_flag,
-        "5UTR_annotation" => $consequence,
+        "5UTR_consequence" => defined($output_five_prime_flag)? $output_five_prime_flag: "-",
+        "5UTR_annotation" => defined($consequence)? $consequence: "-",
     );
 
   }
