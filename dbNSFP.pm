@@ -277,20 +277,30 @@ sub new {
   }
  
   # get required columns
+  my @ignored;
   while(defined($self->params->[$index])) {
     my $col = $self->params->[$index];
     if($col eq 'ALL') {
       $self->{cols} = {map {$_ => 1} @{$self->{headers}}};
       last;
     }
-    die "ERROR: Column $col not found in header for file $file. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless grep {$_ eq $col} @{$self->{headers}};
     
-    $self->{cols}->{$self->params->[$index]} = 1;
+    # ignore column if not in file header
+    my $valid = (grep {$_ eq $col} @{$self->{headers}});
+    if ($valid) {
+      $self->{cols}->{$self->params->[$index]} = 1;
+    } else {
+      push(@ignored, $col) unless $valid;
+    }
     $index++;
   }
   
-  die "ERROR: No columns selected to fetch. Available columns are:\n".join(",", @{$self->{headers}})."\n" unless defined($self->{cols}) && scalar keys %{$self->{cols}};
+  die "ERROR: input columns were not found in file header. Available columns are:\n" . 
+    join(",", @{$self->{headers}})."\n"
+    unless defined($self->{cols}) && scalar keys %{$self->{cols}};
   
+  warn "WARNING: ignoring columns not found in file header: ",
+       join(",", @ignored), "\n";
   return $self;
 }
 
