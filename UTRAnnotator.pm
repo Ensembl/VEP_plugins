@@ -230,23 +230,43 @@ sub run {
   );
 
 
-  my @output_five_prime_flag=();
-  my @output_five_prime_annotation=();
+  my $output_five_prime_flag;
+  my $output_five_prime_annotation;
 
   foreach my $flag (keys %five_prime_flag){
     if($five_prime_flag{$flag}){
-      push @output_five_prime_flag,$five_prime_flag{$flag};
-      push @output_five_prime_annotation,$five_prime_annotation{$flag};
+      $output_five_prime_flag = $five_prime_flag{$flag};
+      $output_five_prime_annotation = $five_prime_annotation{$flag};
     }
   };
 
-  @output_five_prime_flag=("-") if(!@output_five_prime_flag);
-  @output_five_prime_annotation=("-") if(!@output_five_prime_annotation);
+  my %utr_effect;
 
-  my %utr_effect = (
-        "5UTR_consequence" => (join "&", @output_five_prime_flag),
-        "5UTR_annotation" => (join "&", @output_five_prime_annotation),
-  );
+  if ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}){
+
+    %utr_effect = (
+        "5UTR_consequence" => $output_five_prime_flag,
+        "5UTR_annotation" => $output_five_prime_annotation,
+    );
+
+  } else {
+
+    my @consequences;
+
+        foreach my $value (keys %{$output_five_prime_annotation}){
+          push @consequences, join(":", map { "$_=$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
+        };
+
+    my $consequence;
+
+    $consequence = join(",", @consequences);
+
+    %utr_effect = (
+        "5UTR_consequence" => defined($output_five_prime_flag)? $output_five_prime_flag: "-",
+        "5UTR_annotation" => defined($consequence)? $consequence: "-",
+    );
+
+  }
 
   my $existing_uORF_num = $self->count_number_ATG($five_prime_seq);
   my $output ={%utr_effect, %$existing_uORF_num};
@@ -287,7 +307,7 @@ sub uAUG_gained {
 
   my %result = (); #result is a hash table with two elements: $flag and $output_effects
   my $output_flag = "";
-  my $output_effects = "";
+  my %output_effects;
 
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{ref_coding};
@@ -369,20 +389,21 @@ sub uAUG_gained {
 
 
     my %uORF_effect = (
-            "uAUG_gained_KozakContext" => $uAUG_gained_KozakContext,
-            "uAUG_gained_KozakStrength" => $uAUG_gained_KozakStrength,
-            "uAUG_gained_DistanceToCDS" => $uAUG_gained_DistanceToCDS,
-            "uAUG_gained_type" => $uAUG_gained_type,
-            "uAUG_gained_DistanceToStop" => $uAUG_gained_DistanceToStop,
-            "uAUG_gained_CapDistanceToStart" => $uAUG_gained_DistanceFromCap,
+            "KozakContext" => $uAUG_gained_KozakContext,
+            "KozakStrength" => $uAUG_gained_KozakStrength,
+            "DistanceToCDS" => $uAUG_gained_DistanceToCDS,
+            "type" => $uAUG_gained_type,
+            "DistanceToStop" => $uAUG_gained_DistanceToStop,
+            "CapDistanceToStart" => $uAUG_gained_DistanceFromCap,
     );
 
     $output_flag = "5_prime_UTR_premature_start_codon_gain_variant";
-    $output_effects = $self->transform_hash_to_string(\%uORF_effect);
+    my $size = (keys %output_effects) + 1;
+    $output_effects{$size} = \%uORF_effect;
   }
 
   $result{'uAUG_gained_flag'} = $output_flag;
-  $result{'uAUG_gained_effect'} = $output_effects;
+  $result{'uAUG_gained_effect'} = \%output_effects;
 
   return \%result;
 }
@@ -418,7 +439,7 @@ sub uSTOP_gained {
 
   my %result = (); #result is a hash table with two elements: $flag and $output_effects
   my $output_flag = 0;
-  my $output_effects = "";
+  my %output_effects;
 
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
@@ -504,23 +525,24 @@ sub uSTOP_gained {
         $uSTOP_gained_evidence = (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
         my %uORF_effect = (
-                "uSTOP_gained_ref_type" => $uSTOP_gained_ref_type,
-                "uSTOP_gained_ref_StartDistanceToCDS" => $uSTOP_gained_ref_StartDistanceToCDS,
-                "uSTOP_gained_newSTOPDistanceToCDS" => $uSTOP_gained_newSTOPDistanceToCDS,
-                "uSTOP_gained_KozakContext" => $uSTOP_gained_KozakContext,
-                "uSTOP_gained_KozakStrength" => $uSTOP_gained_KozakStrength,
-                "uSTOP_gained_Evidence" => $uSTOP_gained_evidence,
+                "ref_type" => $uSTOP_gained_ref_type,
+                "ref_StartDistanceToCDS" => $uSTOP_gained_ref_StartDistanceToCDS,
+                "newSTOPDistanceToCDS" => $uSTOP_gained_newSTOPDistanceToCDS,
+                "KozakContext" => $uSTOP_gained_KozakContext,
+                "KozakStrength" => $uSTOP_gained_KozakStrength,
+                "Evidence" => $uSTOP_gained_evidence,
               );
 
-        $output_flag = $output_flag? $output_flag."&"."5_prime_UTR_stop_codon_gain_variant":"5_prime_UTR_stop_codon_gain_variant";
-        $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+        $output_flag = "5_prime_UTR_stop_codon_gain_variant";
+        my $size = (keys %output_effects) + 1;
+        $output_effects{$size} = \%uORF_effect;
       }
 
     }
   }
 
   $result{'uSTOP_gained_flag'} = $output_flag;
-  $result{'uSTOP_gained_effect'} = $output_effects;
+  $result{'uSTOP_gained_effect'} = \%output_effects;
   return \%result;
 
 }
@@ -558,7 +580,7 @@ sub uSTOP_lost {
 
   #the relative position of input variant in the UTR sequence
   my %result = (); #result is a hash table with two elements: $flag and $output_effects
-  my $output_effects="";
+  my %output_effects;
 
   my @stop_codons = ("TAA","TGA","TAG");
 
@@ -645,22 +667,23 @@ sub uSTOP_lost {
         $uSTOP_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
         my %uORF_effect = (
-          "uSTOP_lost_AltStop" => $uSTOP_lost_AltStop,
-          "uSTOP_lost_AltStopDistanceToCDS" => $uSTOP_lost_AltStopDistanceToCDS,
-          "uSTOP_lost_FrameWithCDS" => $uSTOP_lost_FrameWithCDS,
-          "uSTOP_lost_KozakContext" => $uSTOP_lost_KozakContext,
-          "uSTOP_lost_KozakStrength" => $uSTOP_lost_KozakStrength,
-          "uSTOP_lost_Evidence" => $uSTOP_lost_evidence,
+          "AltStop" => $uSTOP_lost_AltStop,
+          "AltStopDistanceToCDS" => $uSTOP_lost_AltStopDistanceToCDS,
+          "FrameWithCDS" => $uSTOP_lost_FrameWithCDS,
+          "KozakContext" => $uSTOP_lost_KozakContext,
+          "KozakStrength" => $uSTOP_lost_KozakStrength,
+          "Evidence" => $uSTOP_lost_evidence,
         );
 
-        $output_flag = $output_flag? $output_flag."&"."5_prime_UTR_stop_codon_loss_variant":"5_prime_UTR_stop_codon_loss_variant";
-        $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+        $output_flag = "5_prime_UTR_stop_codon_loss_variant";
+        my $size = (keys %output_effects) + 1;
+        $output_effects{$size} = \%uORF_effect;
       }
     }
   }
 
   $result{'uSTOP_lost_flag'} = $output_flag;
-  $result{'uSTOP_lost_effect'} = $output_effects;
+  $result{'uSTOP_lost_effect'} = \%output_effects;
 
   return \%result;
 }
@@ -699,7 +722,7 @@ sub uAUG_lost {
   #the relative position of input variant in the UTR sequence
 
   my %result = (); #result is a hash table with two elements: $flag and $output_effects
-  my $output_effects="";
+  my %output_effects;
 
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
@@ -777,22 +800,23 @@ sub uAUG_lost {
       $uAUG_lost_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
       my %uORF_effect = (
-          "uAUG_lost_type" => $uAUG_lost_type,
-          "uAUG_lost_CapDistanceToStart" =>$start_pos,
-          "uAUG_lost_DistanceToCDS" => $uAUG_lost_DistanceToCDS,
-          "uAUG_lost_DistanceToStop" => $uAUG_lost_DistanceToSTOP,
-          "uAUG_lost_KozakContext" => $uAUG_lost_KozakContext,
-          "uAUG_lost_KozakStrength" => $uAUG_lost_KozakStrength,
-          "uAUG_lost_Evidence" => $uAUG_lost_evidence,
+          "type" => $uAUG_lost_type,
+          "CapDistanceToStart" =>$start_pos,
+          "DistanceToCDS" => $uAUG_lost_DistanceToCDS,
+          "DistanceToStop" => $uAUG_lost_DistanceToSTOP,
+          "KozakContext" => $uAUG_lost_KozakContext,
+          "KozakStrength" => $uAUG_lost_KozakStrength,
+          "Evidence" => $uAUG_lost_evidence,
         );
 
-      $output_flag = $output_flag? $output_flag."&"."5_prime_UTR_premature_start_codon_loss_variant": "5_prime_UTR_premature_start_codon_loss_variant";
-      $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+      $output_flag = "5_prime_UTR_premature_start_codon_loss_variant";
+      my $size = (keys %output_effects) + 1;
+      $output_effects{$size} = \%uORF_effect;
     }
   }
 
   $result{'uAUG_lost_flag'} = $output_flag;
-  $result{'uAUG_lost_effect'} = $output_effects;
+  $result{'uAUG_lost_effect'} = \%output_effects;
 
   return \%result;
 }
@@ -830,7 +854,7 @@ sub uFrameshift {
   my $current_kozak_strength="";
 
   my %result = (); #result is a hash table with two elements: $flag and $output_effects
-  my $output_effects="";
+  my %output_effects;
 
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
@@ -940,24 +964,25 @@ sub uFrameshift {
         $uFrameshift_evidence= (exists $self->{uORF_evidence})? $self->find_uorf_evidence($UTR_info,$chr,$start_pos): "NA";
 
         my %uORF_effect = (
-            "uFrameShift_ref_type" => $uFrameshift_ref_type,
-            "uFrameShift_ref_type_length" => $uFrameshift_ref_type_length,
-            "uFrameShift_ref_StartDistanceToCDS" => $uFrameshift_StartDistanceToCDS,
-            "uFrameShift_alt_type" => $uFrameshift_alt_type,
-            "uFrameShift_alt_type_length" => $uFrameshift_alt_type_length,
-            "uFrameShift_KozakContext" => $uFrameshift_KozakContext,
-            "uFrameShift_KozakStrength" => $uFrameshift_KozakStrength,
-            "uFrameShift_Evidence" => $uFrameshift_evidence,
+            "ref_type" => $uFrameshift_ref_type,
+            "ref_type_length" => $uFrameshift_ref_type_length,
+            "ref_StartDistanceToCDS" => $uFrameshift_StartDistanceToCDS,
+            "alt_type" => $uFrameshift_alt_type,
+            "alt_type_length" => $uFrameshift_alt_type_length,
+            "KozakContext" => $uFrameshift_KozakContext,
+            "KozakStrength" => $uFrameshift_KozakStrength,
+            "Evidence" => $uFrameshift_evidence,
         );
 
-        $output_flag = $output_flag? $output_flag . "&" . "5_prime_UTR_uORF_frameshift_variant": "5_prime_UTR_uORF_frameshift_variant";
-        $output_effects = $output_effects? $output_effects."&".$self->transform_hash_to_string(\%uORF_effect):$self->transform_hash_to_string(\%uORF_effect);
+        $output_flag = "5_prime_UTR_uORF_frameshift_variant";
+        my $size = (keys %output_effects) + 1;
+        $output_effects{$size} = \%uORF_effect;
       }
     }
   }
 
   $result{'uFrameShift_flag'} = $output_flag;
-  $result{'uFrameShift_effect'} = $output_effects;
+  $result{'uFrameShift_effect'} = \%output_effects;
 
   return \%result;
 }
