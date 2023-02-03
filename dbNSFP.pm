@@ -140,7 +140,7 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
-my %ALLOWED_PARAMS = map {$_ => 1} qw(pep_match transcript_match);
+my %ALLOWED_PARAMS = map {$_ => 1} qw(consequence pep_match transcript_match);
 
 # this region chosen as it should pull out a row in all assemblies
 my $EXAMPLE_REGION = "1:1008170-1082927";
@@ -166,28 +166,17 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
-  my $index = 0;
-  $self->{consequence} = 'filter';
-  if ($self->params->[$index] =~ /^consequence=/) {
-    # parse consequences
-    my $consequences = $self->params->[$index];  
-    $consequences =~ s/consequence=//;
-    if (uc $consequences eq 'ALL') {
-      $self->{consequence} = 'ALL';
-    } else {
-      %INCLUDE_SO = map {$_ => 1} split/&/, $consequences;
-    }
-    $index++;
-  }
-  
+
   # get dbNSFP file
-  my $file = $self->params->[$index];
+  my @params = grep !/=/, @{$self->params};
+  my $file = shift @params;
   my $basename = basename($file, ".gz");
 
   my $version;
   if ($file =~ /2\.9/) {
     $version = '2.9';
-  } elsif ($file =~ /4\.0b1/) { # we need to treat this version as a special case because the name of the location column is different from other releases
+  } elsif ($file =~ /4\.0b1/) {
+    # special case: different name for location column
     $version = '4.0.1';
   } elsif ($file =~ /4\./) {
     $version = '4';
@@ -200,83 +189,21 @@ sub new {
   $self->{basename} = $basename;
 
   $self->add_file($file);
-  
-  # get headers
-  open HEAD, "tabix -fh $file $EXAMPLE_REGION 2>&1 | ";
-  while(<HEAD>) {
-    chomp;
-
-    # parse header line to get field names
-    if(/^\#/) {
-      $_ =~ s/^\#//;
-      $self->{headers} = [split];
-    }
-
-    # parse data line to identify transcript-specific fields
-    else {
-      next unless /\;/;
-      die "ERROR: No headers found before data" unless defined($self->{headers});
-      my $row_data = $self->parse_data($_);
-      my @transcript_specific_fields;
-      for my $key(keys %$row_data) {
-        push @transcript_specific_fields, $key if $row_data->{$key} =~ /\;/ && !$NON_TRANSCRIPT_SPECIFIC_FIELDS{$key};
-      }
-      $self->{transcript_specific_fields} = \@transcript_specific_fields;
-      last;
-    }
-  }
-  close HEAD;
-  
-  die "ERROR: Could not read headers from $file\n" unless defined($self->{headers}) && scalar @{$self->{headers}};
-  
-  # check alt and Ensembl_transcriptid headers
-  foreach my $h(qw(alt Ensembl_transcriptid)) {
-    die "ERROR: Could not find required column $h in $file\n" unless grep {$_ eq $h} @{$self->{headers}};
-  }
+  $self->get_dbNSFP_file_header($file, $EXAMPLE_REGION);
 
   # check if 2nd argument is a file that specifies replacement logic
   # read replacement logic 
-  $index++;
-  my $replacement_file = $self->params->[$index];
+  my $replacement_file = $params[0];
   if (defined $replacement_file && -e $replacement_file) {
-    $self->add_replacement_logic($replacement_file);  
-    $index++;
+    $self->add_replacement_logic($replacement_file);
+    shift @params;
   } else {
-    $self->add_replacement_logic();  
+    $self->add_replacement_logic();
   }
 
-  # Peptide matching on by default
-  $self->{pep_match} = 1;
+  $self->get_named_params();
 
-  # transcript matching off by default
-  $self->{transcript_match} = 0;
-
-  # find remaining parameters
-  while($self->params->[$index] =~ /=/) {
-    my ($param, $value) = split('=', $self->params->[$index]);
-
-    if($ALLOWED_PARAMS{$param}) {
-      $self->{$param} = $value;
-    }
-    else {
-      die "ERROR: Invalid parameter $param\n";
-    }
-
-    $index++;
-  }
-
-  if ($self->{pep_match}) {
-    # Check the columns for the aa are there
-    foreach my $h (qw(aaalt aaref)) {
-      die("ERROR: Could not find the required column $h for pep_match option in $file\n") unless grep{$_ eq $h} @{$self->{headers}};
-    }
-  }
-
-  if ($self->{transcript_match} && !defined($self->{transcript_specific_fields})) {
-    die("ERROR: transcript_match parameter specified but transcript-specific field detection failed");
-  }
- 
-  # get required columns
+  # get user-specified dbNSFP columns
   my @invalid;
   for my $col (@params) {
     if($col eq 'ALL') {
@@ -527,6 +454,37 @@ sub get_end {
   return $_[1]->{'pos(1-based)'};
 }
 
+sub get_dbNSFP_file_header {
+  my $self = shift;
+  my $file = shift;
+  my $region = shift;
+
+  open HEAD, "tabix -fh $file $region 2>&1 | ";
+  while(<HEAD>) {
+    chomp;
+
+    # parse header line to get field names
+    if(/^\#/) {
+      $_ =~ s/^\#//;
+      $self->{headers} = [split];
+    }
+
+    # parse data line to identify transcript-specific fields
+    else {
+      next unless /\;/;
+      die "ERROR: No headers found before data" unless defined($self->{headers});
+      my $row_data = $self->parse_data($_);
+      my @transcript_specific_fields;
+      for my $key(keys %$row_data) {
+        push @transcript_specific_fields, $key if $row_data->{$key} =~ /\;/ && !$NON_TRANSCRIPT_SPECIFIC_FIELDS{$key};
+      }
+      $self->{transcript_specific_fields} = \@transcript_specific_fields;
+      last;
+    }
+  }
+  close HEAD;
+}
+
 sub add_replacement_logic {
   my $self = shift;
   my $file = shift;
@@ -540,12 +498,62 @@ sub add_replacement_logic {
       chomp;
       next if /^colname/;
       my ($colname, $from, $to) = split/\s+/;
-      die ("ERROR: 3 values separated by whitespace are required: colname from to.") if(!($colname && $from && $to));
+      die ("ERROR: replacement logic file requires 3 values separated by whitespace in this format: colname from to.")
+        if(!($colname && $from && $to));
       push @{$self->{replacement}->{$colname}->{from}}, $from;
       push @{$self->{replacement}->{$colname}->{to}}, $to;
     }
     close FILE;
-    die("ERROR: No default replacement logic has been specified.\n") if (!defined $self->{replacement}->{default});
+    die("ERROR: No default replacement logic has been specified.\n")
+      if (!defined $self->{replacement}->{default});
+  }
+
+  die "ERROR: Could not read headers from $file\n"
+    unless defined($self->{headers}) && scalar @{$self->{headers}};
+
+  # check alt and Ensembl_transcriptid headers
+  foreach my $h(qw(alt Ensembl_transcriptid)) {
+    die "ERROR: Could not find required column $h in $file\n"
+      unless grep {$_ eq $h} @{$self->{headers}};
+  }
+}
+
+sub get_named_params {
+  my $self = shift;
+
+  $self->{consequence} = 'filter';
+  $self->{pep_match} = 1;
+  $self->{transcript_match} = 0;
+
+  my @named_params = grep /=/, @{$self->params};
+  for my $param (@named_params) {
+    next if $param !~ /=/;
+    my ($name, $value) = split '=', $param;
+
+    if ($name eq "consequence") {
+      # parse consequences
+      if (uc $value eq 'ALL') {
+        $self->{consequence} = 'ALL';
+      } else {
+        %INCLUDE_SO = map {$_ => 1} split/&/, $value;
+      }
+    } elsif ($ALLOWED_PARAMS{$name}) {
+      $self->{$name} = $value;
+    } else {
+      die "ERROR: Invalid parameter $name\n";
+    }
+  }
+
+  if ($self->{pep_match}) {
+    # Check the columns for the aa are there
+    foreach my $h (qw(aaalt aaref)) {
+      die("ERROR: Could not find the required column $h for pep_match option in dbNSFP file\n")
+        unless grep{$_ eq $h} @{$self->{headers}};
+    }
+  }
+
+  if ($self->{transcript_match} && !defined($self->{transcript_specific_fields})) {
+    die("ERROR: transcript_match parameter specified but transcript-specific field detection failed");
   }
 }
 
