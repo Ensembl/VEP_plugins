@@ -277,30 +277,25 @@ sub new {
   }
  
   # get required columns
-  my @ignored;
-  while(defined($self->params->[$index])) {
-    my $col = $self->params->[$index];
+  my @invalid;
+  for my $col (@params) {
     if($col eq 'ALL') {
       $self->{cols} = {map {$_ => 1} @{$self->{headers}}};
       last;
     }
     
-    # ignore column if not in file header
+    # store columns as invalid if not found in file header
     my $valid = (grep {$_ eq $col} @{$self->{headers}});
-    if ($valid) {
-      $self->{cols}->{$self->params->[$index]} = 1;
-    } else {
-      push(@ignored, $col) unless $valid;
-    }
-    $index++;
+    $self->{cols}->{$col} = $valid;
+    push(@invalid, $col) unless $valid;
   }
   
-  die "ERROR: input columns were not found in file header. Available columns are:\n" . 
+  die "ERROR: no input columns were found in file header. Available columns are:\n" .
     join(",", @{$self->{headers}})."\n"
     unless defined($self->{cols}) && scalar keys %{$self->{cols}};
   
-  warn "WARNING: ignoring columns not found in file header: ",
-       join(",", @ignored), "\n";
+  warn "WARNING: the following columns were not found in file header: ",
+       join(",", @invalid), "\n";
   return $self;
 }
 
@@ -491,6 +486,10 @@ sub run {
 
   my %return;
   foreach my $colname (keys %{$self->{cols}}) {
+    if (!$self->{cols}->{$colname}) {
+      $return{$colname} = "invalid_field";
+      next;
+    }
     next if(!defined($data->{$colname}));
     next if($data->{$colname} eq '.');
 
