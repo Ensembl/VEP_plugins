@@ -472,7 +472,7 @@ sub get_dbNSFP_file_header {
     # parse data line to identify transcript-specific fields
     else {
       next unless /\;/;
-      die "ERROR: No headers found before data" unless defined($self->{headers});
+      die "ERROR: No headers found before data\n" unless defined($self->{headers});
       my $row_data = $self->parse_data($_);
       my @transcript_specific_fields;
       for my $key(keys %$row_data) {
@@ -498,7 +498,7 @@ sub add_replacement_logic {
       chomp;
       next if /^colname/;
       my ($colname, $from, $to) = split/\s+/;
-      die ("ERROR: replacement logic file requires 3 values separated by whitespace in this format: colname from to.")
+      die ("ERROR: replacement logic file requires 3 values separated by whitespace in this format: colname from to.\n")
         if(!($colname && $from && $to));
       push @{$self->{replacement}->{$colname}->{from}}, $from;
       push @{$self->{replacement}->{$colname}->{to}}, $to;
@@ -553,7 +553,7 @@ sub get_named_params {
   }
 
   if ($self->{transcript_match} && !defined($self->{transcript_specific_fields})) {
-    die("ERROR: transcript_match parameter specified but transcript-specific field detection failed");
+    die("ERROR: transcript_match parameter specified but transcript-specific field detection failed\n");
   }
 }
 
