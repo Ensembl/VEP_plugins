@@ -684,6 +684,14 @@ my $VEP_PLUGIN_CONFIG = {
             "Geuvadis_eQTL_target_gene"
           ],
         },
+        {
+          "name" => "dbNSFP_transcript_match",
+          "label" => "Transcript match",
+          "helptip" => "By default, some fields contain values for all Ensembl transcripts. Select this to return values only for the matched Ensembl transcript.",
+          "value" => "transcript_match=1",
+          "type" => "checkbox",
+          "style" => "height:150px"
+        }
       ]
     },
 
