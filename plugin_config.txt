@@ -687,7 +687,7 @@ my $VEP_PLUGIN_CONFIG = {
         {
           "name" => "dbNSFP_transcript_match",
           "label" => "Transcript match",
-          "helptip" => "By default, some fields contain values for all Ensembl transcripts. Select this to return values only for the matched Ensembl transcript.",
+          "helptip" => "By default, some dbNSFP fields contain values for all Ensembl transcripts. Select this to only return values for the matched Ensembl transcript.",
           "value" => "transcript_match=1",
           "type" => "checkbox",
           "style" => "height:150px"
