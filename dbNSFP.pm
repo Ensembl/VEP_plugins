@@ -222,7 +222,7 @@ sub new {
     unless defined($self->{cols}) && scalar keys %{$self->{cols}};
   
   warn "WARNING: the following columns were not found in file header: ",
-       join(",", @invalid), "\n";
+       join(",", @invalid), "\n" if (@invalid);
   return $self;
 }
 
