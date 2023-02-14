@@ -173,7 +173,7 @@ sub run {
   # get allele
   if ($bvf->isa("Bio::EnsEMBL::Variation::VariationFeature")){
     $start = $bvf->{start};
-    $end = $bvf->{start};
+    $end = $bvf->{end};
     $allele = $bvf->alt_alleles->[0];
     $ref = $bvf->ref_allele_string;
 
@@ -187,7 +187,7 @@ sub run {
     $ref = "-";
   };
 
-  my @data =  @{$self->get_data($bvf->{chr}, $start, $end)};
+  my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
 
   foreach (@data) {
 
