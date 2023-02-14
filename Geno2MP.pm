@@ -169,29 +169,34 @@ sub parse_data {
   my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
   
   # Parse INFO fields
-  my %info;
+  my (%res, $grch37);
   my @attribs = split/\;/, $info;
   foreach my $att (@attribs){
     my($col, $val) = split/\=/, $att;
+    # Save GRCh37 variant location if available
+    $grch37 = $val if $col eq "GRCh37";
+
     my $key = $self->{label} . "_" . $col;
-    $info{$key} = $val if $self->{cols}->{$col};
+    $res{$key} = $val if $self->{cols}->{$col};
   }
   
+  # Add URL based on GRCh37 variant location (Geno2P webpage only supports GRCh37)
   if ($self->{url}) {
     # Guess between SNP or indels (other types not supported in Geno2MP)
     my $type = (length($alt) == 1 && length($ref) == 1) ? "snp" : "indel";
     
+    # Get GRCh37 variant location from INFO if available
+    my ($c, $p) = $grch37 ? split(/_/, $grch37) : ($chrom, $pos);
     my $key  = $self->{label} . "_URL";
     my $base = "https://geno2mp.gs.washington.edu/Geno2MP";
-    $info{$key} = "$base/#/variant/$chrom/$pos/$ref>$alt/$type";
-    $info{$key} = uri_encode($info{$key});
+    $res{$key} = uri_encode("$base/#/variant/$c/$p/$ref>$alt/$type");
   }
 
   return {
     ref => $ref,
     alt => $alt,
     start => $pos,
-    result => \%info
+    result => \%res
   }
 }
 
