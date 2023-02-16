@@ -63,8 +63,6 @@ use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
-use URI::Encode qw(uri_encode);
-
 sub prepare_header_info {
   my $self = shift;
   
@@ -189,7 +187,7 @@ sub parse_data {
     my ($c, $p) = $grch37 ? split(/_/, $grch37) : ($chrom, $pos);
     my $key  = $self->{label} . "_URL";
     my $base = "https://geno2mp.gs.washington.edu/Geno2MP";
-    $res{$key} = uri_encode("$base/#/variant/$c/$p/$ref>$alt/$type");
+    $res{$key} = "$base/#/variant/$c/$p/$ref%3E$alt/$type";
   }
 
   return {
