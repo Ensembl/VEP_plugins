@@ -179,7 +179,11 @@ sub run {
     $allele = $bvf->alt_alleles->[$ALT_NUM];
     $ref = $bvf->ref_allele_string;
 
-    ($ALT_NUM + 1) == scalar(@{$bvf->alt_alleles})? $ALT_NUM = 0 : $ALT_NUM += 1;
+    if (($ALT_NUM + 1) == scalar(@{$bvf->alt_alleles})) {
+      $ALT_NUM = 0;
+    } else {
+      $ALT_NUM += 1;
+    };
 
     return {} unless $allele =~ /^[ACGT-]+$/;
 
@@ -194,8 +198,6 @@ sub run {
   my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
 
   foreach (@data) {
-
-    next if $end != $_->{end};
 
     my $matches = get_matched_variant_alleles(
       {
