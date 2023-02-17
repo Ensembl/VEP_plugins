@@ -86,6 +86,8 @@ my %INCLUDE_COLUMNS = (
     }
 );
 
+  my $ALT_NUM = 0;
+
 sub new {
   my $class = shift;
   
@@ -174,8 +176,10 @@ sub run {
   if ($bvf->isa("Bio::EnsEMBL::Variation::VariationFeature")){
     $start = $bvf->{start};
     $end = $bvf->{end};
-    $allele = $bvf->alt_alleles->[0];
+    $allele = $bvf->alt_alleles->[$ALT_NUM];
     $ref = $bvf->ref_allele_string;
+
+    ($ALT_NUM + 1) == scalar(@{$bvf->alt_alleles})? $ALT_NUM = 0 : $ALT_NUM += 1;
 
     return {} unless $allele =~ /^[ACGT-]+$/;
 
