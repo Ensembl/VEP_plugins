@@ -79,11 +79,14 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-  my $tr    = $tva->transcript;
-  my @tr_id = ( $tr->{stable_id} );
-  my $vf    = $tva->variation_feature;
+  my $tr     = $tva->transcript;
 
-  # get allele
+  # Get transcript ID for Ensembl and RefSeq
+  my @refseq = split(/,/, $tr->{_refseq}) unless $tr->{_refseq} eq '-';
+  my @tr_id  = ( $tr->{stable_id}, @refseq );
+  my $vf     = $tva->variation_feature;
+
+  # Get allele
   my $alt_allele = $tva->variation_feature_seq;
   my $ref_allele = $vf->ref_allele_string;
 
