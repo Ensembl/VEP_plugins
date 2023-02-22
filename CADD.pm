@@ -61,6 +61,12 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 # List here all columns in headers that should be included
+my %SV_TERMS = (
+    insertion => "INS",
+    deletion => "DEL",
+    duplication => "DUP",
+  );
+
 my %INCLUDE_COLUMNS = (
     "PHRED" => {
       "name" => "CADD_PHRED",
@@ -69,8 +75,18 @@ my %INCLUDE_COLUMNS = (
     "RawScore" => {
       "name" => "CADD_RAW",
       "description" => 'Raw CADD score'
+    },
+    "CADD-SV_PHRED-score" => {
+      "name" => "CADD_PHRED",
+      "description" => 'PHRED-like scaled CADD score'
+    },
+    "CADD-SV_Raw-score" => {
+      "name" => "CADD_RAW",
+      "description" => 'Raw CADD score'
     }
 );
+
+  my $ALT_NUM = 0;
 
 sub new {
   my $class = shift;
@@ -135,6 +151,10 @@ sub new {
   return $self;
 }
 
+sub variant_feature_types {
+    return ['VariationFeature', 'StructuralVariationFeature'];
+}
+
 sub feature_types {
   return ['Feature','Intergenic'];
 }
@@ -148,22 +168,43 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   
-  my $vf = $tva->variation_feature;
-  
-  # get allele
-  my $allele = $tva->variation_feature_seq;
-  
-  return {} unless $allele =~ /^[ACGT-]+$/;
+  my $bvf = $tva->base_variation_feature;
 
-  my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+  my ($start, $end, $allele, $ref, $so_term);
+
+  # get allele
+  if ($bvf->isa("Bio::EnsEMBL::Variation::VariationFeature")){
+    $start = $bvf->{start};
+    $end = $bvf->{end};
+    $allele = $bvf->alt_alleles->[$ALT_NUM];
+    $ref = $bvf->ref_allele_string;
+
+    if (($ALT_NUM + 1) == scalar(@{$bvf->alt_alleles})) {
+      $ALT_NUM = 0;
+    } else {
+      $ALT_NUM += 1;
+    };
+
+    return {} unless $allele =~ /^[ACGT-]+$/;
+
+  } else {
+    $start = $bvf->{start} - 1;
+    $end = $bvf->{end};
+    $so_term = $bvf->class_SO_term();
+    $allele = $SV_TERMS{$so_term};
+    $ref = "-";
+  };
+
+  my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
 
   foreach (@data) {
+
     my $matches = get_matched_variant_alleles(
       {
-        ref    => $vf->ref_allele_string,
+        ref    => $ref,
         alts   => [$allele],
-        pos    => $vf->{start},
-        strand => $vf->strand
+        pos    => $start,
+        strand => $bvf->strand
       },
       {
        ref  => $_->{ref},
@@ -185,9 +226,9 @@ sub parse_data {
   my %data = map {$headers[$_] => $values[$_]} (0..(@headers - 1));
 
   my $c = $data{"#Chrom"};
-  my $s = $data{"Pos"};
-  my $ref = $data{"Ref"};
-  my $alt = $data{"Alt"};
+  my $s = $data{"Pos"} || $data{"Start"};
+  my $ref = $data{"Ref"} || "-";
+  my $alt = $data{"Alt"} || $data{"Type"};
 
   # Conditional result
   my %result = ();
@@ -197,7 +238,7 @@ sub parse_data {
   }
 
   # do VCF-like coord adjustment for mismatched subs
-  my $end = ($s + length($ref)) - 1;
+  my $end = $data{"End"} || ($s + length($ref)) - 1;
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
     my $first_alt = substr($alt, 0, 1);
