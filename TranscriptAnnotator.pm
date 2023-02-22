@@ -35,7 +35,7 @@ limitations under the License.
  A VEP plugin that annotates transcript consequences based on a given file:
      
    --plugin TranscriptAnnotator,${HOME}/file.txt.gz
- 
+
  The tabix and bgzip utilities must be installed in your path to read the
  annotation: check https://github.com/samtools/htslib.git for installation
  instructions.
@@ -46,9 +46,11 @@ package TranscriptAnnotator;
 
 use strict;
 use warnings;
+
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
-use Data::Dumper;
 
 sub new {
   my $class = shift;
@@ -56,11 +58,12 @@ sub new {
   my $file = $self->params->[0]; 
   $self->add_file($file);
   $self->get_user_params();
+
   return $self;
 }
 
 sub version {
-  return 106;
+  return 110;
 }
 
 sub feature_types {
@@ -76,43 +79,59 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-  my $tr            = $tva->transcript;
-  my $transcript_id = $tr->{stable_id};
+  my $tr    = $tva->transcript;
+  my @tr_id = ( $tr->{stable_id} );
+  my $vf    = $tva->variation_feature;
 
-  my $vf            = $tva->variation_feature;
-  my $seqname       = $vf->{slice}->{seq_region_name};
-  my $ref           = $vf->ref_allele_string;
-  my ($alt,   $len) = map {$_ => 1} @{$vf->alt_alleles};
-  my ($start, $end) = ($vf->{start}, $vf->{end});
-  
-  my @data = @{$self->get_data($seqname, $start, $end)};
-  foreach (@data) {
-    return $_->{result} if $_->{seqname} eq $seqname &&
-                           $_->{start} eq $start &&
-                           $_->{end} eq $end &&
-                           $_->{ref} eq $ref &&
-                           $_->{alt} eq $alt &&
-                           $_->{transcript_id} eq $transcript_id;
+  # get allele
+  my $alt_allele = $tva->variation_feature_seq;
+  my $ref_allele = $vf->ref_allele_string;
+
+  my @data = @{ $self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end}) };
+  return {} unless(@data);
+
+  foreach my $var (@data) {
+    my $is_same_transcript = grep { $var->{transcript_id} eq $_ } @tr_id;
+
+    my $matches = get_matched_variant_alleles(
+       {
+         ref    => $ref_allele,
+         alts   => [$alt_allele],
+         pos    => $vf->{start},
+         strand => $vf->strand
+       },
+       {
+        ref  => $var->{ref},
+        alts => [$var->{alt}],
+        pos  => $var->{start},
+       }
+     );
+
+    return $var->{result} if $is_same_transcript && (@$matches);
   }
   return {};
 }
 
-sub _trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
+sub _trim_whitespaces { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
 
 sub parse_data {
   my ($self, $line) = @_;
-  my ($seqname, $pos, $ref, $alt, $transcript_id, $source, $score, $pred) = split /\t/, $line;
+
+  my @data = split /\t/, $line;
+  @data = map(_trim_whitespaces($_), @data);
+
+  my ($seqname, $pos, $ref, $alt, $transcript_id, $source, $score, $pred) = @data;
 
   return {
-    seqname => _trim($seqname),
-    start => _trim($pos),
-    end => _trim($pos),
-    ref => _trim($ref),
-    alt => _trim($alt),
-    transcript_id => _trim($transcript_id),
+    seqname => $seqname,
+    start => $pos,
+    end => $pos,
+    ref => $ref,
+    alt => $alt,
+    transcript_id => $transcript_id,
     result => {
-      SIFT_score => _trim($score),
-      SIFT_prediction => _trim($pred)
+      SIFT_score => $score,
+      SIFT_prediction => $pred
     }
   };
 }
