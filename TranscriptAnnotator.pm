@@ -18,7 +18,7 @@ limitations under the License.
 =head1 CONTACT
 
  Ensembl <http://www.ensembl.org/info/about/contact/index.html>
-    
+
 =cut
 
 =head1 NAME
@@ -33,13 +33,32 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that annotates transcript consequences based on a given file:
-     
-   --plugin TranscriptAnnotator,${HOME}/file.txt.gz
+
+   --plugin TranscriptAnnotator,file=${HOME}/file.tsv.gz
+
+ Example of a valid tab-separated annotation file (before bgzip and tabix):
+
+   #Chrom  Pos       Ref  Alt  Transcript       SIFT_score  SIFT_pred    Comment
+   11      436154    A    G    NM_001347882.2   0.03        Deleterious  Bad
+   11      1887471   C	  T    ENST00000421485  0.86        Tolerated    Good
+
+ Parameters:
+
+   file:     Tabix-indexed file to parse. Must contain variant location
+             (chromosome, position, reference allele, alternative allele) and
+             transcript ID as the first 5 columns. Accepted transcript IDs
+             include those from Ensembl and RefSeq.
+   cols:     Colon-delimited list with names of the columns to append. Column
+             names are based on the last header line starting with #. By
+             default, all columns (except the first 5) are appended.
+   prefix:   String to prefix the name of appended columns (default: basename of
+             the filename without extensions). Set to 0 to avoid any prefix.
+   trim:     Trim whitespaces from both ends of each column (default: 1).
 
  The tabix and bgzip utilities must be installed in your path to read the
- annotation: check https://github.com/samtools/htslib.git for installation
- instructions.
- 
+ tabix-indexed annotation file: check https://github.com/samtools/htslib.git for
+ installation instructions.
+
 =cut
 
 package TranscriptAnnotator;
@@ -47,17 +66,103 @@ package TranscriptAnnotator;
 use strict;
 use warnings;
 
+use File::Basename;
+
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+sub _basename_without_ext {
+  my $file = basename shift;
+  $file =~ s/\.[^.]*?(.gz)?$//g;
+  return $file;
+}
+
+sub _trim_whitespaces {
+  my $text = shift;
+  $text =~ s/^\s+|\s+$//g;
+  return $text;
+};
+
+sub _get_colnames {
+  my $self = shift;
+
+  # Open file header
+  open IN, "tabix -f -h " . $self->{_files}[0] . " 1:1-1 |"
+    or die "ERROR: cannot open tabix file for " . $self->{_files}[0];
+
+  # Get last line
+  my $last;
+  $last = $_ while <IN>;
+  $last =~ s/(^#|\n$)//g;
+  close IN;
+
+  # Parse column names from header
+  my @cols = split /\t/, $last;
+  @cols = map { _trim_whitespaces $_ } @cols if $self->{trim};
+  @cols = splice @cols, 5;
+  return @cols;
+}
+
+sub _get_selected_cols {
+  my $self = shift;
+  my @colnames = @_;
+
+  my @cols;
+  my $param_hash = $self->params_to_hash();
+  if ( $param_hash->{cols} ) {
+    # Check if user-selected columns are valid
+    my @invalid_cols;
+    for ( split /:/, $param_hash->{cols} ) {
+      if ($_ ~~ @colnames) {
+        push @cols, $_;
+      } else {
+        push @invalid_cols, $_;
+      }
+    }
+
+    # Warn about invalid user-selected columns
+    my $msg_valid_cols = "Valid column names: " . join(", ", @colnames) . "\n";
+    if (not @cols) {
+      die "ERROR: no valid columns selected. " . $msg_valid_cols;
+    } elsif (@invalid_cols) {
+      my $file = $self->{_files}[0];
+      warn "WARNING: columns " . join(", ", @invalid_cols) .
+           " not found in $file. " . $msg_valid_cols;
+    }
+  } else {
+    @cols = @colnames;
+  }
+  return @cols;
+}
+
 sub new {
   my $class = shift;
   my $self = $class->SUPER::new(@_);
-  my $file = $self->params->[0]; 
-  $self->add_file($file);
   $self->get_user_params();
+
+  my $param_hash = $self->params_to_hash();
+  $self->{trim} = defined($param_hash->{trim}) ? $param_hash->{trim} : 1;
+
+  # Check file
+  my $file = $param_hash->{file};
+  die "\nERROR: No file specified\nTry using 'file=path/to/file.txt.gz'\n"
+     unless defined($file);
+  $self->add_file($file);
+
+  # Prepare column names
+  my @colnames = $self->_get_colnames();
+  my @cols     = $self->_get_selected_cols(@colnames);
+
+  # Add prefix to column names
+  $self->{prefix} = $param_hash->{prefix} || _basename_without_ext($file) . "_";
+  if ($self->{prefix}) {
+    @colnames = map($self->{prefix} . $_, @colnames);
+    @cols     = map($self->{prefix} . $_, @cols);
+  }
+  $self->{colnames} = \@colnames;
+  $self->{cols} = \@cols;
 
   return $self;
 }
@@ -71,15 +176,21 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return {
-      SIFT_score => 'SIFT score',
-      SIFT_prediction => 'SIFT prediction'
-  };
+  my $self = shift;
+  my %header;
+  my @keys = @{ $self->{colnames} };
+  my @vals = map { "column from " . $self->{_files}[0] } @keys;
+  @header{ @keys } = @vals;
+
+  # Filter by user-selected columns
+  %header = map { $_ => $header{$_} } @{ $self->{cols} };
+
+  return \%header;
 }
 
 sub run {
   my ($self, $tva) = @_;
-  my $tr     = $tva->transcript;
+  my $tr = $tva->transcript;
 
   # Get transcript ID for Ensembl and RefSeq
   my @refseq = split(/,/, $tr->{_refseq}) unless $tr->{_refseq} eq '-';
@@ -87,8 +198,8 @@ sub run {
   my $vf     = $tva->variation_feature;
 
   # Get allele
-  my $alt_allele = $tva->variation_feature_seq;
-  my $ref_allele = $vf->ref_allele_string;
+  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
+  my $ref_allele  = $vf->ref_allele_string;
 
   my @data = @{ $self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end}) };
   return {} unless(@data);
@@ -97,33 +208,35 @@ sub run {
     my $is_same_transcript = grep { $var->{transcript_id} eq $_ } @tr_id;
 
     my $matches = get_matched_variant_alleles(
-       {
-         ref    => $ref_allele,
-         alts   => [$alt_allele],
-         pos    => $vf->{start},
-         strand => $vf->strand
-       },
-       {
+      {
+        ref    => $ref_allele,
+        alts   => $alt_alleles,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
         ref  => $var->{ref},
         alts => [$var->{alt}],
         pos  => $var->{start},
-       }
-     );
-
+      }
+    );
     return $var->{result} if $is_same_transcript && (@$matches);
   }
   return {};
 }
 
-sub _trim_whitespaces { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
-
 sub parse_data {
   my ($self, $line) = @_;
 
   my @data = split /\t/, $line;
-  @data = map(_trim_whitespaces($_), @data);
+  @data = map(_trim_whitespaces($_), @data) if $self->{trim};
+  my ($seqname, $pos, $ref, $alt, $transcript_id, @vals) = @data;
 
-  my ($seqname, $pos, $ref, $alt, $transcript_id, $source, $score, $pred) = @data;
+  my %res;
+  @res{ @{ $self->{colnames} } } = @vals;
+
+  # Filter by user-selected columns
+  %res = map { $_ => $res{$_} } @{ $self->{cols} };
 
   return {
     seqname => $seqname,
@@ -132,10 +245,7 @@ sub parse_data {
     ref => $ref,
     alt => $alt,
     transcript_id => $transcript_id,
-    result => {
-      SIFT_score => $score,
-      SIFT_prediction => $pred
-    }
+    result => \%res
   };
 }
 
