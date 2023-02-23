@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv TranscriptAnnotator.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin TranscriptAnnotator,/path/to/file.txt.gz
+ ./vep -i variations.vcf --plugin TranscriptAnnotator,file=/path/to/file.txt.gz
 
 =head1 DESCRIPTION
 
