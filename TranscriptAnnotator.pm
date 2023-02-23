@@ -49,8 +49,8 @@ limitations under the License.
              transcript ID as the first 5 columns. Accepted transcript IDs
              include those from Ensembl and RefSeq.
    cols:     Colon-delimited list with names of the columns to append. Column
-             names are based on the last header line starting with #. By
-             default, all columns (except the first 5) are appended.
+             names are based on the last header line. By default, all columns
+             (except the first 5) are appended.
    prefix:   String to prefix the name of appended columns (default: basename of
              the filename without extensions). Set to 0 to avoid any prefix.
    trim:     Trim whitespaces from both ends of each column (default: 1).
