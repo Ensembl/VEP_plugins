@@ -144,9 +144,7 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-  my $allele = $tva->variation_feature_seq;
-
-  return {} unless $allele =~ /^[ACGT]$/;
+  my $allele = $tva->base_variation_feature->alt_alleles;
 
   #Get the start and end coordinates, and ensure they are the right way round (i.e. start < end).
   my $vf_start = $vf->{start};

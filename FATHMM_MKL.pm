@@ -83,17 +83,17 @@ sub run {
   return {} unless $vf->{start} == $vf->{end};
   
   # get allele, reverse comp if needed
-  my $allele = $tva->variation_feature_seq;
-  reverse_comp(\$allele) if $vf->{strand} < 0;
-  
-  return {} unless $allele =~ /^[ACGT]$/;
+  my $alleles = $tva->base_variation_feature->alt_alleles;
   
   # adjust coords, file is BED-like (but not 0-indexed, go figure...)
   my ($s, $e) = ($vf->{start}, $vf->{end} + 1);
   
   foreach my $data(@{$self->get_data($vf->{chr}, $s, $e)}) {
-    if($data->{start} == $s && $allele eq $data->{alt}) {
-      return $data->{result};
+    foreach $allele (@{$alleles}) {
+      reverse_comp(\$allele) if $vf->{strand} < 0;
+      if($data->{start} == $s && $allele eq $data->{alt}) {
+        return $data->{result};
+      }
     }
   }
 
@@ -125,4 +125,3 @@ sub get_end {
 }
 
 1;
-

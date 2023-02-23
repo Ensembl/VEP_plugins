@@ -109,7 +109,6 @@ sub run {
   my ($self, $tva) = @_;
     
   my $vf = $tva->variation_feature;
-  my $allele = $tva->variation_feature_seq;
   my $chr = $vf->{chr};
 
   my $chr_syn;

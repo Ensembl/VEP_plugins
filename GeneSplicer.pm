@@ -182,12 +182,9 @@ sub run {
   return {} unless $ref_seq =~ /^[ACGT]+$/;
 
   # create alt seq
-  my $alt_allele = $tva->variation_feature_seq;
+  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
   $alt_allele =~ s/\-//g;
   my $alt_seq = $up_seq.$alt_allele.$down_seq;
-
-
-  return {} unless $alt_seq =~ /^[ACGT]+$/;
 
   # reverse comp if strands differ
   if($tva->transcript->strand != $vf->strand) {
@@ -366,4 +363,3 @@ sub map_ss_coords {
 }
 
 1;
-

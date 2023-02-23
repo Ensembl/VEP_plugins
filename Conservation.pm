@@ -179,7 +179,6 @@ sub run {
   #Parse and strip out the expected info from the BigWig file
   my $parser = Bio::EnsEMBL::IO::Parser::BigWig->open($filename);
   my $vf = $tva->variation_feature;
-  my $allele = $tva->variation_feature_seq;
   unless($parser){
     warn ("No BigWig file found for plugin Conservation \n"); 
     return {};
