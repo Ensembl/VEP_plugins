@@ -90,14 +90,12 @@ sub run{
   return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
   
   my $vf = $tva->variation_feature;
-  my $allele = $tva->base_variation_feature->alt_alleles;
+  my $allele = $tva->variation_feature_seq;
+  return {} unless $allele =~ /^[ACGT]$/;
+  
 
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
   ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
-
-  foreach $a (@{$allele}) {
-    
-  }
 
   my ($res) = grep{
     $_->{alt} eq $allele &&
