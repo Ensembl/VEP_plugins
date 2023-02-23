@@ -134,8 +134,8 @@ sub run {
   my $vf = $tva->variation_feature;
 
   # get allele
-  my $alt_allele = $tva->variation_feature_seq;
-  my $ref_allele = $vf->ref_allele_string;
+  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
+  my $ref_allele  = $vf->ref_allele_string;
 
   my @data = @{ $self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end}) };
   return {} unless(@data);
@@ -144,7 +144,7 @@ sub run {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $ref_allele,
-        alts   => [$alt_allele],
+        alts   => $alt_alleles,
         pos    => $vf->{start},
         strand => $vf->strand
       },
