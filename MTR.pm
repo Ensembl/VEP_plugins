@@ -36,7 +36,6 @@ gzip -d mtrflatfile_2.0.txt.gz # to unzip the text file
 cat mtrflatfile_2.0.txt | tr " " "\t" > mtrflatfile_2.00.tsv # to change the file to a tabbed delimited file 
 sed '1s/.*/#&/'  mtrflatfile_2.00.tsv > mtrflatfile_2.0.tsv # to add # to the first line of the file 
 bgzip mtrflatfile_2.0.tsv
-
 tabix -f -s 1 -b 2 -e 2 mtrflatfile_2.0.tsv.gz
 
 NB: Data are available for GRCh37 only

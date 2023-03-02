@@ -46,8 +46,10 @@ limitations under the License.
  position will be returned, and for insertions the average score of
  the 2 flanking bases will be returned.
 
- The plugin uses the ensembl-compara API module (optional, see http://www.ensembl.org/info/docs/api/index.html)
- or obtains data directly from BigWig files (optional, see https://ftp.ensembl.org/pub/current_compara/conservation_scores/)
+ The plugin uses the ensembl-compara API module (optional, see
+ http://www.ensembl.org/info/docs/api/index.html) or obtains data
+ directly from BigWig files (optional, see
+ https://ftp.ensembl.org/pub/current_compara/conservation_scores/)
 
 =cut
 package Conservation;

@@ -103,9 +103,9 @@ limitations under the License.
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1'
- --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1',confidence_levels='confirmed&probable&both RD and IF'
- 
+ --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1',confidence_levels='confirmed&probable&both RD and IF' 
  --plugin G2P,file=G2P.csv
+
 =cut
 
 package G2P;

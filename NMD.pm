@@ -30,18 +30,18 @@ limitations under the License.
  The rules are : 
 
  1. The variant location  falls in the last exon of the transcript.
-                                          vvvv
-        ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+                                        vvvv
+      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  2. The variant location falls  50 bases upstream of the penultimate (second to the last ) exon.
-                                  vvv
-         ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+                               vvv
+      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
      
  3. The variant falls in the first 100 coding bases in the transcript.
-               vvv
-            ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+         vvv
+      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
   
  4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript. 
