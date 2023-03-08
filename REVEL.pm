@@ -38,8 +38,12 @@ limitations under the License.
 
  Please cite the REVEL publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
+
+ Running options:
+ If available, the plugin will match the scores by transcript id (default).
+ Using the flag '1' the plugin will not try to match by transcript id.
  
- 
+
  REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
 
  The plugin supports several REVEL file versions:
@@ -61,9 +65,16 @@ limitations under the License.
  zgrep -h -v ^#chr new_tabbed_revel.tsv.gz | awk '$3 != "." ' | sort -k1,1 -k3,3n - | cat h - | bgzip -c > new_tabbed_revel_grch38.tsv.gz
  tabix -f -s 1 -b 3 -e 3 new_tabbed_revel_grch38.tsv.gz
 
- The tabix utility must be installed in your path to use this plugin.
- 
- The --assembly flag is required to use this plugin.
+ The plugin can then be run as default:
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
+
+ or with the option to not match by transcript id:
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz,1
+
+ Requirements:
+  The tabix utility must be installed in your path to use this plugin.
+  The --assembly flag is required to use this plugin.
+
 =cut
 
 package REVEL;
@@ -117,6 +128,11 @@ sub new {
           " but REVEL file does not contain " .
           $assembly_to_hdr{$assembly} . " in header.\n";
   }
+
+  if(defined($self->params->[1])) {
+    $self->{no_match} = $self->params->[1];
+  }
+
   return $self;
 }
 
@@ -138,8 +154,9 @@ sub run {
   my $tr_stable_id = $tva->transcript->stable_id;
   
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+
   foreach (@data) {
-    if ($_->{transcript_ids}){
+    if ($_->{transcript_ids} && !$self->{no_match}){
       foreach my $tr_id (split /;/, $_->{transcript_ids}){
         return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
       }
