@@ -162,7 +162,7 @@ sub run {
       }
     }
     else {
-      return $_->{result} if ($_->{altaa} eq $tva->peptide);
+      return $_->{result} if ($_->{altaa} eq $tva->peptide && $_->{alt} eq $allele);
     }
   }
   return {};
