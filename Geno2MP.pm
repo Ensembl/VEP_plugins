@@ -180,9 +180,11 @@ sub parse_data {
     # Save GRCh37 variant location if available
     $grch37 = $val if $col eq "GRCh37";
 
-    $col = $self->{hpo_ct} if $col =~ "HPO_CT";
-    my $key = $self->{label} . "_" . $col;
-    $res{$key} = $val if $self->{cols}->{$col};
+    if ($self->{cols}->{$col}) {
+      $col = $self->{hpo_ct} if $col =~ "HPO_CT";
+      my $key = $self->{label} . "_" . $col;
+      $res{$key} = $val;
+    }
   }
   
   # Add URL based on GRCh37 variant location (Geno2P webpage only supports GRCh37)
