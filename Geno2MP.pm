@@ -78,6 +78,10 @@ sub prepare_header_info {
     my ($col, $description) = $line =~ /.*ID=(.*?),.*,Description="(.*)".*/g;
     next unless $self->{cols}->{$col};
     
+    if ($col =~ "HPO_CT") {
+      $col = $self->{hpo_ct};
+      $description = "Number of phenotypic profiles in Geno2MP";
+    }
     my $key = $self->{label} . "_" . $col;
     $self->{header_info}->{$key} = $description;
   }
@@ -116,6 +120,7 @@ sub new {
 
   # Prepare header information from Geno2MP file header
   $self->{label} = "Geno2MP";
+  $self->{hpo_ct} = "HPO_count";
   $self->prepare_header_info();
   
   return $self;
@@ -175,6 +180,7 @@ sub parse_data {
     # Save GRCh37 variant location if available
     $grch37 = $val if $col eq "GRCh37";
 
+    $col = $self->{hpo_ct} if $col =~ "HPO_CT";
     my $key = $self->{label} . "_" . $col;
     $res{$key} = $val if $self->{cols}->{$col};
   }
