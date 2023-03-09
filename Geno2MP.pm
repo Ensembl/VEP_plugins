@@ -107,8 +107,8 @@ sub new {
     unless defined($file);
   $self->add_file($file);
   
-  # Add URL linking to Geno2MP variant page
-  $self->{url} = defined($param_hash->{url}) ? $param_hash->{url} : 1;
+  # Build URL linking to Geno2MP variant page
+  $self->{url} = defined($param_hash->{url}) ? $param_hash->{url} : 0;
   
   # Retrieve specific columns from VCF
   my @cols = $param_hash->{cols} ? split(/\:/, $param_hash->{cols}) : "HPO_CT";
