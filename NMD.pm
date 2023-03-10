@@ -151,8 +151,17 @@ sub variant_exon_check {
   # to check if the second to the last exon exists 
   if (defined($second_last_exon)){
     # this method has been changed because of the reverse strand consideration
-    my $coding_region_end = $second_last_exon->end;
-    my $diff_end = $coding_region_end - 51;
+    print($tr->stable_id . ": " . $tr->strand . "\n");
+    my $coding_region_end;
+    my $diff_end;
+    if ($tr->strand == -1){
+      $coding_region_end = $second_last_exon->start;
+      $diff_end = $coding_region_start + 51;
+    } else {
+      $coding_region_end = $second_last_exon->end;
+      $diff_end = $coding_region_end - 51;
+    }
+    
     if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ){
       return 1; 
     }
