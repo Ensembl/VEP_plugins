@@ -83,6 +83,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
@@ -150,19 +151,40 @@ sub run {
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
   my $vf = $tva->variation_feature;
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $tr_stable_id = $tva->transcript->stable_id;
   
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   foreach (@data) {
-    if ($_->{transcript_ids} && !$self->{no_match}){
-      foreach my $tr_id (split /;/, $_->{transcript_ids}){
-        return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
+
+  # Check the assembly to know which start to use
+  my $assembly = $self->{config}->{assembly};
+  my $revel_start = $assembly =~ /37/ ? $_->{start_grch37} : $_->{start_grch38};
+
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => $allele,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+         ref  => $_->{ref},
+         alts => [$_->{alt}],
+         pos  => $revel_start,
       }
-    }
-    else {
-      return $_->{result} if ($_->{altaa} eq $tva->peptide && $_->{alt} eq $allele);
+    );
+
+    if (@$matches) {
+      if ($_->{transcript_ids} && !$self->{no_match}){
+        foreach my $tr_id (split /;/, $_->{transcript_ids}){
+          return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
+        }
+      }
+      else {
+        return $_->{result} if ($_->{altaa} eq $tva->peptide);
+      }
     }
   }
   return {};
@@ -178,6 +200,7 @@ sub parse_data {
     
     return {
       chr => $c,
+      ref => $ref,
       alt => $alt,
       start_grch37 => $s_grch37,
       end_grch37 => $s_grch37,
@@ -196,6 +219,7 @@ sub parse_data {
 
     return {
       chr => $c,
+      ref => $ref,
       alt => $alt,
       start_grch37 => $s,
       end_grch37 => $s,
