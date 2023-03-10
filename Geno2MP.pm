@@ -127,7 +127,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Transcript'];
+  return ['Feature', 'Intergenic'];
 }
 
 sub get_header_info {
