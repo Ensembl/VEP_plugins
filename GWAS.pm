@@ -191,7 +191,7 @@ sub run {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
-        alts   => [$tva->variation_feature_seq],
+        alts   => $tva->base_variation_feature->alt_alleles,
         pos    => $vf->{"start"},
         strand => $vf->strand
       },

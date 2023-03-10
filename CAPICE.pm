@@ -99,9 +99,7 @@ sub run {
   my $vf = $tva->variation_feature;
   
   # get allele
-  my $allele = $tva->variation_feature_seq;
-  
-  return {} unless $allele =~ /^[ACGT-]+$/;
+  my $allele = $tva->base_variation_feature->alt_alleles;
 
   my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
 
@@ -109,7 +107,7 @@ sub run {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
-        alts   => [$allele],
+        alts   => $allele,
         pos    => $vf->{start},
         strand => $vf->strand
       },

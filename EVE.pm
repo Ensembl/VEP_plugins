@@ -140,10 +140,8 @@ sub run {
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
   # get allele
-  my $alt_allele = $tva->variation_feature_seq;
+  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
   my $ref_allele = $vf->ref_allele_string;
-
-  return {} unless $alt_allele =~ /^[ACGT-]+$/;
 
   my @data = @{
     $self->get_data(
@@ -160,7 +158,7 @@ sub run {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $ref_allele,
-        alts   => [$alt_allele],
+        alts   => $alt_alleles,
         pos    => $vf->{start},
         strand => $vf->strand
       },
