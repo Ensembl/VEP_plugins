@@ -366,4 +366,3 @@ sub map_ss_coords {
 }
 
 1;
-

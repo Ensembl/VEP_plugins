@@ -74,8 +74,6 @@ sub run {
 	## If not snp return
 	return {} unless $vf->{start} == $vf->{end};
 
-	## get allele, reverse comp if needed
-	my $allele = $tva -> variation_feature_seq;
 	my $Variation = $tva -> hgvs_genomic;
 	my ($Chr, $Pos, $Alt) = (split /:g.|>/, $Variation)[0,1,2];
 	my $Position = substr $Pos, 0, -1;
