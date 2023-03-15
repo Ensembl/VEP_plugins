@@ -78,7 +78,7 @@ sub new {
   }
   close HEAD;
 
-  if(!exists($self->{headers}->{'Genomic_position'})) {
+  if(! grep(/^Genomic_position$/, @{$self->{headers}})) {
     die "Required header Genomic_position not found.\n";
   }
 
