@@ -38,8 +38,12 @@ limitations under the License.
 
  Please cite the REVEL publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
+
+ Running options:
+ If available, the plugin will match the scores by transcript id (default).
+ Using the flag '1' the plugin will not try to match by transcript id.
  
- 
+
  REVEL scores can be downloaded from: https://sites.google.com/site/revelgenomics/downloads
 
  The plugin supports several REVEL file versions:
@@ -61,9 +65,16 @@ limitations under the License.
  zgrep -h -v ^#chr new_tabbed_revel.tsv.gz | awk '$3 != "." ' | sort -k1,1 -k3,3n - | cat h - | bgzip -c > new_tabbed_revel_grch38.tsv.gz
  tabix -f -s 1 -b 3 -e 3 new_tabbed_revel_grch38.tsv.gz
 
- The tabix utility must be installed in your path to use this plugin.
- 
- The --assembly flag is required to use this plugin.
+ The plugin can then be run as default:
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
+
+ or with the option to not match by transcript id:
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz,1
+
+ Requirements:
+  The tabix utility must be installed in your path to use this plugin.
+  The --assembly flag is required to use this plugin.
+
 =cut
 
 package REVEL;
@@ -72,6 +83,7 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
@@ -117,6 +129,11 @@ sub new {
           " but REVEL file does not contain " .
           $assembly_to_hdr{$assembly} . " in header.\n";
   }
+
+  if(defined($self->params->[1])) {
+    $self->{no_match} = $self->params->[1];
+  }
+
   return $self;
 }
 
@@ -134,17 +151,40 @@ sub run {
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
   my $vf = $tva->variation_feature;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $tr_stable_id = $tva->transcript->stable_id;
   
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+
   foreach (@data) {
-    if ($_->{transcript_ids}){
-      foreach my $tr_id (split /;/, $_->{transcript_ids}){
-        return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
+
+  # Check the assembly to know which start to use
+  my $assembly = $self->{config}->{assembly};
+  my $revel_start = $assembly =~ /37/ ? $_->{start_grch37} : $_->{start_grch38};
+
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => $allele,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+         ref  => $_->{ref},
+         alts => [$_->{alt}],
+         pos  => $revel_start,
       }
-    }
-    else {
-      return $_->{result} if ($_->{altaa} eq $tva->peptide);
+    );
+
+    if (@$matches) {
+      if ($_->{transcript_ids} && !$self->{no_match}){
+        foreach my $tr_id (split /;/, $_->{transcript_ids}){
+          return $_->{result} if ($tr_id eq $tr_stable_id && $_->{altaa} eq $tva->peptide);
+        }
+      }
+      else {
+        return $_->{result} if ($_->{altaa} eq $tva->peptide);
+      }
     }
   }
   return {};
@@ -160,6 +200,7 @@ sub parse_data {
     
     return {
       chr => $c,
+      ref => $ref,
       alt => $alt,
       start_grch37 => $s_grch37,
       end_grch37 => $s_grch37,
@@ -178,6 +219,7 @@ sub parse_data {
 
     return {
       chr => $c,
+      ref => $ref,
       alt => $alt,
       start_grch37 => $s,
       end_grch37 => $s,
