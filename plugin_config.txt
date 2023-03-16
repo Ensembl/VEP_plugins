@@ -1294,6 +1294,26 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/G2P.pm",
     },
 
+    # Geno2MP
+    # https://github.com/ensembl-variation/VEP_plugins/blob/main/Geno2MP.pm
+    # Requires tabix-indexed VCF data file
+    {
+      "key" => "Geno2MP",
+      "label" => "Geno2MP",
+      "helptip" => "Geno2MP is a web-accessible database of rare variant genotypes linked to individual-level phenotypic profiles defined by human phenotype ontology (HPO) terms",
+      "available" => 0,
+      "enabled" => 0,
+      "requires_data" => 1,
+      "section" => "Phenotype data and citations",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/Geno2MP.pm",
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        "#file=/path/to/Geno2MP/data.vcf.gz"
+      ],
+    },
+
     # PostGAP
     {
       "key" => "PostGAP",
