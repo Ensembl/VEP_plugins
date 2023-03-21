@@ -153,6 +153,8 @@ sub variant_exon_check {
     # this method has been changed because of the reverse strand consideration
     my $coding_region_end;
     my $diff_end;
+    # need to account for strand as if it is in reverse strand it should be reading from the start 
+    # and adding 51 to find the variant 50 bases upstream in penultimate exon
     if ($tr->strand == -1){
       $coding_region_end = $second_last_exon->start;
       $diff_end = $coding_region_start + 51;
