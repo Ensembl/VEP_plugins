@@ -79,12 +79,12 @@ sub run {
   my $alt_allele = $tva->base_variation_feature->alt_alleles;
 
   ## Check for single nucleotide substitution
-  return {} unless $Ref =~ /^[ACGT]$/;
-  return {} unless $Alt =~ /^[ACGT]$/;
+  return {} unless $ref_allele =~ /^[ACGT]$/;
+  return {} unless $alt_allele->[0] =~ /^[ACGT]$/;
 
   my $command = $self->{command};
   my $Hg = $self->{Hg};
-  my $V = $chr."_".$start."_".$ref_allele."_".$alt_allele[0];
+  my $V = $chr."_".$start."_".$ref_allele."_".$alt_allele->[0];
 
   ## Call pon-p2 python script here
   my $ponp2Res = `python $command $V $Hg` or return {};
