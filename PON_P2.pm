@@ -80,25 +80,27 @@ sub run {
 
   ## Check for single nucleotide substitution
   return {} unless $ref_allele =~ /^[ACGT]$/;
-  return {} unless $alt_allele->[0] =~ /^[ACGT]$/;
 
-  my $command = $self->{command};
-  my $Hg = $self->{Hg};
-  my $V = $chr."_".$start."_".$ref_allele."_".$alt_allele->[0];
+  foreach my $alt (@{$alt_allele}) {
+    my $command = $self->{command};
+    my $Hg = $self->{Hg};
+    my $V = $chr."_".$start."_".$ref_allele."_".$alt;
 
-  ## Call pon-p2 python script here
-  my $ponp2Res = `python $command $V $Hg` or return {};
-  $ponp2Res =~ s/\R//g;
+    ## Call pon-p2 python script here
+    my $ponp2Res = `python $command $V $Hg` or return {};
+    $ponp2Res =~ s/\R//g;
 
-  my ($pred, $prob) =split /\t/, $ponp2Res;
+    my ($pred, $prob) =split /\t/, $ponp2Res;
 
-  ## Can PON-P2 predict?
-  return {} if $pred eq "cannot";
+    ## Can PON-P2 predict?
+    return {} if $pred eq "cannot";
 
-  ## Return predictions
-  return $pred && $prob ? {
-    PON_P2 => "$pred($prob)",
-  } : {};
+    ## Return predictions
+    return $pred && $prob ? {
+      PON_P2 => "$pred($prob)",
+    } : {};
+
+  }
 }
 
 1;
