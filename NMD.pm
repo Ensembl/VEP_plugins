@@ -157,7 +157,7 @@ sub variant_exon_check {
     # and adding 51 to find the variant 50 bases upstream in penultimate exon
     if ($tr->strand == -1){
       $coding_region_end = $second_last_exon->start;
-      $diff_end = $coding_region_start + 51;
+      $diff_end = $coding_region_end + 51;
     } else {
       $coding_region_end = $second_last_exon->end;
       $diff_end = $coding_region_end - 51;
