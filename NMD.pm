@@ -158,14 +158,17 @@ sub variant_exon_check {
     if ($tr->strand == -1){
       $coding_region_end = $second_last_exon->start;
       $diff_end = $coding_region_end + 51;
+      if (defined($coding_region_end) && $vf_end >= $coding_region_end && $vf_end <= $diff_end  ){
+        return 1; 
+      }
     } else {
       $coding_region_end = $second_last_exon->end;
       $diff_end = $coding_region_end - 51;
+      if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ){
+        return 1; 
+      }
     }
-    
-    if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ){
-      return 1; 
-    }
+  
   }
   
   return 0; 
