@@ -28,10 +28,10 @@ Mauno Vihinen <mauno.vihinen@med.lu.se>
      python suds). The python file can be downloaded from http://structure.bmc.lu.se/PON-P2/vep.html/
      and the complete path to this file must be supplied while using this plugin.
  
- 2) To fetch the predictions from a file containing pre-calculated predictions please use
- the following option:
+ 2) To fetch the predictions from a file containing pre-calculated predictions for somatic variations 
+ please use the following option:
  
-  file:           text file with pre-calculated predictions downloaded from
+  file:           COSMIC text file with pre-calculated predictions downloaded from
                   http://structure.bmc.lu.se/PON-P2/cancer30.html/
    
    The following steps are necessary before using the file:
