@@ -34,15 +34,13 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- finds variants in linkage disequilibrium with any overlapping existing 
- variants from the Ensembl variation databases. You can configure the 
- population used to calculate the r2 value, and the r2 cutoff used by 
- passing arguments to the plugin via the VEP command line (separated 
- by commas). This plugin adds a single new entry to the Extra column 
- with a comma-separated list of linked variant IDs and the associated 
- r2 values, e.g.:
+ A VEP plugin that finds variants in linkage disequilibrium with any overlapping
+ existing variants from the Ensembl variation databases.
 
+ You can configure the population used to calculate the r2 value, and the
+ r2 cutoff used by passing arguments to the plugin via the VEP command line
+ (separated by commas). This plugin adds a single new entry to the Extra column
+ with a comma-separated list of linked variant IDs and the associated r2 values:
    LinkedVariants=rs123:0.879,rs234:0.943
 
  If no arguments are supplied, the default population used is the CEU
