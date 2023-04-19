@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- TranscriptAnnotator.pm
+ TranscriptAnnotator
 
 =head1 SYNOPSIS
 
@@ -36,17 +36,22 @@ limitations under the License.
 
    --plugin TranscriptAnnotator,file=${HOME}/file.tsv.gz
 
- Example of a valid tab-separated annotation file (before bgzip and tabix):
+ Example of a valid tab-separated annotation file:
 
    #Chrom  Pos       Ref  Alt  Transcript       SIFT_score  SIFT_pred    Comment
    11      436154    A    G    NM_001347882.2   0.03        Deleterious  Bad
    11      1887471   C	  T    ENST00000421485  0.86        Tolerated    Good
 
- Parameters:
+ Please bgzip and tabix the file with commands such as:
 
-   file:     Tabix-indexed file to parse. Must contain variant location
-             (chromosome, position, reference allele, alternative allele) and
-             transcript ID as the first 5 columns. Accepted transcript IDs
+   bgzip file.txt
+   tabix -b2 -e2 file.txt.gz
+
+ Options are passed to the plugin as key=value pairs:
+
+   file:     (mandatory) Tabix-indexed file to parse. Must contain variant
+             location (chromosome, position, reference allele, alternative allele)
+             and transcript ID as the first 5 columns. Accepted transcript IDs
              include those from Ensembl and RefSeq.
    cols:     Colon-delimited list with names of the columns to append. Column
              names are based on the last header line. By default, all columns
@@ -156,8 +161,8 @@ sub new {
   my @cols     = $self->_get_selected_cols(@colnames);
 
   # Add prefix to column names
-  $self->{prefix} = $param_hash->{prefix} || _basename_without_ext($file) . "_";
-  if ($self->{prefix}) {
+  unless (defined $param_hash->{prefix} && $param_hash->{prefix} eq 0) {
+    $self->{prefix} = $param_hash->{prefix} || _basename_without_ext($file) . "_";
     @colnames = map($self->{prefix} . $_, @colnames);
     @cols     = map($self->{prefix} . $_, @cols);
   }
@@ -165,10 +170,6 @@ sub new {
   $self->{cols} = \@cols;
 
   return $self;
-}
-
-sub version {
-  return 110;
 }
 
 sub feature_types {
