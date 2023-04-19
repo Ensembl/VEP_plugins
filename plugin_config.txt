@@ -1642,8 +1642,7 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/UTRAnnotator.pm"
     },
 
-    # UTRAnnotator
-    # https://github.com/ensembl-variation/VEP_plugins/blob/main/UTRAnnotator.pm
+    # TranscriptAnnotator
     {
       "key" => "TranscriptAnnotator",
       "label" => "TranscriptAnnotator",
