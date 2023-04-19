@@ -46,7 +46,7 @@ limitations under the License.
    cols: colon-delimited list of Geno2MP columns to return from INFO fields
          (by default it only returns the column HPO_CT)
    url: build and return URL to Geno2MP variant page (boolean; 0 by default);
-        variant location in Geno2MP website is based on GRCh37 coordinates
+        the variant location in Geno2MP website is based on GRCh37 coordinates
 
  Please cite Geno2MP alongside the VEP if you use this resource:
  Geno2MP, NHGRI/NHLBI University of Washington-Center for Mendelian Genomics (UW-CMG), Seattle, WA
