@@ -61,7 +61,7 @@ limitations under the License.
  
  This plugin also tries to be backwards compatible with older versions of the
  coverage summary files, including releases 2.0.1 and 2.0.2. These releases
- make available one coverage file per chromosome and these can be used "as-is"
+ provide one coverage file per chromosome and these can be used "as-is"
  without requiring any preprocessing. 
  
  If you use this plugin, please see the terms and data information:
