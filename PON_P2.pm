@@ -29,7 +29,7 @@ Mauno Vihinen <mauno.vihinen@med.lu.se>
      and the complete path to this file must be supplied while using this plugin.
  
  2) To fetch the predictions from a file containing pre-calculated predictions for somatic variations 
- please use the following option:
+ please use the following option (only available for GRCh37):
  
   file:           COSMIC text file with pre-calculated predictions downloaded from
                   http://structure.bmc.lu.se/PON-P2/cancer30.html/
@@ -65,13 +65,11 @@ sub feature_types {
   return ['Transcript'];
 }
 
-
 sub get_header_info {
   return {
     PON_P2 => "PON-P2 prediction and score for amino acid substitutions"
   };
 }
-
 
 sub new {
   my $class = shift;
@@ -129,6 +127,8 @@ sub run {
     my @data = @{ $self->get_data($chr, $start, $end) };
     return {} unless(@data);
 
+    my $result = 0;
+
     foreach (@data) {
 
       my $matches = get_matched_variant_alleles(
@@ -150,16 +150,20 @@ sub run {
         my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
         my @vf_aa = split '/', $tva->pep_allele_string;
 
-        if ($_->{aa} eq $vf_aa[0].$peptide_start.$vf_aa[1]) {
+        if ($_->{aa} eq $vf_aa[0].$peptide_start.$vf_aa[1] || $_->{aa} eq $vf_aa[1].$peptide_start.$vf_aa[0]) {
           my $pred = $_->{pon_p2_pred};
           my $class = $_->{pon_p2_class};
+          $result = 1;
           return {
             PON_P2 => "$pred($class)"
           };
         }
-        return {};
+        else {
+          return {};
+        }
       }
     }
+    return {} if(!$result) ;
   }
   else {
     foreach my $alt (@{$alt_allele}) {
