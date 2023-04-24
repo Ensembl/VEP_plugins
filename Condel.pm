@@ -32,14 +32,16 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that calculates
- the Consensus Deleteriousness (Condel) score (1) for a missense mutation 
- based on the pre-calculated SIFT (2) and PolyPhen-2 (3) scores from the Ensembl 
- API (4). It adds one new entry class to the VEP's Extra column, Condel which is
- the calculated Condel score. This version of Condel was developed by the Biomedical Genomics Group 
- of the Universitat Pompeu Fabra, at the Barcelona Biomedical Research Park and available at
- (http://bg.upf.edu/condel) until April 2014. The code in this plugin is based on a script provided by this 
- group and slightly reformatted to fit into the Ensembl API.
+ A VEP plugin that calculates the Consensus Deleteriousness (Condel) score (1)
+ for a missense mutation based on the pre-calculated SIFT (2) and PolyPhen-2 (3)
+ scores from the Ensembl API (4).
+
+ It adds one new entry class to the VEP's Extra column, Condel which is the
+ calculated Condel score. This version of Condel was developed by the Biomedical
+ Genomics Group  of the Universitat Pompeu Fabra, at the Barcelona Biomedical
+ Research Park and available at https://bg.upf.edu/condel. The code in this
+ plugin is based on a script provided by this group and slightly reformatted to
+ fit into the Ensembl API.
 
  The plugin takes 3 command line arguments, the first is the path to a Condel 
  configuration directory which contains cutoffs and the distribution files etc., 
@@ -49,8 +51,8 @@ limitations under the License.
  is recommended to avoid false positive predictions from Condel in some 
  circumstances.
 
- An example Condel configuration file and a set of distribution files can be found 
- in the config/Condel directory in this repository. You should edit the 
+ An example Condel configuration file and a set of distribution files can be
+ found in the config/Condel directory in this repository. You should edit the 
  config/Condel/config/condel_SP.conf file and set the 'condel.dir' parameter to
  the full path to the location of the config/Condel directory on your system.
 
