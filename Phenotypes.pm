@@ -304,8 +304,9 @@ sub run {
     my @result_data = ();
 
     foreach my $tmp_data(@{$data}) {
-      # delete not selected columns
-      map {delete $tmp_data->{$_}} grep {!defined($cols{$_})} keys %$tmp_data;
+      # subset phenotype data columns
+      my %tmp = map { $_ => $tmp_data->{$_} } keys %cols;
+      $tmp_data = \%tmp;
 
       if (!$output_format{'json'}) {
         # replace link characters with _
