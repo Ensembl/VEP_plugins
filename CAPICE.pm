@@ -74,7 +74,6 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
-  #$self->get_user_params();
   
   # Check files in arguments
   my @files; 

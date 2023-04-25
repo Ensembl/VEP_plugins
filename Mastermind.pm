@@ -88,15 +88,19 @@ limitations under the License.
  
  The plugin can then be run as default:
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
+ ./vep -i variations.vcf --plugin Mastermind,file=/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz
 
  or with an option to not filter by mutations (first flag): 
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,1 
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=1 
 
  or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (second flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,1
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=0,var_iden=1
 
  or with an option to also return the Mastermind URL (third flag):
  ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,0,0,1
+ ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=0,var_iden=0,url=1
 
  Note: when running VEP in offline mode Mastermind requires a fasta file (--fasta)
 
@@ -121,20 +125,36 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
-  $self->get_user_params();
-  my $file = $self->params->[0];
-  $self->add_file($file);
+  #$self->get_user_params();
+  my $params = $self->params_to_hash();
+  
+  my @key_params;
+  my $file;
+  if (!keys %$params){
+    @key_params = @{$self->params};
+    $file = $key_params[0];
+  } else {
+    $file = $params->{file};
+    for my $key (keys %{$params}) {
+      push @key_params, $params->{$key};
+    }
+  }
+  
+  use Data::Dumper;
+  print(Dumper(@key_params));
 
-  if(defined($self->params->[1])) {
-    $self->{mutation_off} = $self->params->[1];
+  $self->add_file($file); 
+
+  if(defined($key_params[1]) || defined($params->{mutations}) ) {
+    $self->{mutation_off} = $key_params[1];
   }
 
-  if(defined($self->params->[2])) {
-    $self->{only_mmid3} = $self->params->[2];
+  if(defined($key_params[2]) || defined($params->{var_iden})) {
+    $self->{only_mmid3} = $key_params[2];
   }
 
-  if(defined($self->params->[3])) {
-    $self->{return_url} = $self->params->[3];
+  if(defined($key_params[3]) || defined($params->{url})) {
+    $self->{return_url} = $key_params[3];
   }
 
   return $self;
