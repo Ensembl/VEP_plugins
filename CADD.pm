@@ -29,8 +29,8 @@ limitations under the License.
 
  mv CADD.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
- ./vep -i variations.vcf --plugin CADD,whole_genome=/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,indels=/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
- 
+ ./vep -i variations.vcf --plugin CADD,snv=/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,indels=/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
+
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves CADD scores for variants from one or more
@@ -108,7 +108,7 @@ sub new {
   if (!keys %$params) {
     @files = @{$self->params};  
   } else {
-    for my $key (keys %{$params}){
+    for my $key ( keys %{$params}){
       push @files, $params->{$key}
     }
   }
