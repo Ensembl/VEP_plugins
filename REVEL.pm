@@ -97,10 +97,21 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
-  $self->get_user_params();
-
+  #$self->get_user_params();
+  my $params = $self->params_to_hash();
+  my @key_params;
+  my $file;
+  if (!%{$params}) {
+    @key_params = @{$self->params};
+    $file = $key_params[0];
+    $self->{no_match} = $key_params[1] if ( defined ($key_params[1] ) ); 
+  } else {
+    $file = $params->{file};
+    $self->{no_match} = $params->{no_match} if (defined ($params->{no_match}));
+  }
+  
  # get column count in REVEL file from header line
-  my $file = $self->params->[0];
+  
   $self->add_file($file);
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
@@ -128,10 +139,6 @@ sub new {
       die "ERROR: Assembly is " . $assembly .
           " but REVEL file does not contain " .
           $assembly_to_hdr{$assembly} . " in header.\n";
-  }
-
-  if(defined($self->params->[1])) {
-    $self->{no_match} = $self->params->[1];
   }
 
   return $self;

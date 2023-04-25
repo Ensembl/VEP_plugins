@@ -132,9 +132,9 @@ sub new {
   if (!%{$params}) {
     @key_params = @{$self->params};
     $file = $key_params[0];
-    $self->{mutation_off} = $key_params[1] if ( defined($self->params->[1]) ) ;
-    $self->{only_mmid3} = $key_params[2]  if ( defined($self->params->[2]) ) ;
-    $self->{return_url} = $key_params[3] if( defined($self->params->[3]) ) ;
+    $self->{mutation_off} = $key_params[1] if ( defined($key_params[1]) ) ;
+    $self->{only_mmid3} = $key_params[2]  if ( defined($key_params[2]) ) ;
+    $self->{return_url} = $key_params[3] if( defined($key_params[3]) ) ;
   } else {
     $file = $params->{file};
     $self->{mutation_off} = $params->{mutations} if (defined($params->{mutations}));
