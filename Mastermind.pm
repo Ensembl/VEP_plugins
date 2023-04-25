@@ -125,37 +125,25 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
-  #$self->get_user_params();
   my $params = $self->params_to_hash();
-  
+
   my @key_params;
   my $file;
-  if (!keys %$params){
+  if (!%{$params}) {
     @key_params = @{$self->params};
     $file = $key_params[0];
+    $self->{mutation_off} = $key_params[1] if ( defined($self->params->[1]) ) ;
+    $self->{only_mmid3} = $key_params[2]  if ( defined($self->params->[2]) ) ;
+    $self->{return_url} = $key_params[3] if( defined($self->params->[3]) ) ;
   } else {
     $file = $params->{file};
-    for my $key (keys %{$params}) {
-      push @key_params, $params->{$key};
-    }
+    $self->{mutation_off} = $params->{mutations} if (defined($params->{mutations}));
+    $self->{only_mmid3} = $params->{var_iden} if (defined ($params->{var_iden}));
+    $self->{return_url} = $params->{url} if (defined ($params->{url}) );
   }
-  
-  use Data::Dumper;
-  print(Dumper(@key_params));
+ 
 
   $self->add_file($file); 
-
-  if(defined($key_params[1]) || defined($params->{mutations}) ) {
-    $self->{mutation_off} = $key_params[1];
-  }
-
-  if(defined($key_params[2]) || defined($params->{var_iden})) {
-    $self->{only_mmid3} = $key_params[2];
-  }
-
-  if(defined($key_params[3]) || defined($params->{url})) {
-    $self->{return_url} = $key_params[3];
-  }
 
   return $self;
 }
