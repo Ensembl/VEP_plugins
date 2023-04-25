@@ -34,6 +34,7 @@ limitations under the License.
  # - capice_v1.0_build37_snvs.tsv.gz
  # - capice_v1.0_build37_snvs.tsv.gz.tbi
  ./vep -i variations.vcf --plugin CAPICE,/FULL_PATH_TO_CAPICE_FILE/capice_v1.0_build37_snvs.tsv.gz,/FULL_PATH_TO_CAPICE_FILE/capice_v1.0_build37_indels.tsv.gz
+ ./vep -i variations.vcf --plugin CAPICE,snv=/FULL_PATH_TO_CAPICE_FILE/capice_v1.0_build37_snvs.tsv.gz,indels=/FULL_PATH_TO_CAPICE_FILE/capice_v1.0_build37_indels.tsv.gz
  ./filter_vep -i variant_effect_output.txt --filter "CAPICE_SCORE >= 0.02"
 
 =head1 DESCRIPTION
@@ -73,12 +74,22 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
-  $self->get_user_params();
+  #$self->get_user_params();
   
   # Check files in arguments
-  my @params = @{$self->params};
-  die "ERROR: No CAPICE files specified\n" unless @params > 0;
-  $self->add_file($_) for @params;
+  my @files; 
+  my $params = $self->params_to_hash();
+
+  if (!keys %$params){
+    @files = @{$self->params};
+  } else {
+    for my $key (keys %{$params}) {
+      push @files, $params->{$key};
+    }
+  }
+
+  die "ERROR: No CAPICE files specified\n" unless @files > 0;
+  $self->add_file($_) for @files;
 
   return $self;
 }

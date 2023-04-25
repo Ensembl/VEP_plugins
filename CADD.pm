@@ -100,8 +100,6 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0);
 
-  #$self->get_user_params();
-
   my $params = $self->params_to_hash();
   my @files;
   # Check files in arguments
@@ -109,7 +107,7 @@ sub new {
     @files = @{$self->params};  
   } else {
     for my $key ( keys %{$params}){
-      push @files, $params->{$key}
+      push @files, $params->{$key};
     }
   }
 
