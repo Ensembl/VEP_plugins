@@ -45,7 +45,7 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
 
---plugin ClinPred,file=
+--plugin ClinPred,file=ClinPred_tabbed.tsv.gz
 --plugin ClinPred,ClinPred_tabbed.tsv.gz
 =cut
 
