@@ -141,7 +141,8 @@ sub new {
     $self->{only_mmid3} = $params->{var_iden} if (defined ($params->{var_iden}));
     $self->{return_url} = $params->{url} if (defined ($params->{url}) );
   }
- 
+  
+  die "ERROR: Mastermind file not specified! Path to Mastermind file needs to be specified \n" if (!defined ($file));
 
   $self->add_file($file); 
 
