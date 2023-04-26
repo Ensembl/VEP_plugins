@@ -40,7 +40,7 @@ limitations under the License.
  https://www.ncbi.nlm.nih.gov/pubmed/24487276
  
  The tabix utility must be installed in your path to use this plugin. The CADD
- data files can be downloaded from
+ data files (and respective Tabix index files) can be downloaded from
  http://cadd.gs.washington.edu/download
 
  The plugin works with all versions of available CADD files. The plugin only

@@ -32,14 +32,13 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that calculates
- the Combined Annotation scoRing toOL (CAROL) score (1) for a missense mutation 
- based on the pre-calculated SIFT (2) and PolyPhen-2 (3) scores from the Ensembl 
- API (4). It adds one new entry class to the VEP's Extra column, CAROL which is
- the calculated CAROL score. Note that this module is a perl reimplementation of 
- the original R script, available at:
+ A VEP plugin that calculates the Combined Annotation scoRing toOL (CAROL)
+ score (1) for a missense mutation based on the pre-calculated SIFT (2) and
+ PolyPhen-2 (3) scores from the Ensembl API (4).
 
- http://www.sanger.ac.uk/resources/software/carol/
+ It adds one new entry class to the VEP's Extra column, CAROL which is
+ the calculated CAROL score. Note that this module is a perl reimplementation of 
+ the original R script, available at: https://sanger.ac.uk/tool/carol/
 
  I believe that both versions implement the same algorithm, but if there are any
  discrepancies the R version should be treated as the reference implementation. 
@@ -49,7 +48,8 @@ limitations under the License.
 
  (1) Lopes MC, Joyce C, Ritchie GRS, John SL, Cunningham F, Asimit J, Zeggini E. 
      A combined functional annotation score for non-synonymous variants
-     Human Heredity (in press)
+     Human Heredity 73(1):47-51 (2012)
+     doi:10.1159/000334984
 
  (2) Kumar P, Henikoff S, Ng PC.
      Predicting the effects of coding non-synonymous variants on protein function using the SIFT algorithm
@@ -63,7 +63,7 @@ limitations under the License.
  
  (4) Flicek P, et al.
      Ensembl 2012
-     Nucleic Acids Research (2011)
+     Nucleic Acids Research 40(D1):D84-D90 (2011)
      doi: 10.1093/nar/gkr991
 
 =cut
