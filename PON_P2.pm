@@ -76,17 +76,48 @@ sub new {
   my $self = $class->SUPER::new(@_);
 
   # get parameters
-  my $command = $self->params->[0];
-  my $Hg = $self->params->[1];
+  #my $command = $self->params->[0];
+  #my $Hg = $self->params->[1];
+  my $params = $self->params_to_hash();
+  my $pyscript;
+  my $hg;
+  my $from_file;
 
+  if (!%{$params}) {
+    my @key_params = @{$self->params};
+    $pyscript = $key_params[0];
+    $hg = $key_params[1];
+  } else {
+    if (exists $params->{"file"}) {
+      $from_file = $params->{file};
+      die "\nERROR: No PON_P2 file specified\nTry using 'file=path/to/file.txt.gz'\n" unless -e $from_file;
+      $self->add_file($from_file);
+      $self->{from_file} = $from_file;
+    } else {
+      $pyscript = $params->{pyscript} if (defined ($params->{pyscript})); 
+      $hg = $params->{hg} if (defined($params->{hg}))
+    }
+  }
+
+  if(!$from_file) {
+    die 'ERROR: Path to python script not specified! Specify path to python script e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($pyscript);
+    die 'ERROR: Reference genome not specified! Specify the reference genome after the path to python file e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($hg);
+    die "ERROR: Wrong reference genome specified! It should be either 'hg37' or 'hg38'\n" unless ($hg ~~ ["hg37","hg38"]);
+    die 'ERROR: Incorrect path to ponp2.py\n' unless -e $pyscript;
+  }
+
+  $self->{command} = $pyscript;
+  $self->{Hg} = $hg;
+
+
+=head1
   my $from_file;
   # Check if first option is the file
   if($command && $command =~ /file=/) {
     my $param_hash = $self->params_to_hash();
     $from_file = $param_hash->{file};
     die "\nERROR: No PON_P2 file specified\nTry using 'file=path/to/file.txt.gz'\n" unless -e $from_file;
-    $self->add_file($from_file);
-    $self->{from_file} = $from_file;
+
   }
   
   if(!$from_file) {
@@ -97,7 +128,7 @@ sub new {
     $self->{command} = $command;
     $self->{Hg} = $Hg;
   }
-  
+=cut
   return $self;
 }
 
