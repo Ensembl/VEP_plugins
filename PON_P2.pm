@@ -23,6 +23,7 @@ Mauno Vihinen <mauno.vihinen@med.lu.se>
   Option 2:       the reference genome. Acceptable values are: hg37, hg38
  
    --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
+   --plugin PON_P2,pyscript=/path/to/python/script/ponp2.py,hg=hg37
    
    * To run this mode, you will require a python script and its dependencies (Python,
      python suds). The python file can be downloaded from http://structure.bmc.lu.se/PON-P2/vep.html/
