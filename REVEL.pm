@@ -70,6 +70,7 @@ limitations under the License.
 
  or with the option to not match by transcript id:
  ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz,1
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz,no_match=1
 
  Requirements:
   The tabix utility must be installed in your path to use this plugin.
@@ -102,16 +103,15 @@ sub new {
   my @key_params;
   my $file;
   if (!%{$params}) {
-    @key_params = @{$self->params};
-    $file = $key_params[0];
-    $self->{no_match} = $key_params[1] if ( defined ($key_params[1] ) ); 
+    $file = $self->params->[0];
+    $self->{no_match} = $self->params->[1] if ( defined ($self->params->[1] ) ); 
   } else {
     $file = $params->{file};
     $self->{no_match} = $params->{no_match} if (defined ($params->{no_match}));
   }
   
  # get column count in REVEL file from header line
-  
+
   $self->add_file($file);
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
