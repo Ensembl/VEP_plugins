@@ -110,26 +110,6 @@ sub new {
   $self->{command} = $pyscript;
   $self->{Hg} = $hg;
 
-
-=head1
-  my $from_file;
-  # Check if first option is the file
-  if($command && $command =~ /file=/) {
-    my $param_hash = $self->params_to_hash();
-    $from_file = $param_hash->{file};
-    die "\nERROR: No PON_P2 file specified\nTry using 'file=path/to/file.txt.gz'\n" unless -e $from_file;
-
-  }
-  
-  if(!$from_file) {
-    die 'ERROR: Path to python script not specified! Specify path to python script e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($command);
-    die 'ERROR: Reference genome not specified! Specify the reference genome after the path to python file e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($command);
-    die "ERROR: Wrong reference genome specified! It should be either 'hg37' or 'hg38'\n" unless ($Hg ~~ ["hg37","hg38"]);
-    die 'ERROR: Incorrect path to ponp2.py\n' unless -e $command;
-    $self->{command} = $command;
-    $self->{Hg} = $Hg;
-  }
-=cut
   return $self;
 }
 
