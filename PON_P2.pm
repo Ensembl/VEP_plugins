@@ -85,9 +85,8 @@ sub new {
   my $from_file;
 
   if (!%{$params}) {
-    my @key_params = @{$self->params};
-    $pyscript = $key_params[0];
-    $hg = $key_params[1];
+    $pyscript = $self->params->[0];
+    $hg = $self->params->[1];
   } else {
     if (exists $params->{"file"}) {
       $from_file = $params->{file};

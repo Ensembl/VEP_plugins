@@ -29,6 +29,7 @@ limitations under the License.
 
  mv ProteinSeqs.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin ProteinSeqs,reference.fa,mutated.fa
+ ./vep -i variations.vcf --plugin ProteinSeqs,reference=reference.fa,mutated=mutated.fa
 
 =head1 DESCRIPTION
 
@@ -76,9 +77,18 @@ sub new {
     }
 
     # use some default file names if none are supplied
+    my $params = $self->params_to_hash();
+    my $ref_file;
+    my $mut_file;
 
-    my $ref_file = $self->params->[0] || 'reference.fa';
-    my $mut_file = $self->params->[1] || 'mutated.fa';
+    if (!%{$params}){
+      $ref_file = $self->params->[0] || 'reference.fa';
+      $mut_file = $self->params->[1] || 'mutated.fa';
+    } else {
+        $ref_file = $params->{reference} if (defined ($params->{reference}));
+        $mut_file = $params->{mutated} if (defined($params->{mutated}));
+    }
+
 
     open $self->{ref_file}, ">$ref_file" or die "Failed to open $ref_file";
     open $self->{mut_file}, ">$mut_file" or die "Failed to open $mut_file";
