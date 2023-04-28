@@ -162,7 +162,7 @@ sub new {
 
   # Add prefix to column names
   unless (defined $param_hash->{prefix} && $param_hash->{prefix} eq 0) {
-    $self->{prefix} = $param_hash->{prefix} || _basename_without_ext($file) . "_";
+    $self->{prefix} = ($param_hash->{prefix} || _basename_without_ext($file)) . "_";
     @colnames = map($self->{prefix} . $_, @colnames);
     @cols     = map($self->{prefix} . $_, @cols);
   }
