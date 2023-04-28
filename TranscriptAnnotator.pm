@@ -106,6 +106,17 @@ sub _get_colnames {
   # Parse column names from header
   my @cols = split /\t/, $last;
   @cols = map { _trim_whitespaces $_ } @cols if $self->{trim};
+
+  # Check column names for variant location and transcript ID
+  my @var_cols = ("chr", "pos", "ref", "alt", "tr");
+  for my $i (0 .. scalar $#var_cols) {
+    unless (grep { /^$var_cols[$i]/i } @cols) {
+      printf "Name of column %s ('%s') should start with '%s'\n",
+             $i, $cols[$i], $var_cols[$i];
+    }
+  }
+
+  # Return other columns
   @cols = splice @cols, 5;
   return @cols;
 }
