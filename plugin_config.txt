@@ -1670,6 +1670,16 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/UTRAnnotator.pm"
     },
 
+    # TranscriptAnnotator
+    {
+      "key" => "TranscriptAnnotator",
+      "label" => "TranscriptAnnotator",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Transcript annotation",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/TranscriptAnnotator.pm"
+    },
+
     ## PROTEIN DATA
     ###############
 
