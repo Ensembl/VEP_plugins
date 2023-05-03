@@ -1365,7 +1365,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "GWAS",
       "label" => "GWAS",
-      "helptip" => "Genome-wide associated study data from the GWAS Catalog (https://www.ebi.ac.uk/gwas/)",
+      "helptip" => "Genome-wide associated study data from the NHGRI-EBI GWAS Catalog (https://www.ebi.ac.uk/gwas/)",
       "available" => 0,
       "enabled" => 0,
       "species" => [
