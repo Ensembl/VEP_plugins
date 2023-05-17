@@ -186,10 +186,11 @@ sub _join_results {
   my $all_results = shift;
   my $res = shift;
 
-  return $res unless %$all_results;
-
-  # Concatenate results based on keys
-  $all_results->{$_} .= "," . $res->{$_} for (keys %$all_results);
+  # Create array of results per key
+  for (keys %$res) {
+    $all_results->{$_} = [] if !$all_results->{$_};
+    push($all_results->{$_}, $res->{$_} || "NA");
+  }
   return $all_results;
 }
 
