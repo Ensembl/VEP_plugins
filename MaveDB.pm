@@ -45,7 +45,7 @@ limitations under the License.
    file             : (mandatory) Tabix-indexed MaveDB file
    cols             : (optional) Colon-separated columns to print from MaveDB
                       files; if set to 'all', all columns are printed
-                      (default: 'urn:score')
+                      (default: 'urn:score:hgvs_nt:hgvs_pro')
    transcript_match : Only print data if (Ensembl or RefSeq) transcript
                       identifiers match to those from MaveDB (default: 0)
  
@@ -95,7 +95,7 @@ sub _parse_colnames {
 
   # Parse file columns
   $self->{colnames} = $self->_get_colnames();
-  my $cols = $param_hash->{cols} || "MaveDB_urn:MaveDB_score";
+  my $cols = $param_hash->{cols} || "MaveDB_urn:MaveDB_score:MaveDB_hgvs_nt:MaveDB_hgvs_pro";
   
   if ($cols eq "all") {
     $self->{cols} = $self->{colnames};
