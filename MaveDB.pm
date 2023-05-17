@@ -189,7 +189,7 @@ sub _join_results {
   # Create array of results per key
   for (keys %$res) {
     $all_results->{$_} = [] if !$all_results->{$_};
-    push($all_results->{$_}, $res->{$_} || "NA");
+    push(@{ $all_results->{$_} }, $res->{$_} || "NA");
   }
   return $all_results;
 }
