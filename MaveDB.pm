@@ -49,11 +49,11 @@ limitations under the License.
    cols                     : Colon-separated columns to print from MaveDB
                               files; if set to 'all', all columns are
                               printed (default: 'urn:score:hgvs_nt:hgvs_pro')
-   single_aminoacid_changes : Return scores for single aminoacid changes only;
-                              if disabled, return all scores associated with a
+   single_aminoacid_changes : Return matches for single aminoacid changes only;
+                              if disabled, return all matches associated with a
                               genetic variant (default: 1)
-   transcript_match         : Filter results if (Ensembl or RefSeq) transcript
-                              identifiers match those from MaveDB (default: 0)
+   transcript_match         : Return results only if (Ensembl or RefSeq)
+                              transcript identifiers match (default: 1)
  
  Please cite the MaveDB publication alongside the VEP if you use this resource:
  https://doi.org/10.1186/s13059-019-1845-6
@@ -127,8 +127,8 @@ sub new {
   $self->expand_right(0);
   $self->get_user_params();
 
-  my $param_hash = $self->params_to_hash();
-  $self->{transcript_match} = $param_hash->{transcript_match} || 0;
+  my $tr_match = $param_hash->{transcript_match};
+  $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
 
   my $aa_changes = $param_hash->{single_aminoacid_changes};
   $self->{single_aa_changes} = defined $aa_changes ? $aa_changes : 1;
