@@ -67,7 +67,7 @@ package MaveDB;
 use strict;
 use warnings;
 
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::SeqUtils;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
@@ -166,19 +166,25 @@ sub get_header_info {
 sub _aminoacid_changes_match {
   my ($self, $tva, $protein_var) = @_;
 
-  my $aa_ref = substr($protein_var, 0, 1);
-  my $aa_alt = substr($protein_var, -1);
-  my $aa_pos = substr($protein_var, 1, -1);
+  my ($aa_ref, $aa_pos, $aa_alt) = $protein_var =~ /([A-Za-z]+)([0-9]+)([A-Za-z=*]+)/;
   return 0 unless defined $aa_ref && defined $aa_alt && defined $aa_pos;
+
+  $aa_alt = $aa_ref if $aa_alt eq "="; # silent mutation
+  $aa_alt = "Ter"   if $aa_alt eq "*"; # nonsense mutation
 
   my $vf_aa_ref = $tva->base_variation_feature_overlap->get_reference_TranscriptVariationAllele->peptide;
   my $vf_aa_alt = $tva->peptide;
   my $vf_aa_pos = $tva->base_variation_feature_overlap->translation_start;
   return 0 unless defined $vf_aa_ref && defined $vf_aa_alt && defined $vf_aa_pos;
 
-  return $vf_aa_pos eq $aa_pos &&
-         $vf_aa_ref eq $aa_ref &&
-         $vf_aa_alt eq $aa_alt;
+  my $vf_aa3_ref = Bio::SeqUtils->seq3(
+    Bio::PrimarySeq->new('-seq'=> $vf_aa_ref, '-alphabet'=>'protein'));
+  my $vf_aa3_alt = Bio::SeqUtils->seq3(
+    Bio::PrimarySeq->new('-seq'=> $vf_aa_alt, '-alphabet'=>'protein'));
+
+  return ($vf_aa_pos eq $aa_pos) &&
+         ($vf_aa_ref eq $aa_ref || $vf_aa3_ref eq $aa_ref) &&
+         ($vf_aa_alt eq $aa_alt || $vf_aa3_alt eq $aa_alt);
 }
 
 sub _transcripts_match {
@@ -204,6 +210,11 @@ sub _join_results {
   return $all_results;
 }
 
+sub _is_single_aa_change {
+  my $hgvsp = shift;
+  return $hgvsp !~ /\;/;
+}
+
 sub run {
   my ($self, $tva) = @_;
   
@@ -217,13 +228,14 @@ sub run {
   my $all_results = {};
   foreach (@data) {
     # Check if scores are associated with single aminoacid changes
+    my $hgvsp = $_->{result}->{MaveDB_hgvs_pro};
     if ($self->{single_aa_changes}) {
-      my $hgvsp = $_->{result}->{MaveDB_hgvs_pro};
-      next if defined $hgvsp && $hgvsp =~ /\;/;
+      next if defined $hgvsp && _is_single_aa_change($hgvsp);
     }
 
-    # Check if aminoacid changes match
+    # Check if aminoacid changes match (if single aminoacid changes only)
     my $protein_var = $_->{result}->{MaveDB_protein_variant};
+    $protein_var ||= $hgvsp if _is_single_aa_change($hgvsp);
     if ($protein_var) {
       next unless $self->_aminoacid_changes_match($tva, $protein_var);
     }
