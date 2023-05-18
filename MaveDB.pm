@@ -27,7 +27,7 @@ limitations under the License.
 
 =head1 SYNOPSIS
 
- mv CAPICE.pm ~/.vep/Plugins
+ mv MaveDB.pm ~/.vep/Plugins
  
  # print only scores for single aminoacid changes from MaveDB data (default)
  ./vep -i variations.vcf --plugin MaveDB,file=/full/path/to/data.csv.gz
