@@ -29,9 +29,12 @@ limitations under the License.
 
  mv CAPICE.pm ~/.vep/Plugins
  
- # print only scores from MaveDB data (default)
+ # print only scores for single aminoacid changes from MaveDB data (default)
  ./vep -i variations.vcf --plugin MaveDB,file=/full/path/to/data.csv.gz
- 
+
+ # print all scores associated with the genetic variant
+ ./vep -i variations.vcf --plugin MaveDB,file=/full/path/to/data.csv.gz,single_aminoacid_changes=0
+
  # print all columns from MaveDB data
  ./vep -i variations.vcf --plugin MaveDB,file=/full/path/to/data.csv.gz,cols=all
 
@@ -42,12 +45,15 @@ limitations under the License.
  massively parallel report assays.
  
  Options are passed to the plugin as key=value pairs:
-   file             : (mandatory) Tabix-indexed MaveDB file
-   cols             : (optional) Colon-separated columns to print from MaveDB
-                      files; if set to 'all', all columns are printed
-                      (default: 'urn:score:hgvs_nt:hgvs_pro')
-   transcript_match : Only print data if (Ensembl or RefSeq) transcript
-                      identifiers match to those from MaveDB (default: 0)
+   file                     : (mandatory) Tabix-indexed MaveDB file
+   cols                     : Colon-separated columns to print from MaveDB
+                              files; if set to 'all', all columns are
+                              printed (default: 'urn:score:hgvs_nt:hgvs_pro')
+   single_aminoacid_changes : Return scores for single aminoacid changes only;
+                              if disabled, return all scores associated with a
+                              genetic variant (default: 1)
+   transcript_match         : Filter results if (Ensembl or RefSeq) transcript
+                              identifiers match those from MaveDB (default: 0)
  
  Please cite the MaveDB publication alongside the VEP if you use this resource:
  https://doi.org/10.1186/s13059-019-1845-6
@@ -123,6 +129,9 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
   $self->{transcript_match} = $param_hash->{transcript_match} || 0;
+
+  my $aa_changes = $param_hash->{single_aminoacid_changes};
+  $self->{single_aa_changes} = defined $aa_changes ? $aa_changes : 1;
 
   # Check file
   my $file = $param_hash->{file};
@@ -206,6 +215,12 @@ sub run {
 
   my $all_results = {};
   foreach (@data) {
+    # Check if scores are associated with single aminoacid changes
+    if ($self->{single_aa_changes}) {
+      my $hgvsp = $_->{result}->{MaveDB_hgvs_pro};
+      next if defined $hgvsp && $hgvsp =~ /\;/;
+    }
+
     # Check if aminoacid changes match
     my $protein_var = $_->{result}->{MaveDB_protein_variant};
     if ($protein_var) {
