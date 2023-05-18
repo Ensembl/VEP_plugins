@@ -127,6 +127,7 @@ sub new {
   $self->expand_right(0);
   $self->get_user_params();
 
+  my $param_hash = $self->params_to_hash();
   my $tr_match = $param_hash->{transcript_match};
   $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
 
