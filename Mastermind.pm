@@ -93,7 +93,7 @@ limitations under the License.
 ./vep -i variations.vcf --plugin Mastermind,file=/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=1 
 
  or with an option to only return 'MMID3' e.g. the Mastermind variant identifier as gene:key (second flag):
- ./vep -i variations.vcf --plugin Mastermind,/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=0,var_iden=1
+ ./vep -i variations.vcf --plugin Mastermind,file=/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=0,var_iden=1
 
  or with an option to also return the Mastermind URL (third flag):
 ./vep -i variations.vcf --plugin Mastermind,file=/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=0,var_iden=0,url=1
