@@ -3,7 +3,7 @@
  
 =head1 SYNOPSIS
  mv PON_P2.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
+ ./vep -i variations.vcf --plugin PON_P2,pyscript=/path/to/python/script/ponp2.py,hg=hg37
  
 =head1 CONTACT
 Abhishek Niroula <abhishek.niroula@med.lu.se>

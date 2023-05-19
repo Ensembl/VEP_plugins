@@ -28,8 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv REVEL.pm ~/.vep/Plugins
- ./vep -i variations.vcf --assembly GRCh37 --plugin REVEL,/path/to/revel/data.tsv.gz
- ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh37 --plugin REVEL,file=/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz
 
 =head1 DESCRIPTION
 

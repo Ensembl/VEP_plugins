@@ -28,10 +28,10 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv Mastermind.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz
- ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,1
- ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,0,1
- ./vep -i variations.vcf --plugin Mastermind,/path/to/data.vcf.gz,0,0,1
+ ./vep -i variations.vcf --plugin Mastermind,file=/path/to/data.vcf.gz
+ ./vep -i variations.vcf --plugin Mastermind,file=/path/to/data.vcf.gz,mutations=1
+ ./vep -i variations.vcf --plugin Mastermind,file=/path/to/data.vcf.gz,mutations=0,var_iden=1
+ ./vep -i variations.vcf --plugin Mastermind,file=/path/to/data.vcf.gz,mutations=0,var_iden=0,url=1
 
 =head1 DESCRIPTION
 
