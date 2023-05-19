@@ -20,7 +20,6 @@ limitations under the License.
 =head1 SYNOPSIS
  
  mv ClinPred.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin ClinPred,/path/to/ClinPred/data.txt.gz
  ./vep -i variations.vcf --plugin ClinPred,file=ClinPred_tabbed.tsv.gz
 
 
@@ -66,6 +65,7 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
+  $self->get_user_params();
   
   my $params = $self->params_to_hash();
   my $file;

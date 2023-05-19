@@ -28,7 +28,6 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv CADD.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
  ./vep -i variations.vcf --plugin CADD,snv=/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,indels=/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
 
 =head1 DESCRIPTION
@@ -99,6 +98,7 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
+  $self->get_user_params();
 
   my $params = $self->params_to_hash();
   my @files;

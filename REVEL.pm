@@ -69,7 +69,6 @@ limitations under the License.
  ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
 
  or with the option to not match by transcript id:
- ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz,1
  ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz,no_match=1
 
  Requirements:
@@ -97,6 +96,7 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
+  $self->get_user_params();
 
   #$self->get_user_params();
   my $params = $self->params_to_hash();
