@@ -157,6 +157,12 @@ sub get_header_info {
   my @vals = map { "column from " . $self->{_files}[0] } @keys;
   @header{ @keys } = @vals;
 
+  # Custom headers
+  $header{"MaveDB_score"}    = "MaveDB score; " . $header{"MaveDB_urn"};
+  $header{"MaveDB_hgvs_nt"}  = "MaveDB HGVS (nucleotide); " . $header{"MaveDB_urn"};
+  $header{"MaveDB_hgvs_pro"} = "MaveDB HGVS (protein); " . $header{"MaveDB_urn"};
+  $header{"MaveDB_urn"}      = "MaveDB database identifier; " . $header{"MaveDB_urn"};
+
   # Filter by user-selected columns
   %header = map { $_ => $header{$_} } @{ $self->{cols} };
 
