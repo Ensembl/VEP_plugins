@@ -66,7 +66,7 @@ limitations under the License.
  tabix -f -s 1 -b 3 -e 3 new_tabbed_revel_grch38.tsv.gz
 
  The plugin can then be run as default:
- ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz
 
  or with the option to not match by transcript id:
  ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz,no_match=1
