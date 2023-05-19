@@ -3,7 +3,7 @@
  
 =head1 SYNOPSIS
  mv PON_P2.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
+ ./vep -i variations.vcf --plugin PON_P2,pyscript=/path/to/python/script/ponp2.py,hg=hg37
  
 =head1 CONTACT
 Abhishek Niroula <abhishek.niroula@med.lu.se>
@@ -19,32 +19,32 @@ Mauno Vihinen <mauno.vihinen@med.lu.se>
  
  1) To compute the predictions from the PON-P2 API please use the following options:
 
-  Option 1:       python script 'ponp2.py'*
-  Option 2:       the reference genome. Acceptable values are: hg37, hg38
+   Option 1:       python script 'ponp2.py'*
+   Option 2:       the reference genome. Acceptable values are: hg37, hg38
  
-   --plugin PON_P2,/path/to/python/script/ponp2.py,hg37
+    --plugin PON_P2,pyscript=/path/to/python/script/ponp2.py,hg=hg37
    
-   * To run this mode, you will require a python script and its dependencies (Python,
-     python suds). The python file can be downloaded from http://structure.bmc.lu.se/PON-P2/vep.html/
-     and the complete path to this file must be supplied while using this plugin.
+    * To run this mode, you will require a python script and its dependencies (Python,
+    python suds). The python file can be downloaded from http://structure.bmc.lu.se/PON-P2/vep.html/
+    and the complete path to this file must be supplied while using this plugin.
  
  2) To fetch the predictions from a file containing pre-calculated predictions for somatic variations 
  please use the following option (only available for GRCh37):
  
-  file:           COSMIC text file with pre-calculated predictions downloaded from
+   file:           COSMIC text file with pre-calculated predictions downloaded from
                   http://structure.bmc.lu.se/PON-P2/cancer30.html/
    
-   The following steps are necessary before using the file:
-   (head -n 1 COSMIC.txt && tail -n +2 COSMIC.txt | sort -t $'\t' -k1,1 -k2,2n) > cosmic_sorted.txt
-   sed -i 's/Chromosome/#Chromosome/' cosmic_sorted.txt
-   bgzip cosmic_sorted.txt
-   tabix -s 1 -b 2 -e 2 cosmic_sorted.txt.gz
+     The following steps are necessary before using the file:
+      (head -n 1 COSMIC.txt && tail -n +2 COSMIC.txt | sort -t $'\t' -k1,1 -k2,2n) > cosmic_sorted.txt
+      sed -i 's/Chromosome/#Chromosome/' cosmic_sorted.txt
+      bgzip cosmic_sorted.txt
+      tabix -s 1 -b 2 -e 2 cosmic_sorted.txt.gz
    
-   --plugin PON_P2,file=path/to/cosmic_sorted.txt.gz
+     --plugin PON_P2,file=path/to/cosmic_sorted.txt.gz
    
-   If you use this data, please cite the following publication
-   Niroula, A., Vihinen, M. Harmful somatic amino acid substitutions affect key pathways in cancers.
-   BMC Med Genomics 8, 53 (2015). https://doi.org/10.1186/s12920-015-0125-x
+ If you use this data, please cite the following publication
+ Niroula, A., Vihinen, M. Harmful somatic amino acid substitutions affect key pathways in cancers.
+ BMC Med Genomics 8, 53 (2015). https://doi.org/10.1186/s12920-015-0125-x
  
 
 =cut
@@ -76,28 +76,38 @@ sub new {
   my $self = $class->SUPER::new(@_);
 
   # get parameters
-  my $command = $self->params->[0];
-  my $Hg = $self->params->[1];
-
+  #my $command = $self->params->[0];
+  #my $Hg = $self->params->[1];
+  my $params = $self->params_to_hash();
+  my $pyscript;
+  my $hg;
   my $from_file;
-  # Check if first option is the file
-  if($command && $command =~ /file=/) {
-    my $param_hash = $self->params_to_hash();
-    $from_file = $param_hash->{file};
-    die "\nERROR: No PON_P2 file specified\nTry using 'file=path/to/file.txt.gz'\n" unless -e $from_file;
-    $self->add_file($from_file);
-    $self->{from_file} = $from_file;
+
+  if (!%{$params}) {
+    $pyscript = $self->params->[0];
+    $hg = $self->params->[1];
+  } else {
+    if (exists $params->{"file"}) {
+      $from_file = $params->{file};
+      die "\nERROR: No PON_P2 file specified\nTry using 'file=path/to/file.txt.gz'\n" unless -e $from_file;
+      $self->add_file($from_file);
+      $self->{from_file} = $from_file;
+    } else {
+      $pyscript = $params->{pyscript} if (defined ($params->{pyscript})); 
+      $hg = $params->{hg} if (defined($params->{hg}))
+    }
   }
-  
+
   if(!$from_file) {
-    die 'ERROR: Path to python script not specified! Specify path to python script e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($command);
-    die 'ERROR: Reference genome not specified! Specify the reference genome after the path to python file e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($command);
-    die "ERROR: Wrong reference genome specified! It should be either 'hg37' or 'hg38'\n" unless ($Hg ~~ ["hg37","hg38"]);
-    die 'ERROR: Incorrect path to ponp2.py\n' unless -e $command;
-    $self->{command} = $command;
-    $self->{Hg} = $Hg;
+    die 'ERROR: Path to python script not specified! Specify path to python script e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($pyscript);
+    die 'ERROR: Reference genome not specified! Specify the reference genome after the path to python file e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($hg);
+    die "ERROR: Wrong reference genome specified! It should be either 'hg37' or 'hg38'\n" unless ($hg ~~ ["hg37","hg38"]);
+    die 'ERROR: Incorrect path to ponp2.py\n' unless -e $pyscript;
   }
-  
+
+  $self->{command} = $pyscript;
+  $self->{Hg} = $hg;
+
   return $self;
 }
 
