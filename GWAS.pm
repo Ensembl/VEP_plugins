@@ -33,9 +33,9 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves GWAS catalog data given the file. 
+ A VEP plugin that retrieves relevant NHGRI-EBI GWAS Catalog data given the file. 
  
- This plugin supports both the curated data that is found in the download section of the GWAS catalog website and the 
+ This plugin supports both the curated data that is found in the download section of the NHGRI-EBI GWAS Catalog website and the 
  summary statistics file. By default the plugin assumes the file provided is the curated file but you can pass "type=sstate" 
  to say you want to annotate with a summary statistics file.
 
@@ -44,7 +44,7 @@ limitations under the License.
 
  Pre-requisites:
 
- For curated GWAS catalog file -
+ For curated NHGRI-EBI GWAS Catalog file -
  GWAS files can be downloaded from - https://www.ebi.ac.uk/gwas/api/search/downloads/alternative
  
  For summary statistics file -
@@ -89,7 +89,7 @@ sub new {
   
   my $param_hash = $self->params_to_hash();
 
-  die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $param_hash->{file};
+  die "ERROR: please supply a file of NHGRI-EBI GWAS Catalog data using the 'file' parameter to use the GWAS plugin\n" unless defined $param_hash->{file};
   $self->{file} = $param_hash->{file};
   
   $self->{type} = $param_hash->{type} || "curated";
@@ -166,7 +166,7 @@ sub get_header_info {
   my $self = shift;
 
   my %header;
-  $header{"GWAS_associated_gene"} = "Gene(s) reported by author in GWAS catalog";
+  $header{"GWAS_associated_gene"} = "Gene(s) reported by author in the NHGRI-EBI GWAS Catalog";
   $header{"GWAS_risk_allele"} = "Allele associated with the variant that is strongly associated with the trait";
   $header{"GWAS_p_value"} = "P-value reported for the variant";
   $header{"GWAS_study"} = "GWAS study id";
@@ -276,7 +276,7 @@ sub parse_curated_file {
       $gene =~ s/\s+//g;
       $gene =~ s/–/-/g;
       $gene =~ s/[^\x00-\x7F]//g; # Remove non ASCII characters
-      $gene = '' if $gene eq '-' or $gene eq 'NR'; #Skip uninformative entries, missing data in original curation see GWAS catalog curation
+      $gene = '' if $gene eq '-' or $gene eq 'NR'; #Skip uninformative entries, missing data in original curation see the NHGRI-EBI GWAS Catalog curation
 
       my %data = (
         'GWAS_associated_gene' => $gene,
