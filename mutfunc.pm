@@ -132,31 +132,40 @@ sub get_header_info {
   my %header;
 
   if (defined $self->{motif}){
-    $header{mutfunc_motif} = "Nonsynonymous mutations impact on linear motif from mutfunc db. Output field(s) include: ";
+    $header{mutfunc_motif} = "Impact on linear motif. ";
+    
     if (defined $self->{extended}){
+      $header{mutfunc_motif} .= "Output field(s) include: "; 
       $header{mutfunc_motif} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
+      $header{mutfunc_motif} .= "elm - ELM accession of the linear motif, ";
+      $header{mutfunc_motif} .= "lost - '1' if the mutation causes the motif to be lost and '0' otherwise";
     }
-    $header{mutfunc_motif} .= "elm - ELM accession of the linear motif, " if defined $self->{extended};
-    $header{mutfunc_motif} .= "lost - '1' if the mutation causes the motif to be lost and '0' otherwise";
+    else {
+      $header{mutfunc_motif} .= "(1 = lost)";  
+    }
   }
 
   foreach (qw(int mod exp)){
     if (defined $self->{$_}) {
       my $key = "mutfunc_" . $_;
-      $header{$key} = "Protein interaction interface destabilization analysis from mutfunc db. Output field(s) include: " if $_ eq "int";
-      $header{$key} = "Protein structure destabilization analysis from mutfunc db. Output field(s) include: " if $_ eq "mod";
-      $header{$key} = "Protein structure destabilization analysis (experimental) from mutfunc db. Output field(s) include: " if $_ eq "exp";
+      $header{$key} = "Impact on protein interaction interface. " if $_ eq "int";
+      $header{$key} = "Impact on protein structure. " if $_ eq "mod";
+      $header{$key} = "Impact on protein structure (experimental). " if $_ eq "exp";
 
       if (defined $self->{extended}){
+        $header{$key} .= "Output field(s) include: "; 
         $header{$key} .= $self->{config}->{output_format} eq "vcf" ? "(fields are separated by '&') " : "(fields are separated by ',') ";
+        $header{$key} .= "evidence - 'EXP' for experimental model and 'MDL' for homology models and 'MDD' for domain-domain homology models, " if $_ eq "int";
+        $header{$key} .= "dG_wt - reference interface energy (kcal/mol), ";
+        $header{$key} .= "dG_mt - mutated interface energy (kcal/mol), ";
+        $header{$key} .= "ddG - change in interface stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ";
+        $header{$key} .= "dG_wt_sd - dG_wt standard deviation (kcal/mol), ";
+        $header{$key} .= "dG_mt_sd - dG_mt standard deviation (kcal/mol), ";
+        $header{$key} .= "ddG_sd - ddG standard deviation (kcal/mol), ";
       }
-      $header{$key} .= "evidence - 'EXP' for experimental model and 'MDL' for homology models and 'MDD' for domain-domain homology models, " if ($_ eq "int" && (defined $self->{extended}));
-      $header{$key} .= "dG_wt - reference interface energy (kcal/mol), " if defined $self->{extended};
-      $header{$key} .= "dG_mt - mutated interface energy (kcal/mol), " if defined $self->{extended};
-      $header{$key} .= "ddG - change in interface stability between mutated and reference structure (kcal/mol) mutations where ddG >= 2 kcal/mol can be considered deleterious, ";
-      $header{$key} .= "dG_wt_sd - dG_wt standard deviation (kcal/mol), " if defined $self->{extended};
-      $header{$key} .= "dG_mt_sd - dG_mt standard deviation (kcal/mol), " if defined $self->{extended};
-      $header{$key} .= "ddG_sd - ddG standard deviation (kcal/mol), " if defined $self->{extended};
+      else{
+        $header{$key} .= "(ddG >= 2 deleterious)"
+      }
     }
   }
 
