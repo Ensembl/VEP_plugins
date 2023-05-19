@@ -20,7 +20,8 @@ limitations under the License.
 =head1 SYNOPSIS
  
  mv ClinPred.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin ClinPred,/path/to/ClinPred/data.txt.gz
+ ./vep -i variations.vcf --plugin ClinPred,file=ClinPred_tabbed.tsv.gz
+
 
 =head1 DESCRIPTION
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated scores from ClinPred.
@@ -45,6 +46,7 @@ limitations under the License.
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
 
+
 =cut
 
 package ClinPred;
@@ -63,8 +65,17 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
+  $self->get_user_params();
   
-  my $file = $self->params->[0];
+  my $params = $self->params_to_hash();
+  my $file;
+  if (!keys %$params) {
+    $file = $self->params->[0];
+    $params->{file} = $file;
+  } else {
+    $file = $params->{file};
+  } 
+
   $self->add_file($file);
   
   my $assembly = $self->{config}->{assembly};

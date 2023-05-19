@@ -28,8 +28,8 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv REVEL.pm ~/.vep/Plugins
- ./vep -i variations.vcf --assembly GRCh37 --plugin REVEL,/path/to/revel/data.tsv.gz
- ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh37 --plugin REVEL,file=/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz
 
 =head1 DESCRIPTION
 
@@ -66,10 +66,10 @@ limitations under the License.
  tabix -f -s 1 -b 3 -e 3 new_tabbed_revel_grch38.tsv.gz
 
  The plugin can then be run as default:
- ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz
 
  or with the option to not match by transcript id:
- ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,/path/to/revel/data.tsv.gz,1
+ ./vep -i variations.vcf --assembly GRCh38 --plugin REVEL,file=/path/to/revel/data.tsv.gz,no_match=1
 
  Requirements:
   The tabix utility must be installed in your path to use this plugin.
@@ -96,11 +96,22 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
-
   $self->get_user_params();
 
+  #$self->get_user_params();
+  my $params = $self->params_to_hash();
+  my @key_params;
+  my $file;
+  if (!%{$params}) {
+    $file = $self->params->[0];
+    $self->{no_match} = $self->params->[1] if ( defined ($self->params->[1] ) ); 
+  } else {
+    $file = $params->{file};
+    $self->{no_match} = $params->{no_match} if (defined ($params->{no_match}));
+  }
+  
  # get column count in REVEL file from header line
-  my $file = $self->params->[0];
+
   $self->add_file($file);
   open HEAD, "tabix -fh $file 1:1-1 2>&1 | ";
   while(<HEAD>) {
@@ -128,10 +139,6 @@ sub new {
       die "ERROR: Assembly is " . $assembly .
           " but REVEL file does not contain " .
           $assembly_to_hdr{$assembly} . " in header.\n";
-  }
-
-  if(defined($self->params->[1])) {
-    $self->{no_match} = $self->params->[1];
   }
 
   return $self;
