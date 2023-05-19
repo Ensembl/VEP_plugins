@@ -230,12 +230,12 @@ sub run {
     # Check if scores are associated with single aminoacid changes
     my $hgvsp = $_->{result}->{MaveDB_hgvs_pro};
     if ($self->{single_aa_changes}) {
-      next if defined $hgvsp && _is_single_aa_change($hgvsp);
+      next if defined $hgvsp && !_is_single_aa_change($hgvsp);
     }
 
     # Check if aminoacid changes match (if single aminoacid changes only)
     my $protein_var = $_->{result}->{MaveDB_protein_variant};
-    $protein_var ||= $hgvsp if _is_single_aa_change($hgvsp);
+    $protein_var ||= $hgvsp if defined $hgvsp && _is_single_aa_change($hgvsp);
     if ($protein_var) {
       next unless $self->_aminoacid_changes_match($tva, $protein_var);
     }
