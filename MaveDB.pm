@@ -48,7 +48,7 @@ limitations under the License.
    file                     : (mandatory) Tabix-indexed MaveDB file
    cols                     : Colon-separated columns to print from MaveDB
                               files; if set to 'all', all columns are
-                              printed (default: 'urn:score:hgvs_nt:hgvs_pro')
+                              printed (default: 'urn:score:nt:pro')
    single_aminoacid_changes : Return matches for single aminoacid changes only;
                               if disabled, return all matches associated with a
                               genetic variant (default: 1)
@@ -97,11 +97,10 @@ sub _get_colnames {
 
 sub _parse_colnames {
   my $self = shift;
-  my $param_hash = $self->params_to_hash();
+  my $cols = shift;
 
   # Parse file columns
   $self->{colnames} = $self->_get_colnames();
-  my $cols = $param_hash->{cols} || "MaveDB_urn:MaveDB_score:MaveDB_hgvs_nt:MaveDB_hgvs_pro";
   
   if ($cols eq "all") {
     $self->{cols} = $self->{colnames};
@@ -140,7 +139,9 @@ sub new {
      unless defined($file);
   $self->add_file($file);
 
-  $self->_parse_colnames();
+  # Parse column names
+  my $cols = $param_hash->{cols} || "urn:score:nt:pro";
+  $self->_parse_colnames($cols);
 
   return $self;
 }
@@ -159,9 +160,9 @@ sub get_header_info {
 
   # Custom headers
   $header{"MaveDB_score"}    = "MaveDB score - see MaveDB for interpretation of scores; " . $header{"MaveDB_urn"};
-  $header{"MaveDB_hgvs_nt"}  = "MaveDB HGVS (nucleotide); " . $header{"MaveDB_urn"};
-  $header{"MaveDB_hgvs_pro"} = "MaveDB HGVS (protein); " . $header{"MaveDB_urn"};
-  $header{"MaveDB_urn"}      = "MaveDB database identifier; " . $header{"MaveDB_urn"};
+  $header{"MaveDB_nt"}  = "MaveDB HGVS (nucleotide); " . $header{"MaveDB_urn"};
+  $header{"MaveDB_pro"} = "MaveDB HGVS (protein); " . $header{"MaveDB_urn"};
+  $header{"MaveDB_urn"} = "MaveDB database identifier; " . $header{"MaveDB_urn"};
 
   # Filter by user-selected columns
   %header = map { $_ => $header{$_} } @{ $self->{cols} };
@@ -234,7 +235,7 @@ sub run {
   my $all_results = {};
   foreach (@data) {
     # Check if scores are associated with single aminoacid changes
-    my $hgvsp = $_->{result}->{MaveDB_hgvs_pro};
+    my $hgvsp = $_->{result}->{MaveDB_pro};
     if ($self->{single_aa_changes}) {
       next if defined $hgvsp && !_is_single_aa_change($hgvsp);
     }
