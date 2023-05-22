@@ -206,13 +206,25 @@ sub _transcripts_match {
 }
 
 sub _join_results {
+  my $self = shift;
   my $all_results = shift;
   my $res = shift;
 
-  # Create array of results per key
-  for (keys %$res) {
-    $all_results->{$_} = [] if !$all_results->{$_};
-    push(@{ $all_results->{$_} }, $res->{$_} || "NA");
+  # Filter user-selected columns
+  my %tmp = %$res;
+  %tmp = map { $_ => $res->{$_} } @{ $self->{cols} };
+  $res = \%tmp;
+
+  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+    # Group results for JSON and REST
+    $all_results->{"MaveDB"} = [] unless defined $all_results->{"MaveDB"};
+    push(@{ $all_results->{"MaveDB"} }, $res);
+  } else {
+    # Create array of results per key
+    for (keys %$res) {
+      $all_results->{$_} = [] if !$all_results->{$_};
+      push(@{ $all_results->{$_} }, $res->{$_} || "NA");
+    }
   }
   return $all_results;
 }
@@ -266,12 +278,7 @@ sub run {
        pos  => $_->{start},
       }
     );
-
-    # Filter user-selected columns
-    my %res = %{ $_->{result} };
-    %res = map { $_ => $res{$_} } @{ $self->{cols} };
-
-    $all_results = _join_results($all_results, \%res) if (@$matches);
+    $all_results = $self->_join_results($all_results, $_->{result}) if @$matches;
   }
   return $all_results;
 }
