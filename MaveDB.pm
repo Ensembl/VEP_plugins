@@ -40,9 +40,9 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves data from MaveDB, a database that contains
- multiplex assays of variant effect, including deep mutational scans and
- massively parallel report assays.
+ A VEP plugin that retrieves data from MaveDB (https://www.mavedb.org), a
+ database that contains multiplex assays of variant effect, including deep
+ mutational scans and massively parallel report assays.
 
  To run the MaveDB plugin, please download the following file with MaveDB data
  mapped to variants:
