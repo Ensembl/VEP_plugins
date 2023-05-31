@@ -70,21 +70,23 @@ my %SV_TERMS = (
 my %INCLUDE_COLUMNS = (
     "PHRED" => {
       "name" => "CADD_PHRED",
-      "description" => 'PHRED-like scaled CADD score'
+      "description" => 'PHRED-like scaled CADD score.'
     },
     "RawScore" => {
       "name" => "CADD_RAW",
-      "description" => 'Raw CADD score'
+      "description" => 'Raw CADD score.'
     },
     "CADD-SV_PHRED-score" => {
       "name" => "CADD_PHRED",
-      "description" => 'PHRED-like scaled CADD score'
+      "description" => 'PHRED-like scaled CADD score.'
     },
     "CADD-SV_Raw-score" => {
       "name" => "CADD_RAW",
-      "description" => 'Raw CADD score'
+      "description" => 'Raw CADD score.'
     }
 );
+
+my $NON_COMMERCIAL_USE_CLAUSE = "CADD is only available here for non-commercial use. See CADD website for more information.";
 
   my $ALT_NUM = 0;
 
@@ -147,7 +149,7 @@ sub new {
     for (split /\t/, $self->{$file}){
       next unless (exists($INCLUDE_COLUMNS{$_}));
       $file_check = 1;
-      $self->{header}{$INCLUDE_COLUMNS{$_}{"name"}} = $INCLUDE_COLUMNS{$_}{"description"};
+      $self->{header}{$INCLUDE_COLUMNS{$_}{"name"}} = $INCLUDE_COLUMNS{$_}{"description"} . " " . $NON_COMMERCIAL_USE_CLAUSE;
     }
 
     die "\nERROR: $file does not have a known column to be included" unless $file_check;
