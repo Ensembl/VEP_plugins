@@ -43,7 +43,11 @@ limitations under the License.
  A VEP plugin that retrieves data from MaveDB, a database that contains
  multiplex assays of variant effect, including deep mutational scans and
  massively parallel report assays.
- 
+
+ To run the MaveDB plugin, please download the following file with MaveDB data
+ mapped to variants:
+ https://ftp.ensembl.org/pub/current_variation/MaveDB/MaveDB_variants.tsv.gz
+
  Options are passed to the plugin as key=value pairs:
    file                     : (mandatory) Tabix-indexed MaveDB file
    cols                     : Colon-separated columns to print from MaveDB
