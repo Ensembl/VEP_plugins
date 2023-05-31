@@ -67,6 +67,7 @@ package MaveDB;
 use strict;
 use warnings;
 
+use File::Basename;
 use Bio::SeqUtils;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
@@ -155,7 +156,7 @@ sub get_header_info {
   my %header;
   my @keys = @{ $self->{colnames} };
 
-  my @vals = map { "column from " . $self->{_files}[0] } @keys;
+  my @vals = map { "column from " . basename $self->{_files}[0] } @keys;
   @header{ @keys } = @vals;
 
   # Custom headers
