@@ -1704,7 +1704,7 @@ my $VEP_PLUGIN_CONFIG = {
       "label" => "IntAct",
       "available" => 0,
       "enabled" => 0,
-      "section" => "Functional effect",
+      "section" => "Protein annotation",
       "helptip" => "IntAct provides molecular interaction data for variants as reported by IntAct database",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/IntAct.pm",
       "requires_data" => 1,
@@ -1736,24 +1736,6 @@ my $VEP_PLUGIN_CONFIG = {
           ],
         },
       ]
-    },
-
-    # MaveDB
-    {
-      "key" => "MaveDB",
-      "label" => "MaveDB",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Functional effect",
-      "helptip" => "MaveDB holds experimentally determined measures of variant effect",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/110/MaveDB.pm",
-      "requires_data" => 1,
-      "params"  => [
-        "#file=/path/to/MaveDB_variants.tsv.gz"
-      ],
-      "species" => [
-        "homo_sapiens"
-      ],
     },
 
     # mutfunc
