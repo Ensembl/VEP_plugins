@@ -51,8 +51,8 @@ limitations under the License.
  The file must be processed according to the dbNSFP release version and the assembly you use.
  It is recommended to use the -T option with the sort command to specify a temporary directory with sufficient space.
 
- For release 4.3a:
- > version=4.3a
+ For release 4.4a:
+ > version=4.4a
  > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP${version}.zip
  > unzip dbNSFP${version}.zip
  > zcat dbNSFP${version}_variant.chr1.gz | head -n1 > h
