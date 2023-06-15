@@ -138,7 +138,9 @@ my %DEFAULTS = (
   af_monoallelic => 0.0001,
   af_biallelic => 0.005, 
 
-  af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS)],
+  af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS
+                 gnomADg gnomADg_AFR gnomADg_AMR gnomADg_ASJ gnomADg_EAS gnomADg_FIN gnomADg_NFE gnomADg_OTH gnomADg_SAS
+                 gnomADe gnomADe_AFR gnomADe_AMR gnomADe_ASJ gnomADe_EAS gnomADe_FIN gnomADe_NFE gnomADe_OTH gnomADe_SAS)],
 
   af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2)],
 
