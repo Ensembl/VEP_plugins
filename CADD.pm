@@ -29,6 +29,7 @@ limitations under the License.
 
  mv CADD.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin CADD,snv=/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,indels=/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
+ ./vep -i variations.vcf --plugin CADD,sv=/FULL_PATH_TO_CADD_FILE/1000G_phase3_SVs.tsv.gz
 
 =head1 DESCRIPTION
 
@@ -38,9 +39,13 @@ limitations under the License.
  Please cite the CADD publication alongside the VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/24487276
  
- The tabix utility must be installed in your path to use this plugin. The CADD
- data files (and respective Tabix index files) can be downloaded from
+ The tabix utility must be installed in your path to use this plugin. 
+ 
+ The CADD SNV and indels data files (and respective Tabix index files) can be downloaded from - 
  http://cadd.gs.washington.edu/download
+ 
+ The CADD SV data files (and respective Tabix index files)  can be downloaded from -
+ https://kircherlab.bihealth.org/download/CADD-SV/v1.1/
 
  The plugin works with all versions of available CADD files. The plugin only
  reports scores and does not consider any additional annotations from a CADD
