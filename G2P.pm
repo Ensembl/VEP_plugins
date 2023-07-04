@@ -930,7 +930,7 @@ sub _vep_cache_frequency_filtering {
   my $self = shift;
   my $tva = shift;
 
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $vf     = $tva->base_variation_feature;
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $existing = $vf->{existing}; # Get existing variants from cache file which are stored on VF level
@@ -1070,7 +1070,7 @@ sub _exceeds_frequency_threshold {
 sub _vcf_frequency_filtering {
   my $self = shift;
   my $tva = shift;
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $vf = $tva->base_variation_feature;
   # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
@@ -1149,7 +1149,7 @@ sub dump_vf_annotations {
   my $tva = shift;
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   my $vf = $tva->base_variation_feature;
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $start = $vf->{start};
   my $end = $vf->{end};
 
