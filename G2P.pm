@@ -543,7 +543,7 @@ sub set_variant_include_list_flag {
   return if (!$self->{user_params}->{variant_include_list});
   my $vf = $tva->variation_feature;
 
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
 
   foreach (@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
     my @vcf_alleles = split /\//, $_->allele_string;
@@ -551,7 +551,7 @@ sub set_variant_include_list_flag {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
-        alts   => [$allele],
+        alts   => $allele,
         pos    => $vf->{start},
         strand => $vf->strand
       },
