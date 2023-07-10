@@ -1832,8 +1832,6 @@ sub html_and_txt_data {
               }
               my $is_canonical = ($canonical_transcripts->{$transcript_stable_id}) ? 1 : 0;
               my ($location, $alleles) = split(' ', $vf_location);
-              my @alleles = split("/", $alleles);
-              my $values = $alleles[1];
               $location =~ s/\-/:/;
               $alleles =~ s/\//:/;
               $vf_name .= "*" if ($is_on_variant_include_list);
