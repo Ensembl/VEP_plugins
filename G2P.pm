@@ -1159,6 +1159,7 @@ sub dump_vf_annotations {
   my $allele_string = $vf->{allele_string};
   my @alleles = split('/', $allele_string);
   my $ref = $alleles[0];
+  my $alt = $alleles[1];
   my $seq_region_name = $vf->{chr};
 
   my $is_on_variant_include_list = $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_variant_include_list} || 0;
@@ -1182,7 +1183,7 @@ sub dump_vf_annotations {
     'refseq' => $refseq,
     'hgvs_t' => $hgvs_t,
     'hgvs_p' => $hgvs_p,
-    'vf_location' => "$seq_region_name:$start-$end $ref/$allele",
+    'vf_location' => "$seq_region_name:$start-$end $ref/$alt",
     'sift_score' => "$sift_score",
     'sift_prediction' => $sift_pred,
     'polyphen_score' => "$pph_score",
@@ -1831,6 +1832,8 @@ sub html_and_txt_data {
               }
               my $is_canonical = ($canonical_transcripts->{$transcript_stable_id}) ? 1 : 0;
               my ($location, $alleles) = split(' ', $vf_location);
+              my @alleles = split("/", $alleles);
+              my $values = $alleles[1];
               $location =~ s/\-/:/;
               $alleles =~ s/\//:/;
               $vf_name .= "*" if ($is_on_variant_include_list);
