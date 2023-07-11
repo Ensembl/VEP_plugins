@@ -168,6 +168,15 @@ sub get_header_info {
   return \%header;
 }
 
+sub _filter_selected_cols {
+  my $self = shift;
+  my $res = shift;
+
+  my %tmp = %$res;
+  %tmp = map { $_ => $res->{$_} } @{ $self->{cols} };
+  return \%tmp;
+}
+
 sub run {
   my ($self, $tva) = @_;
   
@@ -193,7 +202,7 @@ sub run {
        pos  => $_->{start},
       }
     );
-    return $_->{result} if @$matches;
+    return $self->_filter_selected_cols($_->{result}) if @$matches;
   }
   return {};
 }
