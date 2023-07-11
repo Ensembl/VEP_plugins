@@ -1439,7 +1439,7 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "params" => [
-        #file="/path/to/OpenTargets_data.tsv.gz"
+        #"file=/path/to/OpenTargets_data.tsv.gz"
       ]
     },
 
