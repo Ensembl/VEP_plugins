@@ -112,7 +112,7 @@ sub _parse_colnames {
     $self->{cols} = _prefix_cols(\@cols);
 
     # Check validity of all columns
-    my @invalid_cols = grep { !($_ ~~ $self->{colnames}) } $self->{cols};
+    my @invalid_cols = grep { !($_ ~~ $self->{colnames}) } @{ $self->{cols} };
     die "\n  ERROR: The following columns were not found in file header: ",
       join(", ", @invalid_cols), "\n" if @invalid_cols;
   }
