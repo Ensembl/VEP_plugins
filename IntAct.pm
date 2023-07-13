@@ -122,7 +122,8 @@ my $taxonomy_lookup = {
   "rattus_norvegicus" => 10116,
   "gallus_gallus_gca000002315v5" => 9031,
   "saccharomyces_cerevisiae" => 559292,
-  "arabidopsis_thaliana" => 3702
+  "arabidopsis_thaliana" => 3702,
+  "drosophila_melanogaster" => 7227
 };
 
 sub new {
