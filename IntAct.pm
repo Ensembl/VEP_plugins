@@ -47,7 +47,7 @@ limitations under the License.
  do this by following commands -
 
   a) filter, sort and then zip
-  grep -v -e '^$' -e '^[#\-]' mutation_gc_map.txt | sed '1s/.*/#&/' | sort -k1,1 -k2,2n -k3,3n | bgzip > mutation_gc_map.txt.gz
+  grep -v -e '^$' -e '^[#\-]' mutation_gc_map.txt | sed '1s/.*/#&/' | awk -F "\t" 'BEGIN { OFS="\t"} {if ($2 > $3) {a=$2; $2=$3; $3=a}; print $0 }' | sort -k1,1 -k2,2n -k3,3n | bgzip > mutation_gc_map.txt.gz
   
   b) create tabix indexed file -
   tabix -s 1 -b 2 -e 3 -f mutation_gc_map.txt.gz
