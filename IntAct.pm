@@ -370,11 +370,9 @@ sub run {
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
 
-  # get reference codon and HGVSp  
-  my $ref_codon = $tv->get_reference_TranscriptVariationAllele->codon if $tv;
+  # get HGVSp for the variant in question through variation API  
   my $hgvs = $tva->hgvs_protein;
-
-  return {} unless ($ref_codon and $hgvs);
+  return {} unless $hgvs;
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
@@ -382,8 +380,8 @@ sub run {
     my ($id_ref, $id_des) = split /:/, $_->{id};
     my (undef, $hgvs_des) = split /:/, $hgvs;
     
-    # match variation
-    next unless ($id_des eq $hgvs_des and $_->{ref} eq $ref_codon);
+    # match HGVSp description to make sure we get the correct variant from data file
+    next unless $id_des eq $hgvs_des;
 
     # get matched lines from IntAct data file on the hgvs like description 
     my $intact_matches = $self->_match_id($id_ref, $id_des);
