@@ -35,9 +35,10 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds the BayesDel scores to VEP output.
  BayesDel is a deleteriousness meta-score. It works for coding and non-coding variants,
- single nucleotide variants and small insertion / deletions.
+ single nucleotide variants and small insertion/deletions.
  The range of the score is from -1.29334 to 0.75731.
  The higher the score, the more likely the variant is pathogenic.
+ For more information please visit: https://fenglab.chpc.utah.edu/BayesDel/BayesDel.html
 
  Please cite the BayesDel publication alongside the Ensembl VEP if you use this resource:
  https://onlinelibrary.wiley.com/doi/full/10.1002/humu.23158
@@ -45,7 +46,7 @@ limitations under the License.
 
  BayesDel pre-computed scores can be downloaded from
  https://drive.google.com/drive/folders/1K4LI6ZSsUGBhHoChUtegC8bgCt7hbQlA
- Note: This only contains pre-computed BayesDel scores for missense variants.
+ Note: These files only contain pre-computed BayesDel scores for missense variants for assembly GRCh37.
 
 
  For GRCh37:
