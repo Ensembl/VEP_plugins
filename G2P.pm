@@ -122,6 +122,7 @@ use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
 use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+use List::Util qw(any);
 
 our $CAN_USE_HTS_PM;
 
@@ -1070,13 +1071,14 @@ sub _exceeds_frequency_threshold {
 sub _vcf_frequency_filtering {
   my $self = shift;
   my $tva = shift;
-  my $allele = $tva->base_variation_feature->alt_alleles;
+  my $allele = $tva->base_variation_feature->alt_alleles;  
   my $vf = $tva->base_variation_feature;
   # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $vf_cache_name =  $self->{vf_cache_name};
+  my $alt_alleles = $allele->[0];
   foreach my $vcf_collection (@{$self->{config}->{vcf_collections}}) {
-    my @alleles = grep {$_->allele eq $allele} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
+    my @alleles = grep {$_->allele eq $alt_alleles} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
     # As soon as we find a frequency which is higher than the frequency_threshold,
     # and variant is not on variant_include_list we can stop.
     my @frequencies = grep {$_->frequency > $frequency_threshold} @alleles;
