@@ -122,6 +122,7 @@ use Bio::EnsEMBL::Variation::Utils::VEP qw(parse_line);
 use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+use List::Util qw(any);
 
 our $CAN_USE_HTS_PM;
 
@@ -543,7 +544,7 @@ sub set_variant_include_list_flag {
   return if (!$self->{user_params}->{variant_include_list});
   my $vf = $tva->variation_feature;
 
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
 
   foreach (@{$self->get_data($vf->{chr}, $vf->{start} - 1, $vf->{end})}) {
     my @vcf_alleles = split /\//, $_->allele_string;
@@ -551,7 +552,7 @@ sub set_variant_include_list_flag {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
-        alts   => [$allele],
+        alts   => $allele,
         pos    => $vf->{start},
         strand => $vf->strand
       },
@@ -930,7 +931,7 @@ sub _vep_cache_frequency_filtering {
   my $self = shift;
   my $tva = shift;
 
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $vf     = $tva->base_variation_feature;
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $existing = $vf->{existing}; # Get existing variants from cache file which are stored on VF level
@@ -1070,13 +1071,14 @@ sub _exceeds_frequency_threshold {
 sub _vcf_frequency_filtering {
   my $self = shift;
   my $tva = shift;
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;  
   my $vf = $tva->base_variation_feature;
   # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $vf_cache_name =  $self->{vf_cache_name};
+  my $alt_alleles = $allele->[0];
   foreach my $vcf_collection (@{$self->{config}->{vcf_collections}}) {
-    my @alleles = grep {$_->allele eq $allele} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
+    my @alleles = grep {$_->allele eq $alt_alleles} @{$vcf_collection->get_all_Alleles_by_VariationFeature($vf)};
     # As soon as we find a frequency which is higher than the frequency_threshold,
     # and variant is not on variant_include_list we can stop.
     my @frequencies = grep {$_->frequency > $frequency_threshold} @alleles;
@@ -1149,7 +1151,7 @@ sub dump_vf_annotations {
   my $tva = shift;
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   my $vf = $tva->base_variation_feature;
-  my $allele = $tva->variation_feature_seq;
+  my $allele = $tva->base_variation_feature->alt_alleles;
   my $start = $vf->{start};
   my $end = $vf->{end};
 
@@ -1159,6 +1161,7 @@ sub dump_vf_annotations {
   my $allele_string = $vf->{allele_string};
   my @alleles = split('/', $allele_string);
   my $ref = $alleles[0];
+  my $alt = $alleles[1];
   my $seq_region_name = $vf->{chr};
 
   my $is_on_variant_include_list = $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_variant_include_list} || 0;
@@ -1182,7 +1185,7 @@ sub dump_vf_annotations {
     'refseq' => $refseq,
     'hgvs_t' => $hgvs_t,
     'hgvs_p' => $hgvs_p,
-    'vf_location' => "$seq_region_name:$start-$end $ref/$allele",
+    'vf_location' => "$seq_region_name:$start-$end $ref/$alt",
     'sift_score' => "$sift_score",
     'sift_prediction' => $sift_pred,
     'polyphen_score' => "$pph_score",
