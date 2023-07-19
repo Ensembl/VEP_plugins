@@ -108,7 +108,11 @@ sub _parse_colnames {
     $self->{cols} = \@cols;
 
     # Check validity of all columns
-    my @invalid_cols = grep { !($_ ~~ $self->{colnames}) } @{ $self->{cols} };
+    my @invalid_cols;
+    for my $col (@{ $self->{cols} }) {
+      push(@invalid_cols, $col) unless grep(/^$col$/, @{ $self->{colnames} });
+    }
+
     die "\n  ERROR: The following columns were not found in file header: ",
       join(", ", @invalid_cols), "\n" if @invalid_cols;
   }
@@ -127,11 +131,6 @@ sub new {
   $self->get_user_params();
 
   my $param_hash = $self->params_to_hash();
-  my $tr_match = $param_hash->{transcript_match};
-  $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
-
-  my $aa_changes = $param_hash->{single_aminoacid_changes};
-  $self->{single_aa_changes} = defined $aa_changes ? $aa_changes : 1;
 
   # Check file
   my $file = $param_hash->{file};
