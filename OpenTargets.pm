@@ -91,9 +91,7 @@ sub _get_colnames {
   # Parse column names from header
   my @cols = split /\t/, $last;
   @cols = splice @cols, 4; # first columns only identify the variant
-
-  # Prefix all column names
-  return _prefix_cols(\@cols);
+  return \@cols;
 }
 
 sub _parse_colnames {
@@ -107,15 +105,17 @@ sub _parse_colnames {
     $self->{cols} = $self->{colnames};
   } else {
     my @cols = split(/:/, $cols);
-
-    # Prefix all column names
-    $self->{cols} = _prefix_cols(\@cols);
+    $self->{cols} = \@cols;
 
     # Check validity of all columns
     my @invalid_cols = grep { !($_ ~~ $self->{colnames}) } @{ $self->{cols} };
     die "\n  ERROR: The following columns were not found in file header: ",
       join(", ", @invalid_cols), "\n" if @invalid_cols;
   }
+
+  # Prefix all column names
+  $self->{colnames} = _prefix_cols $self->{colnames};
+  $self->{cols}     = _prefix_cols $self->{cols};
 }
 
 sub new {
