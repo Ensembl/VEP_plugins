@@ -29,7 +29,7 @@ limitations under the License.
 
  mv OpenTargets.pm ~/.vep/Plugins
 
- # print Open Targets Genetics scores (default)
+ # print Open Targets Genetics scores and respective gene identifiers (default)
  ./vep -i variations.vcf --plugin OpenTargets,file=path/to/data.tsv.bz
  
  # print all information from Open Targets Genetics
@@ -47,7 +47,8 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed file from Open Targets Genetics
-   cols : (optional) Colon-separated list of columns to print (default: "l2g")
+   cols : (optional) Colon-separated list of columns to return from the plugin
+          file (default: "l2g:geneId"); use 'all' to print all data
 
  Please cite the Open Targets Genetics publication alongside the VEP if you use
  this resource: https://doi.org/10.1093/nar/gkaa84
@@ -68,9 +69,13 @@ use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+sub _plugin_name {
+  return 'OpenTargets';
+}
+
 sub _prefix_cols {
   my $cols = shift;
-  my $prefix = 'OpenTargets_';
+  my $prefix = _plugin_name() . '_';
   my @prefixed_cols = map { $_ =~ /^$prefix/ ? $_ : $prefix . $_ } @$cols;
   return \@prefixed_cols;
 }
@@ -139,7 +144,7 @@ sub new {
   $self->add_file($file);
 
   # Parse column names
-  my $cols = $param_hash->{cols} || "l2g";
+  my $cols = $param_hash->{cols} || "l2g:geneId";
   $self->_parse_colnames($cols);
 
   return $self;
@@ -159,7 +164,7 @@ sub get_header_info {
   @header{ @keys } = @vals;
 
   # Custom headers
-  $header{"OpenTargets_l2g"}  = "Locus-to-gene (L2G) scores to predict causal genes at GWAS loci; " . $description;
+  $header{_plugin_name() . '_l2g'}  = "Locus-to-gene (L2G) scores to predict causal genes at GWAS loci; " . $description;
 
   # Filter by user-selected columns
   %header = map { $_ => $header{$_} } @{ $self->{cols} };
@@ -168,12 +173,35 @@ sub get_header_info {
 }
 
 sub _filter_selected_cols {
-  my $self = shift;
   my $res = shift;
+  my $cols = shift;
 
   my %tmp = %$res;
-  %tmp = map { $_ => $res->{$_} } @{ $self->{cols} };
+  %tmp = map { $_ => $res->{$_} } @$cols;
   return \%tmp;
+}
+
+sub _join_results {
+  my $self = shift;
+  my $all_results = shift;
+  my $res = shift;
+
+  # Filter user-selected columns
+  $res = _filter_selected_cols($res, $self->{cols});
+
+  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+    # Group results for JSON and REST
+    my $name = _plugin_name();
+    $all_results->{$name} = [] unless defined $all_results->{$name};
+    push(@{ $all_results->{$name} }, $res);
+  } else {
+    # Create array of results per key
+    for (keys %$res) {
+      $all_results->{$_} = [] if !$all_results->{$_};
+      push(@{ $all_results->{$_} }, $res->{$_} || "NA");
+    }
+  }
+  return $all_results;
 }
 
 sub run {
@@ -183,11 +211,8 @@ sub run {
   my $allele = $tva->base_variation_feature->alt_alleles;
   my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
 
+  my $all_results = {};
   foreach (@data) {
-    # Check if genes match
-    next unless 
-      $tva->transcript->{_gene_stable_id} eq $_->{result}->{OpenTargets_geneId};
-
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
@@ -201,9 +226,9 @@ sub run {
        pos  => $_->{start},
       }
     );
-    return $self->_filter_selected_cols($_->{result}) if @$matches;
+    $all_results = $self->_join_results($all_results, $_->{result}) if @$matches;
   }
-  return {};
+  return $all_results;
 }
 
 sub parse_data {
