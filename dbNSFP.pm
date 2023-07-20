@@ -100,12 +100,12 @@ When running the plugin you must list at least one column to retrieve from the
 
 The plugin matches rows in the tabix-indexed dbNSFP file on:
 
- position
+ genomic position
  alt allele
  aaref - reference amino acid
  aaalt - alternative amino acid
 
-To match only on the first position and the alt allele use --pep_match=0
+To match only on the genomic position and the alt allele use pep_match=0
 
 --plugin dbNSFP,/path/to/dbNSFP.gz,pep_match=0,col1,col2
 
@@ -353,7 +353,7 @@ sub run {
     if ($self->{pep_match}) {
       $allele_string = join('/', $tmp_data->{aaref}, $tmp_data->{aaalt});
       $allele_string =~ s/X/*/g;
-      next if ($tva->pep_allele_string() ne $allele_string);
+      next if (!$tva->pep_allele_string() || $tva->pep_allele_string() ne $allele_string);
     }
 
     # make a clean copy as we're going to edit it
