@@ -128,10 +128,8 @@ sub new {
     $dir  ||= "";
     $file ||= $self->_prepare_filename($reg);
 
-    $file = $dir . $file;
-    die Data::Dumper::Dumper $file;
-
     # Create GFF file with GO terms from database if file does not exist
+    $file = $dir . $file;
     $self->_generate_gff( $file ) unless (-e $file || -e $file.'.lock');
 
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
