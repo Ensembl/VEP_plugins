@@ -122,7 +122,7 @@ sub new {
 
       if (defined $dir) {
         $dir =~ s/\/?$/\//; # ensure path ends with slash
-        die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
+        die "ERROR: directory $dir not found\n" unless -e -d $dir;
       }
     }
     $dir  ||= "";
@@ -353,7 +353,8 @@ sub _write_GO_terms_to_file {
   
   # Open lock
   my $lock = "$file\.lock";
-  open LOCK, ">$lock" or die "ERROR: cannot write to lock file $lock\n";
+  open LOCK, ">$lock" or
+    die "ERROR: $file not found and cannot write to lock file $lock\n";
   print LOCK "1\n";
   close LOCK;
 
