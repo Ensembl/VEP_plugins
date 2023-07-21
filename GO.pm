@@ -157,7 +157,7 @@ sub new {
 }
 
 sub version {
-  return 107;
+  return 111;
 }
 
 sub feature_types {
@@ -205,6 +205,23 @@ sub parse_data {
       $go = $value;
     }
   }
+
+  my $res;
+  my @go_terms = split(",", $go);
+  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+    # Group results for JSON and REST
+    my @go_terms_json = ();
+    for (@go_terms) {
+      my @items = split(":", $_);
+      push @go_terms_json, {
+        go_term => $items[0] . ":" . $items[1],
+        description => $items[2]
+      };
+    }
+    $res = \@go_terms_json;
+  } else {
+    $res = \@go_terms;
+  }
   
   return {
     seqname => $seqname,
@@ -212,7 +229,7 @@ sub parse_data {
     end => $end,
     transcript_id => $transcript_id,
     result => {
-      GO => $go
+      GO => $res
     }
   };
 }
