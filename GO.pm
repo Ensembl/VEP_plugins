@@ -28,12 +28,15 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GO.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin GO
 
- # input a directory where to write and read GFF files with GO terms
+ # automatically fetch GFF files with GO terms and annotate input with GO terms
+ # not compatible with --offline option
+ ./vep -i variations.vcf --plugin GO
+ 
+ # set directory used to write and read GFF files with GO terms
  ./vep -i variations.vcf --plugin GO,dir=${HOME}/go_terms
 
- # input a custom file to read GFF files with GO terms
+ # annotate input with GO terms from custom GFF file
  ./vep -i variations.vcf --plugin GO,file=${HOME}/custom_go_terms.gff.gz
 
  # use remote connection (available for compatibility purposes)
@@ -42,12 +45,15 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves Gene Ontology (GO) terms associated with
- transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) from a custom GFF
- file. This GFF file is automatically created (if the input file does not exist)
- by querying the Ensembl core database, according to database version, species
- and assembly used in VEP.
+ transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) using custom
+ GFF annotation containing GO terms.
 
- The GFF file containing the GO terms is saved to and loaded from the working
+ The custom GFF files are automatically created if the input file do not exist
+ by querying the Ensembl core database, according to database version, species
+ and assembly used in VEP. Note that automatic retrieval fails if using the
+ --offline option.
+
+ The GFF files containing the GO terms are saved to and loaded from the working
  directory by default. To change this, provide a directory path as an argument:
  
    --plugin GO,dir=${HOME}/go_terms
