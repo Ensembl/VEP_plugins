@@ -20,7 +20,7 @@ limitations under the License.
 =head1 SYNOPSIS
  
  mv Enformer.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin Enformer,file=Enformer_tabbed.tsv.gz
+ ./vep -i variations.vcf --plugin Enformer,file=Enformer_grch37.vcf.gz
 
 
 =head1 DESCRIPTION
@@ -32,11 +32,6 @@ limitations under the License.
  https://www.nature.com/articles/s41592-021-01252-x
 
  Enformer scores can be downloaded from 
- 
- 
- The following steps are neccessary to tabix the Enformer.txt.gz file before running the plugin:
- bgzip Enformer_tabbed.tsv
- tabix -f -s 1 -b 2 -e 2 Enformer_tabbed.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
