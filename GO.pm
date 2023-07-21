@@ -30,9 +30,12 @@ limitations under the License.
  mv GO.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin GO
 
- # input a custom directory where to write and read GFF files with GO terms
- ./vep -i variations.vcf --plugin GO,${HOME}/go_terms
- 
+ # input a directory where to write and read GFF files with GO terms
+ ./vep -i variations.vcf --plugin GO,dir=${HOME}/go_terms
+
+ # input a custom file to read GFF files with GO terms
+ ./vep -i variations.vcf --plugin GO,file=${HOME}/custom_go_terms.gff.gz
+
  # use remote connection (available for compatibility purposes)
  ./vep -i variations.vcf --plugin GO,remote
 
@@ -43,23 +46,27 @@ limitations under the License.
  file. This GFF file is automatically created (if the input file does not exist)
  by querying the Ensembl core database, according to database version, species
  and assembly used in VEP.
- 
+
  The GFF file containing the GO terms is saved to and loaded from the working
  directory by default. To change this, provide a directory path as an argument:
  
-   --plugin GO,${HOME}/go_terms
+   --plugin GO,dir=${HOME}/go_terms
+
+ If your GFF file has a custom name, please provide the filename directly:
+
+   --plugin GO,file=${HOME}/custom_go_terms.gff.gz
  
  To create/use a custom GFF file, these programs must be installed in your path:
    * The GNU zgrep and GNU sort commands to create the GFF file.
    * The tabix and bgzip utilities to create and read the GFF file: check
      https://github.com/samtools/htslib.git for installation instructions.
- 
+
  Alternatively, for compatibility purposes, the plugin allows to use a remote
  connection to the Ensembl API by using "remote" as a parameter. This method
  retrieves GO terms one by one at both the transcript and translation level:
 
    --plugin GO,remote
- 
+
 =cut
 
 package GO;
@@ -95,11 +102,32 @@ sub new {
   
   if ( !$self->{use_remote} ) {
     # Read GO terms from GFF file -- based on Phenotypes.pm
-    
+
+    my $file;
+    my $dir;
+    if ( @{ $self->{params} } ) {
+      my $param_hash = $self->params_to_hash();
+      if (%$param_hash) {
+        $file = $param_hash->{file};
+        $dir  = $param_hash->{dir};
+      } else {
+        $dir  = $self->{params}->[0];
+      }
+
+      if (defined $dir) {
+        $dir =~ s/\/?$/\//; # ensure path ends with slash
+        die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
+      }
+    }
+    $dir  ||= "";
+    $file ||= $self->_prepare_filename($reg);
+
+    $file = $dir . $file;
+    die Data::Dumper::Dumper $file;
+
     # Create GFF file with GO terms from database if file does not exist
-    my $file = $self->_prepare_filename( $reg );
     $self->_generate_gff( $file ) unless (-e $file || -e $file.'.lock');
-    
+
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
     $self->get_user_params();
@@ -196,15 +224,7 @@ sub get_end {
 sub _prepare_filename {
   my ($self, $reg) = @_;
   my $config = $self->{config};
-  
-  # Prepare directory to store files
-  my $dir = ""; # work in current directory by default
-  if (@{$self->{params}}) {
-    $dir = $self->{params}->[0];
-    $dir =~ s/\/?$/\//; # ensure path ends with slash
-    die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
-  }
-    
+
   # Prepare file name based on species, database version and assembly
   my $pkg      = __PACKAGE__.'.pm';
   my $species  = $config->{species};
@@ -216,7 +236,7 @@ sub _prepare_filename {
     die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
     push @basename, $assembly if defined $assembly;
   }
-  return $dir.join("_", @basename).".gff.gz";
+  return join("_", @basename).".gff.gz";
 }
 
 sub _generate_gff {
