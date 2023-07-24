@@ -4,10 +4,10 @@ libgd-dev
 uuid-dev
 
 # PON_P2 and FATHMM plugins
-python
+python2
 python-pip
 python-setuptools
-python-dev
+python2-dev
 
 # LocalID plugin
 sqlite3
