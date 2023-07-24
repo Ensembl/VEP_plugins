@@ -110,10 +110,10 @@ sub new {
   my @valid_class_numbers = (10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90);
 
   if (defined($param_hash->{class_number})) {
-
-    die "\nERROR: This class_number: '$param_hash->{class_number}' does not exists.\nTry any of this numbers: " . join(', ', @valid_class_numbers)
-    unless ($param_hash->{class_number} ~~ @valid_class_numbers);
-    $self->{class_number} = $param_hash->{class_number};
+    my $class_number = $param_hash->{class_number});
+    die "\nERROR: This class_number: '$class_number' does not exists.\nTry any of this numbers: " . join(', ', @valid_class_numbers)
+      unless grep(/^$class_number$/, @valid_class_numbers);
+    $self->{class_number} = $class_number;
   } else {
     $self->{class_number} = 75;
   }
