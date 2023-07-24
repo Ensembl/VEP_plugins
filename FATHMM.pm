@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv FATHMM.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin FATHMM,"python /path/to/fathmm/fathmm.py"
+ ./vep -i variations.vcf --plugin FATHMM,"python2 /path/to/fathmm/fathmm.py"
 
 =head1 DESCRIPTION
 
