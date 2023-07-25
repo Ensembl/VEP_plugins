@@ -8,6 +8,7 @@ python2
 python-pip
 python-setuptools
 python2-dev
+python-is-python3
 
 # LocalID plugin
 sqlite3
