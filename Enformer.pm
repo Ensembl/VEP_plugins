@@ -33,6 +33,16 @@ limitations under the License.
 
  Enformer scores can be downloaded from https://ftp.ensembl.org/pub/current_variation/Enformer for GRCh37 and GRCh38.
 
+ The plugin can then be run as default:
+ ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz
+
+ or run with option to only retrieve the SAD score 
+ ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAD=1 
+ 
+ or run with option to only retrieve the SAR score 
+ ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAR=1 
+
+
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
 
@@ -64,8 +74,11 @@ sub new {
     $params->{file} = $file;
   } else {
     $file = $params->{file};
+    $self->{SAD} = $params->{SAD} if (defined ($params->{SAD}));
+    $self->{SAR} = $params->{SAR} if (defined ($params->{SAR}));
   } 
-
+  
+  $self->{params} = $params;
   $self->add_file($file);
   
   my $assembly = $self->{config}->{assembly};
@@ -100,7 +113,12 @@ sub run{
     $_->{start} == $vf_end
     } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
     
-  return $res ? $res->{result} : {};
+  
+  return $res ? $res->{result} : {} if keys($self->{params}) == 1;
+
+  return $res ? {Enformer => $res->{SAD}} : {} if defined($self->{SAD});
+
+  return $res ? {Enformer => $res->{SAR}} : {} if defined($self->{SAR});
 }
 
 
@@ -109,11 +127,19 @@ sub parse_data {
   my ($chr_data, $start, $snp, $ref, $alt, $qual, $filter, $data) = split("\t", $line);
   
   my ($chr) = $chr_data =~ /(\d+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
+  
+
+  my @data_splitted = split(";", $data) ;
+  my $SAD = $data_splitted[0];
+  my $SAR = $data_splitted[1];
+
   return {
     chr => $chr,
     start => $start,
     ref => $ref,
     alt => $alt,
+    SAD => $SAD,
+    SAR => $SAR,
     result => {
       Enformer => $data
     }
