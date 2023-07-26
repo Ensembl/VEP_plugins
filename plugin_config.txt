@@ -1783,6 +1783,24 @@ my $VEP_PLUGIN_CONFIG = {
         },
       ]
     },
+    
+    # Enformer
+    {
+      "key" => "Enformer",
+      "label" => "Enformer",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Functional effect",
+      "helptip" => "Prediction tool to accurately identify variant impact on gene expression",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/Enformer.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#file=/path/to/enformer_variants.vcf.gz"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+    },
 
     # MaveDB
     {
