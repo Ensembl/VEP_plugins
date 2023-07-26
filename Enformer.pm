@@ -20,7 +20,7 @@ limitations under the License.
 =head1 SYNOPSIS
  
  mv Enformer.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin Enformer,file=Enformer_grch37.vcf.gz
+ ./vep -i variations.vcf --plugin Enformer,file=Enformer_grch38.vcf.gz
 
 
 =head1 DESCRIPTION
