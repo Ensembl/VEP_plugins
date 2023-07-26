@@ -31,7 +31,7 @@ limitations under the License.
  Please cite the Enformer publication alongside the VEP if you use this resource:
  https://www.nature.com/articles/s41592-021-01252-x
 
- Enformer scores can be downloaded from 
+ Enformer scores can be downloaded from https://ftp.ensembl.org/pub/current_variation/Enformer for GRCh37 and GRCh38.
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -69,6 +69,12 @@ sub new {
   $self->add_file($file);
   
   my $assembly = $self->{config}->{assembly};
+  # to make sure assembly matches the file 
+  my ($version) = $assembly =~ /(\d+)/;
+
+  if ($file =~ $version) {
+    die "Assembly does not match the $file. Please check that the file matches the Assembly. \n";
+  }
 
   return $self;
 
@@ -106,8 +112,9 @@ sub run{
 
 sub parse_data {
   my ($self, $line) = @_;
-  my ($chr, $start, $snp, $ref, $alt, $qual, $filter, $data) = split("\t", $line);
-
+  my ($chr_data, $start, $snp, $ref, $alt, $qual, $filter, $data) = split("\t", $line);
+  
+  my ($chr) = $chr_data =~ /(\d+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
   return {
     chr => $chr,
     start => $start,
