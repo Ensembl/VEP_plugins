@@ -69,12 +69,6 @@ sub new {
   $self->add_file($file);
   
   my $assembly = $self->{config}->{assembly};
-  # to make sure assembly matches the file 
-  my ($version) = $assembly =~ /(\d+)/;
-
-  if ($file =~ $version) {
-    die "Assembly does not match the $file. Please check that the file matches the Assembly. \n";
-  }
 
   return $self;
 
@@ -86,7 +80,7 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { Enformer => "Prediction tool to accurately identify variant effects on gene expression" };
+  return { Enformer => "Prediction tool to accurately identify variant impact on gene expression" };
 }
 
 sub run{
