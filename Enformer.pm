@@ -129,9 +129,9 @@ sub parse_data {
   my ($chr) = $chr_data =~ /(\d+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
   
 
-  my @data_splitted = split(";", $data) ;
-  my $SAD = $data_splitted[0];
-  my $SAR = $data_splitted[1];
+  my @data_splitted = split(";", $data); #splitting data in the vcf file based on the format using ;
+  my $SAD = $data_splitted[0]; # SAD comes first 
+  my $SAR = $data_splitted[1]; #SAR is second 
 
   return {
     chr => $chr,
