@@ -39,6 +39,9 @@ limitations under the License.
  # annotate input with GO terms from custom GFF file
  ./vep -i variations.vcf --plugin GO,file=${HOME}/custom_go_terms.gff.gz
 
+ # annotate input based on gene identifiers instead of transcripts/translations
+ ./vep -i variations.vcf --plugin GO,gene=1
+
  # use remote connection (available for compatibility purposes)
  ./vep -i variations.vcf --plugin GO,remote
 
@@ -62,6 +65,10 @@ limitations under the License.
 
    --plugin GO,file=${HOME}/custom_go_terms.gff.gz
  
+ The GO terms can also be fetched by gene match instead of transcription match:
+
+   --plugin GO,gene=1
+ 
  To create/use a custom GFF file, these programs must be installed in your path:
    * The GNU zgrep and GNU sort commands to create the GFF file.
    * The tabix and bgzip utilities to create and read the GFF file: check
@@ -69,7 +76,8 @@ limitations under the License.
 
  Alternatively, for compatibility purposes, the plugin allows to use a remote
  connection to the Ensembl API by using "remote" as a parameter. This method
- retrieves GO terms one by one at both the transcript and translation level:
+ retrieves GO terms one by one at both the transcript and translation level.
+ This is not compatible with any other parameters:
 
    --plugin GO,remote
 
@@ -111,26 +119,29 @@ sub new {
 
     my $file;
     my $dir;
-    if ( @{ $self->{params} } ) {
-      my $param_hash = $self->params_to_hash();
-      if (%$param_hash) {
-        $file = $param_hash->{file};
-        $dir  = $param_hash->{dir};
-      } else {
-        $dir  = $self->{params}->[0];
-      }
+    my $mode = 'transcript';
 
-      if (defined $dir) {
-        $dir =~ s/\/?$/\//; # ensure path ends with slash
-        die "ERROR: directory $dir not found\n" unless -e -d $dir;
-      }
+    my $param_hash = $self->params_to_hash();
+    if (%$param_hash) {
+      $file = $param_hash->{file};
+      $dir  = $param_hash->{dir};
+      $mode = "gene" if $param_hash->{gene};
+    } elsif ( @{ $self->{params} } ) {
+      $dir  = $self->{params}->[0];
     }
+    $self->{mode} = $mode;
+
+    if (defined $dir) {
+      $dir =~ s/\/?$/\//; # ensure path ends with slash
+      die "ERROR: directory $dir not found\n" unless -e -d $dir;
+    }
+
     $dir  ||= "";
-    $file ||= $self->_prepare_filename($reg);
+    $file ||= $self->_prepare_filename($reg, $mode);
 
     # Create GFF file with GO terms from database if file does not exist
     $file = $dir . $file;
-    $self->_generate_gff( $file ) unless (-e $file || -e $file.'.lock');
+    $self->_generate_gff( $file, $mode ) unless (-e $file || -e $file.'.lock');
 
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
@@ -243,7 +254,7 @@ sub get_end {
 }
 
 sub _prepare_filename {
-  my ($self, $reg) = @_;
+  my ($self, $reg, $mode) = @_;
   my $config = $self->{config};
 
   # Prepare file name based on species, database version and assembly
@@ -257,11 +268,13 @@ sub _prepare_filename {
     die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
     push @basename, $assembly if defined $assembly;
   }
-  return join("_", @basename).".gff.gz";
+  push @basename, $mode if $mode eq 'gene';
+  return join("_", @basename) . ".gff.gz";
 }
 
 sub _generate_gff {
-  my ($self, $file) = @_;
+  my ($self, $file, $mode) = @_;
+  my $Mode = ucfirst $mode;
 
   my $config = $self->{config};
   die("ERROR: Cannot create GFF file in offline mode\n") if $config->{offline};
@@ -272,28 +285,32 @@ sub _generate_gff {
 
   print "### GO plugin: Creating $file from database\n" unless($config->{quiet});
   
-  print "### GO plugin: Querying Ensembl core database\n" unless $config->{quiet};
+  print "### GO plugin: Querying Ensembl core database ('$mode' mode)\n"
+    unless $config->{quiet};
   my $species = $config->{species};
   my $ta = $self->{config}->{reg}->get_adaptor($species, 'Core', 'Transcript');
   die ("ERROR: Ensembl core database not available\n") unless defined $ta;
-  
+
   # Check whether GO terms are set at transcript or translation level
   my $id = _get_GO_terms_id( $ta );
   my $join_translation_table = _starts_with($id, "translation") ?
     "JOIN translation ON translation.transcript_id = transcript.transcript_id" : "";
+  my $join_gene_table = $mode eq 'gene' ?
+    "JOIN gene ON gene.gene_id = transcript.gene_id" : "";
+  my $order_by_gene = $mode eq 'gene' ? "gene.stable_id," : "";
 
   # Query database for each GO term and its description per transcript
-  my @query = qq{
+  my @query = qq/
     SELECT DISTINCT
       sr.name AS seqname,
       REPLACE(db.db_name, " ", "_") AS source,
-      "Transcript" AS feature,
-      transcript.seq_region_start AS start,
-      transcript.seq_region_end AS end,
+      "$Mode" AS feature,
+      $mode.seq_region_start AS start,
+      $mode.seq_region_end AS end,
       '.' AS score,
-      IF(transcript.seq_region_strand = 1, '+', '-') AS strand, 
+      IF($mode.seq_region_strand = 1, '+', '-') AS strand, 
       '.' AS frame,
-      transcript.stable_id AS transcript_stable_id,
+      $mode.stable_id AS ${mode}_stable_id,
       x.display_label AS go_term,
       x.description AS go_term_description
       
@@ -303,10 +320,11 @@ sub _generate_gff {
     JOIN xref x ON ox.xref_id = x.xref_id
     JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
     JOIN external_db db ON x.external_db_id = db.external_db_id
+    $join_gene_table
     WHERE db.db_name = "GO" AND x.dbprimary_acc LIKE "GO:%"
-    ORDER BY transcript.stable_id, # major assumption for the next steps
-             x.display_label
-  };
+    # the following order is a major downstream assumption
+    ORDER BY $order_by_gene transcript.stable_id, x.display_label
+  /;
   my $sth = $ta->db->dbc->prepare(@query, { mysql_use_result => 1});
   $sth->execute();
 
