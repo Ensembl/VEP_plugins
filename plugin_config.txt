@@ -1426,6 +1426,24 @@ my $VEP_PLUGIN_CONFIG = {
     ## VARIANT DATA
     ###############
 
+    # Open Targets Genetics
+    {
+      "key" => "OpenTargets",
+      "label" => "Open Targets Genetics",
+      "helptip" => "Returns locus-to-gene (L2G) scores to predict causal genes at GWAS loci from Open Targets Genetics",
+      "enabled" => 0,
+      "available" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/OpenTargets.pm",
+      "section" => "Variant data",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"file=/path/to/OpenTargets_data.tsv.gz"
+      ]
+    },
+
     # LD
     {
       "key" => "LD",
