@@ -88,8 +88,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Transcript'];
-
+  return ['Transcript','RegulatoryFeature','MotifFeature','Intergenic'];
 }
 
 sub get_header_info {
