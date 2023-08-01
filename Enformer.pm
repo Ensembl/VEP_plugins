@@ -125,7 +125,7 @@ sub parse_data {
   my ($self, $line) = @_;
   my ($chr_data, $start, $snp, $ref, $alt, $qual, $filter, $data) = split("\t", $line);
   
-  my ($chr) = $chr_data =~ /(\d+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
+  my ($chr) = $chr_data =~ /chr(.+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
   
 
   my @data_splitted = split(";", $data); #splitting data in the vcf file based on the format using ;
