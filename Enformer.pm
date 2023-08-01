@@ -36,7 +36,7 @@ limitations under the License.
  The plugin can then be run as default:
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz
 
- or run with option to only retrieve the SAD score 
+ or run with option to only retrieve the SAD (SNP Activity Difference) score 
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAD=1 
  
  or run with option to only retrieve the SAR score 
