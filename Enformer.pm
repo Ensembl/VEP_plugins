@@ -141,7 +141,6 @@ sub run {
   # to account for insertions and deletions, need to do this search differently
   
   foreach my $variant (@data) {
-
     my $matches = get_matched_variant_alleles(
       {
         ref    => $ref_allele,
@@ -177,8 +176,8 @@ sub parse_data {
   
 
   my @data_splitted = split(";", $data); #splitting data in the vcf file based on the format using ;
-  my $SAD = $data_splitted[0]; # SAD comes first 
-  my $SAR = $data_splitted[1]; #SAR is second 
+  my $SAD = $data_splitted[0] =~ s/.+=//r; # SAD comes first 
+  my $SAR = $data_splitted[1] =~ s/.+=//r; # SAR is second 
 
   return {
     chr => $chr,
