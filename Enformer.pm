@@ -36,10 +36,10 @@ limitations under the License.
  The plugin can then be run as default:
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz
 
- or run with option to only retrieve the SAD (SNP Activity Difference) score 
+ or run with option to only retrieve the SAD (SNP Activity Difference (SAD) scores - main variant effect score computed as model(alternate_sequence) - model(reference_sequence) score 
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAD=1 
  
- or run with option to only retrieve the SAR score 
+ or run with option to only retrieve the SAR (Same as SAD, by computing np.log2(1 + model(alternate_sequence)) - np.log2(1 + model(reference_sequence)) score 
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAR=1 
 
 
@@ -55,6 +55,7 @@ use strict;
 use warnings; 
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
@@ -88,36 +89,83 @@ sub new {
 }
 
 sub feature_types {
-  return ['Transcript','RegulatoryFeature','MotifFeature','Intergenic'];
+  return ['Transcript', 'MotifFeature', 'Intergenic'];
 }
 
 sub get_header_info {
-  return { Enformer => "Prediction tool to accurately identify variant impact on gene expression" };
+  my $self = shift;
+
+  my %header; 
+
+  if (keys($self->{params}) == 1) {
+    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
+    $header{"Enformer_SAD"} = "SNP Activity Difference (SAD) scores";
+    $header{"Enformer_SAR"} = "SNP Activity Difference logarithm computing";
+  }
+
+  if ($self->{SAD}) {
+    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
+    $header{"Enformer_SAD"} = "SNP Activity Difference (SAD) scores";
+  }
+
+  if ( $self->{SAR}) {
+    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
+    $header{"Enformer_SAR"} = "SNP Activity Difference logarithm computing";
+  }
+  
+  return \%header;
 }
 
-sub run{
+sub run {
   my ($self, $tva) = @_;
   
   my $vf = $tva->variation_feature;
   my $allele = $tva->variation_feature_seq;
-  return {} unless $allele =~ /^[ACGT]$/;
-  
 
+   # get allele
+  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
+  my $ref_allele = $vf->ref_allele_string;
+  
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
   ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
-
-  my ($res) = grep{
-    $_->{alt} eq $allele &&
-    $_->{start} == $vf_start &&
-    $_->{start} == $vf_end
-    } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-    
   
-  return $res ? $res->{result} : {} if keys($self->{params}) == 1;
+  my @data = @{
+    $self->get_data(
+      $vf->{chr},
+      $vf_start,
+      $vf_end 
+    )
+  };
+  return {} unless(@data);
+  
+  # to account for insertions and deletions, need to do this search differently
+  
+  foreach my $variant (@data) {
 
-  return $res ? {Enformer => $res->{SAD}} : {} if defined($self->{SAD});
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $ref_allele,
+        alts   => $alt_alleles,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $variant->{ref},
+       alts => [$variant->{alt}],
+       pos  => $variant->{start},
+      }
+    );
+    return $variant->{result} if (@$matches) && keys($self->{params}) == 1;
+    
 
-  return $res ? {Enformer => $res->{SAR}} : {} if defined($self->{SAR});
+    return {Enformer_SAD => $variant->{result}->{Enformer_SAD}} if (@$matches) && $self->{SAD};
+    
+    return {Enformer_SAR => $variant->{result}->{Enformer_SAR}} if (@$matches) && $self->{SAR};
+    
+  }
+
+  return {};
+
 }
 
 
