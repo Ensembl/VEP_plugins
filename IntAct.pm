@@ -117,8 +117,8 @@ my $valid_fields = {
 
 # taxomy id for supported species
 my $taxonomy_lookup = {
-	"homo_sapiens" => 9606,
-	"mus_musculus" => 10090,
+  "homo_sapiens" => 9606,
+  "mus_musculus" => 10090,
   "rattus_norvegicus" => 10116,
   "gallus_gallus_gca000002315v5" => 9031,
   "saccharomyces_cerevisiae" => 559292,
