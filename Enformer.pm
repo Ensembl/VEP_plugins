@@ -137,10 +137,9 @@ sub parse_data {
     start => $start,
     ref => $ref,
     alt => $alt,
-    SAD => $SAD,
-    SAR => $SAR,
     result => {
-      Enformer => $data
+      Enformer_SAD => $SAD,
+      Enformer_SAR => $SAR
     }
   };
 }
