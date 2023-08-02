@@ -117,7 +117,11 @@ sub _parse_colnames {
     $self->{cols} = \@cols;
 
     # Check validity of all columns
-    my @invalid_cols = grep { !($_ ~~ $self->{colnames}) } @cols;
+    my @invalid_cols;
+    for my $col (@{ $self->{cols} }) {
+      push(@invalid_cols, $col) unless grep(/^$col$/, @{ $self->{colnames} });
+    }
+
     die "\n  ERROR: The following columns were not found in file header: ",
       join(", ", @invalid_cols), "\n" if @invalid_cols;
   }

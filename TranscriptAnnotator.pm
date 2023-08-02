@@ -130,11 +130,11 @@ sub _get_selected_cols {
   if ( $param_hash->{cols} ) {
     # Check if user-selected columns are valid
     my @invalid_cols;
-    for ( split /:/, $param_hash->{cols} ) {
-      if ($_ ~~ @colnames) {
-        push @cols, $_;
+    for my $col ( split /:/, $param_hash->{cols} ) {
+      if (grep /^$col$/, @colnames) {
+        push @cols, $col;
       } else {
-        push @invalid_cols, $_;
+        push @invalid_cols, $col;
       }
     }
 
