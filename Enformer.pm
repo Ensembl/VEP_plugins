@@ -78,15 +78,12 @@ sub new {
     $self->{SAD} = $params->{SAD} if (defined ($params->{SAD}));
     $self->{SAR} = $params->{SAR} if (defined ($params->{SAR}));
   } 
-
-
   delete $params->{SAD} if defined $params->{SAD} && $params->{SAD} eq '0';
   delete $params->{SAR} if defined $params->{SAR} && $params->{SAR} eq '0';
   
   $self->{params} = $params;
   $self->add_file($file);
   
-  my $assembly = $self->{config}->{assembly};
 
   return $self;
 
