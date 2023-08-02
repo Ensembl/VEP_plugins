@@ -47,7 +47,7 @@ limitations under the License.
  do this by following commands -
 
   a) filter, sort and then zip
-  grep -v -e '^$' -e '^[#\-]' mutation_gc_map.txt | sed '1s/.*/#&/' | sort -k1,1 -k2,2n -k3,3n | bgzip > mutation_gc_map.txt.gz
+  grep -v -e '^$' -e '^[#\-]' mutation_gc_map.txt | sed '1s/.*/#&/' | awk -F "\t" 'BEGIN { OFS="\t"} {if ($2 > $3) {a=$2; $2=$3; $3=a}; print $0 }' | sort -k1,1 -k2,2n -k3,3n | bgzip > mutation_gc_map.txt.gz
   
   b) create tabix indexed file -
   tabix -s 1 -b 2 -e 3 -f mutation_gc_map.txt.gz
@@ -117,12 +117,13 @@ my $valid_fields = {
 
 # taxomy id for supported species
 my $taxonomy_lookup = {
-	"homo_sapiens" => 9606,
-	"mus_musculus" => 10090,
+  "homo_sapiens" => 9606,
+  "mus_musculus" => 10090,
   "rattus_norvegicus" => 10116,
   "gallus_gallus_gca000002315v5" => 9031,
   "saccharomyces_cerevisiae" => 559292,
-  "arabidopsis_thaliana" => 3702
+  "arabidopsis_thaliana" => 3702,
+  "drosophila_melanogaster" => 7227
 };
 
 sub new {
@@ -370,11 +371,9 @@ sub run {
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
 
-  # get reference codon and HGVSp  
-  my $ref_codon = $tv->get_reference_TranscriptVariationAllele->codon if $tv;
+  # get HGVSp for the variant in question through variation API  
   my $hgvs = $tva->hgvs_protein;
-
-  return {} unless ($ref_codon and $hgvs);
+  return {} unless $hgvs;
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
@@ -382,8 +381,8 @@ sub run {
     my ($id_ref, $id_des) = split /:/, $_->{id};
     my (undef, $hgvs_des) = split /:/, $hgvs;
     
-    # match variation
-    next unless ($id_des eq $hgvs_des and $_->{ref} eq $ref_codon);
+    # match HGVSp description to make sure we get the correct variant from data file
+    next unless $id_des eq $hgvs_des;
 
     # get matched lines from IntAct data file on the hgvs like description 
     my $intact_matches = $self->_match_id($id_ref, $id_des);
