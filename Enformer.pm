@@ -68,8 +68,8 @@ sub new {
   $self->get_user_params();
   
   my $params = $self->params_to_hash();
-  
   my $file;
+
   if (!keys %$params) {
     $file = $self->params->[0];
     $params->{file} = $file;
@@ -78,6 +78,10 @@ sub new {
     $self->{SAD} = $params->{SAD} if (defined ($params->{SAD}));
     $self->{SAR} = $params->{SAR} if (defined ($params->{SAR}));
   } 
+
+
+  delete $params->{SAD} if defined $params->{SAD} && $params->{SAD} eq '0';
+  delete $params->{SAR} if defined $params->{SAR} && $params->{SAR} eq '0';
   
   $self->{params} = $params;
   $self->add_file($file);
