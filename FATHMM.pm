@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv FATHMM.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin FATHMM,"python /path/to/fathmm/fathmm.py"
+ ./vep -i variations.vcf --plugin FATHMM,"python2 /path/to/fathmm/fathmm.py"
 
 =head1 DESCRIPTION
 
@@ -68,9 +68,9 @@ sub new {
   # get command
   my $command = $self->params->[0];
   
-  die 'ERROR: No FATHMM command specified. Specify path to FATHMM with e.g. --plugin FATHMM,"python /path/to/fathmm/fathmm.py"\n' unless defined($command);
+  die 'ERROR: No FATHMM command specified. Specify path to FATHMM with e.g. --plugin FATHMM,"python2 /path/to/fathmm/fathmm.py"\n' unless defined($command);
   
-  die 'ERROR: Your FATHMM command does not look correct; it should looks something like "python /path/to/fathmm/fathmm.py"\n' unless $command =~ /python.+fathmm\.py/;
+  die 'ERROR: Your FATHMM command does not look correct; it should looks something like "python2 /path/to/fathmm/fathmm.py"\n' unless $command =~ /python2.+fathmm\.py/;
   
   $self->{command} = $command;
   
