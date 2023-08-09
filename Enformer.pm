@@ -187,8 +187,7 @@ sub parse_data {
   
   my ($chr) = $chr_data =~ /chr(.+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
 
-
-  my @data_splitted = split("SAD", $data); #splitting data in the vcf file based on the format using;
+  my @data_splitted = split("SAD", $data); #splitting data in the vcf file based on the format using SAD
  
   my $POC = $data_splitted[0];
   
