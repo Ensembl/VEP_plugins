@@ -42,7 +42,7 @@ limitations under the License.
  or run with option to only retrieve the SAR (Same as SAD, by computing np.log2(1 + model(alternate_sequence)) - np.log2(1 + model(reference_sequence)) score 
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAR=1 
 
- or run with option to only retrieve the principal component scores which are a reduced representation of a much bigger vector of the SAD and SAR 
+ or run with option to only retrieve the principal component scores which are a reduced representation of a much bigger vector of the SAD and SAR after using principal component analysis (PCA)
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,PC=1 
 
 
