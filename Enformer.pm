@@ -42,6 +42,9 @@ limitations under the License.
  or run with option to only retrieve the SAR (Same as SAD, by computing np.log2(1 + model(alternate_sequence)) - np.log2(1 + model(reference_sequence)) score 
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,SAR=1 
 
+ or run with option to only retrieve the principal component scores which are a reduced representation of a much bigger vector of the SAD and SAR 
+ ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz,PC=1 
+
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -77,9 +80,12 @@ sub new {
     $file = $params->{file};
     $self->{SAD} = $params->{SAD} if (defined ($params->{SAD}));
     $self->{SAR} = $params->{SAR} if (defined ($params->{SAR}));
+    $self->{PC}  = $params->{PC} if (defined ($params->{PC}));
   } 
+
   delete $params->{SAD} if defined $params->{SAD} && $params->{SAD} eq '0';
   delete $params->{SAR} if defined $params->{SAR} && $params->{SAR} eq '0';
+  delete $params->{PC} if defined $params->{PC} && $params->{PC} eq '0';
   
   $self->{params} = $params;
   $self->add_file($file);
@@ -114,6 +120,11 @@ sub get_header_info {
     $header{"Enformer_SAR"} = "SNP Activity Difference logarithm computing";
   }
   
+  if ($self->{PC}) {
+    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
+    $header{"Enformer_PC"} = "Principal components of variant-effect scores"
+  }
+
   return \%header;
 }
 
@@ -157,6 +168,7 @@ sub run {
     );
     return $variant->{result} if (@$matches) && keys($self->{params}) == 1;
     
+    return {Enformer_PC => $variant->{PC}} if (@$matches) && $self->{PC};
 
     return {Enformer_SAD => $variant->{result}->{Enformer_SAD}} if (@$matches) && $self->{SAD};
     
@@ -174,17 +186,22 @@ sub parse_data {
   my ($chr_data, $start, $snp, $ref, $alt, $qual, $filter, $data) = split("\t", $line);
   
   my ($chr) = $chr_data =~ /chr(.+)/; # this is because the chromosome is chr1 etc, to retrieve just the 1
-  
 
-  my @data_splitted = split(";", $data); #splitting data in the vcf file based on the format using ;
-  my $SAD = $data_splitted[0] =~ s/.+=//r; # SAD comes first 
-  my $SAR = $data_splitted[1] =~ s/.+=//r; # SAR is second 
+
+  my @data_splitted = split("SAD", $data); #splitting data in the vcf file based on the format using;
+ 
+  my $POC = $data_splitted[0];
+  
+  my @other_scores = split(";", $data_splitted[1]); # to get SAD and SAR out of the scores 
+  my $SAD = $other_scores[0] =~ s/=//g; # SAD comes first 
+  my $SAR = $other_scores[1] =~ s/.+=//r; # SAR is second 
 
   return {
     chr => $chr,
     start => $start,
     ref => $ref,
     alt => $alt,
+    PC => $POC,
     result => {
       Enformer_SAD => $SAD,
       Enformer_SAR => $SAR
