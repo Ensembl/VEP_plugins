@@ -72,7 +72,8 @@ sub new {
   
   my $params = $self->params_to_hash();
   my $file;
-
+   
+  die "File needs to be specified to run the Enformer plugin. File can be downloaded from  https://ftp.ensembl.org/pub/current_variation/Enformer" if  (!%$params);
   if (!keys %$params) {
     $file = $self->params->[0];
     $params->{file} = $file;
@@ -192,7 +193,9 @@ sub parse_data {
   my $POC = $data_splitted[0];
   
   my @other_scores = split(";", $data_splitted[1]); # to get SAD and SAR out of the scores 
-  my $SAD = $other_scores[0] =~ s/=//g; # SAD comes first 
+  my $SAD = $other_scores[0] =~ s/=//r;  # SAD comes first 
+  use Data::Dumper;
+  print Dumper($SAD);
   my $SAR = $other_scores[1] =~ s/.+=//r; # SAR is second 
 
   return {
