@@ -194,8 +194,6 @@ sub parse_data {
   
   my @other_scores = split(";", $data_splitted[1]); # to get SAD and SAR out of the scores 
   my $SAD = $other_scores[0] =~ s/=//r;  # SAD comes first 
-  use Data::Dumper;
-  print Dumper($SAD);
   my $SAR = $other_scores[1] =~ s/.+=//r; # SAR is second 
 
   return {
