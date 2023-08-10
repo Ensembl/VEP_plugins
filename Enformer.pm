@@ -105,7 +105,7 @@ sub get_header_info {
 
   my %header; 
 
-  if (keys($self->{params}) == 1) {
+  if (keys(%{$self->{params}}) == 1)  {
     $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
     $header{"Enformer_SAD"} = "SNP Activity Difference (SAD) scores";
     $header{"Enformer_SAR"} = "SNP Activity Difference logarithm computing";
@@ -167,7 +167,7 @@ sub run {
        pos  => $variant->{start},
       }
     );
-    return $variant->{result} if (@$matches) && keys($self->{params}) == 1;
+    return $variant->{result} if (@$matches) && keys(%{$self->{params}}) == 1;
     
     return {Enformer_PC => $variant->{PC}} if (@$matches) && $self->{PC};
 
