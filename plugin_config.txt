@@ -1858,7 +1858,7 @@ my $VEP_PLUGIN_CONFIG = {
       "species" => [
         "homo_sapiens"
       ],
-    }
+    },
 
 
     ## OTHER
