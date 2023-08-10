@@ -73,7 +73,7 @@ sub new {
   my $params = $self->params_to_hash();
   my $file;
    
-  die "File needs to be specified to run the Enformer plugin. File can be downloaded from  https://ftp.ensembl.org/pub/current_variation/Enformer" if  (!%$params);
+  die "File needs to be specified to run the Enformer plugin. File can be downloaded from  https://ftp.ensembl.org/pub/current_variation/Enformer \n" if  (!%$params);
   if (!keys %$params) {
     $file = $self->params->[0];
     $params->{file} = $file;
