@@ -24,16 +24,16 @@ limitations under the License.
 
 
 =head1 DESCRIPTION
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated scores from Enformer.
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated Enformer predictions of variant effect on gene expression
 
- This Plugin is available for GRCh37 and GRCh38
+ This plugin is available for GRCh37 and GRCh38
  
  Please cite the Enformer publication alongside the VEP if you use this resource:
  https://www.nature.com/articles/s41592-021-01252-x
 
  Enformer scores can be downloaded from https://ftp.ensembl.org/pub/current_variation/Enformer for GRCh37 and GRCh38.
 
- The plugin can then be run as default:
+ The plugin can then be run as default to retrieve SAD (SNP Activity Difference (SAD) and SAR (Same as SAD, by computing np.log2(1 + model(alternate_sequence)) - np.log2(1 + model(reference_sequence)) scores from Enforme :
  ./vep -i variations.vcf --assembly GRCh38 --plugin Enformer,file=/path/to/Enformer/data.vcf.gz
 
  or run with option to only retrieve the SAD (SNP Activity Difference (SAD) scores - main variant effect score computed as model(alternate_sequence) - model(reference_sequence) score 
@@ -97,7 +97,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Transcript', 'MotifFeature', 'Intergenic'];
+  return ['Feature', 'Intergenic'];
 }
 
 sub get_header_info {
@@ -106,24 +106,20 @@ sub get_header_info {
   my %header; 
 
   if (keys(%{$self->{params}}) == 1)  {
-    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
-    $header{"Enformer_SAD"} = "SNP Activity Difference (SAD) scores";
-    $header{"Enformer_SAR"} = "SNP Activity Difference logarithm computing";
+    $header{"Enformer_SAD"} = "Predictions of variant impact on gene expression. SNP Activity Difference (SAD) scores";
+    $header{"Enformer_SAR"} = "Predictions of variant impact on gene expression. SNP Activity Difference logarithm computing";
   }
 
   if ($self->{SAD}) {
-    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
-    $header{"Enformer_SAD"} = "SNP Activity Difference (SAD) scores";
+    $header{"Enformer_SAD"} = "Predictions of variant impact on gene expression. SNP Activity Difference (SAD) scores";
   }
 
   if ( $self->{SAR}) {
-    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
-    $header{"Enformer_SAR"} = "SNP Activity Difference logarithm computing";
+    $header{"Enformer_SAR"} = "Predictions of variant impact on gene expression. SNP Activity Difference logarithm computing";
   }
   
   if ($self->{PC}) {
-    $header{"Enformer"} = "Prediction tool to accurately identify variant impact on gene expression";
-    $header{"Enformer_PC"} = "Principal components of variant-effect scores"
+    $header{"Enformer_PC"} = "Predictions of variant impact on gene expression. Principal components of variant-effect scores"
   }
 
   return \%header;
