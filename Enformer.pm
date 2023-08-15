@@ -119,7 +119,9 @@ sub get_header_info {
   }
   
   if ($self->{PC}) {
-    $header{"Enformer_PC"} = "Predictions of variant impact on gene expression. Principal components of variant-effect scores"
+    $header{"Enformer_SAD"} = "Predictions of variant impact on gene expression. SNP Activity Difference (SAD) scores";
+    $header{"Enformer_SAR"} = "Predictions of variant impact on gene expression. SNP Activity Difference logarithm computing";
+    $header{"Enformer_PC"} = "Predictions of variant impact on gene expression. Principal components of variant-effect scores";
   }
 
   return \%header;
@@ -165,7 +167,7 @@ sub run {
     );
     return $variant->{result} if (@$matches) && keys(%{$self->{params}}) == 1;
     
-    return {Enformer_PC => $variant->{PC}} if (@$matches) && $self->{PC};
+    return $variant->{result_PC} if (@$matches) && $self->{PC};
 
     return {Enformer_SAD => $variant->{result}->{Enformer_SAD}} if (@$matches) && $self->{SAD};
     
@@ -197,7 +199,11 @@ sub parse_data {
     start => $start,
     ref => $ref,
     alt => $alt,
-    PC => $POC,
+    result_PC => {
+      Enformer_SAD => $SAD,
+      Enformer_SAR => $SAR,
+      Enformer_PC  => $POC
+    }, 
     result => {
       Enformer_SAD => $SAD,
       Enformer_SAR => $SAR
