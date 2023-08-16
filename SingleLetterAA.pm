@@ -63,35 +63,14 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva) = @_;
-  
-  my $vf = $tva->variation_feature;
-  my $tva_tv = $tva->base_variation_feature_overlap;
-  my $hgvs_full_string = $tva->hgvs_protein();
+
+  my $hgvs_full_string = $tva->hgvs_protein(undef, undef, 0);
 
   return {} unless defined($hgvs_full_string);
-
-  my $hgvs_notation;
-  $hgvs_notation->{start}   = $tva_tv->translation_start();
-  $hgvs_notation->{end}     = $tva_tv->translation_end();  
-  $hgvs_notation->{alt} = $tva->peptide;
-  $hgvs_notation->{ref} = $tva_tv->get_reference_TranscriptVariationAllele->peptide;    
-
-  my @hgvs_array = split(':', $hgvs_full_string);
-  $hgvs_notation->{ref_name} = $hgvs_array[0];
-  $hgvs_notation->{'numbering'} = 'p';
-
-  $hgvs_notation = $tva->_get_hgvs_protein_type($hgvs_notation);
-  my $separator = ':p.';
-  my @split =  split(/$separator/, $tva->_get_hgvs_protein_format($hgvs_notation));
-  if (scalar(@split) == 2)
-  {
-    $split[1] =~ s/Ter|X/*/g;
-    return {
-        HGVSp  => $split[0] . $separator . $split[1],
-    };
-  }
-  #else something has gone wrong and our HGVSp string doesn't contain :p.
-  return {};
+  
+  return {
+      HGVSp  => $hgvs_full_string,
+  };
 }
 
 1;
