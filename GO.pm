@@ -323,8 +323,9 @@ sub _write_GO_terms_to_file {
   # when there is a new transcript, write $transcript_info to file and repeat
   my $transcript_info;
   my $previous_transcript = "";
-  while(my $row = $sth->fetchrow_arrayref()) {
-    my ($transcript_id, $go_term, $description) = @$row[-3..-1];
+  while(my $line = $sth->fetchrow_arrayref()) {
+    my $row = [ @$line ];
+    my ($transcript_id, $go_term, $description) = splice(@$row, -3);
 
     if ($transcript_id ne $previous_transcript) {
       # If not the same transcript, write previous transcript info to file
