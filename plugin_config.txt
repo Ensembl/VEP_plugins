@@ -1873,6 +1873,14 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/CSN.pm",
+    },
+
+    {
+      "key" => "TrioAnalysis",
+      "helptip" => "Identifies de novo variants in a VCF file",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/TrioAnalysis.pm",
     }
 
   ]
