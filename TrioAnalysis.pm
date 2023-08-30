@@ -36,19 +36,23 @@ limitations under the License.
 
  This plugin is available for both GRCh37 and GRCh38.
  
- Options are passed to the plugin as key=value pairs, (defaults in parentheses):
+ Options are passed to the plugin as key=value pairs:
 
- ped           : Path to PED file. The file is tab or white-space delimited with six mandatory columns:
-                   - family ID
-                   - individual ID
-                   - paternal ID
-                   - maternal ID
-                   - sex
-                   - phenotype
+ ped                : Path to PED file (mandatory)
+                      The file is tab or white-space delimited with six mandatory columns:
+                        - family ID
+                        - individual ID
+                        - paternal ID
+                        - maternal ID
+                        - sex
+                        - phenotype
+
+ report_dir         : write files in report_dir (optional)
 
 
  The plugin can then be run:
  ./vep -i variations.vcf --plugin TrioAnalysis,ped=samples.ped
+ ./vep -i variations.vcf --plugin TrioAnalysis,ped=samples.ped,report_dir=path/to/dir
 
 
 =cut
@@ -61,8 +65,6 @@ use Cwd;
 
 use Bio::EnsEMBL::Variation::VariationFeature;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepFilterPlugin);
-
-use Data::Dumper;
 
 
 sub _parse_ped_file {
@@ -101,23 +103,27 @@ sub new {
     die "ERROR: Please provide a valid PED file\n";
   }
 
-  if (defined $param_hash->{report_output}) {
-    $self->{report_output} = $param_hash->{report_output};
+  if (defined $param_hash->{report_dir}) {
+    if (!-d $param_hash->{report_dir}) {
+      my $return = mkdir $param_hash->{report_dir}, 0755;
+      die("ERROR: Couldn't create report_dir ", $param_hash->{report_dir}, " $!\n") if (!$return);
+    }
+    $self->{report_dir} = $param_hash->{report_dir};
   }
   else {
     my $cwd_dir = getcwd;
-    $self->{report_output} = "$cwd_dir";
+    $self->{report_dir} = "$cwd_dir";
   }
 
   # force some config params
-  $self->{config}->{individual} = ['all'];
-  
+  $self->{config}->{individual_zyg} = ['all'];
+
   # Report files
   $self->{report_de_novo} = "variants_de_novo.txt";
   $self->{report_all} = "variants_child_and_both_parents.txt";
   # Write header
-  write_header($self->{report_output}.'/'.$self->{report_de_novo}, 1);
-  write_header($self->{report_output}.'/'.$self->{report_all});
+  write_header($self->{report_dir}.'/'.$self->{report_de_novo}, 1);
+  write_header($self->{report_dir}.'/'.$self->{report_all});
 
   return $self;
 }
@@ -145,11 +151,9 @@ sub run {
   my $chr = $vf->{chr};
   my $start = $vf->{start};
 
-  # print "\n$chr:$start\n";
-
   my $result;
   my $list_of_ind;
-  
+
   foreach my $geno_ind (@{$zyg}) {
     my ($ind, $geno) = split(':', $geno_ind);
 
@@ -174,7 +178,7 @@ sub run {
   if(scalar(keys %{$list_of_ind}) == 1) {
     if(defined $list_of_ind->{'child'}) {
       $result = 'only_in_child';
-      write_report($self->{report_output}.'/'.$self->{report_de_novo}, $line, $tva, $list_of_ind->{'child'});
+      write_report($self->{report_dir}.'/'.$self->{report_de_novo}, $line, $tva, $list_of_ind->{'child'});
     }
     elsif(scalar(@{$list_of_ind->{'parent'}}) == 1) {
       $result = 'only_in_one_parent';
@@ -186,7 +190,7 @@ sub run {
   elsif(scalar(keys %{$list_of_ind}) == 2) {
     if(scalar(@{$list_of_ind->{'parent'}}) == 2) {
       $result = 'in_child_and_both_parents';
-      write_report($self->{report_output}.'/'.$self->{report_all} , $line, $tva);
+      write_report($self->{report_dir}.'/'.$self->{report_all} , $line, $tva);
     }
     else {
       $result = 'in_child_and_one_parent';
