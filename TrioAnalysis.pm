@@ -33,8 +33,6 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that identifies de novo variants in a VCF file.
-
- This plugin is available for both GRCh37 and GRCh38.
  
  Options are passed to the plugin as key=value pairs:
 
