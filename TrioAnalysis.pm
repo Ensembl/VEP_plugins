@@ -37,7 +37,7 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
 
  ped                : Path to PED file (mandatory)
-                      The file is tab or white-space delimited with six mandatory columns:
+                      The file is tab or white-space delimited with five mandatory columns:
                         - family ID
                         - individual ID
                         - paternal ID
@@ -69,7 +69,7 @@ sub _parse_ped_file {
   my $self = shift;
   my $file = shift;
 
-  open(my $fh, '>', $file) or die "Could not open file $file $!\n";
+  open(my $fh, '<', $file) or die "Could not open file $file $!\n";
 
   while(<$fh>) {
     chomp;
@@ -79,11 +79,10 @@ sub _parse_ped_file {
       die "ERROR: PED file requires dix columns: family ID, individual ID, paternal ID, maternal ID, sex\n";
     }
 
-    $self->{linkage}->{$ind_id}->{paternal_id} = $paternal_id;
-    $self->{linkage}->{$ind_id}->{maternal_id} = $maternal_id;
     $self->{linkage}->{$ind_id}->{sex} = $sex;
     $self->{linkage}->{$ind_id}->{pheno} = $pheno if(defined $pheno);
-    $self->{linkage}->{$ind_id}->{child} = 1 if ($paternal_id == 0 and $maternal_id == 0);
+    $self->{linkage}->{$ind_id}->{parents}->{mother} = $maternal_id if ($maternal_id);
+    $self->{linkage}->{$ind_id}->{parents}->{father} = $paternal_id if ($paternal_id);
   }
   close $fh;
 }
@@ -165,7 +164,7 @@ sub run {
     # HET : heterozygous
     # HOMREF : homozygous reference (not a variant)
     if($geno eq 'HOM' || $geno eq 'HET') {
-      if($self->{linkage}->{$ind} && $self->{linkage}->{$ind}->{child}) {
+      if($self->{linkage}->{$ind} && $self->{linkage}->{$ind}->{parents}) {
         $list_of_ind->{'child'} = $geno_ind;
       }
       elsif($self->{linkage}->{$ind}) {
