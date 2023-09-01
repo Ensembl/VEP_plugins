@@ -43,7 +43,7 @@ limitations under the License.
                         - paternal ID
                         - maternal ID
                         - sex
-                        - phenotype
+                        - phenotype (optional)
 
  report_dir         : write files in report_dir (optional)
 
@@ -69,22 +69,23 @@ sub _parse_ped_file {
   my $self = shift;
   my $file = shift;
 
-  open FILE, $file;
-  while(<FILE>) {
+  open(my $fh, '>', $file) or die "Could not open file $file $!\n";
+
+  while(<$fh>) {
     chomp;
     my ($family_id, $ind_id, $paternal_id, $maternal_id, $sex, $pheno) = split/\s+|\t/;
-    
-    if(!defined ($family_id && $ind_id && $paternal_id && $maternal_id && $sex && $pheno)) {
-      die "ERROR: PED file requires dix columns: family ID, individual ID, paternal ID, maternal ID, sex, phenotype\n";
+
+    if(!defined ($family_id && $ind_id && $paternal_id && $maternal_id && $sex)) {
+      die "ERROR: PED file requires dix columns: family ID, individual ID, paternal ID, maternal ID, sex\n";
     }
-    
+
     $self->{linkage}->{$ind_id}->{paternal_id} = $paternal_id;
     $self->{linkage}->{$ind_id}->{maternal_id} = $maternal_id;
     $self->{linkage}->{$ind_id}->{sex} = $sex;
-    $self->{linkage}->{$ind_id}->{pheno} = $pheno;
-    $self->{linkage}->{$ind_id}->{child} = 1 if ($pheno == 2);
+    $self->{linkage}->{$ind_id}->{pheno} = $pheno if(defined $pheno);
+    $self->{linkage}->{$ind_id}->{child} = 1 if ($paternal_id == 0 and $maternal_id == 0);
   }
-  close FILE;
+  close $fh;
 }
 
 sub new {
