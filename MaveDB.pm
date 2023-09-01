@@ -267,7 +267,7 @@ sub run {
     # Check if transcripts match
     if ($self->{transcript_match}) {
       my $transcript = $_->{result}->{MaveDB_refseq};
-      next unless $self->_transcripts_match($tva, $transcript);
+      next unless $transcript eq '' or $self->_transcripts_match($tva, $transcript);
     }
 
     my $matches = get_matched_variant_alleles(
