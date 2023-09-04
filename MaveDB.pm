@@ -247,7 +247,8 @@ sub run {
   # Get allele
   my $allele = $tva->base_variation_feature->alt_alleles;
 
-  my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
+  # Increment 1 to account for insertions
+  my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end} + 1)};
 
   my $all_results = {};
   foreach (@data) {
