@@ -68,6 +68,7 @@ sub run {
 
   return {} unless defined($hgvs_full_string);
   
+  $hgvs_full_string =~ s/Ter|X/*/g;
   return {
       HGVSp  => $hgvs_full_string,
   };
