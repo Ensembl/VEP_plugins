@@ -204,7 +204,7 @@ sub _transcripts_match {
 
   # Get transcript ID for Ensembl and RefSeq
   my $tr = $tva->transcript;
-  my @refseq = split(/,/, $tr->{_refseq}) unless $tr->{_refseq} eq '-';
+  my @refseq = split(/,/, $tr->{_refseq}) if defined $tr->{_refseq} and $tr->{_refseq} ne '-';
   my @tr_id  = ( $tr->{stable_id}, @refseq );
 
   return grep { $transcript eq $_ =~ s/\.[0-9]+//gr } @tr_id;
