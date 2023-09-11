@@ -24,13 +24,17 @@ limitations under the License.
 
 
 =head1 DESCRIPTION
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated Enformer predictions of variant effect on gene expression
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated Enformer predictions of variant impact on chromatin and gene expression.
+
+ The predictions have been aggregated across all 896 spatial bins to generate 5313 features corresponding to track prediction changes in differnet assays and cell types.
 
  This plugin is available for GRCh37 and GRCh38
  
  Please cite the Enformer publication alongside the VEP if you use this resource:
  https://www.nature.com/articles/s41592-021-01252-x
-
+ 
+ GRCh38 scores were lifted over using CrossMap from the Enformer scores available here - https://console.cloud.google.com/storage/browser/dm-enformer/variant-scores/1000-genomes/enformer
+ 
  Enformer scores can be downloaded from https://ftp.ensembl.org/pub/current_variation/Enformer for GRCh37 and GRCh38.
 
  The plugin can then be run as default to retrieve SAD (SNP Activity Difference (SAD) and SAR (Same as SAD, by computing np.log2(1 + model(alternate_sequence)) - np.log2(1 + model(reference_sequence)) scores from Enforme :
