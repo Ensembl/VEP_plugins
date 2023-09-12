@@ -128,23 +128,23 @@ sub new {
 
       my @modes = ('transcript', 'translation', 'gene', 'gene_symbol');
       die "match argument $match is not valid -- available options are: " .
-        join(", ", @modes) . "\n" unless grep /^$match$/, @modes;
-      $self->{match} = $match;
+        join(", ", @modes) . "\n" if defined $match and !grep(/^$match$/, @modes);
     } elsif ( @{ $self->{params} } ) {
       $dir   = $self->{params}->[0];
     }
     $match ||= "transcript";
+    $self->{match} = $match;
 
     if (defined $dir) {
       $dir =~ s/\/?$/\//; # ensure path ends with slash
       die "ERROR: directory $dir not found\n" unless -e -d $dir;
     }
     $dir  ||= "";
-    $file ||= $self->_prepare_filename($reg, $match);
+    $file ||= $self->_prepare_filename($reg);
 
     # Create GFF file with GO terms from database if file does not exist
     $file = $dir . $file;
-    $self->_generate_gff( $file, $match ) unless (-e $file || -e $file.'.lock');
+    $self->_generate_gff($file) unless (-e $file || -e $file.'.lock');
 
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
@@ -273,8 +273,9 @@ sub get_end {
 }
 
 sub _prepare_filename {
-  my ($self, $reg, $match) = @_;
+  my ($self, $reg) = @_;
   my $config = $self->{config};
+  my $match  = $self->{match};
 
   # Prepare file name based on species, database version and assembly
   my $pkg      = __PACKAGE__.'.pm';
@@ -292,7 +293,8 @@ sub _prepare_filename {
 }
 
 sub _generate_gff {
-  my ($self, $file, $match) = @_;
+  my ($self, $file) = @_;
+  my $match = $self->{match};
 
   my $config = $self->{config};
   die("ERROR: Cannot create GFF file in offline mode\n") if $config->{offline};
