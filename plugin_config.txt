@@ -1179,6 +1179,9 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Splicing predictions",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/SpliceAI.pm",
+      "species" => [
+        "homo_sapiens"
+      ],
       "form" => [
         {
           "name" => "file_type",
@@ -1425,6 +1428,24 @@ my $VEP_PLUGIN_CONFIG = {
 
     ## VARIANT DATA
     ###############
+
+    # Open Targets Genetics
+    {
+      "key" => "OpenTargets",
+      "label" => "Open Targets Genetics",
+      "helptip" => "Returns locus-to-gene (L2G) scores to predict causal genes at GWAS loci from Open Targets Genetics",
+      "enabled" => 0,
+      "available" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/OpenTargets.pm",
+      "section" => "Variant data",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"file=/path/to/OpenTargets_data.tsv.gz"
+      ]
+    },
 
     # LD
     {
@@ -1760,8 +1781,13 @@ my $VEP_PLUGIN_CONFIG = {
         "@*"
       ],
       "species" => [
-	"homo_sapiens",
-	"mus_musculus"
+        "homo_sapiens",
+        "mus_musculus",
+        "rattus_norvegicus",
+        "gallus_gallus_gca000002315v5",
+        "saccharomyces_cerevisiae",
+        "arabidopsis_thaliana",
+        "drosophila_melanogaster"
       ],
       "form" => [
         {

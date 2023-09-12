@@ -101,7 +101,7 @@ sub new {
   if(!$from_file) {
     die 'ERROR: Path to python script not specified! Specify path to python script e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($pyscript);
     die 'ERROR: Reference genome not specified! Specify the reference genome after the path to python file e.g. --plugin PON_P2,/path/to/python/client/for/ponp2.py,[hg37/hg38]\n' unless defined($hg);
-    die "ERROR: Wrong reference genome specified! It should be either 'hg37' or 'hg38'\n" unless ($hg ~~ ["hg37","hg38"]);
+    die "ERROR: Wrong reference genome specified! It should be either 'hg37' or 'hg38'\n" unless grep(/^hg3[78]$/, $hg);
     die 'ERROR: Incorrect path to ponp2.py\n' unless -e $pyscript;
   }
 
@@ -182,7 +182,7 @@ sub run {
       my $V = $chr."_".$start."_".$ref_allele."_".$alt;
 
       ## Call pon-p2 python script here
-      my $ponp2Res = `python $command $V $Hg` or return {};
+      my $ponp2Res = `python2 $command $V $Hg` or return {};
       $ponp2Res =~ s/\R//g;
 
       my ($pred, $prob) =split /\t/, $ponp2Res;

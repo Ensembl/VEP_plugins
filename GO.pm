@@ -437,7 +437,8 @@ sub _write_GO_terms_to_file {
   # when there is a new feature, write $info to file and repeat
   my $info;
   my $previous_feature = "";
-  while(my $row = $sth->fetchrow_arrayref()) {
+  while(my $line = $sth->fetchrow_arrayref()) {
+    my $row = [ @$line ];
     my ($id, $go_term, $description) = splice(@$row, -3);
 
     if ($id ne $previous_feature) {

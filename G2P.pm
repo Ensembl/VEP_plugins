@@ -37,6 +37,11 @@ limitations under the License.
  The plugin has multiple configuration options, though minimally requires only
  the CSV file of G2P data.
 
+ For further information see:
+ Thormann A, Halachev M, McLaren W, et al. Flexible and scalable diagnostic filtering of genomic variants using G2P with Ensembl VEP.
+ Nature Communications. 2019 May;10(1):2373. DOI: 10.1038/s41467-019-10016-3. PMID: 31147538; PMCID: PMC6542828.
+
+
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
  file                  : Path to G2P data file. The file needs to be uncompressed.
