@@ -103,8 +103,7 @@ sub _recreate_transcriptVariation_with_ORF {
   my $tva = shift;
   my $orf = shift;
 
-  my $vf = $tva->variation_feature;  
-  my $tr = $tva->transcript;
+  my $slice  = $tva->transcript->slice;
   my $strand = $_->{strand} eq '+' ? 1 : -1;
 
   # Create one exon for each ORF block
@@ -116,7 +115,7 @@ sub _recreate_transcriptVariation_with_ORF {
     my $exon_start = $orf->{chromStart} + $block_start[$k];
     my $exon_end   = $exon_start + $block_size[$k];
     push @$exons, Bio::EnsEMBL::Exon->new(
-                    -SLICE     => $tr->slice,
+                    -SLICE     => $slice,
                     -START     => $exon_start + 1,
                     -END       => $exon_end,
                     -STRAND    => $strand,
@@ -126,7 +125,7 @@ sub _recreate_transcriptVariation_with_ORF {
   }
   $exons = [ reverse @$exons ] if $strand == -1;
 
-  # Create new transcript with previous exons
+  # Create new transcript (the ORF) with previous exons (ORF blocks)
   my $new_tr = Bio::EnsEMBL::Transcript->new(
     -BIOTYPE => 'protein_coding',
     -START   => $orf->{chromStart},
@@ -154,7 +153,7 @@ sub _recreate_transcriptVariation_with_ORF {
   # Create TranscriptVariation object
   my $tv = Bio::EnsEMBL::Variation::TranscriptVariation->new(
     -transcript        => $new_tr,
-    -variation_feature => $vf,
+    -variation_feature => $tva->variation_feature,
   );
   return $tv;
 }
@@ -166,17 +165,13 @@ sub run {
   
   for (@data) {
     next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
-
-    my $tv_orf       = _recreate_transcriptVariation_with_ORF($tva, $_);
-    my $consequences = $tv_orf->consequence_type;
-    my $impact       = $tv_orf->most_severe_OverlapConsequence->impact;
-    my $publications = [ split(",", $_->{ref_studies}) ];
+    my $tv_orf = _recreate_transcriptVariation_with_ORF($tva, $_);
 
     my $res = {
       RiboseqORFs_id           => $_->{name},
-      RiboseqORFs_consequences => $consequences,
-      RiboseqORFs_impact       => $impact,
-      RiboseqORFs_publications => $publications,
+      RiboseqORFs_consequences => $tv_orf->consequence_type,
+      RiboseqORFs_impact       => $tv_orf->most_severe_OverlapConsequence->impact,
+      RiboseqORFs_publications => [ split(",", $_->{ref_studies}) ],
     };
 
     # Group results for JSON and REST
