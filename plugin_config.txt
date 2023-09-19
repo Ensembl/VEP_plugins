@@ -741,6 +741,16 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # AlphaMissense
+    {
+      "key" => "AlphaMissense",
+      "label" => "AlphaMissense",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/AlphaMissense.pm",
+    },
+
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
     # Requires tabix-indexed data file as first param
