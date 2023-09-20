@@ -45,7 +45,9 @@ limitations under the License.
 
  The files can be tabix processed by :
  tar -xzvf varity_all_predictions.tar.gz 
- cat varity_all_predictions.txt | tr " " "\t" > varity_all_tabbed_predictions.tsv
+ cat varity_all_predictions.txt | (head -n 1 && tail -n +2  | sort -t$'\t' -k 1,1 -k 2,2n) > varity_all_predictions_sorted.tsv
+ sort -k1,1 -k2,2n varity_all_predictions.txt -o varity_all_predictions_sorted.txt
+ cat varity_all_predictions_sorted.txt | tr " " "\t" > varity_all_tabbed_predictions.tsv
  sed '1s/.*/#&/'  varity_all_tabbed_predictions.tsv > varity_all_predictions.tsv  # to add a # in the first line of the file 
  bgzip varity_all_predictions.tsv
  tabix -f -s 1 -b 2 -e 2 varity_all_predictions.tsv.gz
