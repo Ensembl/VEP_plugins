@@ -23,12 +23,12 @@ limitations under the License.
 
 =head1 NAME
 
- TrioAnalysis
+ DeNovo
 
 =head1 SYNOPSIS
 
- mv TrioAnalysis.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin TrioAnalysis,ped=samples.ped
+ mv DeNovo.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped
 
 =head1 DESCRIPTION
 
@@ -49,13 +49,13 @@ limitations under the License.
 
 
  The plugin can then be run:
- ./vep -i variations.vcf --plugin TrioAnalysis,ped=samples.ped
- ./vep -i variations.vcf --plugin TrioAnalysis,ped=samples.ped,report_dir=path/to/dir
+ ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped
+ ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped,report_dir=path/to/dir
 
 
 =cut
 
-package TrioAnalysis;
+package DeNovo;
 
 use strict;
 use warnings;
@@ -135,7 +135,14 @@ sub get_header_info {
 
   my %header;
 
-  $header{'TrioAnalysis'} = '';
+  $header{'DeNovo'} = 'De novo variants identified. The output includes the following flags: ' .
+                      'de_novo_alt - variant found in the proband; ' .
+                      'only_in_one_parent - variant found in one parent; ' .
+                      'only_in_both_parents - variant found in both parents; ' .
+                      'in_child_and_one_parent - variant found in proband and one parent ' .
+                      'unexpected_homozygote - variant found in proband and one parent, proband is homozygous and parent is heterozygous' .
+                      'in_child_and_both_parents - variant found in proband and both parents' .
+                      'in_child_het_and_both_parents_hom - variant found in proband homozygous and both parents heterozygous';
 
   return \%header;
 }
@@ -145,7 +152,7 @@ sub run {
   
   my $vf = $tva->variation_feature;
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
-  
+
   my $chr = $vf->{chr};
   my $start = $vf->{start};
 
@@ -168,14 +175,14 @@ sub run {
         $list_of_ind->{'child'} = $geno_ind;
       }
       elsif($self->{linkage}->{$ind}) {
-        push @{$list_of_ind->{'parent'}}, $ind;
+        push @{$list_of_ind->{'parent'}}, $geno_ind;
       }
     }
   }
 
   if(scalar(keys %{$list_of_ind}) == 1) {
     if(defined $list_of_ind->{'child'}) {
-      $result = 'only_in_child';
+      $result = 'de_novo_alt';
       write_report($self->{report_dir}.'/'.$self->{report_de_novo}, $line, $tva, $list_of_ind->{'child'});
     }
     elsif(scalar(@{$list_of_ind->{'parent'}}) == 1) {
@@ -186,19 +193,47 @@ sub run {
     }
   }
   elsif(scalar(keys %{$list_of_ind}) == 2) {
-    if(scalar(@{$list_of_ind->{'parent'}}) == 2) {
-      $result = 'in_child_and_both_parents';
+    # check the parents zygosity
+    my ($child_ind, $child_geno) = split(':', $list_of_ind->{'child'});
+    my $parent_geno = $list_of_ind->{'parent'};
+    my $parents_het = 0; # number of parents that are heterozygous
+    my $parents_hom = 0; # number of parents that are homozygous
+    foreach my $p (@{$parent_geno}) {
+      my ($p_ind, $p_geno) = split(':', $p);
+      if($p_geno eq 'HET') {
+        $parents_het += 1;
+      }
+      if($p_geno eq 'HOM') {
+        $parents_hom += 1;
+      }
+    }
+    
+    if(scalar(@{$parent_geno}) == 2) {
+      # found in the child and both parents
+      if($child_geno eq 'HET' && $parents_hom == 2) {
+        $result = 'in_child_het_and_both_parents_hom';
+      }
+      else {
+        $result = 'in_child_and_both_parents';
+      }
       write_report($self->{report_dir}.'/'.$self->{report_all} , $line, $tva);
     }
     else {
-      $result = 'in_child_and_one_parent';
+      # found in the child and one parent
+      if($child_geno eq 'HOM' && $parents_het == 1) {
+        # TODO: also check chr and gender
+        $result = 'unexpected_homozygote';
+      }
+      else {
+        $result = 'in_child_and_one_parent';
+      }
     }
   }
   else {
     $result = 'not_found';
   }
 
-  return $result ? { TrioAnalysis => $result } : {};
+  return $result ? { DeNovo => $result } : {};
 }
 
 sub write_header {

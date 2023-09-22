@@ -1876,11 +1876,11 @@ my $VEP_PLUGIN_CONFIG = {
     },
 
     {
-      "key" => "TrioAnalysis",
+      "key" => "DeNovo",
       "helptip" => "Identifies de novo variants in a VCF file",
       "available" => 0,
       "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/TrioAnalysis.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/DeNovo.pm",
     }
 
   ]
