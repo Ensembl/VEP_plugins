@@ -46,9 +46,7 @@ limitations under the License.
  The files can be tabix processed by :
  tar -xzvf varity_all_predictions.tar.gz 
  cat varity_all_predictions.txt | (head -n 1 && tail -n +2  | sort -t$'\t' -k 1,1 -k 2,2n) > varity_all_predictions_sorted.tsv
- sort -k1,1 -k2,2n varity_all_predictions.txt -o varity_all_predictions_sorted.txt
- cat varity_all_predictions_sorted.txt | tr " " "\t" > varity_all_tabbed_predictions.tsv
- sed '1s/.*/#&/'  varity_all_tabbed_predictions.tsv > varity_all_predictions.tsv  # to add a # in the first line of the file 
+ sed '1s/.*/#&/'  varity_all_predictions_sorted.tsv > varity_all_predictions.tsv  # to add a # in the first line of the file 
  bgzip varity_all_predictions.tsv
  tabix -f -s 1 -b 2 -e 2 varity_all_predictions.tsv.gz
 
@@ -60,29 +58,27 @@ limitations under the License.
 
 =cut 
 
+
 package VARITY;
-
+ 
 use strict;
-use warnings;
-
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+use warnings; 
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 sub new {
   my $class = shift;
-
+  
   my $self = $class->SUPER::new(@_);
 
   $self->expand_left(0);
   $self->expand_right(0);
   $self->get_user_params();
-
-  my $params = $self->params_to_hash();
   
+  my $params = $self->params_to_hash();
+
   my $file;
   if (!keys %$params) {
     $file = $self->params->[0];
@@ -99,7 +95,6 @@ sub new {
     die "Assembly is not GRCh38, VARITY only works with GRCh38. \n";
   }
   return $self;
-
 }
 
 sub feature_types {
@@ -117,14 +112,14 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   # only for missense variants
-  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  #return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
   my $vf = $tva->variation_feature;
-  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
-  my $ref_allele = $vf->ref_allele_string;
 
-  my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
-  ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
+  my @alleles = split /\//, $vf->allele_string;
+  my $ref_allele = shift @alleles;
+  my $alt_allele = join ',', @alleles;
+
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
@@ -134,35 +129,36 @@ sub run {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $ref_allele,
-        alts   => $alt_alleles,
+        alts   => $alt_allele,
         pos    => $vf->{start},
+        strand => $vf->strand
       },
       {
        ref  => $variant->{ref},
-       alts => [$variant->{alt}],
+       alts => $variant->{alt},
        pos  => $variant->{start},
       }
     );
-    
-    
-    return $variant->{result} if ( (@$matches) && ($variant->{aa_alt} eq $tva->peptide) );
-
+    #return $variant->{result} if ( (@$matches) && ($variant->{aa_alt} eq $tva->peptide) );
+    return $variant->{result} if (@$matches) ;
   }
+
+  return {};
 
 }
 
 sub parse_data {
   my ($self, $line) = @_;
 
-  my @values = split /\t/, $line;
-
-  my ($c, $pos, $ref, $alt, $p_vid, $aa_pos, $aa_ref, $aa_alt, $varity_r, $varity_er, $varity_r_loo, $varity_er_loo) = @values;
+  my ($c, $pos, $ref, $alt, $p_vid, $aa_pos, $aa_ref, $aa_alt, $varity_r, $varity_er, $varity_r_loo, $varity_er_loo) = split("\t", $line);
+  
 
   return {
     chr => $c,
     start => $pos, 
     ref => $ref, 
     alt => $alt, 
+    p_vid => $p_vid,
     aa_pos => $aa_pos, 
     aa_ref => $aa_ref, 
     aa_alt => $aa_alt, 
