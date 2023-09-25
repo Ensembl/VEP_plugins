@@ -33,6 +33,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that identifies de novo variants in a VCF file.
+ The plugin is not compatible with JSON output format.
  
  Options are passed to the plugin as key=value pairs:
 
@@ -64,7 +65,6 @@ use Cwd;
 use Bio::EnsEMBL::Variation::VariationFeature;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepFilterPlugin);
 
-
 sub _parse_ped_file {
   my $self = shift;
   my $file = shift;
@@ -76,7 +76,7 @@ sub _parse_ped_file {
     my ($family_id, $ind_id, $paternal_id, $maternal_id, $sex, $pheno) = split/\s+|\t/;
 
     if(!defined ($family_id && $ind_id && $paternal_id && $maternal_id && $sex)) {
-      die "ERROR: PED file requires dix columns: family ID, individual ID, paternal ID, maternal ID, sex\n";
+      die "ERROR: PED file requires five columns: family ID, individual ID, paternal ID, maternal ID, sex\n";
     }
 
     $self->{linkage}->{$ind_id}->{sex} = $sex;
@@ -136,13 +136,13 @@ sub get_header_info {
   my %header;
 
   $header{'DeNovo'} = 'De novo variants identified. The output includes the following flags: ' .
-                      'de_novo_alt - variant found in the proband; ' .
-                      'only_in_one_parent - variant found in one parent; ' .
-                      'only_in_both_parents - variant found in both parents; ' .
-                      'in_child_and_one_parent - variant found in proband and one parent ' .
-                      'unexpected_homozygote - variant found in proband and one parent, proband is homozygous and parent is heterozygous' .
-                      'in_child_and_both_parents - variant found in proband and both parents' .
-                      'in_child_het_and_both_parents_hom - variant found in proband homozygous and both parents heterozygous';
+                      'de_novo_alt - variant only found in the proband, ' .
+                      'only_in_one_parent - variant found in one parent, ' .
+                      'only_in_both_parents - variant found in both parents, ' .
+                      'in_child_and_one_parent - variant found in proband and one parent, ' .
+                      'unexpected_homozygote - variant found in proband (homozygous) and one parent (heterozygous), ' .
+                      'in_child_and_both_parents - variant found in proband and both parents, ' .
+                      'in_child_het_and_both_parents_hom - variant found in proband (heterozygous) and both parents (homozygous)';
 
   return \%header;
 }
@@ -152,6 +152,8 @@ sub run {
   
   my $vf = $tva->variation_feature;
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
+  # only interested if we know the zygosity
+  return {} if(!$zyg);
 
   my $chr = $vf->{chr};
   my $start = $vf->{start};
@@ -220,8 +222,7 @@ sub run {
     }
     else {
       # found in the child and one parent
-      if($child_geno eq 'HOM' && $parents_het == 1) {
-        # TODO: also check chr and gender
+      if($child_geno eq 'HOM' && $parents_het == 1 && $chr ne 'X' && $self->{linkage}->{$child_ind}->{sex} == 2) {
         $result = 'unexpected_homozygote';
       }
       else {
