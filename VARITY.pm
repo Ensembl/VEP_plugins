@@ -112,7 +112,7 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   # only for missense variants
-  #return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+  return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
   my $vf = $tva->variation_feature;
 
