@@ -65,6 +65,7 @@ use Cwd;
 use Bio::EnsEMBL::Variation::VariationFeature;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepFilterPlugin);
 
+
 sub _parse_ped_file {
   my $self = shift;
   my $file = shift;
@@ -79,10 +80,13 @@ sub _parse_ped_file {
       die "ERROR: PED file requires five columns: family ID, individual ID, paternal ID, maternal ID, sex\n";
     }
 
+    $self->{linkage}->{$ind_id}->{family_id} = $family_id;
     $self->{linkage}->{$ind_id}->{sex} = $sex;
     $self->{linkage}->{$ind_id}->{pheno} = $pheno if(defined $pheno);
     $self->{linkage}->{$ind_id}->{parents}->{mother} = $maternal_id if ($maternal_id);
     $self->{linkage}->{$ind_id}->{parents}->{father} = $paternal_id if ($paternal_id);
+
+    $self->{family_list}->{$family_id} = 1;
   }
   close $fh;
 }
@@ -116,12 +120,15 @@ sub new {
   # force some config params
   $self->{config}->{individual_zyg} = ['all'];
 
-  # Report files
-  $self->{report_de_novo} = "variants_de_novo.txt";
-  $self->{report_all} = "variants_child_and_both_parents.txt";
-  # Write header
-  write_header($self->{report_dir}.'/'.$self->{report_de_novo}, 1);
-  write_header($self->{report_dir}.'/'.$self->{report_all});
+  # Report files for each family
+  my $family_list = $self->{family_list};
+  foreach my $family (keys %{$family_list}) {
+    $self->{report_de_novo}->{$family} = $family . "_variants_de_novo.txt";
+    $self->{report_all}->{$family} = $family . "_variants_child_and_both_parents.txt";
+    # Write header
+    write_header($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, 1);
+    write_header($self->{report_dir}.'/'.$self->{report_all}->{$family});
+  }
 
   return $self;
 }
@@ -158,7 +165,7 @@ sub run {
   my $chr = $vf->{chr};
   my $start = $vf->{start};
 
-  my $result;
+  my @result = ();
   my $list_of_ind;
 
   foreach my $geno_ind (@{$zyg}) {
@@ -169,72 +176,78 @@ sub run {
       die "ERROR: VCF and PED individuals do not match. Please check the individual IDs in PED file: ", join(',', keys %{$self->{linkage}}), "\n";
     }
 
+    my $family_id = $self->{linkage}->{$ind}->{family_id};
+
     # HOM : homozygous
     # HET : heterozygous
     # HOMREF : homozygous reference (not a variant)
     if($geno eq 'HOM' || $geno eq 'HET') {
       if($self->{linkage}->{$ind} && $self->{linkage}->{$ind}->{parents}) {
-        $list_of_ind->{'child'} = $geno_ind;
+        $list_of_ind->{$family_id}->{'child'} = $geno_ind;
       }
       elsif($self->{linkage}->{$ind}) {
-        push @{$list_of_ind->{'parent'}}, $geno_ind;
+        push @{$list_of_ind->{$family_id}->{'parent'}}, $geno_ind;
       }
     }
   }
 
-  if(scalar(keys %{$list_of_ind}) == 1) {
-    if(defined $list_of_ind->{'child'}) {
-      $result = 'de_novo_alt';
-      write_report($self->{report_dir}.'/'.$self->{report_de_novo}, $line, $tva, $list_of_ind->{'child'});
-    }
-    elsif(scalar(@{$list_of_ind->{'parent'}}) == 1) {
-      $result = 'only_in_one_parent';
-    }
-    else {
-      $result = 'only_in_both_parents';
-    }
-  }
-  elsif(scalar(keys %{$list_of_ind}) == 2) {
-    # check the parents zygosity
-    my ($child_ind, $child_geno) = split(':', $list_of_ind->{'child'});
-    my $parent_geno = $list_of_ind->{'parent'};
-    my $parents_het = 0; # number of parents that are heterozygous
-    my $parents_hom = 0; # number of parents that are homozygous
-    foreach my $p (@{$parent_geno}) {
-      my ($p_ind, $p_geno) = split(':', $p);
-      if($p_geno eq 'HET') {
-        $parents_het += 1;
+  foreach my $family (keys %{$self->{family_list}}) {
+    if(scalar(keys %{$list_of_ind->{$family}}) == 1) {
+      if(defined $list_of_ind->{$family}->{'child'}) {
+        push @result, "$family:de_novo_alt";
+        write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
       }
-      if($p_geno eq 'HOM') {
-        $parents_hom += 1;
-      }
-    }
-    
-    if(scalar(@{$parent_geno}) == 2) {
-      # found in the child and both parents
-      if($child_geno eq 'HET' && $parents_hom == 2) {
-        $result = 'in_child_het_and_both_parents_hom';
+      elsif(scalar(@{$list_of_ind->{$family}->{'parent'}}) == 1) {
+        push @result, "$family:only_in_one_parent";
       }
       else {
-        $result = 'in_child_and_both_parents';
+        push @result, "$family:only_in_both_parents";
       }
-      write_report($self->{report_dir}.'/'.$self->{report_all} , $line, $tva);
     }
-    else {
-      # found in the child and one parent
-      if($child_geno eq 'HOM' && $parents_het == 1 && $chr ne 'X' && $self->{linkage}->{$child_ind}->{sex} == 2) {
-        $result = 'unexpected_homozygote';
+    elsif(scalar(keys %{$list_of_ind->{$family}}) == 2) {
+      # check the parents zygosity
+      my ($child_ind, $child_geno) = split(':', $list_of_ind->{$family}->{'child'});
+      my $parent_geno = $list_of_ind->{$family}->{'parent'};
+      my $parents_het = 0; # number of parents that are heterozygous
+      my $parents_hom = 0; # number of parents that are homozygous
+      foreach my $p (@{$parent_geno}) {
+        my ($p_ind, $p_geno) = split(':', $p);
+        if($p_geno eq 'HET') {
+          $parents_het += 1;
+        }
+        if($p_geno eq 'HOM') {
+          $parents_hom += 1;
+        }
+      }
+
+      if(scalar(@{$parent_geno}) == 2) {
+        # found in the child and both parents
+        if($child_geno eq 'HET' && $parents_hom == 2) {
+          push @result, "$family:in_child_het_and_both_parents_hom";
+        }
+        else {
+          push @result, "$family:in_child_and_both_parents";
+        }
+        write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
       }
       else {
-        $result = 'in_child_and_one_parent';
+        # found in the child and one parent
+        if($child_geno eq 'HOM' && $parents_het == 1 && $chr ne 'X' && $self->{linkage}->{$child_ind}->{sex} == 2) {
+          push @result, "$family:unexpected_homozygote";
+        }
+        else {
+          push @result, "$family:in_child_and_one_parent";
+        }
       }
     }
-  }
-  else {
-    $result = 'not_found';
+    else {
+      push @result, "$family:not_found";
+    }
   }
 
-  return $result ? { DeNovo => $result } : {};
+  my $final = join("&", @result) if(scalar(@result) > 0);
+
+  return $final ? { DeNovo => $final } : {};
 }
 
 sub write_header {
