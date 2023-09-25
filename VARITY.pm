@@ -86,7 +86,7 @@ sub new {
   } else {
     $file = $params->{file};
   } 
-
+  
   $self->add_file($file);
   
   my $assembly = $self->{config}->{assembly};
@@ -117,25 +117,23 @@ sub run {
   my $vf = $tva->variation_feature;
 
   my @alleles = split /\//, $vf->allele_string;
-  my $ref_allele = shift @alleles;
-  my $alt_allele = join ',', @alleles;
+  my $allele = $tva->base_variation_feature->alt_alleles;
 
 
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
-
   return {} unless(@data);
 
   foreach my $variant (@data) {
     my $matches = get_matched_variant_alleles(
       {
-        ref    => $ref_allele,
-        alts   => $alt_allele,
+        ref    => $vf->ref_allele_string,
+        alts   => $allele,
         pos    => $vf->{start},
         strand => $vf->strand
       },
       {
        ref  => $variant->{ref},
-       alts => $variant->{alt},
+       alts => [$variant->{alt}],
        pos  => $variant->{start},
       }
     );
@@ -149,8 +147,10 @@ sub run {
 
 sub parse_data {
   my ($self, $line) = @_;
+  
+  my @values = split /\t/, $line;
 
-  my ($c, $pos, $ref, $alt, $p_vid, $aa_pos, $aa_ref, $aa_alt, $varity_r, $varity_er, $varity_r_loo, $varity_er_loo) = split("\t", $line);
+  my ($c, $pos, $ref, $alt, $p_vid, $aa_pos, $aa_ref, $aa_alt, $varity_r, $varity_er, $varity_r_loo, $varity_er_loo) = @values;
   
 
   return {
