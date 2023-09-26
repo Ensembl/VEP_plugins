@@ -1099,6 +1099,24 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # BayesDel
+    {
+      "key" => "BayesDel",
+      "label" => "BayesDel",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "BayesDel is a deleteriousness meta-score.",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/BayesDel.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"/path/to/BayesDel.vcf.gz"
+      ]
+    },
+
     ## SPLICING PREDICTIONS
     #######################
 

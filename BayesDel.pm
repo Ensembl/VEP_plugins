@@ -125,6 +125,7 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
 
+  # TODO: review types of consequence we support
   return {} if grep {$_->SO_term eq 'downstream_gene_variant' || $_->SO_term eq 'upstream_gene_variant' || $_->SO_term eq 'intron_variant'} @{$tva->get_all_OverlapConsequences};
 
   my $vf = $tva->variation_feature;
