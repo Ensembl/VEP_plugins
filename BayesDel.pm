@@ -78,8 +78,6 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 
-use Data::Dumper;
-
 sub new {
   my $class = shift;
 
@@ -125,8 +123,7 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
 
-  # TODO: review types of consequence we support
-  return {} if grep {$_->SO_term eq 'downstream_gene_variant' || $_->SO_term eq 'upstream_gene_variant' || $_->SO_term eq 'intron_variant'} @{$tva->get_all_OverlapConsequences};
+  return {} if grep {$_->SO_term eq 'downstream_gene_variant' || $_->SO_term eq 'upstream_gene_variant'} @{$tva->get_all_OverlapConsequences};
 
   my $vf = $tva->variation_feature;
   my $transcript = $tva->transcript;
