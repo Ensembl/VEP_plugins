@@ -55,8 +55,9 @@ use strict;
 use warnings;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+
+use Bio::EnsEMBL::VEP::Utils qw(format_coords);
 
 sub new {
   my $class = shift;
@@ -82,10 +83,15 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    RiboseqORFs_id           => 'Ribo-seq ORF identifier',
-    RiboseqORFs_consequences => 'Recalculated consequences based on Ribo-seq ORF evidence',
-    RiboseqORFs_impact       => 'Impact rating of the worst recalculated consequence',
-    RiboseqORFs_publications => 'Associated publications',
+    RiboseqORFs_id                => 'Ribo-seq ORF identifier',
+    RiboseqORFs_consequences      => 'Recalculated consequences based on Ribo-seq ORF evidence',
+    RiboseqORFs_cDNA_position     => 'Recalculated position of base pair in cDNA sequence',
+    RiboseqORFs_CDS_position      => 'Recalculated position of base pair in coding sequence',
+    RiboseqORFs_protein_position  => 'Recalculated position of amino acid in protein',
+    RiboseqORFs_amino_acids       => 'Reference and recalculated variant codon sequence',
+    RiboseqORFs_codons            => 'Reference and recalculated variant amino acids',
+    RiboseqORFs_impact            => 'Subjective impact classification of recalculated consequence type',
+    RiboseqORFs_publications      => 'Associated publications',
   };
 }
 
@@ -99,7 +105,7 @@ sub _transcripts_match {
   return grep { $tr eq $_ } @all_trs;
 }
 
-sub _recreate_transcriptVariation_with_ORF {
+sub _recreate_TranscriptVariationAllele_with_ORF {
   my $tva = shift;
   my $orf = shift;
 
@@ -155,7 +161,29 @@ sub _recreate_transcriptVariation_with_ORF {
     -transcript        => $new_tr,
     -variation_feature => $tva->variation_feature,
   );
-  return $tv;
+
+  # Create new TranscriptVariationAllele object with the current allele info
+  my $tva_orf = Bio::EnsEMBL::Variation::TranscriptVariationAllele->new(
+    -base_variation_feature_overlap => $tv,
+    -variation_feature_seq          => $tva->variation_feature_seq,
+    -is_reference                   => $tva->{is_reference},
+  );
+
+  my @ocs    = sort {$a->rank <=> $b->rank} @{$tva_orf->get_all_OverlapConsequences};
+  my $impact = $ocs[0]->impact if @ocs;
+
+  my $hash = {
+    RiboseqORFs_consequences     => [ map { $_->SO_term } @ocs ],
+    RiboseqORFs_impact           => $impact,
+    RiboseqORFs_codons           => $tva_orf->display_codon_allele_string,
+    RiboseqORFs_amino_acids      => $tva_orf->pep_allele_string,
+    RiboseqORFs_protein_position => format_coords($tv->translation_start, $tv->translation_end),
+    RiboseqORFs_cDNA_position    => format_coords($tv->cdna_start, $tv->cdna_end),
+    RiboseqORFs_CDS_position     => format_coords($tv->cds_start, $tv->cds_end),
+  };
+  delete $hash->{RiboseqORFs_codons}      unless $hash->{RiboseqORFs_codons};
+  delete $hash->{RiboseqORFs_amino_acids} unless $hash->{RiboseqORFs_amino_acids};
+  return $hash;
 }
 
 sub run {
@@ -165,14 +193,10 @@ sub run {
   
   for (@data) {
     next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
-    my $tv_orf = _recreate_transcriptVariation_with_ORF($tva, $_);
 
-    my $res = {
-      RiboseqORFs_id           => $_->{name},
-      RiboseqORFs_consequences => $tv_orf->consequence_type,
-      RiboseqORFs_impact       => $tv_orf->most_severe_OverlapConsequence->impact,
-      RiboseqORFs_publications => [ split(",", $_->{ref_studies}) ],
-    };
+    my $res = _recreate_TranscriptVariationAllele_with_ORF($tva, $_);
+    $res->{RiboseqORFs_id}           = $_->{name};
+    $res->{RiboseqORFs_publications} = [ split(",", $_->{ref_studies}) ];
 
     # Group results for JSON and REST
     if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
