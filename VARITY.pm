@@ -124,6 +124,13 @@ sub run {
   return {} unless(@data);
 
   foreach my $variant (@data) {
+    my $aa_ref = $tva->base_variation_feature_overlap->get_reference_TranscriptVariationAllele->peptide;
+    my $aa_alt = $tva->peptide;
+    my $aa_pos = $tva->base_variation_feature_overlap->translation_start;
+    next unless defined $aa_pos && $aa_pos eq $variant->{aa_pos} &&
+                defined $aa_ref && $aa_ref eq $variant->{aa_ref} &&
+                defined $aa_alt && $aa_alt eq $variant->{aa_alt};
+
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
