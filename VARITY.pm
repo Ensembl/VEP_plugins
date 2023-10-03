@@ -105,7 +105,7 @@ sub feature_types {
 sub get_header_info {
   return { VARITY_R => 'Pathogenicity score predicted by the VARITY_R model, specialized in rare missense variants (MAF < 0.5%)',
            VARITY_ER => 'Prediction by VARITY_ER model which was specialized in predicting extremely rare missense variants (No Allele count in gnomAD database)',
-           VARITY_R_LOO => 'Same as VARITY_R except the prediction on the variants used for training was made using Leave-One-Variant out.', 
+           VARITY_R_LOO => 'Pathogenicity score predicted by the VARITY_R model with the Leave-one-variant-out (LOO) strategy.',
            VARITY_ER_LOO => 'Same as VARITY_ER except the prediction on the variants used for training was made using Leave-One-Variant out.'
           };
 }
