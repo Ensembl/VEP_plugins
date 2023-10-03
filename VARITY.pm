@@ -28,7 +28,7 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv VARITY.pm ~/.vep/Plugins
- ./vep -i variations.vcf --assembly GRCh38 --plugin VARITY,file=/path/to/varity_all_predictions.txt
+ ./vep -i variations.vcf --assembly GRCh37 --plugin VARITY,file=/path/to/varity_all_predictions.txt
 
  
 =head1 DESCRIPTION
