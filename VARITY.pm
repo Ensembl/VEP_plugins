@@ -92,8 +92,8 @@ sub new {
   
   my $assembly = $self->{config}->{assembly};
 
-  if ($assembly ne "GRCh38") {
-    die "Assembly is not GRCh38, VARITY only works with GRCh38. \n";
+  if ($assembly ne "GRCh37") {
+    die "Assembly is not GRCh37, VARITY only works with GRCh37. \n";
   }
   return $self;
 }
