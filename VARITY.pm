@@ -117,7 +117,6 @@ sub run {
 
   my $vf = $tva->variation_feature;
 
-  my @alleles = split /\//, $vf->allele_string;
   my $allele = $tva->base_variation_feature->alt_alleles;
 
 
