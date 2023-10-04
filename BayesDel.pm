@@ -137,11 +137,8 @@ sub run {
     reverse_comp(\$alt_allele);
   }
 
-  return {} unless $alt_allele =~ /^[ACGT]$/;
-
   my ($res) = grep {
     $_->{start} == $start &&
-    $_->{start} == $end &&
     $_->{ref} eq $ref_allele &&
     $_->{alt} eq $alt_allele
   } @{$self->get_data($vf->{chr}, $start, $end)};
