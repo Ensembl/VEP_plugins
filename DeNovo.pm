@@ -124,9 +124,11 @@ sub new {
   my $family_list = $self->{family_list};
   foreach my $family (keys %{$family_list}) {
     $self->{report_de_novo}->{$family} = $family . "_variants_de_novo.txt";
+    $self->{report_both_parents}->{$family} = $family . "_variants_both_parents.txt";
     $self->{report_all}->{$family} = $family . "_variants_child_and_both_parents.txt";
     # Write header
     write_header($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, 1);
+    write_header($self->{report_dir}.'/'.$self->{report_both_parents}->{$family});
     write_header($self->{report_dir}.'/'.$self->{report_all}->{$family});
   }
 
@@ -147,7 +149,7 @@ sub get_header_info {
                       'only_in_one_parent - variant found in one parent, ' .
                       'only_in_both_parents - variant found in both parents, ' .
                       'in_child_and_one_parent - variant found in proband and one parent, ' .
-                      'unexpected_homozygote - variant found in proband (homozygous) and one parent (heterozygous), ' .
+                      'in_child_hom_and_one_parent_het - variant found in proband (homozygous) and one parent (heterozygous), ' .
                       'in_child_and_both_parents - variant found in proband and both parents, ' .
                       'in_child_het_and_both_parents_hom - variant found in proband (heterozygous) and both parents (homozygous)';
 
@@ -202,6 +204,7 @@ sub run {
       }
       else {
         push @result, "$family:only_in_both_parents";
+        write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
       }
     }
     elsif(scalar(keys %{$list_of_ind->{$family}}) == 2) {
@@ -232,8 +235,8 @@ sub run {
       }
       else {
         # found in the child and one parent
-        if($child_geno eq 'HOM' && $parents_het == 1 && $chr ne 'X' && $self->{linkage}->{$child_ind}->{sex} == 2) {
-          push @result, "$family:unexpected_homozygote";
+        if($child_geno eq 'HOM' && $parents_het == 1) {
+          push @result, "$family:in_child_hom_and_one_parent_het";
         }
         else {
           push @result, "$family:in_child_and_one_parent";
