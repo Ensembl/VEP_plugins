@@ -170,10 +170,6 @@ sub new {
   return $self;
 }
 
-sub version {
-  return 111;
-}
-
 sub feature_types {
   return ['Transcript'];
 }
