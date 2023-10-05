@@ -40,7 +40,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin GO,file=${HOME}/custom_go_terms.gff.gz
 
  # annotate input based on gene identifiers instead of transcripts/translations
- ./vep -i variations.vcf --plugin GO,gene=1
+ ./vep -i variations.vcf --plugin GO,match=gene
 
  # use remote connection (available for compatibility purposes)
  ./vep -i variations.vcf --plugin GO,remote
