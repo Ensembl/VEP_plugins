@@ -207,6 +207,7 @@ sub run {
       $id = $tr->{stable_id};
     }
 
+return {} unless defined $id;
     my @data = @{$self->get_data($seqname, $start, $end)};
     foreach (@data) {
       return $_->{result} if $_->{id} eq $id;
