@@ -29,11 +29,29 @@ limitations under the License.
 
  mv DosageSensitivity.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin DosageSensitivity,file=/FULL_PATH_TO/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz
- ./vep -i variations.vcf --plugin DosageSensitivity,file=/FULL_PATH_TO/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz,sv_only=1
+ ./vep -i variations.vcf --plugin DosageSensitivity,file=/FULL_PATH_TO/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz,cover=1
 
 =head1 DESCRIPTION
 
+ A VEP plugin that retrieves pHaplo and pTriplo scores for effected gene from dosage
+ senistivity catalogue from the paper -
+ https://www.sciencedirect.com/science/article/pii/S0092867422007887
+ 
+ Please cite the above publication alongside the VEP if you use this resource:
 
+ pHaplo score gives the probability of a gene being haploinsufficient and pTriplo score 
+ gives the probability of a gene being triploinsensitive.
+
+ Pre-requisites:
+ You need the compressed tsv file containing the dosage sensitivity score. The file
+ can be downloaded from here - 
+ https://zenodo.org/record/6347673
+
+ Options are passed to the plugin as key=value pairs:
+
+ file   : (mandatory) compressed tsv file containing dosage sensitivity scores
+ cover  : set value to 1 if you want scores to be repoted only if variant covers the 
+ effeted gene completely (e.g. - a CNV that duplicates the gene) 
  
 =cut
 
@@ -58,9 +76,11 @@ sub new {
   die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $param_hash->{file};
   $self->{file} = $param_hash->{file};
 
+  $self->{cover} = defined $param_hash->{cover} && $param_hash->{cover} eq '1' ? 1 : 0;
+
   $self->{header} = {
-    "pHaplo" => "haploinsufficiency likelihood score",
-    "pTriplo" => "triplosensitivity likelihood score"
+    "pHaplo" => "probability of haploinsufficiency of the effected gene",
+    "pTriplo" => "probability of triplosensitivity of the effected gene"
   };
 
   return $self;
@@ -99,16 +119,35 @@ sub _process_DS_file {
   return $dosage_sensitivity_matrix;
 }
 
+sub _variant_cover_gene {
+  my ($self, $tva) = @_;
+
+  my $vf = undef;
+  if (ref($tva) eq "Bio::EnsEMBL::Variation::TranscriptStructuralVariationAllele"){
+    $vf = $tva->structural_variation_feature;
+  }
+  else {
+    $vf = $tva->variation_feature;
+  }
+
+  my $gene = $tva->transcript->get_Gene;
+
+  return 0 unless (defined $vf && defined $gene);
+
+  return $vf->start <= $gene->start && $vf->end >= $gene->end;
+}
+
 sub run {
   my ($self, $tva) = @_;
   
   my $gene_name = $tva->transcript->get_Gene->external_name;
-  print($gene_name,"\n");
   return {} unless defined $gene_name;
+  
+  if ($self->{cover}) {
+    return {} unless $self->_variant_cover_gene($tva);
+  }
 
   my $dosage_sensitivity_matrix = $self->_process_DS_file($self->{file});
-  use Data::Dumper;
-  print Dumper($dosage_sensitivity_matrix->{$gene_name}), "\n";
   return $dosage_sensitivity_matrix->{$gene_name};
 }
 
