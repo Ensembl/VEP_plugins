@@ -51,8 +51,9 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
 
  file   : (mandatory) compressed tsv file containing dosage sensitivity scores
- cover  : set value to 1 to report scores only if the variant covers the 
- affected gene completely (e.g. - a CNV that duplicates the gene); 0 by default
+ cover  : set value to 1 (0 by default) to report scores only if the variant
+ covers the affected feature completely (e.g. - a CNV that duplicates the gene). 
+ The feature is a gene if using --database otherwise it is a transcript.
  
 =cut
 
@@ -132,17 +133,17 @@ sub _variant_cover_gene {
     $vf = $tva->variation_feature;
   }
 
-  my $gene = $tva->transcript->get_Gene;
+  my $feature = $self->config->{database} ? $tva->transcript->get_Gene : $tva->transcript;
 
-  return 0 unless (defined $vf && defined $gene);
+  return 0 unless (defined $vf && defined $feature);
 
-  return $vf->start <= $gene->start && $vf->end >= $gene->end;
+  return $vf->start <= $feature->start && $vf->end >= $feature->end;
 }
 
 sub run {
   my ($self, $tva) = @_;
   
-  my $gene_name = $tva->transcript->get_Gene->external_name;
+  my $gene_name = $tva->transcript->{_gene_symbol};
   return {} unless defined $gene_name;
   
   if ($self->{cover}) {
@@ -150,7 +151,7 @@ sub run {
   }
 
   my $dosage_sensitivity_matrix = $self->_process_DS_file($self->{file});
-  return $dosage_sensitivity_matrix->{$gene_name};
+  return $dosage_sensitivity_matrix->{$gene_name} || {};
 }
 
 1;
