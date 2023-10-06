@@ -39,8 +39,9 @@ limitations under the License.
  
  Please cite the above publication alongside the VEP if you use this resource.
 
- pHaplo score gives the probability of a gene being haploinsufficient and pTriplo score 
- gives the probability of a gene being triploinsensitive.
+ This plugin returns two scores:
+ - pHaplo score gives the probability of a gene being haploinsufficient (deletion intolerant)
+ - pTriplo score gives the probability of a gene being triploinsensitive (duplication intolerant)
 
  Pre-requisites:
  You need the compressed tsv file containing the dosage sensitivity score. The file
