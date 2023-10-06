@@ -51,8 +51,8 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
 
  file   : (mandatory) compressed tsv file containing dosage sensitivity scores
- cover  : set value to 1 if you want scores to be repoted only if variant covers the 
- effeted gene completely (e.g. - a CNV that duplicates the gene) 
+ cover  : set value to 1 to report scores only if the variant covers the 
+ affected gene completely (e.g. - a CNV that duplicates the gene); 0 by default
  
 =cut
 
