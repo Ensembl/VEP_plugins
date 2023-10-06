@@ -33,8 +33,8 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves pHaplo and pTriplo scores for effected gene from dosage
- senistivity catalogue from the paper -
+ A VEP plugin that retrieves haploinsufficiency and triplosensitivity probability scores
+ for affected genes from a dosage sensitivity catalogue published in paper -
  https://www.sciencedirect.com/science/article/pii/S0092867422007887
  
  Please cite the above publication alongside the VEP if you use this resource:
