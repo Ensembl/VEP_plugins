@@ -92,7 +92,7 @@ sub variant_feature_types {
 }
 
 sub feature_types {
-  return ['Transcript'];
+  return ['Feature'];
 }
 
 sub get_header_info {
