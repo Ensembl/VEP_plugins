@@ -80,8 +80,8 @@ sub new {
   $self->{cover} = defined $param_hash->{cover} && $param_hash->{cover} eq '1' ? 1 : 0;
 
   $self->{header} = {
-    "pHaplo" => "probability of haploinsufficiency of the effected gene",
-    "pTriplo" => "probability of triplosensitivity of the effected gene"
+    "pHaplo" => "Probability of haploinsufficiency (deletion intolerance) of the affected gene",
+    "pTriplo" => "Probability of triplosensitivity (duplication intolerance) of the affected gene"
   };
 
   return $self;
