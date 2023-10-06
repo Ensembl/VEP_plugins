@@ -37,7 +37,7 @@ limitations under the License.
  for affected genes from a dosage sensitivity catalogue published in paper -
  https://www.sciencedirect.com/science/article/pii/S0092867422007887
  
- Please cite the above publication alongside the VEP if you use this resource:
+ Please cite the above publication alongside the VEP if you use this resource.
 
  pHaplo score gives the probability of a gene being haploinsufficient and pTriplo score 
  gives the probability of a gene being triploinsensitive.
