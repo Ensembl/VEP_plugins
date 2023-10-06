@@ -74,7 +74,7 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  die "ERROR: file is not specified which is a mandatory parameter\n" unless defined $param_hash->{file};
+  die "ERROR: file must be specified, such as file=/FULL_PATH_TO/dosage_sensitivity_scores.tsv.gz\n" unless defined $param_hash->{file};
   $self->{file} = $param_hash->{file};
 
   $self->{cover} = defined $param_hash->{cover} && $param_hash->{cover} eq '1' ? 1 : 0;
