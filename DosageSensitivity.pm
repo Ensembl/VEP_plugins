@@ -112,6 +112,7 @@ sub _process_DS_file {
   while(<$fh>){
     next if $_[0] eq '#';
 
+    chomp;
     ($gene, $pHaplo, $pTriplo) = split /\t/;
     $dosage_sensitivity_matrix->{$gene}->{pHaplo} = $pHaplo;
     $dosage_sensitivity_matrix->{$gene}->{pTriplo} = $pTriplo;
