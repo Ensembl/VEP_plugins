@@ -1892,6 +1892,24 @@ my $VEP_PLUGIN_CONFIG = {
         }
       ]
     },
+
+    # DosageSensitivity
+    {
+      "key" => "DosageSensitivity",
+      "label" => "DosageSensitivity",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Functional effect",
+      "helptip" => "DosageSensitivity determines the likelihood of a gene being haploinsufficient or triplosensitive",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/DosageSensitivity.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#file=/path/to/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+    },
     
     ## REGULATORY IMPACT 
     ####################
