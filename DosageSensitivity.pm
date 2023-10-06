@@ -45,7 +45,7 @@ limitations under the License.
 
  Pre-requisites:
  You need the compressed tsv file containing the dosage sensitivity score. The file
- can be downloaded from here - 
+ Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz can be downloaded from here - 
  https://zenodo.org/record/6347673
 
  Options are passed to the plugin as key=value pairs:
