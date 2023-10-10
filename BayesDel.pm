@@ -35,7 +35,7 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds the BayesDel scores to VEP output.
 
-  BayesDel is a deleteriousness meta-score combining multiple deleteriousness predictors to create an overall score. It works for coding and non-coding variants,
+ BayesDel is a deleteriousness meta-score combining multiple deleteriousness predictors to create an overall score. It works for coding and non-coding variants,
  single nucleotide variants and small insertion/deletions.
  The range of the score is from -1.29334 to 0.75731.
  The higher the score, the more likely the variant is pathogenic.
