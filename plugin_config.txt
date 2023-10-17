@@ -768,7 +768,9 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "params" => [
-        #"/path/to/whole_genome_SNVs.tsv.gz"
+        #"/path/to/CADD_whole_genome_SNVs.tsv.gz",
+        #"/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
+        #"/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
 
