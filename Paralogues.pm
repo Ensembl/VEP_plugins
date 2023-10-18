@@ -114,6 +114,73 @@ sub _join_results {
   return $all_results;
 }
 
+sub _get_transcript_homologies {
+  my $self       = shift;
+  my $transcript = shift;
+
+  my $config  = $self->{config};
+  my $species = $config->{species};
+  my $reg     = $config->{reg};
+
+  # reconnect to DB without species param
+  if ($config->{host}) {
+    $reg->load_registry_from_db(
+      -host       => $config->{host},
+      -user       => $config->{user},
+      -pass       => $config->{password},
+      -port       => $config->{port},
+      -db_version => $config->{db_version},
+      -no_cache   => $config->{no_slice_cache},
+    );
+  }
+  my $ha = $reg->get_adaptor( "multi", "compara", "homology" );
+
+  $self->{ga} ||= $reg->get_adaptor($species, 'core', 'gene');
+  my $gene = $self->{ga}->fetch_by_stable_id( $transcript->{_gene_stable_id} );
+  my $homologies = $ha->fetch_all_by_Gene(
+    $gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES', -TARGET_SPECIES => $species);
+  return $homologies;
+}
+
+sub _get_paralogue_coords {
+  my $self     = shift;
+  my $tva      = shift;
+  my $homology = shift;
+
+  my $aln = $homology->get_SimpleAlign;
+  my $translation_id    = $tva->transcript->translation->stable_id;
+  my $translation_start = $tva->base_variation_feature_overlap->translation_start;
+
+  # identify paralogue protein
+  my @proteins = keys %{ $aln->{'_start_end_lists'} };
+  my $paralogue;
+  if ($translation_id eq $proteins[0]) {
+    $paralogue = $proteins[1];
+  } elsif ($translation_id eq $proteins[1]) {
+    $paralogue = $proteins[0];
+  } else {
+    return;
+  }
+
+  # get genomic coordinates from paralogue
+  my $col    = $aln->column_from_residue_number($translation_id, $translation_start);
+  my $coords = $aln->get_seq_by_id($paralogue)->location_from_column($col);
+  return unless defined $coords and $coords->location_type eq 'EXACT';
+
+  my $config  = $self->{config};
+  my $species = $config->{species};
+  my $reg     = $config->{reg};
+
+  $self->{ta}     ||= $reg->get_adaptor($species, 'core', 'translation');
+  my $para_tr       = $self->{ta}->fetch_by_stable_id($paralogue)->transcript;
+  my ($para_coords) = $para_tr->pep2genomic($coords->start, $coords->start);
+
+  my $chr   = $para_tr->seq_region_name;
+  my $start = $para_coords->start;
+  my $end   = $para_coords->end;
+  return ($chr, $start, $end);
+}
+
 sub _summarise_vf {
   my $vf = shift;
   return {
@@ -133,64 +200,19 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-
   my $transcript = $tva->transcript;
   my $translation_start = $tva->base_variation_feature_overlap->translation_start;
   return {} unless defined $translation_start;
 
-  my $species = $self->{config}->{species};
   my $config  = $self->{config};
   my $reg     = $config->{reg};
-
-  my $ga      = $reg->get_adaptor($species, 'core', 'gene');
-  my $ta      = $reg->get_adaptor($species, 'core', 'translation');
-  my $sa      = $reg->get_adaptor($species, 'core', 'slice');
-  my $vfa     = $reg->get_adaptor($species, 'variation', 'variationfeature');
-
-  # reconnect to DB without species param
-  if ($config->{host}) {
-    $reg->load_registry_from_db(
-      -host       => $config->{host},
-      -user       => $config->{user},
-      -pass       => $config->{password},
-      -port       => $config->{port},
-      -db_version => $config->{db_version},
-      -no_cache   => $config->{no_slice_cache},
-    );
-  }
-  my $ha = $reg->get_adaptor( "multi", "compara", "homology" );
-
-  my $gene = $ga->fetch_by_stable_id( $transcript->{_gene_stable_id} );
-  my $protein = $transcript->translation->stable_id;
+  my $species = $config->{species};
 
   my $all_results = {};
-  my $homologies = $ha->fetch_all_by_Gene(
-    $gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES', -TARGET_SPECIES => $species);
+  my $homologies = $self->_get_transcript_homologies($transcript);
   for my $homology (@$homologies) {
-    my $aln = $homology->get_SimpleAlign;
-
-    # identify paralogue protein
-    my @proteins = keys %{ $aln->{'_start_end_lists'} };
-    my $paralogue;
-    if ($protein eq $proteins[0]) {
-      $paralogue = $proteins[1];
-    } elsif ($protein eq $proteins[1]) {
-      $paralogue = $proteins[0];
-    } else {
-      next;
-    }
-
-    # get genomic coordinates from paralogue
-    my $col    = $aln->column_from_residue_number($protein, $translation_start);
-    my $coords = $aln->get_seq_by_id($paralogue)->location_from_column($col);
-    next unless defined $coords and $coords->location_type eq 'EXACT';
-
-    my $para_tr       = $ta->fetch_by_stable_id($paralogue)->transcript;
-    my ($para_coords) = $para_tr->pep2genomic($coords->start, $coords->start);
-
-    my $chr   = $para_tr->seq_region_name;
-    my $start = $para_coords->start;
-    my $end   = $para_coords->end;
+    my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $homology);
+    next unless defined $chr and defined $start and defined $end;
 
     if (@{$self->{_files}}) {
       # get variants from custom VCF file
@@ -198,8 +220,11 @@ sub run {
       $all_results = $self->_join_results($all_results, $_) for @data;
     } else {
       # get Ensembl variants from mapped genomic coordinates
-      my $slice = $sa->fetch_by_region('chromosome', $chr, $start, $end);
-      foreach my $var ( @{ $vfa->fetch_all_by_Slice($slice) } ) {
+      $self->{sa}  ||= $reg->get_adaptor($species, 'core', 'slice');
+      $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
+
+      my $slice = $self->{sa}->fetch_by_region('chromosome', $chr, $start, $end);
+      foreach my $var ( @{ $self->{vfa}->fetch_all_by_Slice($slice) } ) {
         my $res = _summarise_vf($var);
         $all_results = $self->_join_results($all_results, $res);
       }
