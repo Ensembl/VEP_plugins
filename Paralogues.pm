@@ -135,15 +135,14 @@ sub run {
   my $vf = $tva->variation_feature;
 
   my $transcript = $tva->transcript;
-  my ($pep_coords) = $transcript->genomic2pep($vf->start, $vf->end, $transcript->strand);
-
-  # return empty hash if there is no match from genomic to peptide coordinates
-  return {} if ref $pep_coords eq 'Bio::EnsEMBL::Mapper::Gap';
+  my $translation_start = $tva->base_variation_feature_overlap->translation_start;
+  return {} unless defined $translation_start;
 
   my $species = $self->{config}->{species};
   my $config  = $self->{config};
   my $reg     = $config->{reg};
 
+  my $ga      = $reg->get_adaptor($species, 'core', 'gene');
   my $ta      = $reg->get_adaptor($species, 'core', 'translation');
   my $sa      = $reg->get_adaptor($species, 'core', 'slice');
   my $vfa     = $reg->get_adaptor($species, 'variation', 'variationfeature');
@@ -161,11 +160,12 @@ sub run {
   }
   my $ha = $reg->get_adaptor( "multi", "compara", "homology" );
 
-  my $gene = $transcript->get_Gene;
+  my $gene = $ga->fetch_by_stable_id( $transcript->{_gene_stable_id} );
   my $protein = $transcript->translation->stable_id;
 
   my $all_results = {};
-  my $homologies = $ha->fetch_all_by_Gene($gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES');
+  my $homologies = $ha->fetch_all_by_Gene(
+    $gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES', -TARGET_SPECIES => $species);
   for my $homology (@$homologies) {
     my $aln = $homology->get_SimpleAlign;
 
@@ -181,7 +181,7 @@ sub run {
     }
 
     # get genomic coordinates from paralogue
-    my $col    = $aln->column_from_residue_number($protein, $pep_coords->start);
+    my $col    = $aln->column_from_residue_number($protein, $translation_start);
     my $coords = $aln->get_seq_by_id($paralogue)->location_from_column($col);
     next unless defined $coords and $coords->location_type eq 'EXACT';
 
@@ -199,13 +199,12 @@ sub run {
     } else {
       # get Ensembl variants from mapped genomic coordinates
       my $slice = $sa->fetch_by_region('chromosome', $chr, $start, $end);
-      foreach my $vf ( @{ $vfa->fetch_all_by_Slice($slice) } ) {
-        my $res = _summarise_vf($vf);
+      foreach my $var ( @{ $vfa->fetch_all_by_Slice($slice) } ) {
+        my $res = _summarise_vf($var);
         $all_results = $self->_join_results($all_results, $res);
       }
     }
   }
-
   return $all_results;
 }
 
