@@ -290,7 +290,7 @@ sub run {
 sub check_multi_allelic {
   my ($ref_allele, $vf_genotype, $child_ind, $parent_geno, $n_parents) = @_;
 
-  my $same = 0;
+  my $different = 0;
   my $result;
 
   # $vf_genotype has the genotype of all individuals from all families
@@ -314,15 +314,15 @@ sub check_multi_allelic {
   }
 
   foreach my $key (keys %{$child_alleles}) {
-    if($parents_alleles->{$key}) {
-      $same = 1;
+    if(!$parents_alleles->{$key}) {
+      $different = 1;
     }
   }
 
-  if(!$same) {
+  if($different) {
     $result = 'de_novo_alt';
   }
-  elsif($same && $n_parents == 2) {
+  elsif(!$different && $n_parents == 2) {
     $result = 'in_child_and_both_parents';
   }
   else {
