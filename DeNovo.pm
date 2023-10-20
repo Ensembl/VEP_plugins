@@ -240,7 +240,7 @@ sub run {
         }
         # Multi-allelic variants are different
         else {
-          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno, 2);
+          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno);
           push @result, "$family:$multi_allelic_r";
           if($multi_allelic_r eq 'de_novo_alt') {
             write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
@@ -260,7 +260,7 @@ sub run {
         }
         # Multi-allelic variants are different
         else {
-          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno, 1);
+          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno);
           push @result, "$family:$multi_allelic_r";
           if($multi_allelic_r eq 'de_novo_alt') {
             write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
@@ -288,9 +288,10 @@ sub run {
 #           0|2 1|1 0|1
 #           HET HOM HET
 sub check_multi_allelic {
-  my ($ref_allele, $vf_genotype, $child_ind, $parent_geno, $n_parents) = @_;
+  my ($ref_allele, $vf_genotype, $child_ind, $parent_geno) = @_;
 
   my $different = 0;
+  my $n_parents = 0;
   my $result;
 
   # $vf_genotype has the genotype of all individuals from all families
@@ -308,7 +309,7 @@ sub check_multi_allelic {
 
     foreach my $x (@{$vf_genotype->{$parent_ind}}) {
       if($x ne $ref_allele) {
-        $parents_alleles->{$x} = 1;
+        $parents_alleles->{$x} += 1;
       }
     }
   }
@@ -316,6 +317,9 @@ sub check_multi_allelic {
   foreach my $key (keys %{$child_alleles}) {
     if(!$parents_alleles->{$key}) {
       $different = 1;
+    }
+    else {
+      $n_parents = $parents_alleles->{$key};
     }
   }
 
