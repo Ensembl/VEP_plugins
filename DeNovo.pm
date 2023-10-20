@@ -166,6 +166,11 @@ sub run {
 
   my $chr = $vf->{chr};
   my $start = $vf->{start};
+  my @alleles = split /\//, $vf->allele_string;
+  my $ref_allele = shift @alleles;
+  my $n_alt_alleles = scalar(@alleles);
+
+  my $vf_genotype = $vf->{genotype_ind} ? $vf->{genotype_ind} : undef;
 
   my @result = ();
   my $list_of_ind;
@@ -225,21 +230,44 @@ sub run {
 
       if(scalar(@{$parent_geno}) == 2) {
         # found in the child and both parents
-        if($child_geno eq 'HET' && $parents_hom == 2) {
+        if($child_geno eq 'HET' && $parents_hom == 2 && $n_alt_alleles == 1) {
           push @result, "$family:in_child_het_and_both_parents_hom";
+          write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
         }
-        else {
+        elsif($n_alt_alleles == 1) {
           push @result, "$family:in_child_and_both_parents";
+          write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
         }
-        write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+        # Multi-allelic variants are different
+        else {
+          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno, 2);
+          push @result, "$family:$multi_allelic_r";
+          if($multi_allelic_r eq 'de_novo_alt') {
+            write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
+          }
+          else {
+            write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+          }
+        }
       }
       else {
         # found in the child and one parent
-        if($child_geno eq 'HOM' && $parents_het == 1) {
+        if($child_geno eq 'HOM' && $parents_het == 1 && $n_alt_alleles == 1) {
           push @result, "$family:in_child_hom_and_one_parent_het";
         }
-        else {
+        elsif($n_alt_alleles == 1) {
           push @result, "$family:in_child_and_one_parent";
+        }
+        # Multi-allelic variants are different
+        else {
+          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno, 1);
+          push @result, "$family:$multi_allelic_r";
+          if($multi_allelic_r eq 'de_novo_alt') {
+            write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
+          }
+          else {
+            write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+          }
         }
       }
     }
@@ -251,6 +279,57 @@ sub run {
   my $final = join("&", @result) if(scalar(@result) > 0);
 
   return $final ? { DeNovo => $final } : {};
+}
+
+# This method checks multi-allelic variants
+# Checking the genotype returned by --individual_zyg is not enough to determine if variant is de novo
+# Example:
+#           1 46352728 A/C/G
+#           0|2 1|1 0|1
+#           HET HOM HET
+sub check_multi_allelic {
+  my ($ref_allele, $vf_genotype, $child_ind, $parent_geno, $n_parents) = @_;
+
+  my $same = 0;
+  my $result;
+
+  # $vf_genotype has the genotype of all individuals from all families
+  # we want to select the individuals for this specific family
+  my $parents_alleles;
+  my $child_alleles;
+  foreach my $x (@{$vf_genotype->{$child_ind}}) {
+    if($x ne $ref_allele) {
+      $child_alleles->{$x} = 1;
+    }
+  }
+
+  foreach my $p (@{$parent_geno}) {
+    my ($parent_ind, $parent_geno) = split(':', $p);
+
+    foreach my $x (@{$vf_genotype->{$parent_ind}}) {
+      if($x ne $ref_allele) {
+        $parents_alleles->{$x} = 1;
+      }
+    }
+  }
+
+  foreach my $key (keys %{$child_alleles}) {
+    if($parents_alleles->{$key}) {
+      $same = 1;
+    }
+  }
+
+  if(!$same) {
+    $result = 'de_novo_alt';
+  }
+  elsif($same && $n_parents == 2) {
+    $result = 'in_child_and_both_parents';
+  }
+  else {
+    $result = 'in_child_and_one_parent';
+  }
+
+  return $result;
 }
 
 sub write_header {
