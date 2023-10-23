@@ -47,7 +47,7 @@ limitations under the License.
 
  The tabix utility must be installed in your path to use this plugin. The Open
  Targets Genetics file and respective index (TBI) file can be downloaded from:
- http://ftp.ebi.ac.uk/pub/databases/opentargets/genetics/22.09/OTGenetics_VEP/
+ https://ftp.ebi.ac.uk/pub/databases/opentargets/genetics/22.09/OTGenetics_VEP
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed file from Open Targets Genetics
