@@ -29,11 +29,17 @@ limitations under the License.
 
  mv Paralogues.pm ~/.vep/Plugins
 
- # Fetch Ensembl variants in paralogue proteins (requires database access) -- slowest mode
- ./vep -i variations.vcf --database --plugin Paralogues
+ # Download Ensembl paralogue annotation (if not available in current directory)
+ # and fetch variants from Ensembl API (requires database access)
+ ./vep -i variations.vcf --plugin Paralogues
 
- # Fetch variants from custom VCF file based on Ensembl paralogues (requires database access)
- ./vep -i variations.vcf --database --plugin Paralogues,vcf=/path/to/file.vcf
+ # Download Ensembl paralogue annotation (if not available in current directory)
+ # and fetch variants from custom VCF file
+ ./vep -i variations.vcf --plugin Paralogues,vcf=/path/to/file.vcf
+
+ # Fetch Ensembl variants in paralogue proteins using only the Ensembl API
+ # (requires database access)
+ ./vep -i variations.vcf --database --plugin Paralogues,mode=remote
 
 =head1 DESCRIPTION
 
@@ -48,11 +54,370 @@ package Paralogues;
 use strict;
 use warnings;
 
+use Bio::SimpleAlign;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+
+## GENERATE PARALOGUE ANNOTATION -----------------------------------------------
+
+sub _prepare_filename {
+  my $self = shift;
+  my $config = $self->{config};
+  my $reg    = $config->{reg};
+
+  # Prepare file name based on species, database version and assembly
+  my $pkg      = __PACKAGE__.'.pm';
+  my $species  = $config->{species};
+  my $version  = $config->{db_version} || $reg->software_version;
+  my @name     = ($pkg, $species, $version);
+
+  if( $species eq 'homo_sapiens' || $species eq 'human'){
+    my $assembly = $config->{assembly} || $config->{human_assembly};
+    die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
+    push(@name, $version) if defined $assembly;
+  }
+  return join("_", @name) . ".tsv.gz";
+}
+
+sub _get_homology_adaptor {
+  my $self   = shift;
+  my $config = $self->{config};
+  my $reg    = $config->{reg};
+  return $self->{ha} if $self->{ha};
+
+  # reconnect to DB without species param
+  if ($config->{host}) {
+    $reg->load_registry_from_db(
+      -host       => $config->{host},
+      -user       => $config->{user},
+      -pass       => $config->{password},
+      -port       => $config->{port},
+      -db_version => $config->{db_version},
+      -no_cache   => $config->{no_slice_cache},
+    );
+  }
+
+  return $reg->get_adaptor( "multi", "compara", "homology" );
+}
+
+sub _get_method_link_species_set_id {
+  my $ha = shift;
+  my $species = shift;
+  my $type = shift;
+
+  # Get ID corresponding to species and paralogues
+  my @query = qq/
+    SELECT method_link_species_set_id
+    FROM method_link_species_set
+    JOIN method_link USING (method_link_id)
+    JOIN species_set ss USING (species_set_id)
+    JOIN genome_db gdb ON ss.genome_db_id = gdb.genome_db_id
+    WHERE gdb.name = "$species" AND type = "$type";
+  /;
+  my $sth = $ha->db->dbc->prepare(@query, { mysql_use_result => 1 });
+  $sth->execute();
+  my $id = @{$sth->fetchrow_arrayref}[0];
+  $sth->finish();
+  return $id;
+}
+
+sub _write_paralogue_annotation {
+  my ($sth, $file) = @_;
+
+  # Open lock
+  my $lock = "$file\.lock";
+  open LOCK, ">$lock" or
+    die "ERROR: $file not found and cannot write to lock file $lock\n";
+  print LOCK "1\n";
+  close LOCK;
+
+  open OUT, " | bgzip -c > $file" or die "ERROR: cannot write to file $file\n";
+
+  # write header
+  my @header = qw(homology_id chr start end strand stable_id version
+                  perc_cov perc_id perc_pos cigar_line
+                  paralogue_chr paralogue_start paralogue_end paralogue_strand
+                  paralogue_stable_id paralogue_version paralogue_cigar_line);
+  print OUT "#", join("\t", @header), "\n";
+
+  while (my $line = $sth->fetchrow_arrayref()) {
+    print OUT join("\t", @$line), "\n";
+  }
+
+  close OUT;
+  unlink($lock);
+  return $file;
+}
+
+sub _generate_paralogue_annotation {
+  my $self = shift;
+  my $file = shift;
+
+  my $config  = $self->{config};
+  my $species = $config->{species};
+  my $reg     = $config->{reg};
+
+  die("ERROR: Cannot generate paralogue annotation in offline mode\n") if $config->{offline};
+  die("ERROR: Cannot generate paralogue annotation in REST mode\n") if $config->{rest};
+
+  print "### Paralogues plugin: Querying Ensembl compara database (this may take a few minutes)\n" unless $config->{quiet};
+
+  $self->{ha} ||= $self->_get_homology_adaptor;
+  my $mlss_id = _get_method_link_species_set_id($self->{ha}, $species, 'ENSEMBL_PARALOGUES');
+
+  # Create paralogue annotaton
+  my @query = qq/
+    SELECT
+      hm.homology_id,
+      df.name AS chr,
+      sm.dnafrag_start   AS start,
+      sm.dnafrag_end     AS end,
+      sm.dnafrag_strand  AS strand,
+      sm.stable_id,
+      sm.version,
+      hm.perc_cov,
+      hm.perc_id,
+      hm.perc_pos,
+      hm.cigar_line,
+      df2.name           AS paralogue_chr,
+      sm2.dnafrag_start  AS paralogue_start,
+      sm2.dnafrag_end    AS paralogue_end,
+      sm2.dnafrag_strand AS paralogue_strand,
+      sm2.stable_id      AS paralogue_id,
+      sm2.version        AS paralogue_version,
+      hm2.cigar_line     AS paralogue_cigar_line
+
+    -- Reference proteins
+    FROM homology_member hm
+    JOIN homology h USING (homology_id)
+    JOIN seq_member sm USING (seq_member_id)
+    JOIN dnafrag df USING (dnafrag_id)
+
+    -- Paralogue proteins
+    JOIN homology_member hm2 ON hm.homology_id = hm2.homology_id
+    JOIN seq_member sm2 ON hm2.seq_member_id = sm2.seq_member_id
+    JOIN dnafrag df2 ON sm2.dnafrag_id = df2.dnafrag_id
+
+    WHERE method_link_species_set_id = ${mlss_id} AND
+          sm.source_name = 'ENSEMBLPEP' AND
+          sm2.stable_id != sm.stable_id
+    ORDER BY df.name, sm.dnafrag_start, sm.dnafrag_end;
+  /;
+  my $sth = $self->{ha}->db->dbc->prepare(@query, { mysql_use_result => 1});
+  $sth->execute();
+
+  print "### Paralogues plugin: Writing to file\n" unless $config->{quiet};
+  _write_paralogue_annotation($sth, $file);
+  $sth->finish();
+
+  print "### Paralogues plugin: Creating tabix index\n" unless $config->{quiet};
+  system "tabix -s2 -b3 -e4 $file" and die "ERROR: tabix index creation failed\n";
+
+  print "### Paralogues plugin: file ready at $file\n" unless $config->{quiet};
+  return 1;
+}
+
+sub _get_database_homologies {
+  my $self       = shift;
+  my $transcript = shift;
+
+  my $config  = $self->{config};
+  my $species = $config->{species};
+  my $reg     = $config->{reg};
+
+  $self->{ha} ||= $self->_get_homology_adaptor;
+  $self->{ga} ||= $reg->get_adaptor($species, 'core', 'gene');
+  my $gene = $self->{ga}->fetch_by_stable_id( $transcript->{_gene_stable_id} );
+  my $homologies = $self->{ha}->fetch_all_by_Gene(
+    $gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES', -TARGET_SPECIES => $species);
+  return $homologies;
+}
+
+## RETRIEVE PARALOGUES FROM ANNOTATION -----------------------------------------
+
+sub _compose_alignment_from_cigar {
+  my $seq = shift;
+  my $cigar = shift;
+
+  die "Unsupported characters found in CIGAR line: $cigar\n"
+    unless $cigar =~ /^[0-9MD]+$/;
+
+  my $aln_str = $seq;
+  my $index = 0;
+  while ($cigar =~ /(\d*)([MD])/g) {
+    my $num = $1 || 1;
+    my $letter = $2;
+    substr($aln_str, $index, 0) = '-' x $num if $letter =~ /D/;
+    $index += $num;
+  }
+  return $aln_str;
+}
+
+sub _create_SimpleAlign {
+  my ($self, $homology_id, $protein, $ref_cigar, $paralogue, $par_cigar) = @_;
+
+  my $par       = $paralogue->translation;
+  my $par_id    = $par->stable_id;
+  my $par_seq   = $par->seq;
+
+  my $ref_id  = $protein->stable_id;
+  my $ref_seq = $protein->seq;
+
+  my $aln = Bio::SimpleAlign->new();
+  $aln->id($homology_id);
+  $aln->add_seq(Bio::LocatableSeq->new(
+    -SEQ        => _compose_alignment_from_cigar($ref_seq, $ref_cigar),
+    -ALPHABET   => 'protein',
+    -START      => 1,
+    -END        => length($ref_seq),
+    -ID         => $ref_id,
+    -STRAND     => 0
+  ));
+  $aln->add_seq(Bio::LocatableSeq->new(
+    -SEQ        => _compose_alignment_from_cigar($par_seq, $par_cigar),
+    -ALPHABET   => 'protein',
+    -START      => 1,
+    -END        => length($par_seq),
+    -ID         => $par_id,
+    -STRAND     => 0
+  ));
+
+  # add paralogue information to retrieve from cache later on
+  my $key = $par_id . '_info';
+  $aln->{$key}->{_chr}    = $paralogue->seq_region_name;
+  $aln->{$key}->{_start}  = $par->genomic_start;
+  $aln->{$key}->{_strand} = $paralogue->strand;
+
+  return $aln;
+}
+
+sub _get_paralogues {
+  my ($self, $vf, $translation) = @_;
+  my $var_chr   = $vf->seq_region_name || $vf->{chr};
+  my $var_start = $vf->start - 2;
+  my $var_end   = $vf->end;
+
+  # get translation info
+  my $translation_id  = $translation->stable_id;
+  my $translation_seq = $translation->seq;
+
+  # get paralogues for this variant region
+  my $file = $self->{paralogues};
+  my $data = `tabix $file $var_chr:$var_start-$var_end`;
+  my @data = split /\n/, $data;
+
+  my $paralogues = [];
+  for (@data) {
+    my (
+      $homology_id, $chr, $start, $end, $strand, $protein_id, $version,
+      $perc_cov, $perc_id, $perc_pos, $cigar,
+      $para_chr, $para_start, $para_end, $para_strand, $para_id, $para_version, 
+      $para_cigar
+    ) = split /\t/, $_;
+    next unless $translation_id eq $protein_id;
+
+    my $paralogue = $self->_get_transcript_from_translation(
+      $para_id, $para_chr, $para_start, $para_end);
+    my $aln = $self->_create_SimpleAlign($homology_id, $translation, $cigar,
+                                         $paralogue, $para_cigar);
+    push @$paralogues, $aln;
+  }
+  return $paralogues;
+}
+
+sub _get_paralogue_coords {
+  my $self = shift;
+  my $tva  = shift;
+  my $aln  = shift;
+
+  my $translation_id    = $tva->transcript->translation->stable_id;
+  my $translation_start = $tva->base_variation_feature_overlap->translation_start;
+
+  # identify paralogue protein
+  my @proteins = keys %{ $aln->{'_start_end_lists'} };
+  my $paralogue;
+  if ($translation_id eq $proteins[0]) {
+    $paralogue = $proteins[1];
+  } elsif ($translation_id eq $proteins[1]) {
+    $paralogue = $proteins[0];
+  } else {
+    return;
+  }
+
+  # get genomic coordinates for aligned residue in paralogue
+  my $col    = $aln->column_from_residue_number($translation_id, $translation_start);
+  my $coords = $aln->get_seq_by_id($paralogue)->location_from_column($col);
+  return unless defined $coords and $coords->location_type eq 'EXACT';
+
+  my $tr_info          = $aln->{$paralogue . '_info'};
+  my $tr_chr           = $tr_info->{_chr}    if defined $tr_info;
+  my $tr_genomic_start = $tr_info->{_start}  if defined $tr_info;
+  my $tr_strand        = $tr_info->{_strand} if defined $tr_info;
+  my $para_tr = $self->_get_transcript_from_translation(
+    $paralogue, $tr_chr, $tr_genomic_start, $tr_strand);
+
+  my ($para_coords) = $para_tr->pep2genomic($coords->start, $coords->start);
+  my $chr   = $para_tr->seq_region_name;
+  my $start = $para_coords->start;
+  my $end   = $para_coords->end;
+  return ($chr, $start, $end);
+}
+
+## GET DATA FROM ANNOTATION ----------------------------------------------------
+
+sub _get_transcript_from_translation {
+  my $self       = shift;
+  my $protein_id = shift;
+  my $chr        = shift;
+  my $start      = shift;
+  my $strand     = shift;
+
+  die "No protein identifier given\n" unless defined $protein_id;
+  return $self->{_cache}->{$protein_id} if $self->{_cache}->{$protein_id};
+  my $config  = Bio::EnsEMBL::VEP::Config->new( $self->{config} );
+
+  # try to get transcript from cache
+  if (defined $chr and defined $start and defined $strand) {
+    my $ib = Bio::EnsEMBL::VEP::InputBuffer->new({
+      config => $config,
+      variation_features => [
+        Bio::EnsEMBL::Variation::VariationFeature->new_fast({
+          chr => $chr, start => $start, end => $start, strand => $strand
+        })
+      ],
+    });
+    $ib->next();
+
+    my $asa = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $config});
+    my $as = $asa->get_all_from_cache->[0];
+    my $features = $as->get_all_features_by_InputBuffer($ib);
+    for my $transcript (@$features) {
+      my $translation = $transcript->translation;
+      if ($translation && $translation->stable_id eq $protein_id) {
+        $self->{_cache}->{$protein_id} = $transcript;
+        return $transcript;
+      }
+    }
+  }
+
+  # get transcript from database if not returned yet
+  if ($self->{config}->{offline}) {
+    die "Translation $protein_id not cached; avoid using --offline to allow to connect to database\n";
+  }
+
+  my $species = $config->species;
+  my $reg     = $config->registry;
+  $self->{ta} ||= $reg->get_adaptor($species, 'core', 'translation');
+
+  my $transcript = $self->{ta}->fetch_by_stable_id($protein_id)->transcript;
+  $self->{_cache}->{$protein_id} = $transcript;
+  return $transcript;
+}
+
+## PLUGIN ----------------------------------------------------------------------
 
 sub new {
   my $class = shift;  
@@ -62,15 +427,32 @@ sub new {
   $self->expand_right(0);
   $self->get_user_params();
 
-  # Check files in arguments
   my $params = $self->params_to_hash();
-  $self->add_file($params->{vcf}) if defined $params->{vcf};
+  my $config = $self->{config};
 
+  # Check for custom VCF
+  if (defined $params->{vcf}) {
+    $self->{vcf} = $params->{vcf};
+    $self->add_file($params->{vcf});
+  } elsif ($config->{offline} || $config->{rest}) {
+    my $mode = $config->{rest} ? "REST" : "offline";
+    die("ERROR: Cannot fetch Ensembl variants in $mode mode; please define vcf argument in the Paralogues plugin\n");
+  }
+
+  # Check if paralogue annotation should be retrieved from Ensembl API
+  $self->{remote} = defined $params->{mode} && $params->{mode} eq 'remote';
+
+  if (!$self->{remote}) {
+    # Generate paralogue annotation
+    my $annot = $self->_prepare_filename;
+    $self->_generate_paralogue_annotation($annot) unless (-e $annot || -e "$annot.lock");
+    $self->{paralogues} = $annot;
+  }
   return $self;
 }
 
 sub feature_types {
-  return ['Feature', 'Intergenic'];
+  return ['Feature'];
 }
 
 sub get_header_info {
@@ -83,7 +465,7 @@ sub get_header_info {
     PARALOGUE_VARIANT_ALLELES     => 'Paralogue variant alleles',
   };
 
-  if ( @{$self->{_files}} ) {
+  if ( $self->{vcf} ) {
     $header->{'PARALOGUE_VARIANT_INFO_*'} = 'Paralogue variant fields based on VCF INFO field';
   } else {
     $header->{'PARALOGUE_VARIANT_STRAND'}      = 'Paralogue variant strand';
@@ -114,73 +496,6 @@ sub _join_results {
   return $all_results;
 }
 
-sub _get_transcript_homologies {
-  my $self       = shift;
-  my $transcript = shift;
-
-  my $config  = $self->{config};
-  my $species = $config->{species};
-  my $reg     = $config->{reg};
-
-  # reconnect to DB without species param
-  if ($config->{host}) {
-    $reg->load_registry_from_db(
-      -host       => $config->{host},
-      -user       => $config->{user},
-      -pass       => $config->{password},
-      -port       => $config->{port},
-      -db_version => $config->{db_version},
-      -no_cache   => $config->{no_slice_cache},
-    );
-  }
-  my $ha = $reg->get_adaptor( "multi", "compara", "homology" );
-
-  $self->{ga} ||= $reg->get_adaptor($species, 'core', 'gene');
-  my $gene = $self->{ga}->fetch_by_stable_id( $transcript->{_gene_stable_id} );
-  my $homologies = $ha->fetch_all_by_Gene(
-    $gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES', -TARGET_SPECIES => $species);
-  return $homologies;
-}
-
-sub _get_paralogue_coords {
-  my $self     = shift;
-  my $tva      = shift;
-  my $homology = shift;
-
-  my $aln = $homology->get_SimpleAlign;
-  my $translation_id    = $tva->transcript->translation->stable_id;
-  my $translation_start = $tva->base_variation_feature_overlap->translation_start;
-
-  # identify paralogue protein
-  my @proteins = keys %{ $aln->{'_start_end_lists'} };
-  my $paralogue;
-  if ($translation_id eq $proteins[0]) {
-    $paralogue = $proteins[1];
-  } elsif ($translation_id eq $proteins[1]) {
-    $paralogue = $proteins[0];
-  } else {
-    return;
-  }
-
-  # get genomic coordinates from paralogue
-  my $col    = $aln->column_from_residue_number($translation_id, $translation_start);
-  my $coords = $aln->get_seq_by_id($paralogue)->location_from_column($col);
-  return unless defined $coords and $coords->location_type eq 'EXACT';
-
-  my $config  = $self->{config};
-  my $species = $config->{species};
-  my $reg     = $config->{reg};
-
-  $self->{ta}     ||= $reg->get_adaptor($species, 'core', 'translation');
-  my $para_tr       = $self->{ta}->fetch_by_stable_id($paralogue)->transcript;
-  my ($para_coords) = $para_tr->pep2genomic($coords->start, $coords->start);
-
-  my $chr   = $para_tr->seq_region_name;
-  my $start = $para_coords->start;
-  my $end   = $para_coords->end;
-  return ($chr, $start, $end);
-}
-
 sub _summarise_vf {
   my $vf = shift;
   return {
@@ -200,26 +515,37 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-  my $transcript = $tva->transcript;
   my $translation_start = $tva->base_variation_feature_overlap->translation_start;
   return {} unless defined $translation_start;
 
-  my $config  = $self->{config};
-  my $reg     = $config->{reg};
-  my $species = $config->{species};
+  my $homologies = [];
+  if ($self->{remote}) {
+    $homologies = $self->_get_database_homologies($tva->transcript);
+  } else {
+    my $translation = $tva->transcript->translation;
+    $homologies = $self->{_cache_homologies}->{$translation->stable_id} ||=
+      $self->_get_paralogues($vf, $translation);
+  }
+  return {} unless @$homologies;
 
   my $all_results = {};
-  my $homologies = $self->_get_transcript_homologies($transcript);
-  for my $homology (@$homologies) {
-    my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $homology);
+  for my $aln (@$homologies) {
+    $aln = $aln->get_SimpleAlign if $aln->isa('Bio::EnsEMBL::Compara::Homology');
+    next unless $aln->isa('Bio::SimpleAlign');
+
+    my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $aln);
     next unless defined $chr and defined $start and defined $end;
 
-    if (@{$self->{_files}}) {
+    if (defined $self->{vcf}) {
       # get variants from custom VCF file
       my @data = @{$self->get_data($chr, $start - 2, $end)};
       $all_results = $self->_join_results($all_results, $_) for @data;
     } else {
       # get Ensembl variants from mapped genomic coordinates
+      my $config  = $self->{config};
+      my $reg     = $config->{reg};
+      my $species = $config->{species};
+
       $self->{sa}  ||= $reg->get_adaptor($species, 'core', 'slice');
       $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
 
@@ -234,7 +560,9 @@ sub run {
 }
 
 sub parse_data {
-  my ($self, $line) = @_;
+  my ($self, $line, $file) = @_;
+
+  # parse custom VCF data
   my ($chrom, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
 
   # VCF-like adjustment of mismatched substitutions for comparison with VEP
