@@ -44,7 +44,8 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that fetches variants overlapping the genomic coordinates of amino
- acids aligned between paralogue proteins.
+ acids aligned between paralogue proteins. This is useful to predict
+ pathogenicity of variants in paralogue positions.
 
  This plugin automatically downloads paralogue annotation from Ensembl databases
  if not available in the current directory (by default). Use argument `dir` to
