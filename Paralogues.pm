@@ -384,24 +384,34 @@ sub _get_transcript_from_translation {
 
   # try to get transcript from cache
   if (defined $chr and defined $start and defined $strand) {
-    my $ib = Bio::EnsEMBL::VEP::InputBuffer->new({
-      config => $config,
-      variation_features => [
-        Bio::EnsEMBL::Variation::VariationFeature->new_fast({
-          chr => $chr, start => $start, end => $start, strand => $strand
-        })
-      ],
-    });
-    $ib->next();
-
     my $asa = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $config});
     my $as = $asa->get_all_from_cache->[0];
-    my $features = $as->get_all_features_by_InputBuffer($ib);
-    for my $transcript (@$features) {
-      my $translation = $transcript->translation;
-      if ($translation && $translation->stable_id eq $protein_id) {
-        $self->{_cache}->{$protein_id} = $transcript;
-        return $transcript;
+
+    my (@regions, $seen, $min_max, $min, $max);
+    my $cache_region_size = $as->{cache_region_size};
+    my $up_down_size = defined $as->{up_down_size} ? $as->{up_down_size} : $as->up_down_size;
+    ($chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
+      $chr, $start, $start, $min_max, $cache_region_size, $up_down_size, $seen);
+
+    foreach my $region (@regions) {
+      my ($chr, $range) = @$region;
+
+      my $file = $as->get_dump_file_name(
+        $chr,
+        ($range * $cache_region_size) + 1,
+        ($range + 1) * $cache_region_size
+      );
+
+      my @features = @{
+        $as->deserialized_obj_to_features( $as->deserialize_from_file($file) )
+      } if -e $file;
+
+      for my $transcript (@features) {
+        my $translation = $transcript->translation;
+        if ($translation && $translation->stable_id eq $protein_id) {
+          $self->{_cache}->{$protein_id} = $transcript;
+          return $transcript;
+        }
       }
     }
   }
