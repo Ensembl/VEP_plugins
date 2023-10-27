@@ -336,6 +336,9 @@ sub _get_paralogue_coords {
   my $translation_id    = $tva->transcript->translation->stable_id;
   my $translation_start = $tva->base_variation_feature_overlap->translation_start;
 
+  # avoid cases where $translation_start is located in stop codon
+  return unless $translation_start <= $tva->transcript->translation->length;
+
   # identify paralogue protein
   my @proteins = keys %{ $aln->{'_start_end_lists'} };
   my $paralogue;
