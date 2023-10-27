@@ -406,8 +406,12 @@ sub _get_transcript_from_translation {
 
   # try to get transcript from cache
   if (defined $chr and defined $start and defined $strand) {
-    my $asa = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $config});
-    my $as = $asa->get_all_from_cache->[0];
+    my $as = $self->{as};
+    if (!defined $as) {
+      # cache AnnotationSource
+      my $asa = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $config});
+      $as = $self->{as} = $asa->get_all_from_cache->[0];
+    }
 
     my (@regions, $seen, $min_max, $min, $max);
     my $cache_region_size = $as->{cache_region_size};
