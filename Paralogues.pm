@@ -77,7 +77,7 @@ sub _prepare_filename {
   if( $species eq 'homo_sapiens' || $species eq 'human'){
     my $assembly = $config->{assembly} || $config->{human_assembly};
     die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
-    push(@name, $version) if defined $assembly;
+    push(@name, $assembly) if defined $assembly;
   }
   return join("_", @name) . ".tsv.gz";
 }
@@ -444,23 +444,31 @@ sub new {
   my $config = $self->{config};
 
   # Check for custom VCF
-  if (defined $params->{vcf}) {
-    $self->{vcf} = $params->{vcf};
-    $self->add_file($params->{vcf});
+  my $vcf = $params->{vcf};
+  if (defined $vcf) {
+    $self->{vcf} = $vcf;
+    $self->add_file($vcf);
   } elsif ($config->{offline} || $config->{rest}) {
     my $mode = $config->{rest} ? "REST" : "offline";
     die("ERROR: Cannot fetch Ensembl variants in $mode mode; please define vcf argument in the Paralogues plugin\n");
   }
 
-  # Check if paralogue annotation should be retrieved from Ensembl API
+  # Check if paralogue annotation should be downloaded
   $self->{remote} = defined $params->{mode} && $params->{mode} eq 'remote';
+  return $self if $self->{remote};
 
-  if (!$self->{remote}) {
-    # Generate paralogue annotation
-    my $annot = $self->_prepare_filename;
-    $self->_generate_paralogue_annotation($annot) unless (-e $annot || -e "$annot.lock");
-    $self->{paralogues} = $annot;
+  # Generate paralogue annotation
+  my $annot = defined $params->{paralogues} ? $params->{paralogues} : $self->_prepare_filename;
+
+  my $dir = $params->{dir};
+  if (defined $dir) {
+    die "ERROR: directory $dir not found" unless -e -d $dir;
+    $annot = File::Spec->catfile( $dir, $annot );
   }
+  warn Data::Dumper::Dumper $annot;
+
+  $self->_generate_paralogue_annotation($annot) unless (-e $annot || -e "$annot.lock");
+  $self->{paralogues} = $annot;
   return $self;
 }
 
