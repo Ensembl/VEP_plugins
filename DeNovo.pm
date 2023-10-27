@@ -360,19 +360,33 @@ sub write_report {
   my $tva = shift;
   my $geno_ind = shift;
 
-  my $cdna = $tva->transcript_variation->cdna_start() ? $tva->transcript_variation->cdna_start() : '-';
-  my $peptide_start = defined($tva->transcript_variation->translation_start) ? $tva->transcript_variation->translation_start : '-';
-  my $aa_string = $tva->pep_allele_string ? $tva->pep_allele_string : '-';
-  my $codon = $tva->transcript_variation->codons ? $tva->transcript_variation->codons : '-';
+  my $cdna = '-';
+  my $peptide_start = '-';
+  my $codon = '-';
+  my $aa_string = '-';
+  my $gene = '-';
+  my $feature = '-';
+  my $feature_type = '-';
+
+  if(!$tva->isa('Bio::EnsEMBL::Variation::IntergenicVariationAllele')) {
+    $cdna = defined($tva->transcript_variation) && defined($tva->transcript_variation->cdna_start()) ? $tva->transcript_variation->cdna_start() : '-';
+    $peptide_start = defined($tva->transcript_variation) && defined($tva->transcript_variation->translation_start) ? $tva->transcript_variation->translation_start : '-';
+    $codon = defined($tva->transcript_variation) && defined($tva->transcript_variation->codons) ? $tva->transcript_variation->codons : '-';
+    $aa_string = defined($tva->pep_allele_string) ? $tva->pep_allele_string : '-';
+    $gene = $line->{Gene};
+    $feature = $line->{Feature};
+    $feature_type = $line->{Feature_type};
+  }
+
   my $existing_variation;
-  
+
   my $ind;
   my $geno;
-  
+
   open(my $fh, '>>', $file) or die "Could not open file $file $!\n";
 
-  my $out_line = $line->{Uploaded_variation}."\t".$line->{Location}."\t".$line->{Allele}."\t".$line->{Gene}."\t"
-  .$line->{Feature}."\t".$line->{Feature_type}."\t".join(',', @{$line->{Consequence}})."\t".$cdna."\t".$peptide_start.
+  my $out_line = $line->{Uploaded_variation}."\t".$line->{Location}."\t".$line->{Allele}."\t".$gene."\t"
+  .$feature."\t".$feature_type."\t".join(',', @{$line->{Consequence}})."\t".$cdna."\t".$peptide_start.
   "\t".$aa_string."\t".$codon;
 
   if($geno_ind) {
