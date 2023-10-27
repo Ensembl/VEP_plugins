@@ -36,7 +36,7 @@ PhenotypeOrthologous
 
 =cut 
 
-package PhenotypeOrthologous
+package PhenotypeOrthologous;
 
 use strict;
 use warnings;
@@ -102,8 +102,8 @@ sub parse_data {
 
   my ($c, $grc, $feat, $s, $e, $n, $str, $n2, $note) = split /\t/, $line;
   
-  my @fields = split /;/, $info;
-  my %data_fields
+  my @fields = split /;/, $note;
+  my %data_fields;
   
   foreach my $field (@fields){
     my ($key, $value) = split /=/, $field;
@@ -118,3 +118,13 @@ sub parse_data {
     result => $data_fields{"Rat_Orthologous_phenotype"},
   };
 }
+
+sub get_start {
+  return $_[1]->{start};
+}
+
+sub get_end {
+  return $_[1]->{end};
+}
+
+1;
