@@ -487,7 +487,6 @@ sub new {
     die "ERROR: directory $dir not found" unless -e -d $dir;
     $annot = File::Spec->catfile( $dir, $annot );
   }
-  warn Data::Dumper::Dumper $annot;
 
   $self->_generate_paralogue_annotation($annot) unless (-e $annot || -e "$annot.lock");
   $self->{paralogues} = $annot;
