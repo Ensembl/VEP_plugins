@@ -43,8 +43,29 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that fetches variants from paralogue proteins.
- 
+ A VEP plugin that fetches variants overlapping the genomic coordinates of amino
+ acids aligned between paralogue proteins.
+
+ This plugin automatically downloads paralogue annotation from Ensembl databases
+ if not available in the current directory (by default). Use argument `dir` to
+ change the directory of the paralogue annotation:
+   --plugin Paralogues,dir=/path/to/dir
+
+ It is also possible to point to a custom tabix-indexed TSV file by using
+ argument `paralogues`:
+   --plugin Paralogues,paralogues=file.tsv.gz
+   --plugin Paralogues,dir=/path/to/dir,paralogues=paralogues_file.tsv.gz
+   --plugin Paralogues,paralogues=/path/to/dir/paralogues_file.tsv.gz
+
+ The overlapping variants can be fetched from Ensembl API (by default) or a
+ custom VCF file. To fetch variants from a VCF, use argument `vcf`:
+   --plugin Paralogues,vcf=/path/to/file.vcf
+
+ To avoid downloading data locally, the plugin also has a remote mode that
+ optionally supports a custom VCF file:
+   --plugin Paralogues,mode=remote
+   --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf
+
  The tabix utility must be installed in your path to use this plugin.
 
 =cut
