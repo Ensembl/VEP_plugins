@@ -168,6 +168,7 @@ sub run {
   my $start = $vf->{start};
   my @alleles = split /\//, $vf->allele_string;
   my $ref_allele = shift @alleles;
+  my $alt_allele = $tva->variation_feature_seq;
   my $n_alt_alleles = scalar(@alleles);
 
   my $vf_genotype = $vf->{genotype_ind} ? $vf->{genotype_ind} : undef;
@@ -240,12 +241,12 @@ sub run {
         }
         # Multi-allelic variants are different
         else {
-          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno);
+          my $multi_allelic_r = check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
           push @result, "$family:$multi_allelic_r";
           if($multi_allelic_r eq 'de_novo_alt') {
             write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
           }
-          else {
+          elsif($multi_allelic_r eq 'in_child_and_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
           }
         }
@@ -260,12 +261,12 @@ sub run {
         }
         # Multi-allelic variants are different
         else {
-          my $multi_allelic_r = check_multi_allelic($ref_allele, $vf_genotype, $child_ind, $parent_geno);
+          my $multi_allelic_r = check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
           push @result, "$family:$multi_allelic_r";
           if($multi_allelic_r eq 'de_novo_alt') {
             write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
           }
-          else {
+          elsif($multi_allelic_r eq 'in_child_and_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
           }
         }
@@ -288,9 +289,9 @@ sub run {
 #           0|2 1|1 0|1
 #           HET HOM HET
 sub check_multi_allelic {
-  my ($ref_allele, $vf_genotype, $child_ind, $parent_geno) = @_;
+  my ($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno) = @_;
 
-  my $different = 0;
+  my $found_child = 0;
   my $n_parents = 0;
   my $result;
 
@@ -299,7 +300,7 @@ sub check_multi_allelic {
   my $parents_alleles;
   my $child_alleles;
   foreach my $x (@{$vf_genotype->{$child_ind}}) {
-    if($x ne $ref_allele) {
+    if($x ne $ref_allele && $x eq $alt_allele) {
       $child_alleles->{$x} = 1;
     }
   }
@@ -308,29 +309,36 @@ sub check_multi_allelic {
     my ($parent_ind, $parent_geno) = split(':', $p);
 
     foreach my $x (@{$vf_genotype->{$parent_ind}}) {
-      if($x ne $ref_allele) {
+      if($x ne $ref_allele && $x eq $alt_allele) {
         $parents_alleles->{$x} += 1;
       }
     }
   }
 
-  foreach my $key (keys %{$child_alleles}) {
-    if(!$parents_alleles->{$key}) {
-      $different = 1;
-    }
-    else {
-      $n_parents = $parents_alleles->{$key};
-    }
+  if(defined $child_alleles->{$alt_allele}) {
+    $found_child = $child_alleles->{$alt_allele};
+  }
+  if(defined $parents_alleles->{$alt_allele}) {
+    $n_parents = $parents_alleles->{$alt_allele};
   }
 
-  if($different) {
+  if($found_child && !$n_parents) {
     $result = 'de_novo_alt';
   }
-  elsif(!$different && $n_parents == 2) {
+  elsif($found_child && $n_parents == 2) {
     $result = 'in_child_and_both_parents';
   }
-  else {
+  elsif($found_child && $n_parents == 1) {
     $result = 'in_child_and_one_parent';
+  }
+  elsif(!$found_child && $n_parents == 1) {
+    $result = 'only_in_one_parent';
+  }
+  elsif(!$found_child && $n_parents == 2) {
+    $result = 'only_in_both_parents';
+  }
+  else {
+    $result = 'not_found';
   }
 
   return $result;
