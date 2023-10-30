@@ -314,9 +314,12 @@ sub check_multi_allelic {
   # we want to select the individuals for this specific family
   my $parents_alleles;
   my $child_alleles;
-  foreach my $x (@{$vf_genotype->{$child_ind}}) {
-    if($x ne $ref_allele && $x eq $alt_allele) {
-      $child_alleles->{$x} = 1;
+
+  if(defined $child_ind) {
+    foreach my $x (@{$vf_genotype->{$child_ind}}) {
+      if($x ne $ref_allele && $x eq $alt_allele) {
+        $child_alleles->{$x} = 1;
+      }
     }
   }
 
