@@ -61,6 +61,7 @@ package DeNovo;
 use strict;
 use warnings;
 use Cwd;
+use List::MoreUtils qw(uniq);
 
 use Bio::EnsEMBL::Variation::VariationFeature;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepFilterPlugin);
@@ -214,6 +215,9 @@ sub run {
         elsif($multi_allelic_r eq 'in_child_and_both_parents') {
           write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
         }
+        elsif($multi_allelic_r eq 'only_in_both_parents') {
+          write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
+        }
       }
       # If variant is not multi-allelic continue with normal checks
       elsif(defined $list_of_ind->{$family}->{'child'}) {
@@ -264,6 +268,9 @@ sub run {
           elsif($multi_allelic_r eq 'in_child_and_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
           }
+          elsif($multi_allelic_r eq 'only_in_both_parents') {
+            write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
+          }
         }
       }
       else {
@@ -283,6 +290,9 @@ sub run {
           }
           elsif($multi_allelic_r eq 'in_child_and_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+          }
+          elsif($multi_allelic_r eq 'only_in_both_parents') {
+            write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
           }
         }
       }
@@ -326,7 +336,7 @@ sub check_multi_allelic {
   foreach my $p (@{$parent_geno}) {
     my ($parent_ind, $parent_geno) = split(':', $p);
 
-    foreach my $x (@{$vf_genotype->{$parent_ind}}) {
+    foreach my $x (uniq (@{$vf_genotype->{$parent_ind}})) {
       if($x ne $ref_allele && $x eq $alt_allele) {
         $parents_alleles->{$x} += 1;
       }
