@@ -158,7 +158,7 @@ sub get_header_info {
 
 sub run {
   my ($self, $tva, $line) = @_;
-  
+
   my $vf = $tva->variation_feature;
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   # only interested if we know the zygosity
@@ -201,7 +201,22 @@ sub run {
 
   foreach my $family (keys %{$self->{family_list}}) {
     if(scalar(keys %{$list_of_ind->{$family}}) == 1) {
-      if(defined $list_of_ind->{$family}->{'child'}) {
+      # First check if variant is multi-allelic
+      # The checks are different for these variants
+      if($n_alt_alleles == 2) {
+        my ($child_ind, $child_geno) = split(':', $list_of_ind->{$family}->{'child'}) if($list_of_ind->{$family}->{'child'});
+        my $parent_geno = $list_of_ind->{$family}->{'parent'} if($list_of_ind->{$family}->{'parent'});
+        my $multi_allelic_r = check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
+        push @result, "$family:$multi_allelic_r";
+        if($multi_allelic_r eq 'de_novo_alt') {
+          write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
+        }
+        elsif($multi_allelic_r eq 'in_child_and_both_parents') {
+          write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+        }
+      }
+      # If variant is not multi-allelic continue with normal checks
+      elsif(defined $list_of_ind->{$family}->{'child'}) {
         push @result, "$family:de_novo_alt";
         write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
       }
