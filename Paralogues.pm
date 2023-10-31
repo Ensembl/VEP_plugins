@@ -88,12 +88,11 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 sub _prepare_filename {
   my $self = shift;
   my $config = $self->{config};
-  my $reg    = $config->{reg};
 
   # Prepare file name based on species, database version and assembly
   my $pkg      = __PACKAGE__.'.pm';
   my $species  = $config->{species};
-  my $version  = $config->{db_version} || $reg->software_version;
+  my $version  = $config->{db_version} || 'Bio::ensembl::Registry'->software_version;
   my @name     = ($pkg, $species, $version);
 
   if( $species eq 'homo_sapiens' || $species eq 'human'){
