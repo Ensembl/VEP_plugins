@@ -92,7 +92,7 @@ sub _prepare_filename {
   # Prepare file name based on species, database version and assembly
   my $pkg      = __PACKAGE__.'.pm';
   my $species  = $config->{species};
-  my $version  = $config->{db_version} || 'Bio::ensembl::Registry'->software_version;
+  my $version  = $config->{db_version} || 'Bio::EnsEMBL::Registry'->software_version;
   my @name     = ($pkg, $species, $version);
 
   if( $species eq 'homo_sapiens' || $species eq 'human'){
@@ -473,9 +473,8 @@ sub new {
   if (defined $vcf) {
     $self->{vcf} = $vcf;
     $self->add_file($vcf);
-  } elsif ($config->{offline} || $config->{rest}) {
-    my $mode = $config->{rest} ? "REST" : "offline";
-    die("ERROR: Cannot fetch Ensembl variants in $mode mode; please define vcf argument in the Paralogues plugin\n");
+  } elsif ($config->{offline}) {
+    die("ERROR: Cannot fetch Ensembl variants in offline mode; please define vcf argument in the Paralogues plugin\n");
   }
 
   # Check if paralogue annotation should be downloaded
