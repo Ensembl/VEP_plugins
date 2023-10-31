@@ -152,7 +152,8 @@ sub get_header_info {
                       'in_child_and_one_parent - variant found in proband and one parent, ' .
                       'in_child_hom_and_one_parent_het - variant found in proband (homozygous) and one parent (heterozygous), ' .
                       'in_child_and_both_parents - variant found in proband and both parents, ' .
-                      'in_child_het_and_both_parents_hom - variant found in proband (heterozygous) and both parents (homozygous)';
+                      'in_child_het_and_both_parents_hom - variant found in proband (heterozygous) and both parents (homozygous)' .
+                      'not_found - variant not found in any sample';
 
   return \%header;
 }
