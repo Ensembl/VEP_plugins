@@ -28,38 +28,61 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GO.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin GO
 
- # input a custom directory where to write and read GFF files with GO terms
- ./vep -i variations.vcf --plugin GO,${HOME}/go_terms
+ # automatically fetch GFF files with GO terms and annotate input with GO terms
+ # not compatible with --offline option
+ ./vep -i variations.vcf --plugin GO
  
+ # set directory used to write and read GFF files with GO terms
+ ./vep -i variations.vcf --plugin GO,dir=${HOME}/go_terms
+
+ # annotate input with GO terms from custom GFF file
+ ./vep -i variations.vcf --plugin GO,file=${HOME}/custom_go_terms.gff.gz
+
+ # annotate input based on gene identifiers instead of transcripts/translations
+ ./vep -i variations.vcf --plugin GO,match=gene
+
  # use remote connection (available for compatibility purposes)
  ./vep -i variations.vcf --plugin GO,remote
 
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves Gene Ontology (GO) terms associated with
- transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) from a custom GFF
- file. This GFF file is automatically created (if the input file does not exist)
+ transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) using custom
+ GFF annotation containing GO terms.
+
+ The custom GFF files are automatically created if the input file do not exist
  by querying the Ensembl core database, according to database version, species
- and assembly used in VEP.
- 
- The GFF file containing the GO terms is saved to and loaded from the working
+ and assembly used in VEP. Note that automatic retrieval fails if using the
+ --offline option.
+
+ The GFF files containing the GO terms are saved to and loaded from the working
  directory by default. To change this, provide a directory path as an argument:
  
-   --plugin GO,${HOME}/go_terms
+   --plugin GO,dir=${HOME}/go_terms
+
+ If your GFF file has a custom name, please provide the filename directly:
+
+   --plugin GO,file=${HOME}/custom_go_terms.gff.gz
+ 
+ The GO terms can also be fetched by gene match (either gene Ensembl ID or
+ gene symbol) instead:
+
+   --plugin GO,match=gene
+   --plugin GO,match=gene_symbol
  
  To create/use a custom GFF file, these programs must be installed in your path:
    * The GNU zgrep and GNU sort commands to create the GFF file.
    * The tabix and bgzip utilities to create and read the GFF file: check
      https://github.com/samtools/htslib.git for installation instructions.
- 
+
  Alternatively, for compatibility purposes, the plugin allows to use a remote
  connection to the Ensembl API by using "remote" as a parameter. This method
- retrieves GO terms one by one at both the transcript and translation level:
+ retrieves GO terms one by one at both the transcript and translation level.
+ This is not compatible with any other parameters:
 
    --plugin GO,remote
- 
+
 =cut
 
 package GO;
@@ -95,11 +118,34 @@ sub new {
   
   if ( !$self->{use_remote} ) {
     # Read GO terms from GFF file -- based on Phenotypes.pm
-    
+
+    my ($file, $dir, $match);
+    my $param_hash = $self->params_to_hash();
+    if (%$param_hash) {
+      $file  = $param_hash->{file};
+      $dir   = $param_hash->{dir};
+      $match = $param_hash->{match};
+
+      my @modes = ('transcript', 'translation', 'gene', 'gene_symbol');
+      die "match argument $match is not valid -- available options are: " .
+        join(", ", @modes) . "\n" if defined $match and !grep(/^$match$/, @modes);
+    } elsif ( @{ $self->{params} } ) {
+      $dir   = $self->{params}->[0];
+    }
+    $match ||= "transcript";
+    $self->{match} = $match;
+
+    if (defined $dir) {
+      $dir =~ s/\/?$/\//; # ensure path ends with slash
+      die "ERROR: directory $dir not found\n" unless -e -d $dir;
+    }
+    $dir  ||= "";
+    $file ||= $self->_prepare_filename($reg);
+
     # Create GFF file with GO terms from database if file does not exist
-    my $file = $self->_prepare_filename( $reg );
-    $self->_generate_gff( $file ) unless (-e $file || -e $file.'.lock');
-    
+    $file = $dir . $file;
+    $self->_generate_gff($file) unless (-e $file || -e $file.'.lock');
+
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
     $self->get_user_params();
@@ -124,16 +170,20 @@ sub new {
   return $self;
 }
 
-sub version {
-  return 107;
-}
-
 sub feature_types {
   return ['Transcript'];
 }
 
 sub get_header_info {
-  return { 'GO' => 'GO terms associated with transcript or protein product'};
+  my $self = shift;
+
+  my $description = "GO terms associated with transcript or protein product";
+  if ($self->{use_remote}) {
+    $description .= " ('remote' mode)";
+  } elsif ($self->{match} =~ /gene/) {
+    $description .= sprintf(" ('%s' mode)", $self->{match});
+  }
+  return { 'GO' => $description};
 }
 
 sub run {
@@ -144,14 +194,23 @@ sub run {
   } else {
     # Match data from GFF file
     my $tr            = $tva->transcript;
-    my $transcript_id = $tr->{stable_id};
     my $seqname       = $tr->{slice}->{seq_region_name};
     my $start         = $tr->{start};
     my $end           = $tr->{end};
-    
+
+    my $id;
+    if ($self->{match} eq 'gene') {
+      $id = $tr->{_gene_stable_id};
+    } elsif ($self->{match} eq 'gene_symbol') {
+      $id = $tr->{_gene_symbol};
+    } else {
+      $id = $tr->{stable_id};
+    }
+    return {} unless defined $id;
+
     my @data = @{$self->get_data($seqname, $start, $end)};
     foreach (@data) {
-      return $_->{result} if $_->{transcript_id} eq $transcript_id;
+      return $_->{result} if $_->{id} eq $id;
     }
   }
   return {};
@@ -161,26 +220,43 @@ sub parse_data {
   my ($self, $line) = @_;
   my ($seqname, $source, $feature, $start, $end, $score, $strand, $frame, $attributes) = split /\t/, $line;
 
-  # Parse transcript ID and GO terms from attributes column
-  my $transcript_id = undef;
+  # Parse ID and GO terms from attributes column
+  my $id = undef;
   my $go = undef;
   foreach my $pair(split /;/, $attributes) {
     my ($key, $value) = split /\=/, $pair;
     next unless defined($key) and defined($value);
     if ($key eq "ID") {
-      $transcript_id = $value;
+      $id = $value;
     } elsif ($key eq "Ontology_term") {
       $go = $value;
     }
+  }
+
+  my $res;
+  my @go_terms = split(",", $go);
+  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+    # Group results for JSON and REST
+    my @go_terms_json = ();
+    for (@go_terms) {
+      my @items = split(":", $_);
+      push @go_terms_json, {
+        go_term => $items[0] . ":" . $items[1],
+        description => $items[2]
+      };
+    }
+    $res = \@go_terms_json;
+  } else {
+    $res = \@go_terms;
   }
   
   return {
     seqname => $seqname,
     start => $start,
     end => $end,
-    transcript_id => $transcript_id,
+    id => $id,
     result => {
-      GO => $go
+      GO => $res
     }
   };
 }
@@ -196,15 +272,8 @@ sub get_end {
 sub _prepare_filename {
   my ($self, $reg) = @_;
   my $config = $self->{config};
-  
-  # Prepare directory to store files
-  my $dir = ""; # work in current directory by default
-  if (@{$self->{params}}) {
-    $dir = $self->{params}->[0];
-    $dir =~ s/\/?$/\//; # ensure path ends with slash
-    die "ERROR: directory $dir does not exist\n" unless -e -d $dir;
-  }
-    
+  my $match  = $self->{match};
+
   # Prepare file name based on species, database version and assembly
   my $pkg      = __PACKAGE__.'.pm';
   my $species  = $config->{species};
@@ -216,11 +285,13 @@ sub _prepare_filename {
     die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
     push @basename, $assembly if defined $assembly;
   }
-  return $dir.join("_", @basename).".gff.gz";
+  push @basename, $match if $match =~ 'gene';
+  return join("_", @basename) . ".gff.gz";
 }
 
 sub _generate_gff {
   my ($self, $file) = @_;
+  my $match = $self->{match};
 
   my $config = $self->{config};
   die("ERROR: Cannot create GFF file in offline mode\n") if $config->{offline};
@@ -231,28 +302,56 @@ sub _generate_gff {
 
   print "### GO plugin: Creating $file from database\n" unless($config->{quiet});
   
-  print "### GO plugin: Querying Ensembl core database\n" unless $config->{quiet};
+  print "### GO plugin: Querying Ensembl core database ('$match' match)\n"
+    unless $config->{quiet};
   my $species = $config->{species};
   my $ta = $self->{config}->{reg}->get_adaptor($species, 'Core', 'Transcript');
   die ("ERROR: Ensembl core database not available\n") unless defined $ta;
-  
+
   # Check whether GO terms are set at transcript or translation level
   my $id = _get_GO_terms_id( $ta );
   my $join_translation_table = _starts_with($id, "translation") ?
     "JOIN translation ON translation.transcript_id = transcript.transcript_id" : "";
 
+  my $feature;
+  my $join_gene_table;
+  my $select_col;
+  if ($match eq 'gene') {
+    $feature = 'gene';
+    $select_col = 'gene.stable_id';
+    $join_gene_table = "JOIN gene ON gene.gene_id = transcript.gene_id";
+  } elsif ($match eq 'gene_symbol') {
+    $feature = 'gene';
+    $select_col = 'gs.display_label';
+
+    my $hgnc_id = _get_HGNC_id( $ta );
+    $join_gene_table = qq/
+      JOIN gene ON gene.gene_id = transcript.gene_id
+      JOIN (
+        SELECT stable_id, display_label FROM gene
+        JOIN object_xref ox2 ON gene.gene_id = ox2.ensembl_id
+        JOIN xref x2 ON ox2.xref_id = x2.xref_id AND x2.external_db_id = $hgnc_id
+      ) AS gs ON gs.stable_id = gene.stable_id
+    /;
+  } else {
+    $feature = 'transcript';
+    $select_col = 'transcript.stable_id';
+    $join_gene_table = '';
+  }
+  my $Feature = ucfirst $feature;
+
   # Query database for each GO term and its description per transcript
-  my @query = qq{
+  my @query = qq/
     SELECT DISTINCT
       sr.name AS seqname,
       REPLACE(db.db_name, " ", "_") AS source,
-      "Transcript" AS feature,
-      transcript.seq_region_start AS start,
-      transcript.seq_region_end AS end,
+      "$Feature" AS feature,
+      $feature.seq_region_start AS start,
+      $feature.seq_region_end AS end,
       '.' AS score,
-      IF(transcript.seq_region_strand = 1, '+', '-') AS strand, 
+      IF($feature.seq_region_strand = 1, '+', '-') AS strand, 
       '.' AS frame,
-      transcript.stable_id AS transcript_stable_id,
+      $select_col,
       x.display_label AS go_term,
       x.description AS go_term_description
       
@@ -262,14 +361,15 @@ sub _generate_gff {
     JOIN xref x ON ox.xref_id = x.xref_id
     JOIN seq_region sr ON transcript.seq_region_id = sr.seq_region_id
     JOIN external_db db ON x.external_db_id = db.external_db_id
+    $join_gene_table
     WHERE db.db_name = "GO" AND x.dbprimary_acc LIKE "GO:%"
-    ORDER BY transcript.stable_id, # major assumption for the next steps
-             x.display_label
-  };
+    # the following order is a major downstream assumption
+    ORDER BY $select_col, x.display_label
+  /;
   my $sth = $ta->db->dbc->prepare(@query, { mysql_use_result => 1});
   $sth->execute();
 
-  # Append all GO terms from the same transcript and write to file
+  # Append all GO terms from the same feature and write to file
   print "### GO plugin: Writing to file\n" unless $config->{quiet};
   my $file_tmp = _write_GO_terms_to_file($sth, $file);
   $sth->finish();
@@ -288,6 +388,16 @@ sub _generate_gff {
 sub _starts_with {
   my ($string, $prefix) = @_;
   return rindex($string, $prefix, 0) == 0;
+}
+
+sub _get_HGNC_id {
+  my ($ta) = @_;
+  my @query = "SELECT external_db_id FROM external_db WHERE db_name = 'HGNC'";
+  my $sth = $ta->db->dbc->prepare(@query, { mysql_use_result => 1});
+  $sth->execute();
+  my $id = @{$sth->fetchrow_arrayref}[0];
+  $sth->finish();
+  return $id;
 }
 
 sub _get_GO_terms_id {
@@ -312,32 +422,33 @@ sub _write_GO_terms_to_file {
   
   # Open lock
   my $lock = "$file\.lock";
-  open LOCK, ">$lock" or die "ERROR: cannot write to lock file $lock\n";
+  open LOCK, ">$lock" or
+    die "ERROR: $file not found and cannot write to lock file $lock\n";
   print LOCK "1\n";
   close LOCK;
 
   open OUT, " | bgzip -c > $file_tmp" or die "ERROR: cannot write to file $file_tmp\n";
   print OUT "##gff-version 1.10\n"; # GFF file header
 
-  # For a single transcript, append all of its GO terms to $transcript_info;
-  # when there is a new transcript, write $transcript_info to file and repeat
-  my $transcript_info;
-  my $previous_transcript = "";
+  # For a single feature, append all of its GO terms to $info;
+  # when there is a new feature, write $info to file and repeat
+  my $info;
+  my $previous_feature = "";
   while(my $line = $sth->fetchrow_arrayref()) {
     my $row = [ @$line ];
-    my ($transcript_id, $go_term, $description) = splice(@$row, -3);
+    my ($id, $go_term, $description) = splice(@$row, -3);
 
-    if ($transcript_id ne $previous_transcript) {
-      # If not the same transcript, write previous transcript info to file
-      print OUT $transcript_info."\n" if defined($transcript_info);
+    if ($id ne $previous_feature) {
+      # If not the same feature, write previous feature info to file
+      print OUT $info."\n" if defined($info);
 
-      # Set this new transcript info
-      $previous_transcript = $transcript_id;
+      # Set this new feture info
+      $previous_feature = $id;
       $row = join("\t", map {defined($_) ? $_ : '.'} @$row);
-      $transcript_info = $row."\tID=$transcript_id;Ontology_term=";
+      $info = $row."\tID=$id;Ontology_term=";
     } else {
       # Append comma before appending another GO term
-      $transcript_info .= ","
+      $info .= ","
     }
 
     if ( defined($description) ) {
@@ -353,10 +464,10 @@ sub _write_GO_terms_to_file {
     }
 
     # Append GO term and its description
-    $transcript_info .= "$go_term:$description";
+    $info .= "$go_term:$description";
   }
-  # Write info of last transcript to file
-  print OUT $transcript_info."\n" if defined($transcript_info);
+  # Write info of last feature to file
+  print OUT $info."\n" if defined($info);
 
   close OUT;
   unlink($lock);
