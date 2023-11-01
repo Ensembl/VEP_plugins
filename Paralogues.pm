@@ -59,8 +59,11 @@ limitations under the License.
    --plugin Paralogues,paralogues=/path/to/dir/paralogues_file.tsv.gz
 
  The overlapping variants can be fetched from Ensembl API (by default) or a
- custom tabix-indexed VCF file. You can input a VCF file using argument `vcf`:
+ custom tabix-indexed VCF file. You can point to a VCF file using argument `vcf`
+ and input a colon-delimited list of INFO fields in `cols` (by default, all
+ columns are returned):
    --plugin Paralogues,vcf=/path/to/file.vcf.gz
+   --plugin Paralogues,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
 
  To avoid downloading any data locally, the plugin also has a remote mode. The
  remote mode also supports fetching variants from a custom VCF file:
@@ -477,10 +480,34 @@ sub new {
     $self->{vcf} = $vcf;
     $self->add_file($vcf);
 
-    # store INFO fields names in the header
+    # get INFO fields names from VCF
     my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($vcf);
     my $info = $vcf_file->get_metadata_by_pragma('INFO');
-    $self->{header} = [ map { $_->{ID} } @$info ];
+    my $info_ids = [ map { $_->{ID} } @$info ];
+
+    if ( !defined($params->{cols}) ) {
+      $self->{cols} = $info_ids;
+    } else {
+      my @cols = split(/:/, $params->{cols});
+
+      # check if the selected INFO fields exist
+      $self->{cols} = [];
+      my @invalid_cols;
+      for my $col (@cols) {
+        if ( grep { $_ eq $col } @$info_ids ) {
+          push(@{$self->{cols}}, $col);
+        } else {
+          push(@invalid_cols, $col);
+        }
+      }
+
+      my $filename = basename $vcf;
+      die "ERROR: input INFO fields not found in $filename. Available INFO fields are:\n" .
+        join(", ", @$info_ids)."\n" unless @{ $self->{cols} };
+
+      warn "WARNING: the following INFO fields were not found in $filename and were ignored: ",
+        join(", ", @invalid_cols), "\n" if @invalid_cols;
+    }
   } elsif ($config->{offline}) {
     die("ERROR: Cannot fetch Ensembl variants in offline mode; please define vcf argument in the Paralogues plugin\n");
   }
@@ -510,7 +537,6 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  my $source;
   my @fields;
   if ( defined $self->{vcf} ) {
     @fields = (
@@ -519,7 +545,7 @@ sub get_header_info {
       'start',
       'alleles'
     );
-    push @fields, @{ $self->{header} };
+    push @fields, @{ $self->{cols} };
   } else {
     @fields = (
       'identifier',
@@ -644,14 +670,21 @@ sub parse_data {
 
   my @data = ( $id, $chrom, $start, "$ref/$alt" );
 
-  # include data from INFO fields
+  # fetch data from INFO fields
+  my %INFO_data;
   for my $field ( split /;/, $info ) {
     my ($key, $value) = split /=/, $field;
+    $INFO_data{$key} = $value;
+  }
+
+  # prepare data from selected INFO fields
+  for my $col (@{ $self->{cols} }) {
+    my $value = defined $INFO_data{$col} ? $INFO_data{$col} : '';
     $value =~ s/,/ /g;
     $value =~ s/[:|]/_/g;
     push @data, $value;
-  };
-  return { PARALOGUE_VARIANTS => join(":", @data) };
+  }
+  return { PARALOGUE_VARIANTS => join(':', @data) };
 }
 
 sub get_start {
