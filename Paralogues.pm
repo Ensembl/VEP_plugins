@@ -50,6 +50,7 @@ limitations under the License.
  This plugin automatically downloads paralogue annotation from Ensembl databases
  if not available in the current directory (by default). Use argument `dir` to
  change the directory of the paralogue annotation:
+   --plugin Paralogues
    --plugin Paralogues,dir=/path/to/dir
 
  It is also possible to point to a custom tabix-indexed TSV file by using
@@ -65,8 +66,8 @@ limitations under the License.
    --plugin Paralogues,vcf=/path/to/file.vcf.gz
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
 
- To avoid downloading any data locally, the plugin also has a remote mode. The
- remote mode also supports fetching variants from a custom VCF file:
+ To avoid downloading data, the plugin has a remote mode. In the remote mode,
+ variants can also be fetched from the Ensembl API or a custom VCF:
    --plugin Paralogues,mode=remote
    --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf.gz
    --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
