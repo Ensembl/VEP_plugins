@@ -68,7 +68,8 @@ limitations under the License.
  To avoid downloading any data locally, the plugin also has a remote mode. The
  remote mode also supports fetching variants from a custom VCF file:
    --plugin Paralogues,mode=remote
-   --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf
+   --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf.gz
+   --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
 
  The tabix utility must be installed in your path to read the paralogue
  annotation and the custom VCF file.
