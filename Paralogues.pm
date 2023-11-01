@@ -59,15 +59,16 @@ limitations under the License.
    --plugin Paralogues,paralogues=/path/to/dir/paralogues_file.tsv.gz
 
  The overlapping variants can be fetched from Ensembl API (by default) or a
- custom VCF file. To fetch variants from a VCF, use argument `vcf`:
-   --plugin Paralogues,vcf=/path/to/file.vcf
+ custom tabix-indexed VCF file. You can input a VCF file using argument `vcf`:
+   --plugin Paralogues,vcf=/path/to/file.vcf.gz
 
- To avoid downloading data locally, the plugin also has a remote mode that
- optionally supports a custom VCF file:
+ To avoid downloading any data locally, the plugin also has a remote mode. The
+ remote mode also supports fetching variants from a custom VCF file:
    --plugin Paralogues,mode=remote
    --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf
 
- The tabix utility must be installed in your path to use this plugin.
+ The tabix utility must be installed in your path to read the paralogue
+ annotation and the custom VCF file.
 
 =cut
 
@@ -76,9 +77,11 @@ package Paralogues;
 use strict;
 use warnings;
 
+use File::Basename;
 use Bio::SimpleAlign;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+use Bio::EnsEMBL::IO::Parser::VCF4Tabix;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
@@ -473,6 +476,11 @@ sub new {
   if (defined $vcf) {
     $self->{vcf} = $vcf;
     $self->add_file($vcf);
+
+    # store INFO fields names in the header
+    my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($vcf);
+    my $info = $vcf_file->get_metadata_by_pragma('INFO');
+    $self->{header} = [ map { $_->{ID} } @$info ];
   } elsif ($config->{offline}) {
     die("ERROR: Cannot fetch Ensembl variants in offline mode; please define vcf argument in the Paralogues plugin\n");
   }
@@ -502,23 +510,34 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  my $header = {
-    PARALOGUE_VARIANT_ID          => 'Paralogue variant identifier',
-    PARALOGUE_VARIANT_SEQNAME     => 'Paralogue variant sequence region name',
-    PARALOGUE_VARIANT_START       => 'Paralogue variant start',
-    PARALOGUE_VARIANT_ALLELES     => 'Paralogue variant alleles',
-  };
-
-  if ( $self->{vcf} ) {
-    $header->{'PARALOGUE_VARIANT_INFO_*'} = 'Paralogue variant fields based on VCF INFO field';
+  my $source;
+  my @fields;
+  if ( defined $self->{vcf} ) {
+    @fields = (
+      'identifier',
+      'sequence',
+      'start',
+      'alleles'
+    );
+    push @fields, @{ $self->{header} };
   } else {
-    $header->{'PARALOGUE_VARIANT_STRAND'}      = 'Paralogue variant strand';
-    $header->{'PARALOGUE_VARIANT_END'}         = 'Paralogue variant end';
-    $header->{'PARALOGUE_VARIANT_CLNSIG'}      = 'Paralogue variant clinical significance';
-    $header->{'PARALOGUE_VARIANT_SOURCE'}      = 'Paralogue variant source';
-    $header->{'PARALOGUE_VARIANT_CONSEQUENCE'} = 'Paralogue variant consequence type(s)';
+    @fields = (
+      'identifier',
+      'sequence',
+      'start',
+      'end',
+      'strand',
+      'alleles',
+      'clinical_significance',
+      'source',
+      'consequence'
+    );
   }
-  return $header;
+  my $source = defined $self->{vcf} ? basename $self->{vcf} : 'Ensembl API'; 
+
+  my $fields = join(':', @fields);
+  my $description = "Variants from $source in paralogue proteins (colon-separated fields: $fields)";
+  return { PARALOGUE_VARIANTS => $description };
 }
 
 sub _join_results {
@@ -542,17 +561,18 @@ sub _join_results {
 
 sub _summarise_vf {
   my $vf = shift;
-  return {
-    PARALOGUE_VARIANT_ID          => $vf->name,
-    PARALOGUE_VARIANT_SEQNAME     => $vf->seq_region_name,
-    PARALOGUE_VARIANT_STRAND      => $vf->strand,
-    PARALOGUE_VARIANT_START       => $vf->seq_region_start,
-    PARALOGUE_VARIANT_END         => $vf->seq_region_end,
-    PARALOGUE_VARIANT_ALLELES     => $vf->allele_string,
-    PARALOGUE_VARIANT_CLNSIG      => join('/', @{$vf->get_all_clinical_significance_states}),
-    PARALOGUE_VARIANT_SOURCE      => $vf->source_name,
-    PARALOGUE_VARIANT_CONSEQUENCE => $vf->display_consequence,
-  };
+  my $var = join(':', (
+    $vf->name,
+    $vf->seq_region_name,
+    $vf->seq_region_start,
+    $vf->seq_region_end,
+    $vf->strand,
+    $vf->allele_string,
+    join('/', @{$vf->get_all_clinical_significance_states}),
+    $vf->source_name,
+    $vf->display_consequence,
+  ));
+  return { PARALOGUE_VARIANTS => $var };
 }
 
 sub run {
@@ -622,19 +642,16 @@ sub parse_data {
     }
   }
 
-  my $data = {
-    PARALOGUE_VARIANT_SEQNAME => $chrom,
-    PARALOGUE_VARIANT_START   => $start,
-    PARALOGUE_VARIANT_ID      => $id,
-    PARALOGUE_VARIANT_ALLELES => "$ref/$alt"
-  };
+  my @data = ( $id, $chrom, $start, "$ref/$alt" );
 
   # include data from INFO fields
   for my $field ( split /;/, $info ) {
     my ($key, $value) = split /=/, $field;
-    $data->{'PARALOGUE_VARIANT_INFO_' . $key} = $value;
+    $value =~ s/,/ /g;
+    $value =~ s/[:|]/_/g;
+    push @data, $value;
   };
-  return $data;
+  return { PARALOGUE_VARIANTS => join(":", @data) };
 }
 
 sub get_start {
