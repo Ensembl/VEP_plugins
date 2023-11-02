@@ -1224,6 +1224,16 @@ my $VEP_PLUGIN_CONFIG = {
       ],
     },
 
+    # SpliceVault
+    {
+      "key" => "SpliceVault",
+      "label" => "SpliceVaul",
+      "helptip" => "Retrieves the most common variant-associated mis-splicing events for variants that overlap a near-splice-site region",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/SpliceVault.pm",
+    },
 
 
     ## CONSERVATION
