@@ -25,18 +25,25 @@ limitations under the License.
 =head1 SYNOPSIS
  
     mv UTRAnnotator.pm ~/.vep/Plugins
-    vep -i variations.vcf --tab --plugin UTRAnnotator,file=/path/to/uORF_starts_ends_GRCh37_PUBLIC.txt
+    vep -i variations.vcf --plugin UTRAnnotator,file=/path/to/uORF_starts_ends_GRCh38_PUBLIC.txt
+
+    # skip annotation for variants with a 80% or higher overlap of the UTR
+    vep -i variations.vcf --plugin UTRAnnotator,file=/path/to/uORF_starts_ends_GRCh38_PUBLIC.txt,max_overlap=80
 
 =head1 DESCRIPTION
  
-    A VEP plugin that annotates the effect of 5' UTR variant especially for variant creating/disrupting upstream ORFs.
+    A VEP plugin that annotates the effect of 5' UTR variant especially for
+    variant creating/disrupting upstream ORFs.
     Available for both GRCh37 and GRCh38.
 
     Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
-    file                : Path to UTRAnnotator data file.
-                        - Download from https://github.com/Ensembl/UTRannotator
-                        - Download from http://www.sorfs.org/
+    file        : (Required) Path to UTRAnnotator data file:
+                  - Download 'uORF_5UTR_GRCh37_PUBLIC.txt' or 'uORF_5UTR_GRCh38_PUBLIC.txt'
+                    from https://github.com/Ensembl/UTRannotator
+                  - Download from http://sorfs.org
+    max_overlap : (Optional) Maximum percentage of overlap between variant and
+                  UTR to avoid UTR annotation (default: 100)
 
     Citation
 
@@ -56,12 +63,17 @@ package UTRAnnotator;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
+use List::Util qw(min max);
 use Scalar::Util qw(looks_like_number);
 
 use strict;
 
 sub feature_types {
   return ['Transcript'];
+}
+
+sub variant_feature_types {
+  return ['VariationFeature', 'StructuralVariationFeature'];
 }
 
 sub new {
@@ -87,15 +99,15 @@ sub new {
       my $key = $chr . ":" . $pos; # chr has 'chr' prefix
       $uORF_evidence{$key} = 1;
     }
-
     close $fh;
-
-  $self->{uORF_evidence} = \%uORF_evidence;
-
+    $self->{uORF_evidence} = \%uORF_evidence;
   } else {
       printf "Warning: small ORF file not found. For human, you could use the curated list of uORFs found in the repository (https://github.com/Ensembl/UTRannotator):\n" .
       "'uORF_starts_ends_GRCh37_PUBLIC.txt' for GRCh37 or 'uORF_starts_ends_GRCh38_PUBLIC.txt' for GRCh38.\n";
   }
+
+  # maximum percentage UTR overlap
+  $self->{max_overlap} = defined $param_hash->{max_overlap} ? $param_hash->{max_overlap} : 100;
 
   # Kozak-Strength Class
   my %kozak_strength;
@@ -127,12 +139,13 @@ sub run {
   return {} unless grep {$_->SO_term eq '5_prime_UTR_variant'}  @{$tva->get_all_OverlapConsequences};
 
   #retrieve the variant info
-  my $vf = $tva->variation_feature;
-  my $chr = ($vf->{chr}||$vf->seq_region_name);
-  my $pos = ($vf->{start}||$vf->seq_region_start);
+  my $vf = $tva->can('variation_feature') ? $tva->variation_feature : $tva->structural_variation_feature;
+  my $chr = ($vf->{chr}   || $vf->seq_region_name);
+  my $pos = ($vf->{start} || $vf->seq_region_start);
+  my $pos_end = ($vf->{end}   || $vf->seq_region_end);
   my @alleles = split /\//, $vf->allele_string;
   my $ref = shift @alleles;
-  my $alt = $tva->variation_feature_seq;
+  my $alt = $tva->can('variation_feature_seq') ? $tva->variation_feature_seq : '';
   my %variant = (
         "chr" => $chr,
         "pos" => $pos,
@@ -159,10 +172,21 @@ sub run {
   my @five_utr_starts;
   my @five_utr_ends;
   foreach  my $utr (@$UTRs){
-    my $start = $utr->start(); # this will return the absolute starting positions in chromosome of the UTR exons
-    my $end = $utr->end(); # this will return the absolute ending positions in chromosome of the UTR exons
-    push(@five_utr_starts, $start);
-    push(@five_utr_ends,$end);
+    my $UTR_start = $utr->start(); # this will return the absolute starting positions in chromosome of the UTR exons
+    my $UTR_end = $utr->end(); # this will return the absolute ending positions in chromosome of the UTR exons
+
+    #skip if UTR and variant do not overlap
+    next if $pos > $UTR_end || $pos_end < $UTR_start;
+
+    #avoid storing UTRs if variant goes over the maximum allowed UTR overlap percentage
+    my $UTR_length = $UTR_end - $UTR_start;
+    my $UTR_overlap_start = max($UTR_start, $pos);
+    my $UTR_overlap_end   = min($UTR_end, $pos_end);
+    my $UTR_overlap_perc  = 100 * ($UTR_overlap_end - $UTR_overlap_start) / $UTR_length;
+    next if $UTR_overlap_perc >= $self->{max_overlap};
+
+    push(@five_utr_starts, $UTR_start);
+    push(@five_utr_ends,   $UTR_end);
   }
 
   my @sorted_starts = sort {$a <=> $b} @five_utr_starts;
@@ -188,7 +212,6 @@ sub run {
   my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($tr_strand, $pos, $self->{ref_coding}, \%UTR_info);
 
   if(defined($mut_pos) && defined($end_pos)) {
-
     my @sequence = split //, $five_prime_seq;
     my $mut_utr_seq = $self->mut_utr_sequence(
         \@sequence,$mut_pos,
