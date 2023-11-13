@@ -46,6 +46,11 @@ limitations under the License.
 
     About UTRAnnotator:
 
+    The original UTRAnnotator plugin is written by Xiaolei Zhang et al. Later adopted by Ensembl VEP plugins with some changes.
+    You can find the original plugin here -
+    https://github.com/ImperialCardioGenetics/UTRannotator 
+
+    Please cite the UTRannotator publication alongside the Ensembl VEP if you use this resource -
     Annotating high-impact 5'untranslated region variants with the UTRannotator Zhang, X., Wakeling, M.N., Ware, J.S, Whiffin, N. Bioinformatics; doi: https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa783/5905476
 
 =cut
