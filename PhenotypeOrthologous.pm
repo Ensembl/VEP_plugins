@@ -118,7 +118,10 @@ sub parse_data {
     start => $s,
     end => $e,
     gene_id => $data_fields{"gene_id"},
-    result => $data_fields{"Rat_Orthologous_phenotype"},
+    result => {
+      RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
+      RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"}
+    }
   };
 }
 
