@@ -60,13 +60,16 @@ sub new {
   my $params = $self->params_to_hash();
   my $file;
    
-  die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!%$params);
   if (!keys %$params) {
     $file = $self->params->[0];
     $params->{file} = $file;
   } else {
     $file = $params->{file};  
   }
+
+  die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
+  $self->add_file($file);
+  
   return $self;
 
 }
