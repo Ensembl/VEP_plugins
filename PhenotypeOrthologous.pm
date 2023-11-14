@@ -28,11 +28,28 @@ PhenotypeOrthologous
 =head1 SYNOPSIS
 
  mv PhenotypeOrthologous.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin PhenotypeOrthologous
+ ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,species=rat
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves phenotype information associated with orthologous genes from from model organisms
+ A VEP plugin that retrieves phenotype information associated with orthologous genes from from model organisms.
+
+ The plugin presently only supports two model organisms, rats and mouse. 
+
+ The PhenotypeOrthologous file can be downloaded from https://ftp.ensembl.org/pub/current_variation/PhenotypeOrthologous
+
+ The plugin can be run: 
+ 
+  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,species=rat
+
+  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,species=rattus_norvegicus
+
+  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=mouse_human.gff3.gz,species=mouse
+
+  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=mouse_human.gff3.gz,species=mus_muculus
+
+ The tabix utility must be installed in your path to use this plugin.
+ Check https://github.com/samtools/htslib.git for instructions.
 
 =cut 
 
@@ -58,18 +75,22 @@ sub new {
   $self->get_user_params();
     
   my $params = $self->params_to_hash();
-  my $file;
-   
-  if (!keys %$params) {
-    $file = $self->params->[0];
-    $params->{file} = $file;
-  } else {
-    $file = $params->{file};  
-  }
+
+  my $file = $params->{file};  
+  my $species = $params->{species};
 
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
-  
+
+  die "Species needs to be specified to run the PhenotypeOrthologous plugin. \n" if (!$species); 
+
+  if ($species ne "rattus_norvegicus" && $species ne "rat" && $species ne "mouse" && $species ne "mus_muculus") {
+    die "Phenotype Orthologous plugin only works for rat and mouse \n"
+  }
+
+  $self->{species} = "rat" if $species eq "rattus_norvegicus" || $species eq "rat";
+  $self->{species} = "mouse" if $species eq "mus_muculus" || $species eq "mouse";
+
   return $self;
 
 }
@@ -94,9 +115,10 @@ sub run {
 
   foreach (@data) {
     return $_->{result} if $_->{gene_id} eq $gene_id;
+
+    return {};
   }
 
-  return {};
 }
 
 
@@ -112,17 +134,31 @@ sub parse_data {
     my ($key, $value) = split /=/, $field;
     $data_fields{$key} = $value;
   }
+  
+  if ($self->{species} eq "rat") {
+    return {
+      start => $s,
+      end => $e,
+      gene_id => $data_fields{"gene_id"},
+      result => {
+        RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
+        RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+      }
+    };
+  }
 
-  return {
-    chr => $c,
-    start => $s,
-    end => $e,
-    gene_id => $data_fields{"gene_id"},
-    result => {
-      RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
-      RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"}
-    }
-  };
+  if ($self->{species} eq "mouse") {
+    return {
+      start => $s,
+      end => $e,
+      gene_id => $data_fields{"gene_id"},
+      result => {
+        RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
+        RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+      }
+    };
+  }
+
 }
 
 sub get_start {
