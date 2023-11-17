@@ -29,6 +29,7 @@ limitations under the License.
 
  mv DeNovo.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped
+  ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped,full_report=1
 
 =head1 DESCRIPTION
 
@@ -46,12 +47,16 @@ limitations under the License.
                         - sex
                         - phenotype (optional)
 
- report_dir         : write files in report_dir (optional)
+ report_dir         : Write files in report_dir (optional)
+
+ full_report        : Set to 1 to report all types of variants (optional)
+                      By default, the plugin only reports de novo variants.
 
 
  The plugin can then be run:
  ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped
  ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped,report_dir=path/to/dir
+ ./vep -i variations.vcf --plugin DeNovo,ped=samples.ped,report_dir=path/to/dir,full_report=1
 
 
 =cut
@@ -118,6 +123,10 @@ sub new {
     $self->{report_dir} = "$cwd_dir";
   }
 
+  if (defined $param_hash->{full_report}) {
+    $self->{full_report} = 1;
+  }
+
   # force some config params
   $self->{config}->{individual_zyg} = ['all'];
 
@@ -125,12 +134,16 @@ sub new {
   my $family_list = $self->{family_list};
   foreach my $family (keys %{$family_list}) {
     $self->{report_de_novo}->{$family} = $family . "_variants_de_novo.txt";
-    $self->{report_both_parents}->{$family} = $family . "_variants_both_parents.txt";
-    $self->{report_all}->{$family} = $family . "_variants_child_and_both_parents.txt";
     # Write header
     write_header($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, 1);
-    write_header($self->{report_dir}.'/'.$self->{report_both_parents}->{$family});
-    write_header($self->{report_dir}.'/'.$self->{report_all}->{$family});
+
+    if($self->{full_report}) {
+      $self->{report_both_parents}->{$family} = $family . "_variants_both_parents.txt";
+      $self->{report_all}->{$family} = $family . "_variants_child_and_both_parents.txt";
+      # Write header
+      write_header($self->{report_dir}.'/'.$self->{report_both_parents}->{$family});
+      write_header($self->{report_dir}.'/'.$self->{report_all}->{$family});
+    }
   }
 
   return $self;
@@ -144,16 +157,26 @@ sub get_header_info {
   my $self = shift;
 
   my %header;
+  my $header_text;
 
-  $header{'DeNovo'} = 'De novo variants identified. The output includes the following flags: ' .
-                      'de_novo_alt - variant only found in the proband, ' .
-                      'only_in_one_parent - variant found in one parent, ' .
-                      'only_in_both_parents - variant found in both parents, ' .
-                      'in_child_and_one_parent - variant found in proband and one parent, ' .
-                      'in_child_hom_and_one_parent_het - variant found in proband (homozygous) and one parent (heterozygous), ' .
-                      'in_child_and_both_parents - variant found in proband and both parents, ' .
-                      'in_child_het_and_both_parents_hom - variant found in proband (heterozygous) and both parents (homozygous),' .
-                      'not_found - variant not found in any sample';
+  if ($self->{full_report}) {
+    $header_text = 'De novo variants identified. The output includes the following flags: ' .
+                    'de_novo_alt - variant only found in the proband, ' .
+                    'only_in_one_parent - variant found in one parent, ' .
+                    'only_in_both_parents - variant found in both parents, ' .
+                    'in_child_and_one_parent - variant found in proband and one parent, ' .
+                    'in_child_hom_and_one_parent_het - variant found in proband (homozygous) and one parent (heterozygous), ' .
+                    'in_child_and_both_parents - variant found in proband and both parents, ' .
+                    'in_child_het_and_both_parents_hom - variant found in proband (heterozygous) and both parents (homozygous),' .
+                    'not_found - variant not found in any sample';
+  }
+  else {
+    $header_text = 'De novo variants identified. The output includes the following flags: ' .
+                   'de_novo_alt - variant only found in the proband, ' .
+                   'not_found - variant not found in any sample';
+  }
+
+  $header{'DeNovo'} = $header_text;
 
   return \%header;
 }
@@ -208,15 +231,15 @@ sub run {
       if($n_alt_alleles == 2) {
         my ($child_ind, $child_geno) = split(':', $list_of_ind->{$family}->{'child'}) if($list_of_ind->{$family}->{'child'});
         my $parent_geno = $list_of_ind->{$family}->{'parent'} if($list_of_ind->{$family}->{'parent'});
-        my $multi_allelic_r = check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
-        push @result, "$family:$multi_allelic_r";
-        if($multi_allelic_r eq 'de_novo_alt') {
+        my $multi_allelic_r = $self->_check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
+        push @result, "$family:$multi_allelic_r" if defined $multi_allelic_r;
+        if(defined $multi_allelic_r && $multi_allelic_r eq 'de_novo_alt') {
           write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
         }
-        elsif($multi_allelic_r eq 'in_child_and_both_parents') {
+        elsif(defined $multi_allelic_r && $multi_allelic_r eq 'in_child_and_both_parents') {
           write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
         }
-        elsif($multi_allelic_r eq 'only_in_both_parents') {
+        elsif(defined $multi_allelic_r && $multi_allelic_r eq 'only_in_both_parents') {
           write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
         }
       }
@@ -226,9 +249,9 @@ sub run {
         write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
       }
       elsif(scalar(@{$list_of_ind->{$family}->{'parent'}}) == 1) {
-        push @result, "$family:only_in_one_parent";
+        push @result, "$family:only_in_one_parent" if $self->{full_report};
       }
-      else {
+      elsif($self->{full_report}) {
         push @result, "$family:only_in_both_parents";
         write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
       }
@@ -252,24 +275,26 @@ sub run {
       if(scalar(@{$parent_geno}) == 2) {
         # found in the child and both parents
         if($child_geno eq 'HET' && $parents_hom == 2 && $n_alt_alleles == 1) {
-          push @result, "$family:in_child_het_and_both_parents_hom";
-          write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+          push @result, "$family:de_novo_alt";
+          write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
         }
         elsif($n_alt_alleles == 1) {
-          push @result, "$family:in_child_and_both_parents";
-          write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+          if($self->{full_report}) {
+            push @result, "$family:in_child_and_both_parents";
+            write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
+          }
         }
         # Multi-allelic variants are different
         else {
-          my $multi_allelic_r = check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
-          push @result, "$family:$multi_allelic_r";
-          if($multi_allelic_r eq 'de_novo_alt') {
+          my $multi_allelic_r = $self->_check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
+          push @result, "$family:$multi_allelic_r" if defined $multi_allelic_r;
+          if(defined $multi_allelic_r && $multi_allelic_r eq 'de_novo_alt') {
             write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
           }
-          elsif($multi_allelic_r eq 'in_child_and_both_parents') {
+          elsif(defined $multi_allelic_r && $multi_allelic_r eq 'in_child_and_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
           }
-          elsif($multi_allelic_r eq 'only_in_both_parents') {
+          elsif(defined $multi_allelic_r && $multi_allelic_r eq 'only_in_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
           }
         }
@@ -277,22 +302,22 @@ sub run {
       else {
         # found in the child and one parent
         if($child_geno eq 'HOM' && $parents_het == 1 && $n_alt_alleles == 1) {
-          push @result, "$family:in_child_hom_and_one_parent_het";
+          push @result, "$family:in_child_hom_and_one_parent_het" if $self->{full_report};
         }
         elsif($n_alt_alleles == 1) {
-          push @result, "$family:in_child_and_one_parent";
+          push @result, "$family:in_child_and_one_parent" if $self->{full_report};
         }
         # Multi-allelic variants are different
         else {
-          my $multi_allelic_r = check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
-          push @result, "$family:$multi_allelic_r";
-          if($multi_allelic_r eq 'de_novo_alt') {
+          my $multi_allelic_r = $self->_check_multi_allelic($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno);
+          push @result, "$family:$multi_allelic_r" if defined $multi_allelic_r;
+          if(defined $multi_allelic_r && $multi_allelic_r eq 'de_novo_alt') {
             write_report($self->{report_dir}.'/'.$self->{report_de_novo}->{$family}, $line, $tva, $list_of_ind->{$family}->{'child'});
           }
-          elsif($multi_allelic_r eq 'in_child_and_both_parents') {
+          elsif(defined $multi_allelic_r && $multi_allelic_r eq 'in_child_and_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_all}->{$family}, $line, $tva);
           }
-          elsif($multi_allelic_r eq 'only_in_both_parents') {
+          elsif(defined $multi_allelic_r && $multi_allelic_r eq 'only_in_both_parents') {
             write_report($self->{report_dir}.'/'.$self->{report_both_parents}->{$family}, $line, $tva);
           }
         }
@@ -314,8 +339,8 @@ sub run {
 #           1 46352728 A/C/G
 #           0|2 1|1 0|1
 #           HET HOM HET
-sub check_multi_allelic {
-  my ($ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno) = @_;
+sub _check_multi_allelic {
+  my ($self, $ref_allele, $alt_allele, $vf_genotype, $child_ind, $parent_geno) = @_;
 
   my $found_child = 0;
   my $n_parents = 0;
@@ -370,7 +395,7 @@ sub check_multi_allelic {
     $result = 'not_found';
   }
 
-  return $result;
+  return !$self->{full_report} && ($result ne 'de_novo_alt' || $result ne 'not_found') ? undef : $result;
 }
 
 sub write_header {
