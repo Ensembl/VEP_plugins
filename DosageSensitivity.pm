@@ -68,6 +68,26 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+# these genes are dosage sensitive as per the threshold in the paper
+# but the gene symbols are not avaiable in GRCh38 assembly annotation, hence we use this hash for conversion
+# from gene stable id to the gene symbol used in the data file 
+my $remap_to_gene_name = {
+  "ENSG00000235478" => "AC006946.15",
+  "ENSG00000218672" => "AC008060.7",
+  "ENSG00000177340" => "AC024940.1",
+  "ENSG00000222007" => "AC064874.1",
+  "ENSG00000228919" => "AC097381.1",
+  "ENSG00000268218" => "AC137932.1",
+  "ENSG00000267270" => "AC139100.2",
+  "ENSG00000245317" => "CTC-241N9.1",
+  "ENSG00000264278" => "RP11-162A12.2",
+  "ENSG00000272297" => "RP11-215A19.2", #nooutput
+  "ENSG00000271949" => "RP11-302M6.4", #nooutput
+  "ENSG00000204398" => "RP11-65D24.2",
+  "ENSG00000267127" => "RP11-795F19.5", #nooutput
+  "ENSG00000259658" => "RP11-89K11.1"
+};
+
 sub new {
   my $class = shift;
   
@@ -84,6 +104,8 @@ sub new {
     "pHaplo" => "Probability of haploinsufficiency (deletion intolerance) of the affected gene",
     "pTriplo" => "Probability of triplosensitivity (duplication intolerance) of the affected gene"
   };
+
+  $self->{dosage_sensitivity_matrix} = $self->_process_DS_file($self->{file});
 
   return $self;
 }
@@ -111,10 +133,11 @@ sub _process_DS_file {
   my $dosage_sensitivity_matrix = {};
   my ($gene, $pHaplo, $pTriplo);
   while(<$fh>){
-    next if $_[0] eq '#';
-
     chomp;
+
     ($gene, $pHaplo, $pTriplo) = split /\t/;
+    next if $gene =~ /^#/;
+
     $dosage_sensitivity_matrix->{$gene}->{pHaplo} = $pHaplo;
     $dosage_sensitivity_matrix->{$gene}->{pTriplo} = $pTriplo;
   }
@@ -144,14 +167,17 @@ sub run {
   my ($self, $tva) = @_;
   
   my $gene_name = $tva->transcript->{_gene_symbol};
+  unless (defined $gene_name and exists $self->{dosage_sensitivity_matrix}->{$gene_name}) {
+    my $gene_stable_id = $tva->transcript->{_gene_stable_id};
+    $gene_name = $remap_to_gene_name->{$gene_stable_id} if exists $remap_to_gene_name->{$gene_stable_id};
+  }
   return {} unless defined $gene_name;
   
   if ($self->{cover}) {
     return {} unless $self->_variant_cover_gene($tva);
   }
 
-  my $dosage_sensitivity_matrix = $self->_process_DS_file($self->{file});
-  return $dosage_sensitivity_matrix->{$gene_name} || {};
+  return $self->{dosage_sensitivity_matrix}->{$gene_name} || {};
 }
 
 1;
