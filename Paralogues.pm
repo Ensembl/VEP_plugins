@@ -47,6 +47,11 @@ limitations under the License.
  acids aligned between paralogue proteins. This is useful to predict
  pathogenicity of variants in paralogue positions.
 
+ This plugin fetches variants overlapping the genomic coordinates of the
+ paralogue's affected aminoacid from one of two sources:
+ - Custom VCF based on vcf parameter
+ - Ensembl API (if vcf parameter is not defined)
+
  This plugin automatically downloads paralogue annotation from Ensembl databases
  if not available in the current directory (by default). Use argument `dir` to
  change the directory of the paralogue annotation:
