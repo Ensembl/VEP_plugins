@@ -765,11 +765,13 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/CADD.pm",
       "requires_data" => 1,
       "species" => [
-        "homo_sapiens"
+        "homo_sapiens",
+        "sus_scrofa"
       ],
       "params" => [
         #"/path/to/CADD_whole_genome_SNVs.tsv.gz",
         #"/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
+        #"/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
         #"/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
