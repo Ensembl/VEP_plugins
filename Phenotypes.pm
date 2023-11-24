@@ -287,7 +287,8 @@ sub run {
   my ($self, $bvfo) = @_;
   
   my $vf = $bvfo->base_variation_feature;
-  
+  $self->{is_sv} = $vf->isa('Bio::EnsEMBL::Variation::StructuralVariationFeature');
+
   # adjust coords for tabix
   my ($s, $e) = ($vf->{start}, $vf->{end});
   ($s, $e) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end}); # swap for insertions
@@ -361,7 +362,11 @@ sub parse_data {
     return undef if $data->{type} && !$inc_types->{$data->{type}};
   }
   else {
-    return undef if $data->{type} && $self->exclude_types->{$data->{type}};
+    return undef if $data->{type} && (
+                      $self->exclude_types->{$data->{type}} ||
+                      # avoid annotating SVs with short variant-associated phenotypes
+                      ($self->{is_sv} && $data->{type} eq 'Variation')
+                    );
   }
 
   # parse attributes
