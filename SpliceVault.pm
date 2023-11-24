@@ -105,9 +105,9 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    'SPLICEVAULT_SAMPLE_COUNT' => 'Number of SpliceVault annotated splicing samples',
-    'SPLICEVAULT_OUT_OF_FRAME_EVENTS' => 'Number of top SpliceVault events that are out of frame',
-    'SPLICEVAULT_TOP*_EVENT' => 'SpliceVault top events with the following colon-separated fields: type:description:percent_of_supporting_samples:event_frame',
+    'SpliceVault_sample_count' => 'Number of SpliceVault annotated splicing samples',
+    'SpliceVault_out_of_frame_events' => 'Number of top SpliceVault events that are out of frame',
+    'SpliceVault_top*_event' => 'SpliceVault top events with the following colon-separated fields: type:description:percent_of_supporting_samples:event_frame',
   }
 }
 
@@ -160,8 +160,8 @@ sub parse_data {
   my $res = {
     feature => $feature,
     result  => {
-      SPLICEVAULT_SAMPLE_COUNT        => $count,
-      SPLICEVAULT_OUT_OF_FRAME_EVENTS => $out_of_frame,
+      SpliceVault_sample_count        => $count,
+      SpliceVault_out_of_frame_events => $out_of_frame,
     }
   };
 
@@ -177,7 +177,7 @@ sub parse_data {
     } elsif ($event =~ /^CD/) {
       $event =~ s/^CD/cryptic_donor/g;
     }
-    $res->{result}->{"SPLICEVAULT_TOP${n}_EVENT"} = $event;
+    $res->{result}->{"SpliceVault_top${n}_event"} = $event;
   }
   return $res;
 }
