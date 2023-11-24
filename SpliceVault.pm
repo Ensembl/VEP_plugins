@@ -105,8 +105,6 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    'SPLICEVAULT_START' => 'SpliceVault splice region start',
-    'SPLICEVAULT_END'   => 'SpliceVault splice region end',
     'SPLICEVAULT_SAMPLE_COUNT' => 'Number of SpliceVault annotated splicing samples',
     'SPLICEVAULT_OUT_OF_FRAME_EVENTS' => 'Number of top SpliceVault events that are out of frame',
     'SPLICEVAULT_TOP*_EVENT' => 'SpliceVault top events with the following colon-separated fields: type:description:percent_of_supporting_samples:event_frame',
@@ -162,8 +160,6 @@ sub parse_data {
   my $res = {
     feature => $feature,
     result  => {
-      SPLICEVAULT_START               => $start,
-      SPLICEVAULT_END                 => $end,
       SPLICEVAULT_SAMPLE_COUNT        => $count,
       SPLICEVAULT_OUT_OF_FRAME_EVENTS => $out_of_frame,
     }
