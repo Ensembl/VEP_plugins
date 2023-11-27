@@ -117,6 +117,15 @@ sub new {
       die("ERROR: Couldn't create report_dir ", $param_hash->{report_dir}, " $!\n") if (!$return);
     }
     $self->{report_dir} = $param_hash->{report_dir};
+
+    # Check if directory is empty
+    opendir(DIR, $self->{report_dir}) or die "Cannot open directory ", $self->{report_dir}, "$!";
+    my @files = readdir(DIR);
+    foreach my $file (@files) {
+      if($file =~ /.txt$/) {
+        die("ERROR: Report directory is not empty please empty directory before running the plugin: ", $self->{report_dir}, "\n");
+      }
+    }
   }
   else {
     my $cwd_dir = getcwd;
