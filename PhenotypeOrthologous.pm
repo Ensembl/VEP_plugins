@@ -39,14 +39,17 @@ PhenotypeOrthologous
  The PhenotypeOrthologous file can be downloaded from https://ftp.ensembl.org/pub/current_variation/PhenotypeOrthologous
 
  The plugin can be run: 
+   
+  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz
  
-  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,species=rat
+  To return only results for rat :
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=rat
 
-  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,species=rattus_norvegicus
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=rattus_norvegicus
+  To return only results for mouse:
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mouse
 
-  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=mouse_human.gff3.gz,species=mouse
-
-  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=mouse_human.gff3.gz,species=mus_muculus
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mus_muculus
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -66,7 +69,7 @@ sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
-
+ 
   $self->expand_left(0);
   $self->expand_right(0);
 
@@ -80,14 +83,17 @@ sub new {
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
 
-  die "Species needs to be specified to run the PhenotypeOrthologous plugin. \n" if (!$species); 
+  #die "Species needs to be specified to run the PhenotypeOrthologous plugin. \n" if (!$species); 
 
-  if ($species ne "rattus_norvegicus" && $species ne "rat" && $species ne "mouse" && $species ne "mus_muculus") {
+  if ( defined($species) && $species ne "rattus_norvegicus" && $species ne "rat" && $species ne "mouse" && $species ne "mus_muculus") {
     die "Phenotype Orthologous plugin only works for rat and mouse \n"
   }
+  
+  if (defined($species)) {
+    $self->{species} = "rat" if $species eq "rattus_norvegicus" || $species eq "rat";
+    $self->{species} = "mouse" if $species eq "mus_muculus" || $species eq "mouse";
+  }
 
-  $self->{species} = "rat" if $species eq "rattus_norvegicus" || $species eq "rat";
-  $self->{species} = "mouse" if $species eq "mus_muculus" || $species eq "mouse";
 
   return $self;
 
@@ -133,6 +139,20 @@ sub parse_data {
     $data_fields{$key} = $value;
   }
   
+  if (!$self->{species}) {
+    return {
+      start => $s,
+      end => $e,
+      gene_id => $data_fields{"gene_id"},
+      result => {
+        RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
+        RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+        MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
+        MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
+      }
+    };
+  }
+
   if ($self->{species} eq "rat") {
     return {
       start => $s,
@@ -151,11 +171,12 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        RatOrthologous_geneid => $data_fields{"Mouse_gene_id"},
-        RatOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
+        MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
+        MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
       }
     };
   }
+
 
 }
 
