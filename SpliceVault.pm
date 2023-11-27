@@ -105,80 +105,80 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    'SpliceVault_sample_count' => 'Number of SpliceVault annotated splicing samples',
-    'SpliceVault_out_of_frame_events' => 'Number of top SpliceVault events that are out of frame',
-    'SpliceVault_top*_event' => 'SpliceVault top events with the following colon-separated fields: type:description:percent_of_supporting_samples:event_frame',
+    SpliceVault_top_events          => 'List of SpliceVault top events with the following colon-separated fields per event: rank:type:transcript_impact:percent_of_supporting_samples:frame',
+    SpliceVault_site_sample_count   => 'Number of SpliceVault annotated splicing samples',
+    SpliceVault_site_max_depth      => 'Maximum number of reads seen in any one sample representing annotated splicing in GTEx',
+    SpliceVault_out_of_frame_events => 'Fraction of SpliceVault top events that cause a frameshift; as per SpliceVault article, sites with 3/4 or more in-frame events are likely to be splice-rescued and not LoF',
+    SpliceVault_site_pos            => 'Genomic position of splice-site predicted to be lost by SpliceAI',
+    SpliceVault_site_type           => 'Type of splice-site predicted to be lost by SpliceAI',
   }
-}
-
-sub _join_results {
-  my $self = shift;
-  my $all_results = shift;
-  my $res = shift;
-
-  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
-    for (keys %$res) {
-      next unless $_ =~ /TOP[0-9]+_EVENT/;
-      my @fields = split /:/, $res->{$_};
-      delete $res->{$_};
-      $res->{$_}->{'TYPE'} = $fields[0];
-      $res->{$_}->{'DESCRIPTION'} = $fields[1];
-      $res->{$_}->{'PERCENT_OF_SUPPORTING_SAMPLES'} = $fields[2];
-      $res->{$_}->{'FRAMESHIFT'} = $fields[3];
-    }
-    # Group results for JSON and REST
-    $all_results->{"SpliceVault"} = [] unless defined $all_results->{"SpliceVault"};
-    push(@{ $all_results->{"SpliceVault"} }, $res);
-  } else {
-    # Create array of results per key
-    for (keys %$res) {
-      $all_results->{$_} = [] if !$all_results->{$_};
-      push(@{ $all_results->{$_} }, $res->{$_} || "NA");
-    }
-  }
-  return $all_results;
 }
 
 sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
+  my $allele = $tva->base_variation_feature->alt_alleles;
+
   my @data = @{ $self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end}) };
 
-  my $all = {};
   foreach (@data) {
     next unless $tva->transcript->stable_id eq $_->{feature};
-    $all = $self->_join_results($all, $_->{result});
+
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => $allele,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $vf->ref_allele_string,
+       alts => [$_->{alt}],
+       pos  => $_->{start},
+      }
+    );
+    next unless (@$matches);
+
+    if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+      my $top_events = $_->{result}->{SpliceVault_top_events};
+      my $res = {};
+      for my $event (@$top_events) {
+        my ($rank, $type, $impact, $samples, $frame) = split(/:/, $event);
+        $res->{$rank}->{'site_type'}                     = $type;
+        $res->{$rank}->{'transcript_impact'}             = $impact;
+        $res->{$rank}->{'percent_of_supporting_samples'} = $samples;
+        $res->{$rank}->{'frame'}                         = $frame;
+      }
+      $_->{result}->{SpliceVault_top_events} = $res;
+      return { 'SpliceVault' => $_->{result} };
+    } else {
+      return $_->{result};
+    }
   }
-  return $all;
+  return {};
 }
 
 sub parse_data {
   my ($self, $line) = @_;
-  my ($feature, $chrom, $start, $end, $count, $out_of_frame, @top_events) = split /\t/, $line;
+  my ($chrom, $start, $alt, $feature, $type, $site, $out_of_frame, $top_events, $count, $max_depth) = split /\t/, $line;
+
+  $top_events =~ s/ /_/g;
+  $top_events =~ s/;/:/g;
 
   my $res = {
     feature => $feature,
+    alt     => $alt,
+    start   => $start,
     result  => {
-      SpliceVault_sample_count        => $count,
+      SpliceVault_site_sample_count   => $count,
+      SpliceVault_site_max_depth      => $max_depth,
       SpliceVault_out_of_frame_events => $out_of_frame,
+      SpliceVault_top_events          => [ split(/\|/, $top_events) ],
+      SpliceVault_site_pos            => $site,
+      SpliceVault_site_type           => $type,
     }
   };
-
-  my $n = 0;
-  for my $event (@top_events) {
-    $n++;
-    $event =~ s/;/:/g;
-    
-    if ($event =~ /^ES/) {
-      $event =~ s/^ES/exon_skipping/g;
-    } elsif ($event =~ /^CA/) {
-      $event =~ s/^CA/cryptic_acceptor/g;
-    } elsif ($event =~ /^CD/) {
-      $event =~ s/^CD/cryptic_donor/g;
-    }
-    $res->{result}->{"SpliceVault_top${n}_event"} = $event;
-  }
   return $res;
 }
 
