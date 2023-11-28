@@ -86,9 +86,9 @@ sub run {
   my $end = $vf->{end};
   my $start = $vf->{start};
   my $transcript = $tva->transcript;
-  # my $gene = $transcript->get_Gene();
   my %output;
   my @data;
+
   if ( $feature_match_by eq "gene_symbol"){
     @data = grep {
     $_->{AVADA_GENE_SYMBOL} eq $transcript->{_gene_symbol}
@@ -109,9 +109,7 @@ sub run {
       $_->{AVADA_REFSEQ_ID} eq $refseq_protein
       }@{$self->get_data($vf->{chr}, $start, $end)};
       $output{"AVADA_FEATURE_ID"} = $refseq_protein;
-    }
-    
-    
+    } 
   }
   elsif ( $feature_match_by eq "ensembl_id" )
   {
@@ -140,7 +138,7 @@ sub run {
     $seen{$data_value->{AVADA_PMID}} = 1;
     }
   }
-
+  
   $output{"AVADA_PMID"} = $pmid_string;
   return \%output;
 }
@@ -167,7 +165,6 @@ sub parse_data {
     AVADA_GENE_SYMBOL => $gene_symbol,
     AVADA_REFSEQ_ID => $gene_refseq_id
   };
-
 }
 
 1;
