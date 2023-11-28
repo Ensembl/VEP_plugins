@@ -111,9 +111,22 @@ sub new {
   my @files;
   # Check files in arguments
   if (!keys %$params) {
+    warn "WARNING: Using snv or indels CADD annotation file with structural variant can increase run time exponentially.".
+         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation.\n"
+    if scalar @{$self->params} > 2;
+    
+
     @files = @{$self->params};  
   } else {
-    for my $key ( keys %{$params}){
+    my @param_keys = keys %{$params};
+    
+    # using snv/indels files on SV can slow down VEP exponentially
+    if ( grep( /^sv$/, @param_keys ) && ( grep( /^snv$/, @param_keys ) || grep( /^indels$/, @param_keys ) ) ) {
+      warn "WARNING: Using snv=<file> and/or indels=<file> with structural variant can increase run time exponentially.".
+           "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n";
+    }
+
+    for my $key ( @param_keys ){
       push @files, $params->{$key};
     }
   }
