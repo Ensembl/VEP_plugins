@@ -40,19 +40,34 @@ limitations under the License.
  and activated cryptic splice sites based on the most common mis-splicing events
  around a splice site.
 
- This plugin returns the most common (top 4) variant-associated mis-splicing
- events for variants that overlap a near-splice-site region (-17:+3 for splice
- acceptor sites and -3:+8 for splice donor sites) based on SpliceVault data.
- Each event includes the following information:
-   - Type: exon skipping (ES), cryptic donor (CD) or cryptic acceptor (CA)
-   - Description: exons skiped (ES events) or cryptic distance to the annotated
-     splice site (CD/CA events)
-   - Percent of supporting samples: samples supporting the event over total
-     samples where splicing occurs in that site (in percentage)
-   - Frameshift: inframe or out-of-frame event
+ This plugin returns the most common variant-associated mis-splicing events
+ based on SpliceVault data. Each event includes the following information:
+ - Type: exon skipping (ES), cryptic donor (CD) or cryptic acceptor (CA)
+ - Transcript impact:
+   - For ES, describes skipped exons, e.g. ES:2 represents exon 2 skipping and
+     ES:2-3 represents skipping of exon 2 and 3
+   - For CD/CA, describes the distance from the annotated splice-site to the
+     cryptic splice-site with reference to the transcript (distances to negative
+     strand transcripts are reported according to the 5' to 3' distance)
+ - Percent of supporting samples: percent of samples supporting the event over
+   total samples where splicing occurs in that site (note this may be above 100%
+   if the event is seen in more samples than annotated splicing)
+ - Frameshift: inframe or out-of-frame event
+
+ The plugin also returns information specific to each splice site:
+ - Site position/type: genomic location and type (donor/acceptor) of the
+   splice-site predicted to be lost by SpliceAI. Cryptic positions are relative
+   to this genomic coordinate.
+ - Out of frame events: fraction of the top events that cause a frameshift. As
+   per https://pubmed.ncbi.nlm.nih.gov/36747048, sites with 3/4 or more in-frame
+   events are likely to be splice-rescued and not loss-of-function (LoF).
+ - Site sample count and max depth: sample count for this splice site and max
+   number of reads in any single sample representing annotated splicing in
+   Genotype-Tissue Expression (GTEx). This information allows to filter events
+   based on a minimum number of samples or minimum depth in GTEx.
 
  Please cite the SpliceVault publication alongside the VEP if you use this
- resource: https://pubmed.ncbi.nlm.nih.gov/36747048/
+ resource: https://pubmed.ncbi.nlm.nih.gov/36747048
 
  The tabix utility must be installed in your path to use this plugin. The
  SpliceVault TSV and respective index (TBI) for GRCh38 can be downloaded from
@@ -108,7 +123,7 @@ sub get_header_info {
     SpliceVault_top_events          => 'List of SpliceVault top events with the following colon-separated fields per event: rank:type:transcript_impact:percent_of_supporting_samples:frame',
     SpliceVault_site_sample_count   => 'Number of SpliceVault annotated splicing samples',
     SpliceVault_site_max_depth      => 'Maximum number of reads seen in any one sample representing annotated splicing in GTEx',
-    SpliceVault_out_of_frame_events => 'Fraction of SpliceVault top events that cause a frameshift; as per SpliceVault article, sites with 3/4 or more in-frame events are likely to be splice-rescued and not LoF',
+    SpliceVault_out_of_frame_events => 'Fraction of SpliceVault top events that cause a frameshift',
     SpliceVault_site_pos            => 'Genomic position of splice-site predicted to be lost by SpliceAI',
     SpliceVault_site_type           => 'Type of splice-site predicted to be lost by SpliceAI',
   }
