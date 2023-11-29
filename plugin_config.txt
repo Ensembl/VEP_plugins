@@ -768,11 +768,28 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens",
         "sus_scrofa"
       ],
+      "form" => [
+        {
+          "name" => "file_type",
+          "label" => "Select annotation file",
+          "type" => "dropdown",
+          "species" => [
+            "homo_sapiens"
+          ],
+          "values" => [
+            { "value" => "snv_indels", "caption" => "CADD SNVs and InDels annotation file" },
+            { "value" => "snv", "caption" => "Only CADD SNVs annotation file" },
+            { "value" => "indels", "caption" => "Only CADD InDels annotation file" },
+            { "value" => "sv", "caption" => "CADD-SV annotation file" }
+          ],
+          "value" => "snv_indels",
+        },
+      ],
       "params" => [
-        #"/path/to/CADD_whole_genome_SNVs.tsv.gz",
-        #"/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
-        #"/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
-        #"/path/to/CADD_prescored_variants.tsv.gz"
+        #"snv=/path/to/CADD_whole_genome_SNVs.tsv.gz",
+        #"indels=/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
+        #"snv_pig=/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
+        #"sv=/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
 
