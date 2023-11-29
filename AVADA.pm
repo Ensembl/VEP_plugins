@@ -54,7 +54,7 @@ sub get_header_info {
   my $self = shift;
   my %header;
 
-  $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as sreported by AVADA";
+  $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA";
   $header{"AVADA_FEATURE_ID"} = "Feature ID associated with variant as reported by AVADA" ;  
   return \%header
 }
