@@ -164,10 +164,10 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
-        RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
-        MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
-        MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
+        PhenotypeOrthologous_RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
+        PhenotypeOrthologous_RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+        PhenotypeOrthologous_MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
+        PhenotypeOrthologous_MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
       }
     };
   }
@@ -178,8 +178,8 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
-        RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+        PhenotypeOrthologous_RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
+        PhenotypeOrthologous_RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
       }
     };
   }
@@ -190,8 +190,8 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
-        MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
+        PhenotypeOrthologous_MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
+        PhenotypeOrthologous_MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
       }
     };
   }
