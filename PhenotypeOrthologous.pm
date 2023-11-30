@@ -32,9 +32,9 @@ PhenotypeOrthologous
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves phenotype information associated with orthologous genes from from model organisms.
+ A VEP plugin that retrieves phenotype information associated with orthologous genes from model organisms.
 
- The plugin presently only supports two model organisms, rats and mouse. 
+ The plugin presently only supports two model organisms, rat and mouse. 
 
  The PhenotypeOrthologous file can be downloaded from https://ftp.ensembl.org/pub/current_variation/PhenotypeOrthologous
 
@@ -49,7 +49,7 @@ PhenotypeOrthologous
   To return only results for mouse:
     ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mouse
 
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mus_muculus
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mus_musculus
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -83,18 +83,16 @@ sub new {
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
 
-  #die "Species needs to be specified to run the PhenotypeOrthologous plugin. \n" if (!$species); 
-
   if ( defined($species) && $species ne "rattus_norvegicus" && $species ne "rat" && $species ne "mouse" && $species ne "mus_muculus") {
-    die "Phenotype Orthologous plugin only works for rat and mouse \n"
+    die "PhenotypeOrthologous plugin only works for rat and mouse \n"
   }
   
   if (defined($species)) {
     $self->{species} = "rat" if $species eq "rattus_norvegicus" || $species eq "rat";
-    $self->{species} = "mouse" if $species eq "mus_muculus" || $species eq "mouse";
+    $self->{species} = "mouse" if $species eq "mus_musculus" || $species eq "mouse";
   }
 
-
+  $self->{params} = $params;
   return $self;
 
 }
@@ -104,7 +102,28 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return { PhenotypeOrthologous => 'Phenotypes associated with orthologous genes in model organism'};
+
+  my %header;
+
+   if (keys(%{$self->{params}}) == 1)  {
+    $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
+    $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
+    $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
+    $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
+  }
+
+  if ($self->{species} = "rat") {
+    $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
+    $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
+  }
+
+  if ($self->{species} = "mouse") {
+    $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
+    $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
+  }
+
+  return \%header;
+
 }
 
 sub run {
