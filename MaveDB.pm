@@ -44,9 +44,10 @@ limitations under the License.
  database that contains multiplex assays of variant effect, including deep
  mutational scans and massively parallel report assays.
 
- To run the MaveDB plugin, please download the following file with MaveDB data
- mapped to variants:
- https://ftp.ensembl.org/pub/current_variation/MaveDB/MaveDB_variants.tsv.gz
+ To run the MaveDB plugin, please download the following files containing
+ MaveDB data for GRCh38 (we do not currently host data for other assemblies):
+ - https://ftp.ensembl.org/pub/current_variation/MaveDB/MaveDB_variants.tsv.gz
+ - https://ftp.ensembl.org/pub/current_variation/MaveDB/MaveDB_variants.tsv.gz.tbi
 
  Options are passed to the plugin as key=value pairs:
    file                     : (mandatory) Tabix-indexed MaveDB file
