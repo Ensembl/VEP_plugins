@@ -28,7 +28,7 @@ PhenotypeOrthologous
 =head1 SYNOPSIS
 
  mv PhenotypeOrthologous.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,species=rat
+ ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,model=rat
 
 =head1 DESCRIPTION
 
@@ -43,13 +43,13 @@ PhenotypeOrthologous
   ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz
  
   To return only results for rat :
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=rat
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=rat
 
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=rattus_norvegicus
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=rattus_norvegicus
   To return only results for mouse:
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mouse
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=mouse
 
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,species=mus_musculus
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=mus_musculus
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -78,21 +78,24 @@ sub new {
   my $params = $self->params_to_hash();
 
   my $file = $params->{file};  
-  my $species = $params->{species};
+  my $model = $params->{model};
 
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
 
-  if ( defined($species) && $species ne "rattus_norvegicus" && $species ne "rat" && $species ne "mouse" && $species ne "mus_muculus") {
+  if ( defined($model) && $model ne "rattus_norvegicus" && $model ne "rat" && $model ne "mouse" && $model ne "mus_musculus") {
     die "PhenotypeOrthologous plugin only works for rat and mouse \n"
   }
   
-  if (defined($species)) {
-    $self->{species} = "rat" if $species eq "rattus_norvegicus" || $species eq "rat";
-    $self->{species} = "mouse" if $species eq "mus_musculus" || $species eq "mouse";
+  if (defined($model)) {
+    $model = "rat" if $model eq "rattus_norvegicus" || $model eq "rat";
+    $model = "mouse" if $model eq "mus_musculus" || $model eq "mouse";
   }
-
+  
+  $self->{model} = $model;
   $self->{params} = $params;
+
+
   return $self;
 
 }
@@ -102,22 +105,24 @@ sub feature_types {
 }
 
 sub get_header_info {
-
+  my $self = shift;
+  
   my %header;
+  
 
-   if (keys(%{$self->{params}}) == 1)  {
+  if (keys(%{$self->{params}}) == 1)  {
     $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
     $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
     $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
     $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
 
-  if ($self->{species} = "rat") {
+  if (defined($self->{model}) eq "rat" ) {
     $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
     $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
   }
 
-  if ($self->{species} = "mouse") {
+  if (defined($self->{model}) eq "mouse" ) {
     $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
     $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
@@ -133,14 +138,11 @@ sub run {
   my $transcript = $tva->transcript;
   my $gene_id =  $transcript->{_gene}->stable_id;
 
-  my @data = @{ $self->get_data($vf->{chr}, $vf->{start}, $vf->{end}) };
-  return {} unless(@data);
-
-  foreach (@data) {
-    return $_->{result} if $_->{gene_id} eq $gene_id;
-
-    return {};
-  }
+  my ($res) = grep {
+    $_->{gene_id} eq $gene_id
+  } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+ 
+  return $res ? $res->{result} : {};
 
 }
 
@@ -149,7 +151,7 @@ sub parse_data {
   my ($self, $line) = @_;
 
   my ($c, $grc, $feat, $s, $e, $n, $str, $n2, $note) = split /\t/, $line;
-  
+
   my @fields = split /;/, $note;
   my %data_fields;
   
@@ -158,7 +160,7 @@ sub parse_data {
     $data_fields{$key} = $value;
   }
   
-  if (!$self->{species}) {
+  if (!$self->{model}) {
     return {
       start => $s,
       end => $e,
@@ -172,7 +174,7 @@ sub parse_data {
     };
   }
 
-  if ($self->{species} eq "rat") {
+  if ($self->{model} eq "rat") {
     return {
       start => $s,
       end => $e,
@@ -184,7 +186,7 @@ sub parse_data {
     };
   }
 
-  if ($self->{species} eq "mouse") {
+  if ($self->{model} eq "mouse") {
     return {
       start => $s,
       end => $e,
