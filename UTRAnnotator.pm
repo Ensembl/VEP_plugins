@@ -123,11 +123,11 @@ sub new {
 sub get_header_info {
 
   my $self->{_header_info} = {
-        "5UTR_consequence" => "'Variant consequence from UTRAnnotator'",
-        "5UTR_annotation" => "'Variant annotation from UTRAnnotator'",
-        Existing_uORFs => "'The number of existing uORFs with a stop codon within the 5 prime UTR'",
-        Existing_OutOfFrame_oORFs => "'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR'",
-        Existing_InFrame_oORFs => "'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR'",
+        '5UTR_consequence' => 'Variant consequence from UTRAnnotator',
+        '5UTR_annotation' => 'Variant annotation from UTRAnnotator',
+        Existing_uORFs => 'The number of existing uORFs with a stop codon within the 5 prime UTR',
+        Existing_OutOfFrame_oORFs => 'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR',
+        Existing_InFrame_oORFs => 'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR',
   };
   return $self->{_header_info};
 }
@@ -140,8 +140,8 @@ sub run {
 
   #retrieve the variant info
   my $vf = $tva->can('variation_feature') ? $tva->variation_feature : $tva->structural_variation_feature;
-  my $chr = ($vf->{chr}   || $vf->seq_region_name);
-  my $pos = ($vf->{start} || $vf->seq_region_start);
+  my $chr     = ($vf->{chr}   || $vf->seq_region_name);
+  my $pos     = ($vf->{start} || $vf->seq_region_start);
   my $pos_end = ($vf->{end}   || $vf->seq_region_end);
   my @alleles = split /\//, $vf->allele_string;
   my $ref = shift @alleles;
@@ -188,6 +188,7 @@ sub run {
     push(@five_utr_starts, $UTR_start);
     push(@five_utr_ends,   $UTR_end);
   }
+  return {} unless (@five_utr_starts || @five_utr_ends);
 
   my @sorted_starts = sort {$a <=> $b} @five_utr_starts;
   my @sorted_ends = sort {$a <=> $b} @five_utr_ends;
@@ -285,8 +286,8 @@ sub run {
     $consequence = join(",", @consequences);
 
     %utr_effect = (
-        "5UTR_consequence" => defined($output_five_prime_flag)? $output_five_prime_flag: "-",
-        "5UTR_annotation" => defined($consequence)? $consequence: "-",
+        "5UTR_consequence" => defined($output_five_prime_flag) ? $output_five_prime_flag : "-",
+        "5UTR_annotation" => defined($consequence) && $consequence ne '' ? $consequence : "-",
     );
 
   }
@@ -1322,4 +1323,3 @@ sub find_uorf_evidence {
 }
 
 1;
-                          
