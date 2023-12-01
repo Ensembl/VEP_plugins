@@ -36,7 +36,7 @@ limitations under the License.
     variant creating/disrupting upstream ORFs.
     Available for both GRCh37 and GRCh38.
 
-    Options are passed to the plugin as key=value pairs, (defaults in parentheses):
+    Options are passed to the plugin as key=value pairs:
 
     file        : (Required) Path to UTRAnnotator data file:
                   - Download 'uORF_5UTR_GRCh37_PUBLIC.txt' or 'uORF_5UTR_GRCh38_PUBLIC.txt'
@@ -1322,3 +1322,4 @@ sub find_uorf_evidence {
 }
 
 1;
+                          
