@@ -65,6 +65,7 @@ limitations under the License.
    number of reads in any single sample representing annotated splicing in
    Genotype-Tissue Expression (GTEx). This information allows to filter events
    based on a minimum number of samples or minimum depth in GTEx.
+ - SpliceAI delta score (provided by SpliceVault)
 
  Please cite the SpliceVault publication alongside the VEP if you use this
  resource: https://pubmed.ncbi.nlm.nih.gov/36747048
@@ -126,6 +127,7 @@ sub get_header_info {
     SpliceVault_out_of_frame_events => 'Fraction of SpliceVault top events that cause a frameshift',
     SpliceVault_site_pos            => 'Genomic position of splice-site predicted to be lost by SpliceAI',
     SpliceVault_site_type           => 'Type of splice-site predicted to be lost by SpliceAI',
+    SpliceVault_SpliceAI_delta      => 'SpliceVault-provided SpliceAI delta score'
   }
 }
 
@@ -148,7 +150,7 @@ sub run {
         strand => $vf->strand
       },
       {
-       ref  => $vf->ref_allele_string,
+       ref  => $_->{ref},
        alts => [$_->{alt}],
        pos  => $_->{start},
       }
@@ -176,18 +178,20 @@ sub run {
 
 sub parse_data {
   my ($self, $line) = @_;
-  my ($chrom, $start, $alt, $feature, $type, $site, $out_of_frame, $top_events, $count, $max_depth) = split /\t/, $line;
+  my ($chrom, $start, $ref, $alt, $feature, $type, $site, $spliceAI_delta, $out_of_frame, $top_events, $count, $max_depth) = split /\t/, $line;
 
   $top_events =~ s/ /_/g;
   $top_events =~ s/;/:/g;
 
   my $res = {
     feature => $feature,
+    ref     => $ref,
     alt     => $alt,
     start   => $start,
     result  => {
       SpliceVault_site_sample_count   => $count,
       SpliceVault_site_max_depth      => $max_depth,
+      SpliceVault_SpliceAI_delta      => $spliceAI_delta,
       SpliceVault_out_of_frame_events => $out_of_frame,
       SpliceVault_top_events          => [ split(/\|/, $top_events) ],
       SpliceVault_site_pos            => $site,
