@@ -88,8 +88,8 @@ sub new {
   }
   
   if (defined($model)) {
-    $model = "rat" if $model eq "rattus_norvegicus" || $model eq "rat";
-    $model = "mouse" if $model eq "mus_musculus" || $model eq "mouse";
+    $model = "rat" if $model eq "rattus_norvegicus";
+    $model = "mouse" if $model eq "mus_musculus";
   }
   
   $self->{model} = $model;
@@ -108,7 +108,7 @@ sub get_header_info {
   my $self = shift;
   
   my %header;
-  
+
 
   if (keys(%{$self->{params}}) == 1)  {
     $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
@@ -117,12 +117,12 @@ sub get_header_info {
     $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
 
-  if (defined($self->{model}) eq "rat" ) {
+  if (defined($self->{model}) && $self->{model} eq "rat" ) {
     $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
     $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
   }
 
-  if (defined($self->{model}) eq "mouse" ) {
+  if (defined($self->{model}) && $self->{model} eq "mouse" ) {
     $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
     $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
