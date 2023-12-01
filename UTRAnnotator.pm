@@ -43,7 +43,7 @@ limitations under the License.
                     from https://github.com/Ensembl/UTRannotator
                   - Download from http://sorfs.org
     max_overlap : (Optional) Maximum percentage of overlap between variant and
-                  UTR to avoid UTR annotation (default: 100)
+                  UTR for UTR annotation (default: 100)
 
     Citation
 
