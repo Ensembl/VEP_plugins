@@ -773,14 +773,11 @@ my $VEP_PLUGIN_CONFIG = {
           "name" => "file_type",
           "label" => "Select annotation file",
           "type" => "dropdown",
-          "species" => [
-            "homo_sapiens"
-          ],
           "values" => [
-            { "value" => "snv_indels", "caption" => "CADD SNVs and InDels annotation file" },
-            { "value" => "snv", "caption" => "Only CADD SNVs annotation file" },
-            { "value" => "indels", "caption" => "Only CADD InDels annotation file" },
-            { "value" => "sv", "caption" => "CADD-SV annotation file" }
+            { "value" => "snv_indels", "caption" => "CADD SNVs and InDels annotation file", "class" => "_stt_Homo_sapiens" },
+            { "value" => "snv", "caption" => "CADD SNVs annotation file" },
+            { "value" => "indels", "caption" => "CADD InDels annotation file", "class" => "_stt_Homo_sapiens" },
+            { "value" => "sv", "caption" => "CADD-SV annotation file", "class" => "_stt_Homo_sapiens" }
           ],
           "value" => "snv_indels",
         },
