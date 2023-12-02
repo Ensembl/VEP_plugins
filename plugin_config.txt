@@ -753,8 +753,6 @@ my $VEP_PLUGIN_CONFIG = {
 
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
-    # Requires tabix-indexed data file as first param
-    # No other parameters so no form required
     {
       "key" => "CADD",
       "label" => "CADD",
