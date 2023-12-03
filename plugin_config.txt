@@ -771,11 +771,12 @@ my $VEP_PLUGIN_CONFIG = {
           "name" => "file_type",
           "label" => "Select annotation file",
           "type" => "dropdown",
+          "helptip" => "Select type of CADD annotation file to be used. Caution to be taken while using snv, indels or snv_indels options with structural variants as input. It can match unnecessary huge amount of lines in annotation file and in such cases no CADD annotation will be made.",
           "values" => [
             { "value" => "snv_indels", "caption" => "CADD SNVs and InDels annotation file", "class" => "_stt_Homo_sapiens" },
             { "value" => "snv", "caption" => "CADD SNVs annotation file" },
             { "value" => "indels", "caption" => "CADD InDels annotation file", "class" => "_stt_Homo_sapiens" },
-            { "value" => "sv", "caption" => "CADD-SV annotation file", "class" => "_stt_Homo_sapiens" }
+            { "value" => "sv", "caption" => "CADD-SV annotation file (supported only in GRCh38)", "class" => "_stt_Homo_sapiens" }
           ],
           "value" => "snv_indels",
         },
