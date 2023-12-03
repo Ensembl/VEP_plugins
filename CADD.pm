@@ -224,7 +224,13 @@ sub run {
   };
 
   my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
-
+  if(scalar @data > 100000) {
+    my $location = $bvf->{chr} . "_" . $start . "_" . $end;
+    warn "WARNING: too many match found (", scalar @data, ") for CADD for variant with location $location. No CADD annotation will be made. " .
+         "Make sure you are not using SNVs/Indels CADD annotation file with structural variant as input."; 
+    return {};
+  }
+  
   foreach (@data) {
 
     my $matches = get_matched_variant_alleles(
