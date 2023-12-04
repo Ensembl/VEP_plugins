@@ -39,7 +39,8 @@ PhenotypeOrthologous
  The PhenotypeOrthologous file can be downloaded from https://ftp.ensembl.org/pub/current_variation/PhenotypeOrthologous
 
  The plugin can be run: 
-   
+   The file option is mandatory to run this plugin 
+
   ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz
  
   To return only results for rat :
