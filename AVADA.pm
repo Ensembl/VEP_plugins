@@ -89,7 +89,7 @@ sub run {
   my $transcript = $tva->transcript;
   my %output;
   my @data;
-  #variant having multiple genes
+  # variant having multiple genes
   if (!defined($feature_match_by)){
     @data = @{$self->get_data($vf->{chr}, $start, $end)};
     $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_GENE_SYMBOL}  if scalar @data && defined $data[0]->{AVADA_GENE_SYMBOL} ; 
@@ -121,21 +121,9 @@ sub run {
   my $pmid_string ;
   my %seen;
   foreach my $data_value (uniq @data) {
-    if ( exists $seen{$data_value->{AVADA_PMID}} )
-    {
-      if ( $seen{$data_value->{AVADA_PMID}} <= 1 )
-      {
-      $pmid_string = $pmid_string ? $pmid_string.",".$data_value->{AVADA_PMID} : $data_value->{AVADA_PMID} ;
-      }
-      else
-      {
-      $seen{$data_value->{AVADA_PMID}}++ ;
-      }
-    }
-    else
-    {
-    $seen{$data_value->{AVADA_PMID}} = 1;
-    }
+    next unless ( ! exists $seen{$data_value->{AVADA_PMID}} );
+    $pmid_string = $pmid_string ? $pmid_string.",".$data_value->{AVADA_PMID} : $data_value->{AVADA_PMID}; 
+    $seen{$data_value->{AVADA_PMID}} = 1;   
   }
   
   $output{"AVADA_PMID"} = $pmid_string;
