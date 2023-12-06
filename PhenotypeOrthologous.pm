@@ -139,9 +139,12 @@ sub run {
   my $transcript = $tva->transcript;
   my $gene_id =  $transcript->{_gene}->stable_id;
 
+  my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
+  ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
+
   my ($res) = grep {
     $_->{gene_id} eq $gene_id
-  } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
+  } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
  
   return $res ? $res->{result} : {};
 
