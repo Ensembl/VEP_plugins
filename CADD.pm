@@ -30,6 +30,7 @@ limitations under the License.
  mv CADD.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin CADD,snv=/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,indels=/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz
  ./vep -i variations.vcf --plugin CADD,sv=/FULL_PATH_TO_CADD_FILE/1000G_phase3_SVs.tsv.gz
+ ./vep -i structural_variations.vcf --plugin CADD,snv=/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz,indels=/FULL_PATH_TO_CADD_FILE/InDels.tsv.gz,force_annotate=1
 
 =head1 DESCRIPTION
 
@@ -46,6 +47,11 @@ limitations under the License.
  
  The CADD SV data files (and respective Tabix index files)  can be downloaded from -
  https://kircherlab.bihealth.org/download/CADD-SV/v1.1/
+
+ By default, the plugin does not annotate if there is too many lines matched from the 
+ CADD annotation files. It can happen if CADD SNV and indels annotation files are used
+ with structural variant as input. You can override this behavior by providing force_annotate=1
+ which will force the plugin to annotate with the expense of increasing runtime.
 
  The plugin works with all versions of available CADD files. The plugin only
  reports scores and does not consider any additional annotations from a CADD
@@ -111,9 +117,23 @@ sub new {
   my @files;
   # Check files in arguments
   if (!keys %$params) {
+    warn "WARNING: Using snv or indels CADD annotation file with structural variant can increase run time exponentially.".
+         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation.\n"
+    if scalar @{$self->params} > 2;
+    
+
     @files = @{$self->params};  
   } else {
-    for my $key ( keys %{$params}){
+    my @param_keys = keys %{$params};
+    
+    # using snv/indels files on SV can slow down VEP exponentially
+    if ( grep( /^sv$/, @param_keys ) && ( grep( /^snv$/, @param_keys ) || grep( /^indels$/, @param_keys ) ) ) {
+      warn "WARNING: Using snv=<file> and/or indels=<file> with structural variant can increase run time exponentially.".
+           "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n";
+    }
+
+    for my $key ( @param_keys ){
+      next if $key eq "force_annotate";
       push @files, $params->{$key};
     }
   }
@@ -121,6 +141,7 @@ sub new {
   die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @files > 0;
   $self->add_file($_) for @files;
 
+  $self->{force_annotate} = $params->{force_annotate} ? 1 : 0;
   my $assembly = $self->{config}->{assembly};
 
   $self->{header} = ();
@@ -211,7 +232,13 @@ sub run {
   };
 
   my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
-
+  if(scalar @data > 100000 && !$self->{force_annotate}) {
+    my $location = $bvf->{chr} . "_" . $start . "_" . $end;
+    warn "WARNING: too many match found (", scalar @data, ") for CADD variant with location $location. No CADD annotation will be made. " .
+         "Make sure you are not using SNVs/Indels CADD annotation file with structural variant as input. If you still want to annotate please use force_annotate=1."; 
+    return {};
+  }
+  
   foreach (@data) {
 
     my $matches = get_matched_variant_alleles(
