@@ -26,7 +26,8 @@ limitations under the License.
  AVADA
 
 =head1 SYNOPSIS
-./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=<gene_symbol/ensembl_id/refseq_id>
+./vep -i variations.vcf --plugin AVADA,file=path/to/file
+./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=<gene_symbol|ensembl_id|refseq_id>
 
 =head1 DESCRIPTION
 wget http://bejerano.stanford.edu/AVADA/avada_v1.00_2016.vcf.gz
@@ -70,8 +71,8 @@ sub new {
   $self->get_user_params();
   my $param_hash = $self->params_to_hash();
   $self->add_file($param_hash->{file}); 
-  $feature_match_by = $param_hash->{feature_match_by} || "gene_symbol"; 
-  if ($feature_match_by eq "refseq_id") {
+  $feature_match_by = $param_hash->{feature_match_by}; 
+  if (defined($feature_match_by) && $feature_match_by  eq "refseq_id") {
     $self->{config}->{refseq} = 1;
     # DB mode will not work for RefSeq ID
     die("ERROR: Matching by RefSeq ID is not possible with --database option") if ($self->{config}->{database});
@@ -88,35 +89,33 @@ sub run {
   my $transcript = $tva->transcript;
   my %output;
   my @data;
-
-  if ( $feature_match_by eq "gene_symbol"){
+  #variant having multiple genes
+  if (!defined($feature_match_by)){
+    @data = @{$self->get_data($vf->{chr}, $start, $end)};
+    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_GENE_SYMBOL}  if scalar @data && defined $data[0]->{AVADA_GENE_SYMBOL} ; 
+  }
+  elsif ( $feature_match_by eq "gene_symbol"){
     @data = grep {
     $_->{AVADA_GENE_SYMBOL} eq $transcript->{_gene_symbol}
     }@{$self->get_data($vf->{chr}, $start, $end)};
-    $output{"AVADA_FEATURE_ID"} = $transcript->{_gene_symbol};
+    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_GENE_SYMBOL} if scalar @data && defined $data[0]->{AVADA_GENE_SYMBOL} ; ;
   }
   elsif ( $feature_match_by eq "refseq_id" ){
     my $refseq_transcript = $transcript->{stable_id};
     my $refseq_protein = $transcript->translation->{stable_id};
     @data = grep {
-      $_->{AVADA_REFSEQ_ID} eq $refseq_transcript
+      $_->{AVADA_REFSEQ_ID} eq $refseq_transcript || $_->{AVADA_REFSEQ_ID} eq $refseq_protein
       }@{$self->get_data($vf->{chr}, $start, $end)};
-    if (scalar @data) {
-      $output{"AVADA_FEATURE_ID"} = $refseq_transcript;
-    }
-    else{
-    @data = grep {
-      $_->{AVADA_REFSEQ_ID} eq $refseq_protein
-      }@{$self->get_data($vf->{chr}, $start, $end)};
-      $output{"AVADA_FEATURE_ID"} = $refseq_protein;
-    } 
+    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_REFSEQ_ID} if scalar @data && defined $data[0]->{AVADA_REFSEQ_ID} ;
   }
-  elsif ( $feature_match_by eq "ensembl_id" )
-  {
+  elsif ( $feature_match_by eq "ensembl_id" ){
   @data = grep {
     $_->{AVADA_ENSEMBL_ID} eq $transcript->{_gene_stable_id}
     }@{$self->get_data($vf->{chr}, $start, $end)};
-  $output{"AVADA_FEATURE_ID"} = $transcript->{_gene_stable_id};
+  $output{"AVADA_FEATURE_ID"} =  $data[0]->{AVADA_ENSEMBL_ID} if scalar @data && defined $data[0]->{AVADA_ENSEMBL_ID} ;
+  }
+  else{
+    die("ERROR: feature_match_by can only take one of the options gene_symbol|ensembl_id|refseq_id ");
   }
   return {} unless scalar @data;
   my $pmid_string ;
