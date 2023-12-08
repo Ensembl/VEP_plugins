@@ -511,7 +511,7 @@ sub new {
 
   # Thresholds for minimum percentage of homology similarity and coverage
   $self->{min_perc_cov} = $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
-  $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 0;
+  $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
 
   # Check for custom VCF
   my $vcf = $params->{vcf};
@@ -657,10 +657,12 @@ sub _summarise_vf {
 
 sub _is_clinically_significant {
   my ($self, $clnsig) = @_;
-  return 0 unless any { defined } @$clnsig;
 
+  # if no filter is set, avoid filtering
   my $filter = $self->{clnsig_term};
-  return 0 unless defined $filter;
+  return 1 unless defined $filter;
+
+  return 0 unless any { defined } @$clnsig;
 
   my $res;
   my $match = $self->{clnsig_match};
