@@ -91,7 +91,7 @@ limitations under the License.
    clnsig_match : Type of match when filtering variants based on argument
                   `clnsig`: 'partial' (default), 'exact' or 'regex'
    clnsig_col   : Column name containing clinical significance in custom VCF
-                  (required if using `vcf`)
+                  (required if using both `vcf` and `clnsig` arguments)
    mode         : If 'remote', fetch paralogue annotation directly from Ensembl
                   API (default: off); paralogue variants can either be fetched
                   from a custom VCF using the argument `vcf` or Ensembl API
