@@ -29,22 +29,22 @@ limitations under the License.
 
  mv Paralogues.pm ~/.vep/Plugins
 
- # Download Ensembl paralogue annotation (if not available in current directory)
- # and fetch variants from Ensembl API (requires database access)
- ./vep -i variations.vcf --plugin Paralogues
+ # Download Ensembl paralogue annotation (if not in current directory) and fetch
+ # variants from Ensembl API whose clinical significance partially matches 'pathogenic'
+ ./vep -i variations.vcf --plugin Paralogues,clnsig=pathogenic
 
- # Download Ensembl paralogue annotation (if not available in current directory)
- # and fetch variants from custom VCF file
+ # Download Ensembl paralogue annotation (if not in current directory) and fetch
+ # all variants from custom VCF file
  ./vep -i variations.vcf --plugin Paralogues,vcf=/path/to/file.vcf
 
- # Fetch Ensembl variants in paralogue proteins using only the Ensembl API
+ # Fetch all Ensembl variants in paralogue proteins using only the Ensembl API
  # (requires database access)
  ./vep -i variations.vcf --database --plugin Paralogues,mode=remote
 
 =head1 DESCRIPTION
 
  A VEP plugin that fetches variants overlapping the genomic coordinates of amino
- acids aligned between paralogue proteins. This is useful to predict
+ acids aligned between paralogue proteins. This is useful to predict the
  pathogenicity of variants in paralogue positions.
 
  This plugin fetches variants overlapping the genomic coordinates of the
@@ -71,11 +71,30 @@ limitations under the License.
    --plugin Paralogues,vcf=/path/to/file.vcf.gz
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
 
- To avoid downloading data, the plugin has a remote mode. In the remote mode,
- variants can also be fetched from the Ensembl API or a custom VCF:
-   --plugin Paralogues,mode=remote
-   --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf.gz
-   --plugin Paralogues,mode=remote,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
+ Returned variants can be filtered based on clinical significance by using
+ argument `clnsig`:
+   --plugin Paralogues,clnsig=pathogenic,clnsig_match=partial
+   --plugin Paralogues,clnsig='likely pathogenic',clnsig_match=exact
+   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=benign,clnsig_col=CLNSIG
+
+ Options are passed to the plugin as key=value pairs:
+   dir          : Directory for paralogue annotation (the annotation is
+                  downloaded to this location, if not available)
+   paralogues   : File to use for paralogue annotation (the annotation is
+                  downloaded with this name, if not available)
+   vcf          : Custom VCF file (by default, overlapping variants are fetched
+                  from Ensembl API)
+   cols         : Colon-separated list of INFO fields from VCF file (by default,
+                  all columns are returned)
+   clnsig       : Clinical significance term to filter variants (by default, all
+                  variants are returned)
+   clnsig_match : Type of match when filtering variants based on argument
+                  `clnsig`: 'partial' (default), 'exact' or 'regex'
+   clnsig_col   : Column name containing clinical significance in custom VCF
+                  (required if using `vcf`)
+   mode         : If 'remote', fetch paralogue annotation directly from Ensembl
+                  API (default: off); paralogue variants can either be fetched
+                  from a custom VCF using the argument `vcf` or Ensembl API
 
  The tabix utility must be installed in your path to read the paralogue
  annotation and the custom VCF file.
@@ -87,6 +106,7 @@ package Paralogues;
 use strict;
 use warnings;
 
+use List::Util qw(any);
 use File::Basename;
 use Bio::SimpleAlign;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
@@ -95,6 +115,8 @@ use Bio::EnsEMBL::IO::Parser::VCF4Tabix;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+
+my $print_missing_INFO_warning = 1;
 
 ## GENERATE PARALOGUE ANNOTATION -----------------------------------------------
 
@@ -202,7 +224,7 @@ sub _generate_paralogue_annotation {
   $self->{ha} ||= $self->_get_homology_adaptor;
   my $mlss_id = _get_method_link_species_set_id($self->{ha}, $species, 'ENSEMBL_PARALOGUES');
 
-  # Create paralogue annotaton
+  # Create paralogue annotation
   my @query = qq/
     SELECT
       hm.homology_id,
@@ -519,6 +541,21 @@ sub new {
     die("ERROR: Cannot fetch Ensembl variants in offline mode; please define vcf argument in the Paralogues plugin\n");
   }
 
+  # Prepare clinical significance parameters
+  $self->{clnsig_term} = $params->{clnsig};
+
+  if (defined $self->{clnsig_term}) {
+    $self->{clnsig_match} = $params->{clnsig_match} || 'partial';
+    die "ERROR: clnsig_match only accepts 'exact', 'partial' or 'regex'\n"
+      unless grep { $self->{clnsig_match} eq $_ } ('exact', 'partial', 'regex');
+
+    if (defined $self->{vcf}) {
+      $self->{clnsig_col} = $params->{clnsig_col};
+      die "ERROR: clnsig_col must be set when using a custom VCF with clnsig\n"
+        if !defined $self->{clnsig_col};
+    }
+  }
+
   # Check if paralogue annotation should be downloaded
   $self->{remote} = defined $params->{mode} && $params->{mode} eq 'remote';
   return $self if $self->{remote};
@@ -608,6 +645,27 @@ sub _summarise_vf {
   return { PARALOGUE_VARIANTS => $var };
 }
 
+sub _is_clinically_significant {
+  my ($self, $clnsig) = @_;
+  return 0 unless any { defined } @$clnsig;
+
+  my $filter = $self->{clnsig_term};
+  return 0 unless defined $filter;
+
+  my $res;
+  my $match = $self->{clnsig_match};
+  if ($match eq 'partial') {
+    $filter = "\Q$filter\E";
+  } elsif ($match eq 'exact') {
+    $filter = "^\Q$filter\E\$";
+  } elsif ($match eq 'regex') {
+    # no need to do anything
+  } else {
+    return 0;
+  }
+  return grep /$filter/i, @$clnsig;
+}
+
 sub run {
   my ($self, $tva) = @_;
 
@@ -636,7 +694,11 @@ sub run {
     if (defined $self->{vcf}) {
       # get variants from custom VCF file
       my @data = @{$self->get_data($chr, $start - 2, $end)};
-      $all_results = $self->_join_results($all_results, $_) for @data;
+      for my $var (@data) {
+        next unless $self->_is_clinically_significant([ $var->{clinical_significance} ]);
+        my $res = { PARALOGUE_VARIANTS => $var->{result} };
+        $all_results = $self->_join_results($all_results, $res);
+      }
     } else {
       # get Ensembl variants from mapped genomic coordinates
       my $config  = $self->{config};
@@ -647,7 +709,11 @@ sub run {
       $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
 
       my $slice = $self->{sa}->fetch_by_region('chromosome', $chr, $start, $end);
+      next unless defined $slice;
+
       foreach my $var ( @{ $self->{vfa}->fetch_all_by_Slice($slice) } ) {
+        # check clinical significance (if set)
+        next unless $self->_is_clinically_significant($var->{clinical_significance});
         my $res = _summarise_vf($var);
         $all_results = $self->_join_results($all_results, $res);
       }
@@ -691,7 +757,18 @@ sub parse_data {
     $value =~ s/[:|]/_/g;
     push @data, $value;
   }
-  return { PARALOGUE_VARIANTS => join(':', @data) };
+  my $res = { result => join(':', @data) };
+
+  my $clnsig_col = $self->{clnsig_col};
+  if ($clnsig_col) {
+    $res->{clinical_significance} = $INFO_data{$clnsig_col};
+    if (!defined $INFO_data{$clnsig_col} && $print_missing_INFO_warning) {
+      # warn once if column is missing from INFO fields
+      warn "WARNING: clinical significance column $clnsig_col not present in the INFO fields of one or more variants in $file\n";
+      $print_missing_INFO_warning = 0;
+    }
+  }
+  return $res;
 }
 
 sub get_start {
