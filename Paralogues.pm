@@ -92,6 +92,10 @@ limitations under the License.
                   `clnsig`: 'partial' (default), 'exact' or 'regex'
    clnsig_col   : Column name containing clinical significance in custom VCF
                   (required if using both `vcf` and `clnsig` arguments)
+   min_perc_cov : Minimum alignment percentage of the peptide associated with
+                  the input variant (default: 0)
+   min_perc_pos : Minimum percentage of positivity (similarity) between both
+                  homologues (default: 50)
    mode         : If 'remote', fetch paralogue annotation directly from Ensembl
                   API (default: off); paralogue variants can either be fetched
                   from a custom VCF using the argument `vcf` or Ensembl API
@@ -374,6 +378,8 @@ sub _get_paralogues {
       $para_cigar
     ) = split /\t/, $_;
     next unless $translation_id eq $protein_id;
+    next unless $perc_cov >= $self->{min_perc_cov};
+    next unless $perc_pos >= $self->{min_perc_pos};
 
     my $paralogue = $self->_get_transcript_from_translation(
       $para_id, $para_chr, $para_start, $para_end);
@@ -502,6 +508,10 @@ sub new {
 
   my $params = $self->params_to_hash();
   my $config = $self->{config};
+
+  # Thresholds for minimum percentage of homology similarity and coverage
+  $self->{min_perc_cov} = $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
+  $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 0;
 
   # Check for custom VCF
   my $vcf = $params->{vcf};
