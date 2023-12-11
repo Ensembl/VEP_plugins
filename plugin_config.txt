@@ -1456,7 +1456,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "PhenotypeOrthologous",
       "label" => "PhenotypeOrthologous",
-      "helptip" => "Phenotypes associated with orthologous genes in model organism",
+      "helptip" => "Phenotypes associated with orthologous genes in model organisms (mouse and rat)",
       "requires_data" => 1,
       "available" => 0,
       "enabled" => 0,
