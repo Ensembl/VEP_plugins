@@ -29,7 +29,7 @@ limitations under the License.
 
  mv SpliceVault.pm ~/.vep/Plugins
 
- ./vep -i variations.vcf --plugin SpliceVault,file=/path/to/SpliceVault_data.tsv.gz
+ ./vep -i variations.vcf --plugin SpliceVault,file=/path/to/SpliceVault_data_GRCh38.tsv.gz
 
  # Stringently select predicted loss-of-function (pLoF) splicing variants
  ./filter_vep -i variant_effect_output.txt --filter "SPLICEVAULT_OUT_OF_FRAME_EVENTS >= 3"
@@ -71,8 +71,9 @@ limitations under the License.
  resource: https://pubmed.ncbi.nlm.nih.gov/36747048
 
  The tabix utility must be installed in your path to use this plugin. The
- SpliceVault TSV and respective index (TBI) for GRCh38 can be downloaded from
- https://ftp.ensembl.org/pub/current_variation/SpliceVault/SpliceVault_data.tsv.gz
+ SpliceVault TSV and respective index (TBI) for GRCh38 can be downloaded from:
+ - https://ftp.ensembl.org/pub/current_variation/SpliceVault/SpliceVault_data_GRCh38.tsv.gz
+ - https://ftp.ensembl.org/pub/current_variation/SpliceVault/SpliceVault_data_GRCh38.tsv.gz.tbi
 
  To filter results, please use filter_vep with the output file or standard
  output. Documentation on filter_vep is available at:

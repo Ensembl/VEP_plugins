@@ -1227,7 +1227,7 @@ my $VEP_PLUGIN_CONFIG = {
     # SpliceVault
     {
       "key" => "SpliceVault",
-      "label" => "SpliceVaul",
+      "label" => "SpliceVault",
       "helptip" => "Retrieves the most common variant-associated mis-splicing events for variants that overlap a near-splice-site region",
       "available" => 0,
       "enabled" => 0,
