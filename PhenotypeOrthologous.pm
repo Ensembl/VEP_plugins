@@ -35,6 +35,7 @@ PhenotypeOrthologous
  A VEP plugin that retrieves phenotype information associated with orthologous genes from model organisms.
 
  The plugin annotates human variants and reports orthologous information from rat and mouse. 
+ The plugin is only available for GRCh38.
 
  The PhenotypeOrthologous file can be downloaded from https://ftp.ensembl.org/pub/current_variation/PhenotypeOrthologous
 
@@ -80,6 +81,12 @@ sub new {
 
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
+
+  my $assembly = $self->{config}->{assembly};
+
+  if ($assembly ne "GRCh38") {
+    die "Assembly is not GRCh38, PhenotypeOrthologous only works with GRCh38. \n";
+  }
 
   if ( defined($model) && $model ne "rattus_norvegicus" && $model ne "rat" && $model ne "mouse" && $model ne "mus_musculus") {
     die "PhenotypeOrthologous plugin reports phenotypes for mouse or rat orthologs only\n"
