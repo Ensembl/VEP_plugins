@@ -28,29 +28,26 @@ PhenotypeOrthologous
 =head1 SYNOPSIS
 
  mv PhenotypeOrthologous.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz,model=rat
+ ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz
 
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves phenotype information associated with orthologous genes from model organisms.
 
- The plugin presently only supports two model organisms, rat and mouse. 
+ The plugin annotates human variants and reports orthologous information from rat and mouse. 
 
  The PhenotypeOrthologous file can be downloaded from https://ftp.ensembl.org/pub/current_variation/PhenotypeOrthologous
 
  The plugin can be run: 
-   The file option is mandatory to run this plugin 
 
   ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz
+  The file option is mandatory to run this plugin 
  
   To return only results for rat :
     ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=rat
 
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=rattus_norvegicus
   To return only results for mouse:
     ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=mouse
-
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=mus_musculus
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -85,7 +82,7 @@ sub new {
   $self->add_file($file);
 
   if ( defined($model) && $model ne "rattus_norvegicus" && $model ne "rat" && $model ne "mouse" && $model ne "mus_musculus") {
-    die "PhenotypeOrthologous plugin only works for rat and mouse \n"
+    die "PhenotypeOrthologous plugin reports phenotypes for mouse or rat orthologs only\n"
   }
   
   if (defined($model)) {
@@ -170,10 +167,10 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        PhenotypeOrthologous_RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
-        PhenotypeOrthologous_RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
-        PhenotypeOrthologous_MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
-        PhenotypeOrthologous_MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
+        PhenotypeOrthologous_Rat_geneid => $data_fields{"Rat_gene_id"},
+        PhenotypeOrthologous_Rat_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+        PhenotypeOrthologous_Mouse_geneid => $data_fields{"Mouse_gene_id"},
+        PhenotypeOrthologous_Mouse_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
       }
     };
   }
@@ -184,8 +181,8 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        PhenotypeOrthologous_RatOrthologous_geneid => $data_fields{"Rat_gene_id"},
-        PhenotypeOrthologous_RatOrthologous_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
+        PhenotypeOrthologous_Rat_geneid => $data_fields{"Rat_gene_id"},
+        PhenotypeOrthologous_Rat_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
       }
     };
   }
@@ -196,8 +193,8 @@ sub parse_data {
       end => $e,
       gene_id => $data_fields{"gene_id"},
       result => {
-        PhenotypeOrthologous_MouseOrthologous_geneid => $data_fields{"Mouse_gene_id"},
-        PhenotypeOrthologous_MouseOrthologous_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
+        PhenotypeOrthologous_Mouse_geneid => $data_fields{"Mouse_gene_id"},
+        PhenotypeOrthologous_Mouse_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
       }
     };
   }
