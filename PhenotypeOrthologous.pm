@@ -28,7 +28,7 @@ PhenotypeOrthologous
 =head1 SYNOPSIS
 
  mv PhenotypeOrthologous.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_human.gff3.gz
+ ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=PhenotypesOrthologous_homo_sapiens_112_GRCh38.gff3.gz
 
 =head1 DESCRIPTION
 
@@ -40,14 +40,14 @@ PhenotypeOrthologous
 
  The plugin can be run: 
 
-  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz
+  ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=PhenotypesOrthologous_homo_sapiens_112_GRCh38.gff3.gz
   The file option is mandatory to run this plugin 
  
   To return only results for rat :
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=rat
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=PhenotypesOrthologous_homo_sapiens_112_GRCh38.gff3.gz,model=rat
 
   To return only results for mouse:
-    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=rat_mouse_orthologous.gff3.gz,model=mouse
+    ./vep -i variations.vcf --plugin PhenotypeOrthologous,file=PhenotypesOrthologous_homo_sapiens_112_GRCh38.gff3.gz,model=mouse
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
