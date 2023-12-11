@@ -559,7 +559,7 @@ sub _get_valid_fields {
 
   die "ERROR: all fields given are invalid. Available fields are:\n" .
     join(", ", @$available)."\n" unless @valid;
-  warn "WARNING: the following fields are not valid and were ignored: ",
+  warn "Paralogues plugin: WARNING: the following fields are not valid and were ignored: ",
     join(", ", @invalid), "\n" if @invalid;
 
   return \@valid;
