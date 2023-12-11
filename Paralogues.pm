@@ -31,15 +31,15 @@ limitations under the License.
 
  # Download Ensembl paralogue annotation (if not in current directory) and fetch
  # variants from Ensembl API whose clinical significance partially matches 'pathogenic'
- ./vep -i variations.vcf --plugin Paralogues,clnsig=pathogenic
+ ./vep -i variations.vcf --plugin Paralogues
 
  # Download Ensembl paralogue annotation (if not in current directory) and fetch
  # all variants from custom VCF file
- ./vep -i variations.vcf --plugin Paralogues,vcf=/path/to/file.vcf
+ ./vep -i variations.vcf --plugin Paralogues,vcf=/path/to/file.vcf,clnsig='ignore'
 
  # Fetch all Ensembl variants in paralogue proteins using only the Ensembl API
  # (requires database access)
- ./vep -i variations.vcf --database --plugin Paralogues,mode=remote
+ ./vep -i variations.vcf --database --plugin Paralogues,mode=remote,clnsig='ignore'
 
 =head1 DESCRIPTION
 
@@ -64,38 +64,50 @@ limitations under the License.
    --plugin Paralogues,dir=/path/to/dir,paralogues=paralogues_file.tsv.gz
    --plugin Paralogues,paralogues=/path/to/dir/paralogues_file.tsv.gz
 
- The overlapping variants can be fetched from Ensembl API (by default) or a
- custom tabix-indexed VCF file. You can point to a VCF file using argument `vcf`
- and input a colon-delimited list of INFO fields in `cols` (by default, all
- columns are returned):
-   --plugin Paralogues,vcf=/path/to/file.vcf.gz
-   --plugin Paralogues,vcf=/path/to/file.vcf.gz,cols=CLNSIG:CLNVI:GENEINFO
-
  Returned variants can be filtered based on clinical significance by using
- argument `clnsig`:
+ argument `clnsig` (use keyword 'ignore' to avoid this filtering):
+   --plugin Paralogues,clnsig=ignore
    --plugin Paralogues,clnsig=pathogenic,clnsig_match=partial
    --plugin Paralogues,clnsig='likely pathogenic',clnsig_match=exact
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=benign,clnsig_col=CLNSIG
+
+ The overlapping variants can be fetched from Ensembl API (by default) or a
+ custom tabix-indexed VCF file. You can point to a VCF file using argument `vcf`
+ and input a colon-delimited list of INFO fields in `fields`:
+   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig_col=CLNSIG
+   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=ignore,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
 
  Options are passed to the plugin as key=value pairs:
    dir          : Directory for paralogue annotation (the annotation is
                   downloaded to this location, if not available)
    paralogues   : File to use for paralogue annotation (the annotation is
                   downloaded with this name, if not available)
-   vcf          : Custom VCF file (by default, overlapping variants are fetched
-                  from Ensembl API)
-   cols         : Colon-separated list of INFO fields from VCF file (by default,
-                  all columns are returned)
-   clnsig       : Clinical significance term to filter variants (by default, all
-                  variants are returned)
-   clnsig_match : Type of match when filtering variants based on argument
-                  `clnsig`: 'partial' (default), 'exact' or 'regex'
-   clnsig_col   : Column name containing clinical significance in custom VCF
-                  (required if using both `vcf` and `clnsig` arguments)
    min_perc_cov : Minimum alignment percentage of the peptide associated with
                   the input variant (default: 0)
    min_perc_pos : Minimum percentage of positivity (similarity) between both
                   homologues (default: 50)
+
+   vcf          : Custom VCF file (by default, overlapping variants are fetched
+                  from Ensembl API)
+   fields       : Colon-separated list of information from paralogue variant to
+                  return (by default, 'identifier:alleles:clinical_significance');
+                  available fields include 'identifier', 'chromosome', 'start',
+                  'alleles', 'perc_cov', 'perc_pos', and 'clinical_significance'
+                  (if `clnsig_col` is defined for custom VCF); additional fields
+                  are available depending on variant source:
+                    - Ensembl API/cache: 'end', 'strand', 'source',
+                      'consequence' and 'gene_symbol'
+                    - Custom VCF: 'quality', 'filter' and name of INFO fields
+
+   clnsig       : Clinical significance term to filter variants (default:
+                  'pathogenic'); use 'ignore' to fetch all paralogue variants,
+                  regardless of clinical significance
+   clnsig_match : Type of match when filtering variants based on argument
+                  `clnsig`: 'partial' (default), 'exact' or 'regex'
+   clnsig_col   : Column name containing clinical significance in custom VCF
+                  (required when using using `vcf` argument and
+                  `clnsig` different than 'ignore')
+
    mode         : If 'remote', fetch paralogue annotation directly from Ensembl
                   API (default: off); paralogue variants can either be fetched
                   from a custom VCF using the argument `vcf` or Ensembl API
@@ -114,13 +126,39 @@ use List::Util qw(any);
 use File::Basename;
 use Bio::SimpleAlign;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Variation::VariationFeature;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use Bio::EnsEMBL::IO::Parser::VCF4Tabix;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
-my $print_missing_INFO_warning = 1;
+our @VCF_FIELDS = (
+  'identifier',
+  'chromosome',
+  'start',
+  'alleles',
+  'quality',
+  'filter',
+  'clinical_significance',
+  'perc_cov',
+  'perc_pos',
+);
+
+our @VAR_FIELDS = (
+  'identifier',
+  'chromosome',
+  'start',
+  'end',
+  'strand',
+  'alleles',
+  'clinical_significance',
+  'source',
+  'perc_cov',
+  'perc_pos',
+  'consequence',
+  'gene_symbol',
+);
 
 ## GENERATE PARALOGUE ANNOTATION -----------------------------------------------
 
@@ -317,7 +355,8 @@ sub _compose_alignment_from_cigar {
 }
 
 sub _create_SimpleAlign {
-  my ($self, $homology_id, $protein, $ref_cigar, $paralogue, $par_cigar) = @_;
+  my ($self, $homology_id, $protein, $ref_cigar, $paralogue, $par_cigar,
+      $perc_cov, $perc_pos) = @_;
 
   my $par       = $paralogue->translation;
   my $par_id    = $par->stable_id;
@@ -344,6 +383,10 @@ sub _create_SimpleAlign {
     -ID         => $par_id,
     -STRAND     => 0
   ));
+
+  # add alignment stats
+  $aln->{_stats}->{ref_perc_cov} = $perc_cov;
+  $aln->{_stats}->{ref_perc_pos} = $perc_pos;
 
   # add paralogue information to retrieve from cache later on
   my $key = $par_id . '_info';
@@ -384,7 +427,8 @@ sub _get_paralogues {
     my $paralogue = $self->_get_transcript_from_translation(
       $para_id, $para_chr, $para_start, $para_end);
     my $aln = $self->_create_SimpleAlign($homology_id, $translation, $cigar,
-                                         $paralogue, $para_cigar);
+                                         $paralogue, $para_cigar,
+                                         $perc_cov, $perc_pos);
     push @$paralogues, $aln;
   }
   return $paralogues;
@@ -498,6 +542,29 @@ sub _get_transcript_from_translation {
 
 ## PLUGIN ----------------------------------------------------------------------
 
+sub _get_valid_fields {
+  my $selected  = shift;
+  my $available = shift;
+
+  # check if the selected fields exist
+  my @valid;
+  my @invalid;
+  for my $field (@$selected) {
+    if ( grep { $_ eq $field } @$available ) {
+      push(@valid, $field);
+    } else {
+      push(@invalid, $field);
+    }
+  }
+
+  die "ERROR: all fields given are invalid. Available fields are:\n" .
+    join(", ", @$available)."\n" unless @valid;
+  warn "WARNING: the following fields are not valid and were ignored: ",
+    join(", ", @invalid), "\n" if @invalid;
+
+  return \@valid;
+}
+
 sub new {
   my $class = shift;  
   my $self = $class->SUPER::new(@_);
@@ -513,8 +580,19 @@ sub new {
   $self->{min_perc_cov} = $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
   $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
 
-  # Check for custom VCF
+  # Prepare clinical significance parameters
+  my $no_clnsig = defined $params->{clnsig} && $params->{clnsig} eq 'ignore';
+  $self->{clnsig_term} = $params->{clnsig} || 'pathogenic' unless $no_clnsig;
+
+  if (defined $self->{clnsig_term}) {
+    $self->{clnsig_match} = $params->{clnsig_match} || 'partial';
+    die "ERROR: clnsig_match only accepts 'exact', 'partial' or 'regex'\n"
+      unless grep { $self->{clnsig_match} eq $_ } ('exact', 'partial', 'regex');
+  }
+
+  # Check information to retrieve from paralogue variants
   my $vcf = $params->{vcf};
+  my @fields= ('identifier', 'alleles', 'clinical_significance'); # default
   if (defined $vcf) {
     $self->{vcf} = $vcf;
     $self->add_file($vcf);
@@ -524,47 +602,26 @@ sub new {
     my $info = $vcf_file->get_metadata_by_pragma('INFO');
     my $info_ids = [ map { $_->{ID} } @$info ];
 
-    if ( !defined($params->{cols}) ) {
-      $self->{cols} = $info_ids;
-    } else {
-      my @cols = split(/:/, $params->{cols});
+    @fields = @{ _get_valid_fields([ split(/:/, $params->{fields}) ], [@VCF_FIELDS, @$info_ids]) }
+      if defined $params->{fields};
 
-      # check if the selected INFO fields exist
-      $self->{cols} = [];
-      my @invalid_cols;
-      for my $col (@cols) {
-        if ( grep { $_ eq $col } @$info_ids ) {
-          push(@{$self->{cols}}, $col);
-        } else {
-          push(@invalid_cols, $col);
-        }
-      }
-
-      my $filename = basename $vcf;
-      die "ERROR: input INFO fields not found in $filename. Available INFO fields are:\n" .
-        join(", ", @$info_ids)."\n" unless @{ $self->{cols} };
-
-      warn "WARNING: the following INFO fields were not found in $filename and were ignored: ",
-        join(", ", @invalid_cols), "\n" if @invalid_cols;
-    }
-  } elsif ($config->{offline}) {
-    die("ERROR: Cannot fetch Ensembl variants in offline mode; please define vcf argument in the Paralogues plugin\n");
-  }
-
-  # Prepare clinical significance parameters
-  $self->{clnsig_term} = $params->{clnsig};
-
-  if (defined $self->{clnsig_term}) {
-    $self->{clnsig_match} = $params->{clnsig_match} || 'partial';
-    die "ERROR: clnsig_match only accepts 'exact', 'partial' or 'regex'\n"
-      unless grep { $self->{clnsig_match} eq $_ } ('exact', 'partial', 'regex');
-
-    if (defined $self->{vcf}) {
+    # check if clinical significance column exists
+    if (defined $self->{clnsig_term}) {
       $self->{clnsig_col} = $params->{clnsig_col};
       die "ERROR: clnsig_col must be set when using a custom VCF with clnsig\n"
-        if !defined $self->{clnsig_col};
+        unless defined $self->{clnsig_col};
+
+      my $filename = basename $vcf;
+      die "ERROR: clnsig_col $self->{clnsig_col} not found in $filename. Available INFO fields are:\n" .
+        join(", ", @$info_ids)."\n" unless grep { $self->{clnsig_col} eq $_ } @$info_ids;
     }
+  } elsif ($config->{offline}) {
+    die("ERROR: Cannot fetch Ensembl variants in offline mode; please use the vcf argument in the Paralogues plugin\n");
+  } else {
+    @fields = split(/:/, $params->{fields}) if defined $params->{fields};
+    @fields = @{ _get_valid_fields(\@fields, \@VAR_FIELDS) };
   }
+  $self->{fields} = \@fields;
 
   # Check if paralogue annotation should be downloaded
   $self->{remote} = defined $params->{mode} && $params->{mode} eq 'remote';
@@ -590,32 +647,8 @@ sub feature_types {
 
 sub get_header_info {
   my $self = shift;
-
-  my @fields;
-  if ( defined $self->{vcf} ) {
-    @fields = (
-      'identifier',
-      'sequence',
-      'start',
-      'alleles'
-    );
-    push @fields, @{ $self->{cols} };
-  } else {
-    @fields = (
-      'identifier',
-      'sequence',
-      'start',
-      'end',
-      'strand',
-      'alleles',
-      'clinical_significance',
-      'source',
-      'consequence'
-    );
-  }
   my $source = defined $self->{vcf} ? basename $self->{vcf} : 'Ensembl API'; 
-
-  my $fields = join(':', @fields);
+  my $fields = join(':', @{ $self->{fields} });
   my $description = "Variants from $source in paralogue proteins (colon-separated fields: $fields)";
   return { PARALOGUE_VARIANTS => $description };
 }
@@ -640,19 +673,44 @@ sub _join_results {
 }
 
 sub _summarise_vf {
-  my $vf = shift;
-  my $var = join(':', (
-    $vf->name,
-    $vf->seq_region_name,
-    $vf->seq_region_start,
-    $vf->seq_region_end,
-    $vf->strand,
-    $vf->allele_string,
-    join('/', @{$vf->get_all_clinical_significance_states}),
-    $vf->source_name,
-    $vf->display_consequence,
-  ));
-  return { PARALOGUE_VARIANTS => $var };
+  my ($self, $vf, $perc_cov, $perc_pos) = @_;
+
+  my @var;
+  my $clnsig;
+  for my $field (@{ $self->{fields} }) {
+    my $info;
+    if ($field eq 'identifier') {
+      $info = $vf->name;
+    } elsif ($field eq 'chromosome') {
+      $info = $vf->seq_region_name;
+    } elsif ($field eq 'start') {
+      $info = $vf->seq_region_start;
+    } elsif ($field eq 'end') {
+      $info = $vf->seq_region_end;
+    } elsif ($field eq 'strand') {
+      $info = $vf->strand;
+    } elsif ($field eq 'alleles') {
+      $info = $vf->allele_string;
+    } elsif ($field eq 'clinical_significance') {
+      $info = $clnsig ||= join('/', @{$vf->get_all_clinical_significance_states});
+    } elsif ($field eq 'source') {
+      $info = $vf->source_name;
+    } elsif ($field eq 'consequence') {
+      $info = $vf->display_consequence;
+    } elsif ($field eq 'perc_cov') {
+      $info = $perc_cov;
+    } elsif ($field eq 'perc_pos') {
+      $info = $perc_pos;
+    } elsif ($field eq 'gene_symbol') {
+      my @symbols;
+      for (@{ $vf->{slice}->get_all_Genes }) {
+        push(@symbols, $_->display_xref->display_id) if $_->display_xref;
+      }
+      $info = join('/', @symbols);
+    }
+    push @var, $info if $info;
+  }
+  return { PARALOGUE_VARIANTS => join(':', @var) };
 }
 
 sub _is_clinically_significant {
@@ -697,8 +755,18 @@ sub run {
 
   my $all_results = {};
   for my $aln (@$homologies) {
-    $aln = $aln->get_SimpleAlign if $aln->isa('Bio::EnsEMBL::Compara::Homology');
-    next unless $aln->isa('Bio::SimpleAlign');
+    my ($perc_cov, $perc_pos);
+    if ($aln->isa('Bio::EnsEMBL::Compara::Homology')) {
+      my $ref = $aln->get_all_Members->[0];
+      $perc_cov = $ref->perc_cov;
+      $perc_pos = $ref->perc_pos;
+      $aln = $aln->get_SimpleAlign;
+    } elsif ($aln->isa('Bio::SimpleAlign')) {
+      $perc_cov = $aln->{_stats}->{ref_perc_cov};
+      $perc_pos = $aln->{_stats}->{ref_perc_pos};
+    } else {
+      next;
+    }
 
     my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $aln);
     next unless defined $chr and defined $start and defined $end;
@@ -726,7 +794,7 @@ sub run {
       foreach my $var ( @{ $self->{vfa}->fetch_all_by_Slice($slice) } ) {
         # check clinical significance (if set)
         next unless $self->_is_clinically_significant($var->{clinical_significance});
-        my $res = _summarise_vf($var);
+        my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
         $all_results = $self->_join_results($all_results, $res);
       }
     }
@@ -753,33 +821,33 @@ sub parse_data {
     }
   }
 
-  my @data = ( $id, $chrom, $start, "$ref/$alt" );
-
   # fetch data from INFO fields
-  my %INFO_data;
+  my %INFO_data = (
+    'chromosome'            => $chrom,
+    'start'                 => $start,
+    'identifier'            => $id,
+    'alleles'               => $ref.'/'.$alt,
+    'quality'               => $qual,
+    'filter'                => $filter,
+  );
   for my $field ( split /;/, $info ) {
     my ($key, $value) = split /=/, $field;
     $INFO_data{$key} = $value;
   }
 
+  my $clnsig_col = $self->{clnsig_col};
+  $INFO_data{'clinical_significance'} = $INFO_data{$clnsig_col};
+
   # prepare data from selected INFO fields
-  for my $col (@{ $self->{cols} }) {
-    my $value = defined $INFO_data{$col} ? $INFO_data{$col} : '';
+  my @data;
+  for my $field (@{ $self->{fields} }) {
+    my $value = defined $INFO_data{$field} ? $INFO_data{$field} : '';
     $value =~ s/,/ /g;
     $value =~ s/[:|]/_/g;
     push @data, $value;
   }
   my $res = { result => join(':', @data) };
-
-  my $clnsig_col = $self->{clnsig_col};
-  if ($clnsig_col) {
-    $res->{clinical_significance} = $INFO_data{$clnsig_col};
-    if (!defined $INFO_data{$clnsig_col} && $print_missing_INFO_warning) {
-      # warn once if column is missing from INFO fields
-      warn "WARNING: clinical significance column $clnsig_col not present in the INFO fields of one or more variants in $file\n";
-      $print_missing_INFO_warning = 0;
-    }
-  }
+  $res->{clinical_significance} = $INFO_data{$clnsig_col} if $clnsig_col;
   return $res;
 }
 
