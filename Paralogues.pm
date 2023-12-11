@@ -95,8 +95,8 @@ limitations under the License.
                   'alleles', 'perc_cov', 'perc_pos', and 'clinical_significance'
                   (if `clnsig_col` is defined for custom VCF); additional fields
                   are available depending on variant source:
-                    - Ensembl API/cache: 'end', 'strand', 'source',
-                      'consequence' and 'gene_symbol'
+                    - Ensembl API: 'end', 'strand', 'source', 'consequence' and
+                      'gene_symbol'
                     - Custom VCF: 'quality', 'filter' and name of INFO fields
 
    clnsig       : Clinical significance term to filter variants (default:
@@ -736,6 +736,22 @@ sub _is_clinically_significant {
   return grep /$filter/i, @$clnsig;
 }
 
+sub _prepare_vcf_info {
+  my ($self, $data, $perc_cov, $perc_pos)= @_;
+  $data->{perc_cov} = $perc_cov;
+  $data->{perc_pos} = $perc_pos;
+
+  # prepare data from selected fields
+  my @res;
+  for my $field (@{ $self->{fields} }) {
+    my $value = defined $data->{$field} ? $data->{$field} : '';
+    $value =~ s/,/ /g;
+    $value =~ s/[:|]/_/g;
+    push @res, $value;
+  }
+  return join(':', @res);
+}
+
 sub run {
   my ($self, $tva) = @_;
 
@@ -776,8 +792,8 @@ sub run {
       my @data = @{$self->get_data($chr, $start - 2, $end)};
       for my $var (@data) {
         next unless $self->_is_clinically_significant([ $var->{clinical_significance} ]);
-        my $res = { PARALOGUE_VARIANTS => $var->{result} };
-        $all_results = $self->_join_results($all_results, $res);
+        my $info = $self->_prepare_vcf_info($var, $perc_cov, $perc_pos);
+        $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
       }
     } else {
       # get Ensembl variants from mapped genomic coordinates
@@ -822,7 +838,7 @@ sub parse_data {
   }
 
   # fetch data from INFO fields
-  my %INFO_data = (
+  my %data = (
     'chromosome'            => $chrom,
     'start'                 => $start,
     'identifier'            => $id,
@@ -832,23 +848,12 @@ sub parse_data {
   );
   for my $field ( split /;/, $info ) {
     my ($key, $value) = split /=/, $field;
-    $INFO_data{$key} = $value;
+    $data{$key} = $value;
   }
 
   my $clnsig_col = $self->{clnsig_col};
-  $INFO_data{'clinical_significance'} = $INFO_data{$clnsig_col};
-
-  # prepare data from selected INFO fields
-  my @data;
-  for my $field (@{ $self->{fields} }) {
-    my $value = defined $INFO_data{$field} ? $INFO_data{$field} : '';
-    $value =~ s/,/ /g;
-    $value =~ s/[:|]/_/g;
-    push @data, $value;
-  }
-  my $res = { result => join(':', @data) };
-  $res->{clinical_significance} = $INFO_data{$clnsig_col} if $clnsig_col;
-  return $res;
+  $data{clinical_significance} = $data{$clnsig_col} if $clnsig_col;
+  return \%data;
 }
 
 sub get_start {
