@@ -31,7 +31,7 @@ limitations under the License.
 
  ./vep -i variations.vcf --plugin SpliceVault,file=/path/to/SpliceVault_data.tsv.gz
 
- # Stringely select predicted loss-of-function (pLoF) splicing variants
+ # Stringently select predicted loss-of-function (pLoF) splicing variants
  ./filter_vep -i variant_effect_output.txt --filter "SPLICEVAULT_OUT_OF_FRAME_EVENTS >= 3"
 
 =head1 DESCRIPTION
@@ -108,7 +108,7 @@ sub new {
   }
 
   die "ERROR: add Tabix-indexed file, for example:\n" .
-    "  --plugin SpliceVault,file=/path/to/SpliceVault_data.tsv.gz \n"
+    "  --plugin SpliceVault,file=/path/to/SpliceVault_data_GRCh38.tsv.gz \n"
     unless @files > 0;
   $self->add_file($_) for @files;
 
