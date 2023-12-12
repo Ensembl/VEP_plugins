@@ -14,7 +14,7 @@ limitations under the License.
 
 =head1 CONTACT
 
-    Xiaolei Zhang <xiaolei@ebi.ac.uk>
+    Xiaolei Zhang
     Ensembl <http://www.ensembl.org/info/about/contact/index.html>
 
 =cut
