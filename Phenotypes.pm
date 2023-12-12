@@ -49,33 +49,33 @@ Phenotypes
 
  Several paramters can be set using a key=value system:
 
- dir            : provide a dir path, where either to create anew the species
-                  specific file from the download or to look for an existing file
+ dir             : provide a dir path, where either to create anew the species
+                   specific file from the download or to look for an existing file
 
- file           : provide a file path, either to create anew from the download
-                  or to point to an existing file
+ file            : provide a file path, either to create anew from the download
+                   or to point to an existing file
 
- exclude_sources: exclude sources of phenotype information. By default
-                  HGMD and COSMIC annotations are excluded. See
-                  http://www.ensembl.org/info/genome/variation/phenotype/sources_phenotype_documentation.html
-                  Separate multiple values with '&'
+ exclude_sources : exclude sources of phenotype information. By default
+                   HGMD and COSMIC annotations are excluded. See
+                   http://www.ensembl.org/info/genome/variation/phenotype/sources_phenotype_documentation.html
+                   Separate multiple values with '&'
 
- include_sources: force include sources, as exclude_sources
+ include_sources : force include sources, as exclude_sources
 
- exclude_types  : exclude types of features. By default StructuralVariation
-                  and SupportingStructuralVariation annotations are excluded
-                  due to their size. Separate multiple values with '&'.
-                  Valid types: Gene, Variation, QTL, StructuralVariation,
-                  SupportingStructuralVariation, RegulatoryFeature
+ exclude_types   : exclude types of features. By default StructuralVariation
+                   and SupportingStructuralVariation annotations are excluded
+                   due to their size. Separate multiple values with '&'.
+                   Valid types: Gene, Variation, QTL, StructuralVariation,
+                   SupportingStructuralVariation, RegulatoryFeature
 
- include_types  : force include types, as exclude_types
+ include_types   : force include types, as exclude_types
 
- expand_right   : sets cache size in bp. By default annotations 100000bp (100kb)
-                  downstream of the initial lookup are cached
+ expand_right    : sets cache size in bp. By default annotations 100000bp (100kb)
+                   downstream of the initial lookup are cached
 
  phenotype_feature : report the specific gene or variation the phenotype is
-                  linked to, this can be an overlapping gene or structural variation,
-                  and the source of the annotation (default 0)
+                     linked to, this can be an overlapping gene or structural variation,
+                     and the source of the annotation (default 0)
 
  Example:
 

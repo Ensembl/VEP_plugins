@@ -14,20 +14,20 @@
  By default, only VCF records with a filter value of "PASS" are returned, 
  however this behaviour can be changed via the 'filter' option.
 
- Parameters:
-    name: short name added used as a prefix (required)
-    file: path to tabix-index vcf file (required)
-  filter: only consider variants marked as 'PASS', 1 or 0 (default, 1)
-  fields: info fields to be returned (default, not used)
-            '%' can delimit multiple fields
-            '*' can be used as a wildcard 
+ The plugin accepts the following key=value parameters:
+    name : short name added used as a prefix (required)
+    file : path to tabix-index vcf file (required)
+  filter : only consider variants marked as 'PASS', 1 or 0 (default, 1)
+  fields : info fields to be returned (default, not used)
+            - '%' can delimit multiple fields
+            - '*' can be used as a wildcard 
 
  Returns:
-  <name>_POS: POS field from VCF
-  <name>_REF: REF field from VCF (minimised)
-  <name>_ALT: ALT field from VCF (minimised)
-  <name>_alt_index: Index of matching variant (zero-based)
-  <name>_<field>: List of requested info values
+  - <name>_POS: POS field from VCF
+  - <name>_REF: REF field from VCF (minimised)
+  - <name>_ALT: ALT field from VCF (minimised)
+  - <name>_alt_index: Index of matching variant (zero-based)
+  - <name>_<field>: List of requested info values
 
 =head1 SYNOPSIS
 

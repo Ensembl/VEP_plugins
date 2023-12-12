@@ -95,9 +95,9 @@ limitations under the License.
 
   html_report          : write all G2P complete genes and attributes to html file
 
-  filter_by_gene_symbol: set to 1 if filter by gene symbol.
-                         Do not set if filtering by HGNC_id.
-                         This option is set to 1 when using PanelApp files. 
+  filter_by_gene_symbol : set to 1 if filter by gene symbol.
+                          Do not set if filtering by HGNC_id.
+                          This option is set to 1 when using PanelApp files. 
 
   only_mane            : set to 1 to ignore transcripts that are not MANE
                          N/B - Information may be lost if this option is used.

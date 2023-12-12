@@ -42,7 +42,8 @@ limitations under the License.
 
  Running options :
 
- VARITY scores can be downloaded using wget http://varity.varianteffect.org/downloads/varity_all_predictions.tar.gz
+ VARITY scores can be downloaded using
+ wget http://varity.varianteffect.org/downloads/varity_all_predictions.tar.gz
 
  The files can be tabix processed by :
  tar -xzvf varity_all_predictions.tar.gz 

@@ -68,7 +68,7 @@ limitations under the License.
 
  position       : Set value to 1 to include the start and end position in the protein.
 
- * note: 'max_set' and 'return_values' cannot be used simultaneously.
+ (*) note: 'max_set' and 'return_values' cannot be used simultaneously.
 
 
  Output:

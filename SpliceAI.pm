@@ -53,25 +53,25 @@ limitations under the License.
  https://www.ncbi.nlm.nih.gov/pubmed/30661751
 
  Running options:
- (Option 1) By default, this plugin appends all scores from SpliceAI files.
- (Option 2) Besides the pre-calculated scores, it can also be specified a score
+ (1) By default, this plugin appends all scores from SpliceAI files.
+ (2) Besides the pre-calculated scores, it can also be specified a score
  cutoff between 0 and 1.
 
  Output: 
   The output includes the gene symbol, delta scores (DS) and delta positions (DP)
   for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL).
 
-  For tab the output contains one header 'SpliceAI_pred' with all
-  the delta scores and positions. The format is:
-   SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
+  - For tab the output contains one header 'SpliceAI_pred' with all
+    the delta scores and positions. The format is:
+      SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
 
-  For JSON the output is a hash with the following format:
-  "spliceai":
-    {"DP_DL":0,"DS_AL":0,"DP_AG":0,"DS_DL":0,"SYMBOL":"X","DS_AG":0,"DP_AL":0,"DP_DG":0,"DS_DG":0}
+  - For JSON the output is a hash with the following format:
+    "spliceai":
+      {"DP_DL":0,"DS_AL":0,"DP_AG":0,"DS_DL":0,"SYMBOL":"X","DS_AG":0,"DP_AL":0,"DP_DG":0,"DS_DG":0}
 
-  For VCF output the delta scores and positions are stored in different headers.
-  The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
-   Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
+  - For VCF output the delta scores and positions are stored in different headers.
+    The values are 'SpliceAI_pred_xx' being 'xx' the score/position.
+      Example: 'SpliceAI_pred_DS_AG' is the delta score for acceptor gain.
 
   Gene matching:
   SpliceAI can contain scores for multiple genes that overlap a variant,

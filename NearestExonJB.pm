@@ -40,13 +40,13 @@ limitations under the License.
  exon boundary, the boundary type (start or end of exon) and the total
  length in nucleotides of the exon.
 
- Various parameters can be altered by passing them to the plugin command:
+ Various key=value parameters can be altered by passing them to the plugin command:
 
- - max_range : maximum search range in bp (default: 10000)
+   max_range : maximum search range in bp (default: 10000)
 
  Parameters are passed e.g.:
 
- --plugin NearestExonJB,max_range=50000
+   --plugin NearestExonJB,max_range=50000
 
 =cut
 

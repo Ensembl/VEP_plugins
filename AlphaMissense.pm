@@ -46,15 +46,15 @@ limitations under the License.
 
  This plugin will add two annotations per missense variant:
 
- 'am_pathogenicity', a continuous score between 0 and 1 which can be interpreted as the predicted 
- probability of the variant being pathogenic. 
+ - 'am_pathogenicity', a continuous score between 0 and 1 which can be interpreted as the predicted 
+   probability of the variant being pathogenic. 
 
- 'am_class' is the classification of the variant into one of three discrete categories:  
- 'Likely pathogenic', 'Likely benign', or 'ambiguous'. These are derived using the following 
-  thresholds of am_pathogenicity: 
-    'Likely benign' if am_pathogenicity < 0.34; 
-    'Likely pathogenic' if am_pathogenicity > 0.564; 
-    'ambiguous' otherwise. 
+ - 'am_class' is the classification of the variant into one of three discrete categories:  
+   'Likely pathogenic', 'Likely benign', or 'ambiguous'. These are derived using the following 
+    thresholds of am_pathogenicity: 
+      'Likely benign' if am_pathogenicity < 0.34; 
+      'Likely pathogenic' if am_pathogenicity > 0.564; 
+      'ambiguous' otherwise. 
 
  These thresholds were chosen to achieve 90% precision for both pathogenic and benign ClinVar variants. 
  Note that AlphaMissense was not trained on ClinVar variants. Variants labeled as 'ambiguous' should be 
