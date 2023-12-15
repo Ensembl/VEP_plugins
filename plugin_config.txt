@@ -757,7 +757,7 @@ my $VEP_PLUGIN_CONFIG = {
       "label" => "AVADA",
       "available" => 0,
       "enabled" => 0,
-      "section" => "Evidence",
+      "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/AVADA.pm",
     },
 
