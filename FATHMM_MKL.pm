@@ -89,7 +89,7 @@ sub run {
   my ($s, $e) = ($vf->{start}, $vf->{end} + 1);
   
   foreach my $data(@{$self->get_data($vf->{chr}, $s, $e)}) {
-    foreach $allele (@{$alleles}) {
+    foreach my $allele (@{$alleles}) {
       reverse_comp(\$allele) if $vf->{strand} < 0;
       if($data->{start} == $s && $allele eq $data->{alt}) {
         return $data->{result};
