@@ -1497,6 +1497,21 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/GWAS.pm"
     },
 
+    # PhenotypeOrthologous
+    {
+      "key" => "PhenotypeOrthologous",
+      "label" => "PhenotypeOrthologous",
+      "helptip" => "Phenotypes associated with orthologous genes in model organisms (mouse and rat)",
+      "requires_data" => 1,
+      "available" => 0,
+      "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "section" => "Phenotype data and citations",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/PhenotypeOrthologous.pm"
+    },
+
 
 
     ## VARIANT DATA
