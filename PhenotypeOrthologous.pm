@@ -64,6 +64,9 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my %output_format;
+my %CONFIG;
+
 sub new {
   my $class = shift;
 
@@ -79,6 +82,14 @@ sub new {
   my $file = $params->{file};  
   my $model = $params->{model};
 
+  #for REST calls report all data (use json output flag)
+  $self->{config}->{output_format} ||= $CONFIG{output_format};
+
+  # get output format
+  if ($self->{config}->{output_format}) {
+    $output_format{$self->{config}->{output_format}} = 1;
+  }
+  
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
 
@@ -145,12 +156,15 @@ sub run {
 
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
   ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
-
+  
   my ($res) = grep {
     $_->{gene_id} eq $gene_id
   } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
 
-  return $res ? $res->{result} : {};
+  return $res ? $res->{result} : {} if !$output_format{'json'};
+
+  return { PhenotypeOrthologous => $res->{result} } if $output_format{'json'};
+
 }
 
 sub parse_data {
