@@ -116,20 +116,20 @@ sub get_header_info {
 
 
   if (keys(%{$self->{params}}) == 1)  {
-    $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
-    $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
-    $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
-    $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
+    $header{"PhenotypeOrthologous_Rat_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
+    $header{"PhenotypeOrthologous_Rat_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
+    $header{"PhenotypeOrthologous_Mouse_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
+    $header{"PhenotypeOrthologous_Mouse_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
 
   if (defined($self->{model}) && $self->{model} eq "rat" ) {
-    $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
-    $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
+    $header{"PhenotypeOrthologous_Rat_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
+    $header{"PhenotypeOrthologous_Rat_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
   }
 
   if (defined($self->{model}) && $self->{model} eq "mouse" ) {
-    $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
-    $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
+    $header{"PhenotypeOrthologous_Mouse_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
+    $header{"PhenotypeOrthologous_Mouse_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
 
   return \%header;
@@ -149,11 +149,23 @@ sub run {
   my ($res) = grep {
     $_->{gene_id} eq $gene_id
   } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
+  
+  my %result;
+
+  if ($res && !$self->{model}) {
+    return $res->{result};
+  }
+
+  if ($res->{result_rat} && $self->{model} eq "rat") {
+   return $res->{result_rat};
+  }
  
-  return $res ? $res->{result} : {};
-
+  if ($res->{result_rat} && $self->{model} eq "mouse") {
+   return $res->{result_mouse};
+  }
+ 
+ return {}
 }
-
 
 sub parse_data {
   my ($self, $line) = @_;
@@ -168,18 +180,22 @@ sub parse_data {
     $data_fields{$key} = $value;
   }
   
+  # Assuming $data_fields is your original hash
+  my %data;
   if (!$self->{model}) {
-    return {
-      start => $s,
-      end => $e,
-      gene_id => $data_fields{"gene_id"},
-      result => {
-        PhenotypeOrthologous_Rat_geneid => $data_fields{"Rat_gene_id"},
-        PhenotypeOrthologous_Rat_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
-        PhenotypeOrthologous_Mouse_geneid => $data_fields{"Mouse_gene_id"},
-        PhenotypeOrthologous_Mouse_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
-      }
-    };
+    $data{start} = $s;
+    $data{end} = $e;
+    $data{gene_id} = $data_fields{"gene_id"};
+
+    my %result_hash;
+    $result_hash{PhenotypeOrthologous_Rat_geneid} = $data_fields{"Rat_gene_id"} if $data_fields{"Rat_gene_id"};
+    $result_hash{PhenotypeOrthologous_Rat_phenotype} = $data_fields{"Rat_Orthologous_phenotype"} if $data_fields{"Rat_Orthologous_phenotype"};
+    $result_hash{PhenotypeOrthologous_Mouse_geneid} = $data_fields{"Mouse_gene_id"} if $data_fields{"Mouse_gene_id"};
+    $result_hash{PhenotypeOrthologous_Mouse_phenotype} = $data_fields{"Mouse_Orthologous_phenotype"} if $data_fields{"Mouse_Orthologous_phenotype"};
+
+    $data{result} = \%result_hash;
+  
+    return \%data;
   }
 
   if ($self->{model} eq "rat") {
@@ -205,7 +221,6 @@ sub parse_data {
       }
     };
   }
-
 
 }
 
