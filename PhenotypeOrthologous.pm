@@ -149,22 +149,8 @@ sub run {
   my ($res) = grep {
     $_->{gene_id} eq $gene_id
   } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-  
-  my %result;
 
-  if ($res && !$self->{model}) {
-    return $res->{result};
-  }
-
-  if ($res->{result_rat} && $self->{model} eq "rat") {
-   return $res->{result_rat};
-  }
- 
-  if ($res->{result_rat} && $self->{model} eq "mouse") {
-   return $res->{result_mouse};
-  }
- 
- return {}
+  return $res ? $res->{result} : {};
 }
 
 sub parse_data {
