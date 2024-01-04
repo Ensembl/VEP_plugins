@@ -162,9 +162,18 @@ sub run {
   } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
 
   return $res ? $res->{result} : {} if !$output_format{'json'};
+  
+  if ($output_format{'json'}) {
+    my $result = $res->{result};
+    
+    my %split_result = map {
+    $_ =~ /Phenotype/ ? ($_ => [split /,\s*/, $result->{$_}]) : ($_ => $result->{$_})
+    } keys %$result;
 
-  return { PhenotypeOrthologous => $res->{result} } if $output_format{'json'};
-
+    return {
+      PhenotypeOrthologous => \%split_result,
+    };
+  }
 }
 
 sub parse_data {
