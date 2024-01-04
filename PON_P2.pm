@@ -1,36 +1,42 @@
+=head1 CONTACT
+
+ Abhishek Niroula <abhishek.niroula@med.lu.se>
+ Mauno Vihinen <mauno.vihinen@med.lu.se>
+
+=cut
+
 =head1 NAME
+
  PON_P2
- 
+
 =head1 SYNOPSIS
+
  mv PON_P2.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin PON_P2,pyscript=/path/to/python/script/ponp2.py,hg=hg37
- 
-=head1 CONTACT
-Abhishek Niroula <abhishek.niroula@med.lu.se>
-Mauno Vihinen <mauno.vihinen@med.lu.se>
 
 =head1 DESCRIPTION
  This plugin for Ensembl Variant Effect Predictor (VEP) computes the predictions of PON-P2
- for amino acid substitutions in human proteins. PON-P2 is developed and maintained by
- Protein Structure and Bioinformatics Group at Lund University and is available at 
- http://structure.bmc.lu.se/PON-P2/.
- 
- There are two ways to run the plugin:
- 
- 1. To compute the predictions from the PON-P2 API please use the following options:
+ for amino acid substitutions in human proteins.
 
-   Option 1:       python script 'ponp2.py'*
-   Option 2:       the reference genome. Acceptable values are: hg37, hg38
- 
+ PON-P2 is developed and maintained by Protein Structure and Bioinformatics Group
+ at Lund University and is available at http://structure.bmc.lu.se/PON-P2/.
+
+ If you use this data, please cite the following publication
+ Niroula, A., Vihinen, M. Harmful somatic amino acid substitutions affect key pathways in cancers.
+ BMC Med Genomics 8, 53 (2015). https://doi.org/10.1186/s12920-015-0125-x
+
+ There are two ways to run the plugin:
+
+ 1. To compute the predictions from the PON-P2 API, use python script 'ponp2.py' (*)
+    and select the reference genome (acceptable values are: hg37 and hg38):
     --plugin PON_P2,pyscript=/path/to/python/script/ponp2.py,hg=hg37
-   
     (*) To run this mode, you will require a python script and its dependencies (Python,
     python suds). The python file can be downloaded from http://structure.bmc.lu.se/PON-P2/vep.html/
     and the complete path to this file must be supplied while using this plugin.
- 
+
  2. To fetch the predictions from a file containing pre-calculated predictions for somatic variations 
  please use the following key=value option (only available for GRCh37):
- 
+
    file :         COSMIC text file with pre-calculated predictions downloaded from
                   http://structure.bmc.lu.se/PON-P2/cancer30.html/
 
@@ -40,12 +46,7 @@ Mauno Vihinen <mauno.vihinen@med.lu.se>
    > bgzip cosmic_sorted.txt
    > tabix -s 1 -b 2 -e 2 cosmic_sorted.txt.gz
 
-   --plugin PON_P2,file=path/to/cosmic_sorted.txt.gz
-
- If you use this data, please cite the following publication
- Niroula, A., Vihinen, M. Harmful somatic amino acid substitutions affect key pathways in cancers.
- BMC Med Genomics 8, 53 (2015). https://doi.org/10.1186/s12920-015-0125-x
- 
+   --plugin PON_P2,file=path/to/cosmic_sorted.txt.gz 
 
 =cut
 

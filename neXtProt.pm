@@ -73,13 +73,17 @@ limitations under the License.
 
  Output:
   By default, the plugin only returns data that is available. Example (default behaviour):
+  ```
   neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10
+  ```
 
   The option 'all_labels' returns a consistent set of the requested fields, using "-" where 
   values are not available. Same example as above:
+  ```
   neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10;
   neXtProt_InteractingRegion=-;neXtProt_NucleotidePhosphateBindingRegion=-;neXtProt_Variant=-;
   neXtProt_MiscellaneousRegion=-;neXtProt_TopologicalDomain=-;
+  ```
 
   Of notice, multiple values can be returned for the same label. In this case, the values will
   be separeted by '|' for tab and txt format, and '&' for VCF format. 

@@ -63,7 +63,7 @@ limitations under the License.
 
   - For tab the output contains one header 'SpliceAI_pred' with all
     the delta scores and positions. The format is:
-      SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL
+      'SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL'
 
   - For JSON the output is a hash with the following format:
     "spliceai":

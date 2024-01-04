@@ -64,9 +64,9 @@ limitations under the License.
   - diseases/phenotype names (optional)
   - dbSNP variant Identifier (optional)
 
+ This plugin uses file 'all_variant_disease_pmid_associations.tsv.gz'.
+ File can be downloaded from: https://www.disgenet.org/downloads.
  The following steps are necessary before running this plugin (tested with DisGeNET export date 2020-05-26):
- This plugin uses file 'all_variant_disease_pmid_associations.tsv.gz'
- File can be downloaded from: https://www.disgenet.org/downloads
 
  gunzip all_variant_disease_pmid_associations.tsv.gz
  awk '($1 ~ /^snpId/ || $2 ~ /NA/) {next} {print $0}' all_variant_disease_pmid_associations.tsv > all_variant_disease_pmid_associations_clean.tsv

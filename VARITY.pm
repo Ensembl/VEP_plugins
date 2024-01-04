@@ -30,7 +30,6 @@ limitations under the License.
  mv VARITY.pm ~/.vep/Plugins
  ./vep -i variations.vcf --assembly GRCh37 --plugin VARITY,file=/path/to/varity_all_predictions.txt
 
- 
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that

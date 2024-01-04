@@ -1,6 +1,28 @@
+=head1 LICENSE
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+			http://www.apache.org/licenses/LICENSE-2.0
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+
+=head1 CONTACT
+
+	Joseph A. Prinz <jp102@duke.edu>
+
+=cut
+
 =head1 NAME
 
  SubsetVCF
+
+=head1 SYNOPSIS
+
+ ./vep -i variations.vcf --plugin SubsetVCF,file=filepath.vcf.gz,name=myvfc,fields=AC*%AN*
 
 =head1 DESCRIPTION
 
@@ -23,31 +45,11 @@
             - '*' can be used as a wildcard 
 
  Returns:
-  - <name>_POS: POS field from VCF
-  - <name>_REF: REF field from VCF (minimised)
-  - <name>_ALT: ALT field from VCF (minimised)
-  - <name>_alt_index: Index of matching variant (zero-based)
-  - <name>_<field>: List of requested info values
-
-=head1 SYNOPSIS
-
- ./vep -i variations.vcf --plugin SubsetVCF,file=filepath.vcf.gz,name=myvfc,fields=AC*%AN*
-
-=head1 CONTACT
-	
-	Joseph A. Prinz <jp102@duke.edu>
-
-=head1 LICENSE
-
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
-			http://www.apache.org/licenses/LICENSE-2.0
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
+  - '<name>_POS': POS field from VCF
+  - '<name>_REF': REF field from VCF (minimised)
+  - '<name>_ALT': ALT field from VCF (minimised)
+  - '<name>_alt_index': Index of matching variant (zero-based)
+  - '<name>_<field>': List of requested info values
 
 =cut
 

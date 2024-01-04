@@ -35,6 +35,7 @@ limitations under the License.
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds information from EVE (evolutionary model of variant effect).
+
  This plugin only report EVE scores for input variants
  and does not merge input lines to report on adjacent variants.
  It is only available for GRCh38.

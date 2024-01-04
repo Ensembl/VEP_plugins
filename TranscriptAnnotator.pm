@@ -38,9 +38,11 @@ limitations under the License.
 
  Example of a valid tab-separated annotation file:
 
-   #Chrom  Pos       Ref  Alt  Transcript       SIFT_score  SIFT_pred    Comment
-   11      436154    A    G    NM_001347882.2   0.03        Deleterious  Bad
-   11      1887471   C	  T    ENST00000421485  0.86        Tolerated    Good
+ ```
+ #Chrom  Pos       Ref  Alt  Transcript       SIFT_score  SIFT_pred    Comment
+ 11      436154    A    G    NM_001347882.2   0.03        Deleterious  Bad
+ 11      1887471   C    T    ENST00000421485  0.86        Tolerated    Good
+ ```
 
  Please bgzip and tabix the file with commands such as:
 
