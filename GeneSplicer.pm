@@ -60,7 +60,7 @@ limitations under the License.
 
  Example: diff/donor/621915-621914/Medium-Medium/7.020731-6.988368
 
- Several parameters can be modified by passing them to the plugin string:
+ Several key=value parameters can be modified in the the plugin string:
 
  context    : change the amount of sequence added either side of
               the variant (default: 100bp)
@@ -68,7 +68,8 @@ limitations under the License.
  cache_size : change how many sequences' scores are cached in memory
               (default: 50)
 
- Example: --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
+ Example:
+   --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
 
  On some systems the binaries provided will not execute, but can be compiled from source:
 

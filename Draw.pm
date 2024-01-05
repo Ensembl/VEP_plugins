@@ -33,7 +33,9 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that draws pictures of the transcript model showing the
- variant location. Can take five optional paramters:
+ variant location.
+
+ Takes five optional paramters:
  
  1) File name stem for images
  2) Image width in pixels (default: 1000px)
@@ -45,7 +47,7 @@ limitations under the License.
  
  ./vep -i variations.vcf --plugin Draw,myimg,2000,100
  
- Images are written to [file_stem]_[transcript_id]_[variant_id].png
+ Images are written to '[file_stem]_[transcript_id]_[variant_id].png'
  
  Requires GD library installed to run.
 

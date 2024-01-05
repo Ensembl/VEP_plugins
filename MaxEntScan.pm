@@ -45,8 +45,8 @@ limitations under the License.
  The plugin executes the logic from one of the scripts depending on which
  splice region the variant overlaps:
 
- score5.pl : last 3 bases of exon    --> first 6 bases of intron
- score3.pl : last 20 bases of intron --> first 3 bases of exon
+ - score5.pl : last 3 bases of exon    --> first 6 bases of intron
+ - score3.pl : last 20 bases of intron --> first 3 bases of exon
 
  The plugin reports the reference, alternate and difference (REF - ALT) maximum
  entropy scores.
