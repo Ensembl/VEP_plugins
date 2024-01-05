@@ -37,11 +37,11 @@ limitations under the License.
  may be reported if the genes overlap the variant or if genes are
  equidistant.
 
- Various parameters can be altered by passing them to the plugin command:
+ Various key=value parameters can be altered by passing them to the plugin command:
 
- - limit     : limit the number of genes returned (default: 1)
- - range     : initial search range in bp (default: 1000)
- - max_range : maximum search range in bp (default: 10000)
+   limit     : limit the number of genes returned (default: 1)
+   range     : initial search range in bp (default: 1000)
+   max_range : maximum search range in bp (default: 10000)
 
  Parameters are passed e.g.:
 

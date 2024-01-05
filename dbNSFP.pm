@@ -38,12 +38,12 @@ limitations under the License.
  dbNSFP file.
  
  Please cite the dbNSFP publications alongside the VEP if you use this resource:
- dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
- dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
- dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
- dbNSFP v4   https://www.ncbi.nlm.nih.gov/pubmed/33261662
+ - dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
+ - dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
+ - dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
+ - dbNSFP v4   https://www.ncbi.nlm.nih.gov/pubmed/33261662
  
- You must have the Bio::DB::HTS module or the tabix utility must be installed
+ You must have the 'Bio::DB::HTS' module or the tabix utility must be installed
  in your path to use this plugin. The dbNSFP data file can be downloaded from
  https://sites.google.com/site/jpopgen/dbNSFP
 
@@ -70,7 +70,7 @@ When running the plugin you must list at least one column to retrieve from the
  
  --plugin dbNSFP,/path/to/dbNSFP.gz,LRT_score,GERP++_RS
 
- You may include all columns with ALL; this fetches a large amount of data per
+ You may include all columns with 'ALL'; this fetches a large amount of data per
  variant!:
  
  --plugin dbNSFP,/path/to/dbNSFP.gz,ALL
@@ -81,11 +81,11 @@ When running the plugin you must list at least one column to retrieve from the
  --plugin dbNSFP,http://my.files.com/dbNSFP.gz,col1,col2
 
  The plugin replaces occurrences of ';' with ',' and '|' with '&'. However, some
- data field columns, e.g. Interpro_domain, use the replacement characters. We
+ data field columns, e.g. 'Interpro_domain', use the replacement characters. We
  added a file with replacement logic for customising the required replacement
  of ';' and '|' in dbNSFP data columns. In addition to the default replacements
- (; to , and | to &) users can add customised replacements. Users can either modify
- the file dbNSFP_replacement_logic in the VEP_plugins directory or provide their own
+ (';' to ',' and '|' to '&') users can add customised replacements. Users can either modify
+ the file 'dbNSFP_replacement_logic' in the VEP_plugins directory or provide their own
  file as second argument when calling the plugin:
 
  --plugin dbNSFP,/path/to/dbNSFP.gz,/path/to/dbNSFP_replacement_logic,LRT_score,GERP++_RS
@@ -100,18 +100,18 @@ When running the plugin you must list at least one column to retrieve from the
 
 The plugin matches rows in the tabix-indexed dbNSFP file on:
 
- genomic position
- alt allele
- aaref - reference amino acid
- aaalt - alternative amino acid
+ - genomic position
+ - alt allele
+ - 'aaref' - reference amino acid
+ - 'aaalt' - alternative amino acid
 
-To match only on the genomic position and the alt allele use pep_match=0
+To match only on the genomic position and the alt allele use 'pep_match=0':
 
 --plugin dbNSFP,/path/to/dbNSFP.gz,pep_match=0,col1,col2
 
 Some fields contain multiple values, one per Ensembl transcript ID.
-By default all values are returned, separated by ";" in the default VEP output format.
-To return values only for the matched Ensembl transcript ID use transcript_match=1.
+By default all values are returned, separated by ';' in the default VEP output format.
+To return values only for the matched Ensembl transcript ID use 'transcript_match=1'.
 This behaviour only affects transcript-specific fields; non-transcript-specific fields
 are unaffected.
 
@@ -121,7 +121,7 @@ NB 1: Using this flag may cause no value to return if the version of the Ensembl
 transcript set differs between VEP and dbNSFP.
 
 NB 2: MutationTaster entries are keyed on a different set of transcript IDs. Using
-the transcript_match flag with any MutationTaster field selected will have no effect
+the 'transcript_match' flag with any MutationTaster field selected will have no effect
 i.e. all entries are returned. Information on corresponding transcript(s) for
 MutationTaster fields can be found using http://www.mutationtaster.org/ChrPos.html
 

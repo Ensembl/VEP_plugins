@@ -43,18 +43,19 @@ limitations under the License.
  plugin is based on a script provided by this group and slightly reformatted to
  fit into the Ensembl API.
 
- The plugin takes 3 command line arguments, the first is the path to a Condel 
- configuration directory which contains cutoffs and the distribution files etc., 
- the second is either "s", "p", or "b" to output the Condel score, prediction or 
- both (the default is both), and the third argument is either 1 or 2 to use the 
- original version of Condel (1), or the newer version (2) - 2 is the default and 
- is recommended to avoid false positive predictions from Condel in some 
- circumstances.
+ The plugin takes 3 command line arguments by this order:
+ 1. Path to a Condel configuration directory which contains cutoffs and the
+    distribution files, etc.
+ 2. Output: output the Condel score ('s'), prediction ('p') or both ('b');
+    both ('b') is the default.
+ 3. Version of Condel to use: either 1 (original version) or 2 (newer version);
+    '2' is the default and is recommended to avoid false positive predictions
+    from Condel in some circumstances.
 
  An example Condel configuration file and a set of distribution files can be
- found in the config/Condel directory in this repository. You should edit the 
- config/Condel/config/condel_SP.conf file and set the 'condel.dir' parameter to
- the full path to the location of the config/Condel directory on your system.
+ found in the 'config/Condel' directory in this repository. You should edit the 
+ 'config/Condel/config/condel_SP.conf' file and set the 'condel.dir' parameter to
+ the full path to the location of the 'config/Condel' directory on your system.
 
  References:
 
@@ -76,7 +77,7 @@ limitations under the License.
  (4) Flicek P, et al.
      Ensembl 2012
      Nucleic Acids Research (2011)
-     doi: 10.1093/nar/gkr991
+     doi:10.1093/nar/gkr991
 
 =cut
 

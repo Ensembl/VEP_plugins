@@ -54,17 +54,15 @@ limitations under the License.
  label          : annotation label that will appear in the output (default: "SV_overlap")
                   Example- input: label=mydata, output: mydata_name=refSV,mydata_PC=80,mydata_AF=0.05
 
-Example reference data
+ Example reference data
 
-1000 Genomes Project:
-https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/integrated_sv_map/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz
+ - 1000 Genomes Project:
+   https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/integrated_sv_map/ALL.wgs.mergedSV.v8.20130502.svs.genotypes.vcf.gz
 
-gnomAD:
-https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz
-
+ - gnomAD:
+   https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz
 
  Example:
-
   ./vep -i structvariants.vcf --plugin StructuralVariantOverlap,file=gnomad_v2_sv.sites.vcf.gz
 
 

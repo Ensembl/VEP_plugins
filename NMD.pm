@@ -49,8 +49,8 @@ limitations under the License.
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
   
  REFERENCES :
- Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
- The rules and impact of nonsense-mediated mRNA decay in human cancers (Lindeboom, 2016)
+ - Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
+ - The rules and impact of nonsense-mediated mRNA decay in human cancers (Lindeboom, 2016)
 
 
 =cut 

@@ -55,12 +55,12 @@ limitations under the License.
  The output includes three unique counts 'MMCNT1, MMCNT2, MMCNT3' and one identifier 'MMID3'
  to be used to build an URL which shows all articles from MMCNT3.
 
- 'MMCNT1' is the count of Mastermind articles with cDNA matches for a specific variant;
- 'MMCNT2' is the count of Mastermind articles with variants either explicitly matching at
- the cDNA level or given only at protein level;
- 'MMCNT3' is the count of Mastermind articles including other DNA-level variants resulting
- in the same amino acid change;
- 'MMID3' is the Mastermind variant identifier(s), as gene:key. Link to the Genomenon Mastermind Genomic Search Engine;
+ - 'MMCNT1' is the count of Mastermind articles with cDNA matches for a specific variant;
+ - 'MMCNT2' is the count of Mastermind articles with variants either explicitly matching at
+   the cDNA level or given only at protein level;
+ - 'MMCNT3' is the count of Mastermind articles including other DNA-level variants resulting
+   in the same amino acid change;
+ - 'MMID3' is the Mastermind variant identifier(s), as gene:key. Link to the Genomenon Mastermind Genomic Search Engine;
 
  To build the URL, substitute the 'gene:key' in the following link with the value from MMID3:
  https://mastermind.genomenon.com/detail?mutation=gene:key

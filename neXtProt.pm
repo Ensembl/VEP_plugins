@@ -68,18 +68,22 @@ limitations under the License.
 
  position       : Set value to 1 to include the start and end position in the protein.
 
- * note: 'max_set' and 'return_values' cannot be used simultaneously.
+ (*) note: 'max_set' and 'return_values' cannot be used simultaneously.
 
 
  Output:
   By default, the plugin only returns data that is available. Example (default behaviour):
+  ```
   neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10
+  ```
 
   The option 'all_labels' returns a consistent set of the requested fields, using "-" where 
   values are not available. Same example as above:
+  ```
   neXtProt_MatureProtein=Rho guanine nucleotide exchange factor 10;
   neXtProt_InteractingRegion=-;neXtProt_NucleotidePhosphateBindingRegion=-;neXtProt_Variant=-;
   neXtProt_MiscellaneousRegion=-;neXtProt_TopologicalDomain=-;
+  ```
 
   Of notice, multiple values can be returned for the same label. In this case, the values will
   be separeted by '|' for tab and txt format, and '&' for VCF format. 

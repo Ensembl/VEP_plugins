@@ -39,7 +39,7 @@ limitations under the License.
 
  For further information see:
  Thormann A, Halachev M, McLaren W, et al. Flexible and scalable diagnostic filtering of genomic variants using G2P with Ensembl VEP.
- Nature Communications. 2019 May;10(1):2373. DOI: 10.1038/s41467-019-10016-3. PMID: 31147538; PMCID: PMC6542828.
+ Nature Communications. 2019 May;10(1):2373. doi:10.1038/s41467-019-10016-3. PMID: 31147538; PMCID: PMC6542828.
 
 
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
@@ -64,30 +64,30 @@ limitations under the License.
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
-                         Specifiy the list of reference populations to include with --af_from_vcf_keys    
+                         Specifiy the list of reference populations to include with '--af_from_vcf_keys'
  af_from_vcf_keys      : VCF collections used for annotating variant alleles with observed
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
-                         af_from_vcf is set to 1 but no VCF collections are specified with --af_from_vcf_keys
+                         af_from_vcf is set to 1 but no VCF collections are specified with '--af_from_vcf_keys'
                          all available VCF collections are included. 
-                         Available VCF collections: topmed, uk10k, gnomADe, gnomADe_r2.1.1, gnomADg, gnomADg_v3.1.2.
+                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2'.
                          Separate multiple values with '&'.
                          VCF collections contain the following populations: 
-                         topmed : TOPMed (available for GRCh37 and GRCh38).
-                         uk10k : ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
-                         gnomADe & gnomADe_r2.1.1 - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
-                         gnomADg & gnomADg_v3.1.2 - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
-                         Need to use af_from_vcf paramter to use this option. 
+                         * 'topmed' - TOPMed (available for GRCh37 and GRCh38).
+                         * 'uk10k' - ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
+                         * 'gnomADe' & 'gnomADe_r2.1.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADg' & 'gnomADg_v3.1.2' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
+                         Need to use 'af_from_vcf' parameter to use this option. 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
                          included as this is considered equivalent to having a frequency
-                         of 0. Set to 1 (or any value higher than af) to exclude them.
+                         of 0. Set to 1 (or any value higher than 'af') to exclude them.
  types                 : SO consequence types to include. Separate multiple values with '&'
-                         (splice_donor_variant,splice_acceptor_variant,stop_gained,
-                         frameshift_variant,stop_lost,initiator_codon_variant,
-                         inframe_insertion,inframe_deletion,missense_variant,
-                         coding_sequence_variant,start_lost,transcript_ablation,
-                         transcript_amplification,protein_altering_variant)
+                         (splice_donor_variant, splice_acceptor_variant, stop_gained,
+                         frameshift_variant, stop_lost, initiator_codon_variant,
+                         inframe_insertion, inframe_deletion,missense_variant,
+                         coding_sequence_variant, start_lost,transcript_ablation,
+                         transcript_amplification, protein_altering_variant)
   
   log_dir              : write stats to log files in log_dir 
 
@@ -95,16 +95,16 @@ limitations under the License.
 
   html_report          : write all G2P complete genes and attributes to html file
 
-  filter_by_gene_symbol: set to 1 if filter by gene symbol.
-                         Do not set if filtering by HGNC_id.
-                         This option is set to 1 when using PanelApp files. 
+  filter_by_gene_symbol : set to 1 if filter by gene symbol.
+                          Do not set if filtering by HGNC_id.
+                          This option is set to 1 when using PanelApp files. 
 
   only_mane            : set to 1 to ignore transcripts that are not MANE
                          N/B - Information may be lost if this option is used.
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
+ 
  Example:
-
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1'

@@ -35,11 +35,11 @@ limitations under the License.
  A VEP plugin that retrieves ancestral allele sequences from a FASTA file.
 
  Ensembl produces FASTA file dumps of the ancestral sequences of key species.
- Data files for GRCh37 are available from https://ftp.ensembl.org/pub/release-75/fasta/ancestral_alleles/
- Data files for GRCh38 are available from https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
+ - Data files for GRCh37: https://ftp.ensembl.org/pub/release-75/fasta/ancestral_alleles/
+ - Data files for GRCh38: https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
 
  For optimal retrieval speed, you should pre-process the FASTA files into a single
- bgzipped file that can be accessed via Bio::DB::HTS::Faidx (installed by VEP's
+ bgzipped file that can be accessed via 'Bio::DB::HTS::Faidx' (installed by VEP's
  INSTALL.pl):
 
  wget https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
@@ -48,16 +48,15 @@ limitations under the License.
  rm -rf homo_sapiens_ancestor_GRCh38/ homo_sapiens_ancestor_GRCh38.tar.gz
  ./vep -i variations.vcf --plugin AncestralAllele,homo_sapiens_ancestor_GRCh38.fa.gz
  
- Data file is only available for GRCh38. 
- The plugin is also compatible with Bio::DB::Fasta and an uncompressed FASTA file.
+ The plugin is also compatible with 'Bio::DB::Fasta' and an uncompressed FASTA file.
 
  Note the first time you run the plugin with a newly generated FASTA file it will
  spend some time indexing the file. DO NOT INTERRUPT THIS PROCESS, particularly
- if you do not have Bio::DB::HTS installed.
+ if you do not have 'Bio::DB::HTS' installed.
 
  Special cases:
-   "-" represents an insertion
-   "?" indicates the chromosome could not be looked up in the FASTA
+   - '-' represents an insertion
+   - '?' indicates the chromosome could not be looked up in the FASTA
 
 =cut
 
