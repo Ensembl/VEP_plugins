@@ -79,10 +79,12 @@ limitations under the License.
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=ignore,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
 
  Options are passed to the plugin as key=value pairs:
-   dir          : Directory for paralogue annotation (the annotation is
+   dir          : Directory with paralogue annotation (the annotation is
                   downloaded to this location, if not available)
-   paralogues   : File to use for paralogue annotation (the annotation is
-                  downloaded with this name, if not available)
+   paralogues   : File with paralogue annotation (the annotation is downloaded
+                  with this filename, if not available); if set to
+                  'remote', paralogue annotation is directly fetched from
+                  Ensembl API
    min_perc_cov : Minimum alignment percentage of the peptide associated with
                   the input variant (default: 0)
    min_perc_pos : Minimum percentage of positivity (similarity) between both
@@ -109,11 +111,6 @@ limitations under the License.
    clnsig_col   : Column name containing clinical significance in custom VCF
                   (required when using using `vcf` argument and
                   `clnsig` different than 'ignore')
-
-   mode         : If mode is 'remote', paralogue annotation is directly fetched
-                  from Ensembl API (default: off); paralogue variants can be
-                  fetched from custom VCF by using plugin option `vcf`, VEP
-                  cache or Ensembl API
 
  The tabix utility must be installed in your path to read the paralogue
  annotation and the custom VCF file.
@@ -706,7 +703,7 @@ sub new {
   $self->{fields} = \@fields;
 
   # Check if paralogue annotation should be downloaded
-  $self->{remote} = defined $params->{mode} && $params->{mode} eq 'remote';
+  $self->{remote} = defined $params->{paralogues} && $params->{paralogues} eq 'remote';
   return $self if $self->{remote};
 
   # Generate paralogue annotation
