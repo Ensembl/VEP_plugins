@@ -165,9 +165,9 @@ sub run {
   
   if ($output_format{'json'}) {
     my $result = $res->{result};
-    
+
     my %split_result = map {
-    $_ =~ /Phenotype/ ? ($_ => [split /,\s*/, $result->{$_}]) : ($_ => $result->{$_})
+    $_ =~ /Phenotype/ ? ($_ => [split /|\s*/, $result->{$_}]) : ($_ => $result->{$_})
     } keys %$result;
 
     return {
