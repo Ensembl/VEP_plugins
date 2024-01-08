@@ -30,12 +30,12 @@ limitations under the License.
  mv Paralogues.pm ~/.vep/Plugins
 
  # Download Ensembl paralogue annotation (if not in current directory) and fetch
- # variants from Ensembl API whose clinical significance partially matches 'pathogenic'
- ./vep -i variations.vcf --plugin Paralogues
+ # variants from VEP cache whose clinical significance partially matches 'pathogenic'
+ ./vep -i variations.vcf --cache --plugin Paralogues
 
  # Download Ensembl paralogue annotation (if not in current directory) and fetch
  # all variants from custom VCF file
- ./vep -i variations.vcf --plugin Paralogues,vcf=/path/to/file.vcf,clnsig='ignore'
+ ./vep -i variations.vcf --cache --plugin Paralogues,vcf=/path/to/file.vcf,clnsig='ignore'
 
  # Fetch all Ensembl variants in paralogue proteins using only the Ensembl API
  # (requires database access)
@@ -48,9 +48,10 @@ limitations under the License.
  pathogenicity of variants in paralogue positions.
 
  This plugin fetches variants overlapping the genomic coordinates of the
- paralogue's affected aminoacid from one of two sources:
- - Custom VCF based on vcf parameter
- - Ensembl API (if vcf parameter is not defined)
+ paralogue's affected aminoacid from one of the following sources by this order:
+   1. Custom VCF (if 'vcf' parameter is defined)
+   2. VEP cache (in cache/offline mode)
+   3. Ensembl API (in database mode)
 
  This plugin automatically downloads paralogue annotation from Ensembl databases
  if not available in the current directory (by default). Use argument `dir` to
@@ -88,7 +89,8 @@ limitations under the License.
                   homologues (default: 50)
 
    vcf          : Custom VCF file (by default, overlapping variants are fetched
-                  from Ensembl API)
+                  from VEP cache in cache/offline mode or Ensembl API in
+                  database mode)
    fields       : Colon-separated list of information from paralogue variant to
                   return (by default, 'identifier:alleles:clinical_significance');
                   available fields include 'identifier', 'chromosome', 'start',
@@ -108,9 +110,10 @@ limitations under the License.
                   (required when using using `vcf` argument and
                   `clnsig` different than 'ignore')
 
-   mode         : If 'remote', fetch paralogue annotation directly from Ensembl
-                  API (default: off); paralogue variants can either be fetched
-                  from a custom VCF using the argument `vcf` or Ensembl API
+   mode         : If mode is 'remote', paralogue annotation is directly fetched
+                  from Ensembl API (default: off); paralogue variants can be
+                  fetched from custom VCF by using plugin option `vcf`, VEP
+                  cache or Ensembl API
 
  The tabix utility must be installed in your path to read the paralogue
  annotation and the custom VCF file.
@@ -477,6 +480,39 @@ sub _get_paralogue_coords {
 
 ## GET DATA FROM ANNOTATION ----------------------------------------------------
 
+sub _get_config {
+  my $self = shift;
+  if (!defined $self->{config_obj}) {
+    $self->{config_obj} = Bio::EnsEMBL::VEP::Config->new( $self->{config} );
+  }
+  return $self->{config_obj};
+}
+
+sub _get_AnnotationSource {
+  my $self = shift;
+  my $filter = shift;
+
+  my %match = (
+    'Transcript'     => 'Bio::EnsEMBL::VEP::AnnotationSource::Cache::Transcript',
+    'VariationTabix' => 'Bio::EnsEMBL::VEP::AnnotationSource::Cache::VariationTabix',
+  );
+
+  if (!defined $self->{asa}) {
+    # Cache all annotation sources
+    my $cfg = $self->_get_config;
+    $cfg->{_params}->{check_existing} = 1; # enable to fetch VariationTabix from VEP cache
+    $self->{asa} = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $cfg});
+  }
+
+  my $asa = $self->{asa};
+  if (defined $asa && $asa->can('get_all_from_cache')) {
+    for (@{$self->{asa}->get_all_from_cache}) {
+      return $_ if ref $_ eq $match{$filter};
+    }
+  }
+  return undef;
+}
+
 sub _get_transcript_from_translation {
   my $self       = shift;
   my $protein_id = shift;
@@ -486,16 +522,11 @@ sub _get_transcript_from_translation {
 
   die "No protein identifier given\n" unless defined $protein_id;
   return $self->{_cache}->{$protein_id} if $self->{_cache}->{$protein_id};
-  my $config  = Bio::EnsEMBL::VEP::Config->new( $self->{config} );
 
-  # try to get transcript from cache
-  if (defined $chr and defined $start and defined $strand) {
-    my $as = $self->{as};
-    if (!defined $as) {
-      # cache AnnotationSource
-      my $asa = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $config});
-      $as = $self->{as} = $asa->get_all_from_cache->[0];
-    }
+  # try to get transcript from cache if enabled
+  if ($self->{config}->{cache} && defined $chr && defined $start && defined $strand) {
+    my $as = $self->_get_AnnotationSource('Transcript');
+    die "ERROR: could not get transcripts from VEP cache" unless defined $as;
 
     my (@regions, $seen, $min_max, $min, $max);
     my $cache_region_size = $as->{cache_region_size};
@@ -531,6 +562,7 @@ sub _get_transcript_from_translation {
     die "Translation $protein_id not cached; avoid using --offline to allow to connect to database\n";
   }
 
+  my $config  = $self->_get_config;
   my $species = $config->species;
   my $reg     = $config->registry;
   $self->{ta} ||= $reg->get_adaptor($species, 'core', 'translation');
@@ -538,6 +570,58 @@ sub _get_transcript_from_translation {
   my $transcript = $self->{ta}->fetch_by_stable_id($protein_id)->transcript;
   $self->{_cache}->{$protein_id} = $transcript;
   return $transcript;
+}
+
+## FETCH VARIANTS FROM SOURCE --------------------------------------------------
+
+sub fetch_cache_vars {
+  # fetch variants from VEP cache
+  my ($self, $chr, $start, $end) = @_;
+
+  # code based on AnnotationSource::Cache::VariationTabix
+  my $as = $self->_get_AnnotationSource('VariationTabix');
+  die "ERROR: could not get variants from VEP cache" unless defined $as;
+
+  my $source_chr = $as->get_source_chr_name($chr);
+  my $tabix_obj = $as->_get_tabix_obj($source_chr);
+  next unless $tabix_obj;
+
+  my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
+  next unless $iter;
+
+  my $variants;
+  while(my $line = $iter->next) {
+    chomp $line;
+    my $var = $as->parse_variation($line);
+    my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+      -variation_name        => $var->{variation_name},
+      -seq_region_name       => $var->{chr},
+      -start                 => $var->{start},
+      -end                   => $var->{end},
+      -strand                => $var->{strand},
+      -allele_string         => $var->{allele_string},
+      -is_somatic            => $var->{somatic},
+      -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
+    );
+    push @$variants, $vf;
+  }
+  return $variants;
+}
+
+sub fetch_database_vars {
+  # fetch variants from Ensembl API
+  my ($self, $chr, $start, $end) = @_;
+
+  my $config  = $self->{config};
+  my $reg     = $config->{reg};
+  my $species = $config->{species};
+
+  $self->{sa}  ||= $reg->get_adaptor($species, 'core', 'slice');
+  $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
+
+  my $slice = $self->{sa}->fetch_by_region('chromosome', $chr, $start, $end);
+  next unless defined $slice;
+  return $self->{vfa}->fetch_all_by_Slice($slice);
 }
 
 ## PLUGIN ----------------------------------------------------------------------
@@ -615,8 +699,6 @@ sub new {
       die "ERROR: clnsig_col $self->{clnsig_col} not found in $filename. Available INFO fields are:\n" .
         join(", ", @$info_ids)."\n" unless grep { $self->{clnsig_col} eq $_ } @$info_ids;
     }
-  } elsif ($config->{offline}) {
-    die("ERROR: Cannot fetch Ensembl variants in offline mode; please use the vcf argument in the Paralogues plugin\n");
   } else {
     @fields = split(/:/, $params->{fields}) if defined $params->{fields};
     @fields = @{ _get_valid_fields(\@fields, \@VAR_FIELDS) };
@@ -647,7 +729,16 @@ sub feature_types {
 
 sub get_header_info {
   my $self = shift;
-  my $source = defined $self->{vcf} ? basename $self->{vcf} : 'Ensembl API'; 
+
+  my $source;
+  if (defined $self->{vcf}) {
+    $source = basename $self->{vcf};
+  } elsif ($self->{config}->{cache}) {
+    $source = 'VEP cache';
+  } elsif ($self->{config}->{database}) {
+    $source = 'Ensembl API';
+  }
+
   my $fields = join(':', @{ $self->{fields} });
   my $description = "Variants from $source in paralogue proteins (colon-separated fields: $fields)";
   return { PARALOGUE_VARIANTS => $description };
@@ -797,17 +888,16 @@ sub run {
       }
     } else {
       # get Ensembl variants from mapped genomic coordinates
-      my $config  = $self->{config};
-      my $reg     = $config->{reg};
-      my $species = $config->{species};
+      my $variants;
+      if ($self->{config}->{cache}) {
+        $variants = $self->fetch_cache_vars($chr, $start, $end);
+      } elsif ($self->{config}->{database}) {
+        $variants = $self->fetch_database_vars($chr, $start, $end);
+      } else {
+        die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
+      }
 
-      $self->{sa}  ||= $reg->get_adaptor($species, 'core', 'slice');
-      $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
-
-      my $slice = $self->{sa}->fetch_by_region('chromosome', $chr, $start, $end);
-      next unless defined $slice;
-
-      foreach my $var ( @{ $self->{vfa}->fetch_all_by_Slice($slice) } ) {
+      foreach my $var (@$variants) {
         # check clinical significance (if set)
         next unless $self->_is_clinically_significant($var->{clinical_significance});
         my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
