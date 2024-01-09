@@ -189,7 +189,11 @@ sub _aminoacid_changes_match {
   $aa_alt = $aa_ref if $aa_alt eq "="; # silent mutation
   $aa_alt = "Ter"   if $aa_alt eq "*"; # nonsense mutation
 
-  my $vf_aa_ref = $tva->base_variation_feature_overlap->get_reference_TranscriptVariationAllele->peptide;
+  # return no match if cannot fetch reference allele
+  my $bvf = $tva->base_variation_feature_overlap;
+  return 0 unless $bvf->can('get_reference_TranscriptVariationAllele');
+
+  my $vf_aa_ref = $bvf->get_reference_TranscriptVariationAllele->peptide;
   my $vf_aa_alt = $tva->peptide;
   my $vf_aa_pos = $tva->base_variation_feature_overlap->translation_start;
   return 0 unless defined $vf_aa_ref && defined $vf_aa_alt && defined $vf_aa_pos;
@@ -206,6 +210,9 @@ sub _aminoacid_changes_match {
 
 sub _transcripts_match {
   my ($self, $tva, $transcript) = @_;
+
+  # return no match if cannot fetch transcript from TVA
+  return 0 unless $tva->can('transcript');
 
   # Get transcript ID for Ensembl and RefSeq
   my $tr = $tva->transcript;
