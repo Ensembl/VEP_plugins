@@ -64,6 +64,9 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+my %output_format;
+my %CONFIG;
+
 sub new {
   my $class = shift;
 
@@ -79,6 +82,14 @@ sub new {
   my $file = $params->{file};  
   my $model = $params->{model};
 
+  #for REST calls report all data (use json output flag)
+  $self->{config}->{output_format} ||= $CONFIG{output_format};
+
+  # get output format
+  if ($self->{config}->{output_format}) {
+    $output_format{$self->{config}->{output_format}} = 1;
+  }
+  
   die "File needs to be specified to run the PhenotypeOrthologus plugin. \n" if  (!$file);
   $self->add_file($file);
 
@@ -116,20 +127,20 @@ sub get_header_info {
 
 
   if (keys(%{$self->{params}}) == 1)  {
-    $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
-    $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
-    $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
-    $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
+    $header{"PhenotypeOrthologous_Rat_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
+    $header{"PhenotypeOrthologous_Rat_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
+    $header{"PhenotypeOrthologous_Mouse_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
+    $header{"PhenotypeOrthologous_Mouse_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
 
   if (defined($self->{model}) && $self->{model} eq "rat" ) {
-    $header{"PhenotypeOrthologous_RatOrthologous_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
-    $header{"PhenotypeOrthologous_RatOrthologous_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
+    $header{"PhenotypeOrthologous_Rat_geneid"} = "PhenotypeOrthologous RatGene associated with Rat";
+    $header{"PhenotypeOrthologous_Rat_phenotype"} = "PhenotypeOrthologous RatPhenotypes associated with orthologous genes in Rat";
   }
 
   if (defined($self->{model}) && $self->{model} eq "mouse" ) {
-    $header{"PhenotypeOrthologous_MouseOrthologous_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
-    $header{"PhenotypeOrthologous_MouseOrthologous_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
+    $header{"PhenotypeOrthologous_Mouse_geneid"} = "PhenotypeOrthologous MouseGene associated with Mouse";
+    $header{"PhenotypeOrthologous_Mouse_phenotype"} = "PhenotypeOrthologous MousePhenotypes associated with orthologous genes in Mouse";
   }
 
   return \%header;
@@ -145,15 +156,25 @@ sub run {
 
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
   ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
-
+  
   my ($res) = grep {
     $_->{gene_id} eq $gene_id
   } @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
- 
-  return $res ? $res->{result} : {};
 
+  return $res ? $res->{result} : {} if !$output_format{'json'};
+  
+  if ($output_format{'json'}) {
+    my $result = $res->{result};
+
+    my %split_result = map {
+    $_ =~ /Phenotype/ ? ($_ => [split /\|\s*/, $result->{$_}]) : ($_ => $result->{$_})
+    } keys %$result;
+
+    return {
+      PhenotypeOrthologous => \%split_result,
+    };
+  }
 }
-
 
 sub parse_data {
   my ($self, $line) = @_;
@@ -168,18 +189,22 @@ sub parse_data {
     $data_fields{$key} = $value;
   }
   
+  # Assuming $data_fields is your original hash
+  my %data;
   if (!$self->{model}) {
-    return {
-      start => $s,
-      end => $e,
-      gene_id => $data_fields{"gene_id"},
-      result => {
-        PhenotypeOrthologous_Rat_geneid => $data_fields{"Rat_gene_id"},
-        PhenotypeOrthologous_Rat_phenotype => $data_fields{"Rat_Orthologous_phenotype"},
-        PhenotypeOrthologous_Mouse_geneid => $data_fields{"Mouse_gene_id"},
-        PhenotypeOrthologous_Mouse_phenotype => $data_fields{"Mouse_Orthologous_phenotype"},
-      }
-    };
+    $data{start} = $s;
+    $data{end} = $e;
+    $data{gene_id} = $data_fields{"gene_id"};
+
+    my %result_hash;
+    $result_hash{PhenotypeOrthologous_Rat_geneid} = $data_fields{"Rat_gene_id"} if $data_fields{"Rat_gene_id"};
+    $result_hash{PhenotypeOrthologous_Rat_phenotype} = $data_fields{"Rat_Orthologous_phenotype"} if $data_fields{"Rat_Orthologous_phenotype"};
+    $result_hash{PhenotypeOrthologous_Mouse_geneid} = $data_fields{"Mouse_gene_id"} if $data_fields{"Mouse_gene_id"};
+    $result_hash{PhenotypeOrthologous_Mouse_phenotype} = $data_fields{"Mouse_Orthologous_phenotype"} if $data_fields{"Mouse_Orthologous_phenotype"};
+
+    $data{result} = \%result_hash;
+  
+    return \%data;
   }
 
   if ($self->{model} eq "rat") {
@@ -205,7 +230,6 @@ sub parse_data {
       }
     };
   }
-
 
 }
 
