@@ -56,23 +56,23 @@ limitations under the License.
  
  Options are passed to the plugin as key=value pairs:
 
- mapping_file			: (mandatory) Path to tabix-indexed genomic location mapped file
- mutation_file			: (mandatory) Path to IntAct data file
+ mapping_file     : (mandatory) Path to tabix-indexed genomic location mapped file
+ mutation_file    : (mandatory) Path to IntAct data file
  
- By default the output will always contain feature_type and interaction_ac from the IntAct data file. You can also add more fields using the following options -
- feature_ac			: Set value to 1 to include Feature AC in the output
- feature_short_label		: Set value to 1 to include Feature short label in the output
- feature_annotation		: Set value to 1 to include Feature annotation in the output
- ap_ac				: Set value to 1 to include Affected protein AC in the output
- interaction_participants	: Set value to 1 to include Interaction participants in the output
- pmid				: Set value to 1 to include PubMedID in the output
+ By default the output will always contain feature_type and interaction_ac from the IntAct data file. You can also add more fields using the following key=value options -
+   feature_ac               : Set value to 1 to include Feature AC in the output
+   feature_short_label      : Set value to 1 to include Feature short label in the output
+   feature_annotation       : Set value to 1 to include Feature annotation in the output
+   ap_ac                    : Set value to 1 to include Affected protein AC in the output
+   interaction_participants : Set value to 1 to include Interaction participants in the output
+   pmid                     : Set value to 1 to include PubMedID in the output
 
- There are also two other options for customizing the output - 
- all                            : Set value to 1 to include all the fields
- minimal                        : Set value to 1 to overwrite default behavior and include only interaction_ac 
+ There are also two other key=value options for customizing the output - 
+   all     : Set value to 1 to include all the fields
+   minimal : Set value to 1 to overwrite default behavior and include only interaction_ac 
 				  in the output by default
 
- See what this options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
+ See what these options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
  
  Note that, interaction accession can be used to link to full details on the interaction website. For example, 
  where the VEP output reports an interaction_ac of EBI-12501485, the URL would be : 

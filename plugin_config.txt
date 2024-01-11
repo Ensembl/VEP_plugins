@@ -753,8 +753,6 @@ my $VEP_PLUGIN_CONFIG = {
 
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
-    # Requires tabix-indexed data file as first param
-    # No other parameters so no form required
     {
       "key" => "CADD",
       "label" => "CADD",
@@ -765,10 +763,29 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/CADD.pm",
       "requires_data" => 1,
       "species" => [
-        "homo_sapiens"
+        "homo_sapiens",
+        "sus_scrofa"
+      ],
+      "form" => [
+        {
+          "name" => "file_type",
+          "label" => "Select annotation file",
+          "type" => "dropdown",
+          "helptip" => "Select type of CADD annotation file to be used. Caution to be taken while using snv, indels or snv_indels options with structural variants as input. It can match unnecessary huge amount of lines in annotation file and in such cases no CADD annotation will be made.",
+          "values" => [
+            { "value" => "snv_indels", "caption" => "CADD SNVs and InDels annotation file", "class" => "_stt_Homo_sapiens" },
+            { "value" => "snv", "caption" => "CADD SNVs annotation file" },
+            { "value" => "indels", "caption" => "CADD InDels annotation file", "class" => "_stt_Homo_sapiens" },
+            { "value" => "sv", "caption" => "CADD-SV annotation file (supported only in GRCh38)", "class" => "_stt_Homo_sapiens" }
+          ],
+          "value" => "snv_indels",
+        },
       ],
       "params" => [
-        #"/path/to/whole_genome_SNVs.tsv.gz"
+        #"snv=/path/to/CADD_whole_genome_SNVs.tsv.gz",
+        #"indels=/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
+        #"snv_pig=/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
+        #"sv=/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
 
@@ -1109,6 +1126,21 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # Paralogues
+    {
+      "key" => "Paralogues",
+      "label" => "Variants in paralogue proteins",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "Retrieves variants overlapping the genomic coordinates of amino acids aligned between paralogue proteins.",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/Paralogues.pm",
+      "requires_data" => 1,
+      "params" => [
+        #"/path/to/paralogue/annotation/dir"
+      ]
+    },
+
     # BayesDel
     {
       "key" => "BayesDel",
@@ -1125,6 +1157,24 @@ my $VEP_PLUGIN_CONFIG = {
       "params" => [
         #"/path/to/BayesDel.vcf.gz"
       ]
+    },
+
+    # DosageSensitivity
+    {
+      "key" => "DosageSensitivity",
+      "label" => "DosageSensitivity",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "DosageSensitivity determines the likelihood of a gene being haploinsufficient or triplosensitive",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DosageSensitivity.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#file=/path/to/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
     },
 
     ## SPLICING PREDICTIONS
@@ -1224,6 +1274,16 @@ my $VEP_PLUGIN_CONFIG = {
       ],
     },
 
+    # SpliceVault
+    {
+      "key" => "SpliceVault",
+      "label" => "SpliceVault",
+      "helptip" => "Retrieves the most common variant-associated mis-splicing events for variants that overlap a near-splice-site region",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/SpliceVault.pm",
+    },
 
 
     ## CONSERVATION
@@ -1450,6 +1510,21 @@ my $VEP_PLUGIN_CONFIG = {
       ],
       "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/GWAS.pm"
+    },
+
+    # PhenotypeOrthologous
+    {
+      "key" => "PhenotypeOrthologous",
+      "label" => "PhenotypeOrthologous",
+      "helptip" => "Phenotypes associated with orthologous genes in model organisms (mouse and rat)",
+      "requires_data" => 1,
+      "available" => 0,
+      "enabled" => 0,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "section" => "Phenotype data and citations",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/PhenotypeOrthologous.pm"
     },
 
 
@@ -1910,24 +1985,6 @@ my $VEP_PLUGIN_CONFIG = {
         }
       ]
     },
-
-    # DosageSensitivity
-    {
-      "key" => "DosageSensitivity",
-      "label" => "DosageSensitivity",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Functional effect",
-      "helptip" => "DosageSensitivity determines the likelihood of a gene being haploinsufficient or triplosensitive",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DosageSensitivity.pm",
-      "requires_data" => 1,
-      "params"  => [
-        "#file=/path/to/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz"
-      ],
-      "species" => [
-        "homo_sapiens"
-      ],
-    },
     
     ## REGULATORY IMPACT 
     ####################
@@ -1961,6 +2018,14 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/CSN.pm",
+    },
+
+    {
+      "key" => "DeNovo",
+      "helptip" => "Identifies de novo variants in a VCF file",
+      "available" => 0,
+      "enabled" => 0,
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DeNovo.pm",
     }
 
   ]

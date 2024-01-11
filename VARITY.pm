@@ -30,7 +30,6 @@ limitations under the License.
  mv VARITY.pm ~/.vep/Plugins
  ./vep -i variations.vcf --assembly GRCh37 --plugin VARITY,file=/path/to/varity_all_predictions.txt
 
- 
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
@@ -42,7 +41,8 @@ limitations under the License.
 
  Running options :
 
- VARITY scores can be downloaded using wget http://varity.varianteffect.org/downloads/varity_all_predictions.tar.gz
+ VARITY scores can be downloaded using
+ wget http://varity.varianteffect.org/downloads/varity_all_predictions.tar.gz
 
  The files can be tabix processed by :
  tar -xzvf varity_all_predictions.tar.gz 

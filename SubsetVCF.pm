@@ -1,6 +1,28 @@
+=head1 LICENSE
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+			http://www.apache.org/licenses/LICENSE-2.0
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+
+=head1 CONTACT
+
+	Joseph A. Prinz <jp102@duke.edu>
+
+=cut
+
 =head1 NAME
 
  SubsetVCF
+
+=head1 SYNOPSIS
+
+ ./vep -i variations.vcf --plugin SubsetVCF,file=filepath.vcf.gz,name=myvfc,fields=AC*%AN*
 
 =head1 DESCRIPTION
 
@@ -14,40 +36,20 @@
  By default, only VCF records with a filter value of "PASS" are returned, 
  however this behaviour can be changed via the 'filter' option.
 
- Parameters:
-    name: short name added used as a prefix (required)
-    file: path to tabix-index vcf file (required)
-  filter: only consider variants marked as 'PASS', 1 or 0 (default, 1)
-  fields: info fields to be returned (default, not used)
-            '%' can delimit multiple fields
-            '*' can be used as a wildcard 
+ The plugin accepts the following key=value parameters:
+    name : short name added used as a prefix (required)
+    file : path to tabix-index vcf file (required)
+  filter : only consider variants marked as 'PASS', 1 or 0 (default, 1)
+  fields : info fields to be returned (default, not used)
+            - '%' can delimit multiple fields
+            - '*' can be used as a wildcard 
 
  Returns:
-  <name>_POS: POS field from VCF
-  <name>_REF: REF field from VCF (minimised)
-  <name>_ALT: ALT field from VCF (minimised)
-  <name>_alt_index: Index of matching variant (zero-based)
-  <name>_<field>: List of requested info values
-
-=head1 SYNOPSIS
-
- ./vep -i variations.vcf --plugin SubsetVCF,file=filepath.vcf.gz,name=myvfc,fields=AC*%AN*
-
-=head1 CONTACT
-	
-	Joseph A. Prinz <jp102@duke.edu>
-
-=head1 LICENSE
-
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
-			http://www.apache.org/licenses/LICENSE-2.0
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
+  - '<name>_POS': POS field from VCF
+  - '<name>_REF': REF field from VCF (minimised)
+  - '<name>_ALT': ALT field from VCF (minimised)
+  - '<name>_alt_index': Index of matching variant (zero-based)
+  - '<name>_<field>': List of requested info values
 
 =cut
 
