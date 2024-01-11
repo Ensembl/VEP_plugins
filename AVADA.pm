@@ -27,7 +27,7 @@ limitations under the License.
 
 =head1 SYNOPSIS
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file
-./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=<gene_symbol|ensembl_gene_id|refseq_transcript_id|refseq_protein_id>
+./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=<gene_symbol|ensembl_gene_id>
 
 =head1 DESCRIPTION
 
@@ -187,6 +187,7 @@ sub run {
     $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key};
     if ($original_variant_string)
     {
+    # Output is in the format "PMID&RefSeq_ID:Variant_string"
     my $pmid_variant = $data_value->{AVADA_PMID}."&".$data_value->{AVADA_REFSEQ_ID}.":".$data_value->{AVADA_VARIANT_STRING};
     $output_key = "AVADA_PMID_WITH_VARIANT_STRING";
     $pmid_string = $pmid_string ? $pmid_string.",".$pmid_variant : $pmid_variant; 
