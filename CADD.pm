@@ -48,10 +48,10 @@ limitations under the License.
  The CADD SV data files (and respective Tabix index files)  can be downloaded from -
  https://kircherlab.bihealth.org/download/CADD-SV/v1.1/
 
- By default, the plugin does not annotate if there is too many lines matched from the 
- CADD annotation files. It can happen if CADD SNV and indels annotation files are used
- with structural variant as input. You can override this behavior by providing force_annotate=1
- which will force the plugin to annotate with the expense of increasing runtime.
+ By default, the plugin tries not to annotate SV variant if a SNV and/or indels CADD annotation 
+ file is provided. Because it can results in too many lines matched from the annotation 
+ files and increase run time exponentially. You can override this behavior by providing 
+ force_annotate=1 which will force the plugin to annotate with the expense of increasing runtime.
 
  The plugin works with all versions of available CADD files. The plugin only
  reports scores and does not consider any additional annotations from a CADD
