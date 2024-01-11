@@ -115,9 +115,10 @@ sub new {
 
   my $params = $self->params_to_hash();
   my @files;
+  $self->{non_sv_ann_file} = 0;
   # Check files in arguments
   if (!keys %$params) {
-    warn "WARNING: Using snv or indels CADD annotation file with structural variant can increase run time exponentially.".
+    warn "WARNING: Using snv or indels CADD annotation file with structural variant can increase run time exponentially. ".
          "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation.\n"
     if scalar @{$self->params} > 2;
     
@@ -128,13 +129,15 @@ sub new {
     
     # using snv/indels files on SV can slow down VEP exponentially
     if ( grep( /^sv$/, @param_keys ) && ( grep( /^snv$/, @param_keys ) || grep( /^indels$/, @param_keys ) ) ) {
-      warn "WARNING: Using snv=<file> and/or indels=<file> with structural variant can increase run time exponentially.".
+      warn "WARNING: Using snv=<file> and/or indels=<file> with structural variant can increase run time exponentially. ".
            "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n";
     }
 
     for my $key ( @param_keys ){
       next if $key eq "force_annotate";
       push @files, $params->{$key};
+
+      $self->{non_sv_ann_file} = 1 if ($key eq "snv" || $key eq "indels");
     }
   }
 
@@ -224,6 +227,9 @@ sub run {
     return {} unless $allele =~ /^[ACGT-]+$/;
 
   } else {
+    # Do not annotate sv if there is snv/indels annotation file
+    return {} if ($self->{non_sv_ann_file} && !$self->{force_annotate});
+
     $start = $bvf->{start} - 1;
     $end = $bvf->{end};
     $so_term = $bvf->class_SO_term();
@@ -232,6 +238,8 @@ sub run {
   };
 
   my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
+
+  # Do not annotate if matched lines from annotation file is over threshold
   if(scalar @data > 100000 && !$self->{force_annotate}) {
     my $location = $bvf->{chr} . "_" . $start . "_" . $end;
     warn "WARNING: too many match found (", scalar @data, ") for CADD variant with location $location. No CADD annotation will be made. " .
