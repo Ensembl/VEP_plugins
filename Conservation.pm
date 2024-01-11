@@ -31,7 +31,6 @@ limitations under the License.
  
  ./vep -i variations.vcf --plugin Conservation,mammals
  ./vep -i variations.vcf --plugin Conservation,/path/to/bigwigfile.bw
- ./vep -i variations.vcf --plugin Conservation,/path/to/bigwigfile.bw,MAX
  ./vep -i variations.vcf --plugin Conservation,database,GERP_CONSERVATION_SCORE,mammals
 
 =head1 DESCRIPTION
@@ -45,9 +44,7 @@ limitations under the License.
 
  If a variant affects multiple nucleotides the average score for the
  position will be returned, and for insertions the average score of
- the 2 flanking bases will be returned. If the MAX parameter is
- used, the maximum score of any of the affected bases will be reported
- instead.
+ the 2 flanking bases will be returned.
 
  The plugin uses the ensembl-compara API module (optional, see
  http://www.ensembl.org/info/docs/api/index.html) or obtains data
@@ -76,15 +73,6 @@ sub new {
     if(scalar(@{$self->params}) == 0){
       warn('No input parameters found for Conservation plugin');
       return $self;
-    }
-    # Check for MAX, otherwise default to AVERAGE
-    for(@{$self->params}) {
-        if ($_ eq 'MAX') {
-            $self->{method} = 'MAX';
-        }
-        else {
-            $self->{method} = 'AVERAGE';
-        }
     }
     
     $self->{use_database} = $self->params->[0] eq 'database';
@@ -201,65 +189,35 @@ sub run {
   my $chr = $vf->{chr};
   $chr =~ s/^chr//i;
 
-  #Check if insertion and adjust to capture flanking bases
-  if ($vf->{start} - 1 == $vf->{end}){
-    $parser->seek($chr, $vf->{start} - 2, $vf->{end} + 1);
-  }
-  else{
-    $parser->seek($chr, $vf->{start} - 1, $vf->{end});
-  }
-  # Grab the score
-  my @values = ();
-  push @values, $parser->{waiting_block}[3];
-  my $divide = 1;
-  
-  # If multiple bases affected, grab those scores as well from the oparser object
-  foreach (@{ $parser->{cache}->{features} }) {
-    my $length = @{$_}[2] - @{$_}[1];
-    # If the interval of the feature is >2 it means multiple positions have the same score
-    # Below code will capture if single or multiple scores are in the interval.
-    while($length >= 2) {
-        push @values, @{$_}[3];
-        $divide++;
-        $length--;
-    }
-  }
-  $parser->next;
-
-  # Output - if multiple scores do average or max, if single score just output that.
-  if (scalar(@values) > 1 ) {
-    if ($self->{method} eq 'MAX') {
-        my @sorted = sort(@values);
-        return { Conservation => sprintf("%.3f", $sorted[-1])};
-    }
-    else {
-        my $total = 0;
-        $total += $_ for @values;
-        my $average = $total / $divide;
-        return { Conservation => sprintf("%.3f", $average)};
-    }
-  }
-  else {
-    return { Conservation => sprintf("%.3f", $values[0])};
-  }
+  $parser->seek($chr, $vf->{start} - 1, $vf->{end});
+  $parser->next;  
+  return $parser->get_raw_score ? { Conservation => sprintf("%.3f", $parser->get_raw_score)} : {};
 }
 
 sub db_run {
     my ($self, $bvfoa) = @_;
+
     my $bvf = $bvfoa->base_variation_feature;
 
     # we cache the score on the BaseVariationFeature so we don't have to
     # fetch it multiple times if this variant overlaps multiple Features
+
     unless (exists $bvf->{_conservation_score}) {
+
         my $slice;
+
         my $true_snp = 0;
+
         if ($bvf->{end} >= $bvf->{start}) {
+
             if ($bvf->{start} == $bvf->{end}) {
 
                 # work around a bug in the compara API that means you can't fetch 
                 # conservation scores for 1bp slices by creating a 2bp slice for
                 # SNPs and then ignoring the score returned for the second position
+
                 my $s = $bvf->slice;
+
                 $slice = Bio::EnsEMBL::Slice->new(
                     -seq_region_name   => $s->seq_region_name,
                     -seq_region_length => $s->seq_region_length,
@@ -268,18 +226,24 @@ sub db_run {
                     -end               => $bvf->{end} + 1,
                     -strand            => $bvf->{strand},
                     -adaptor           => $s->adaptor
-                );               
+                );
+                
                 $true_snp = 1;
             }
             else {
+
                 # otherwise, just get a slice that covers our variant feature
+
                 $slice = $bvf->feature_Slice;
             }
         }
         else {
+
             # this is an insertion, we return the average score of the flanking 
             # bases, so we create a 2bp slice around the insertion site
+
             my $s = $bvf->slice;
+
             $slice = Bio::EnsEMBL::Slice->new(
                 -seq_region_name   => $s->seq_region_name,
                 -seq_region_length => $s->seq_region_length,
@@ -298,25 +262,20 @@ sub db_run {
         );
 
         if (@$scores > 0) {
-            # we use the simple average of the diff_scores as the overall score         
-            pop @$scores if $true_snp; # get rid of our spurious second score for SNPs
-            my @values;
-            
-            for (@$scores) {
-                push @values, $_->diff_score;
-            }
 
+            # we use the simple average of the diff_scores as the overall score
+            
+            pop @$scores if $true_snp; # get rid of our spurious second score for SNPs
+            
             if (@$scores > 0) {
-                if ($self->{method} eq 'AVERAGE') {
-                    my $tot_score = 0;
-                    $tot_score += $_ for @values;
-                    $tot_score /= @values;
-                    $bvf->{_conservation_score} = sprintf "%.3f", $tot_score;
-                }
-                elsif ($self->{method} eq 'MAX') {
-                    my @sorted = sort(@values);
-                    $bvf->{_conservation_score} = sprintf "%.3f", $sorted[-1];
-                }
+
+                my $tot_score = 0;
+    
+                $tot_score += $_->diff_score for @$scores;
+    
+                $tot_score /= @$scores;
+                
+                $bvf->{_conservation_score} = sprintf "%.3f", $tot_score;
             }
             else {
                 $bvf->{_conservation_score} = undef;
@@ -336,4 +295,5 @@ sub db_run {
         return {};
     }
 }
+ 
 1;
