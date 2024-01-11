@@ -206,26 +206,26 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
   my ($chr, $start, $id, $ref, $alt, $x, $xx, $data) = split /\t/, $line;
-  my ($pmid, $ensembl_gene_id, $gene_symbol, $refseq_transcript_id, $original_variant_string);
+  my ($pmid, $ensembl_gene_id, $gene_symbol, $refseq_id, $original_variant_string);
   my @data_split = split /;/, $data;
   foreach my $value (@data_split){
       $pmid = $value if $value =~ /PMID/;
       $ensembl_gene_id = $value if $value =~ /ENSEMBL_ID/; 
       $gene_symbol = $value if $value =~ /GENE_SYMBOL/; 
-      $refseq_transcript_id = $value if $value =~ /REFSEQ_ID/; 
+      $refseq_id = $value if $value =~ /REFSEQ_ID/; 
       $original_variant_string = $value if $value =~ /ORIGINAL_VARIANT_STRING/;
   }
   $pmid =~ s/PMID=//;
   $ensembl_gene_id =~ s/ENSEMBL_ID=//;
   $gene_symbol =~ s/GENE_SYMBOL=//;
-  $refseq_transcript_id =~ s/REFSEQ_ID=//;
+  $refseq_id =~ s/REFSEQ_ID=//;
   $original_variant_string =~ s/ORIGINAL_VARIANT_STRING=//;
   return {
     AVADA_ALT => $alt,
     AVADA_PMID => $pmid,
     AVADA_ENSEMBL_ID => $ensembl_gene_id,
     AVADA_GENE_SYMBOL => $gene_symbol,
-    AVADA_REFSEQ_ID => $refseq_transcript_id,
+    AVADA_REFSEQ_ID => $refseq_id,
     AVADA_VARIANT_STRING => $original_variant_string
   };
 }
