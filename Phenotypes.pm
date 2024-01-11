@@ -28,7 +28,21 @@ Phenotypes
 =head1 SYNOPSIS
 
  mv Phenotypes.pm ~/.vep/Plugins
+
+ # Automatically download phenotype annotation files if needed and annotate
+ # variants with phenotypes
  ./vep -i variations.vcf --plugin Phenotypes
+
+ # Fetch only gene-associated phenotypes
+ ./vep -i variations.vcf --plugin Phenotypes,include_types=Gene
+
+ # Set directory with phenotypes annotations (phenotype annotation file is
+ # automatically downloaded if not available in this directory)
+ ./vep -i variations.vcf --plugin Phenotypes,dir=${HOME},include_types=Gene
+
+ # Specify a file with phenotypes annotation (file is automatically
+ # downloaded and saved with this name if it does not exist)
+ ./vep -i variations.vcf --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
 
 =head1 DESCRIPTION
 
@@ -49,33 +63,39 @@ Phenotypes
 
  Several paramters can be set using a key=value system:
 
- dir             : provide a dir path, where either to create anew the species
-                   specific file from the download or to look for an existing file
+ dir            : Path to directory where to look for phenotypes annotation. If
+                  the required file does not exist, the file is downloaded and
+                  saved in the provided directory (download requires using
+                  database or cache mode).
 
- file            : provide a file path, either to create anew from the download
-                   or to point to an existing file
+ file           : File path to phenotypes annotation. If the file does
+                  not exist, the file is downloaded and saved with this name
+                  (download requires using database or cache mode).
 
- exclude_sources : exclude sources of phenotype information. By default
-                   HGMD and COSMIC annotations are excluded. See
-                   http://www.ensembl.org/info/genome/variation/phenotype/sources_phenotype_documentation.html
-                   Separate multiple values with '&'
+ exclude_sources: &-separated list of phenotype sources to exclude. By default,
+                  HGMD-PUBLIC and COSMIC annotations are excluded. See
+                  http://www.ensembl.org/info/genome/variation/phenotype/sources_phenotype_documentation.html
 
- include_sources : force include sources, as exclude_sources
+ include_sources: &-separated list of phenotype sources to include. If defined,
+                  exclude_sources is ignored.
 
- exclude_types   : exclude types of features. By default StructuralVariation
-                   and SupportingStructuralVariation annotations are excluded
-                   due to their size. Separate multiple values with '&'.
-                   Valid types: Gene, Variation, QTL, StructuralVariation,
-                   SupportingStructuralVariation, RegulatoryFeature
+ exclude_types  : &-separated list of feature types to exclude: Gene, Variation,
+                  QTL, StructuralVariation, SupportingStructuralVariation,
+                  RegulatoryFeature. By default, StructuralVariation and 
+                  SupportingStructuralVariation annotations are always excluded
+                  (due to size issues) and Variation is excluded when annotating
+                  structural variants; to get these annotations in all cases, use
+                  include_types=StructuralVariation&SupportingStructuralVariation&Variation
 
- include_types   : force include types, as exclude_types
+ include_types  : &-separated list of feature types to include. If defined,
+                  exclude_types is ignored.
 
- expand_right    : sets cache size in bp. By default annotations 100000bp (100kb)
-                   downstream of the initial lookup are cached
+ expand_right   : Cache size in bp. By default, annotations 100000bp (100kb)
+                  downstream of the initial lookup are cached.
 
- phenotype_feature : report the specific gene or variation the phenotype is
-                     linked to, this can be an overlapping gene or structural variation,
-                     and the source of the annotation (default 0)
+ phenotype_feature : Boolean to report the gene/variation associated with the
+                     phenotype (such as overlapping gene or structural
+                     variation) and annotation source (default: 0)
 
  Example:
 
@@ -117,8 +137,6 @@ sub new {
   my $params_hash = $self->params_to_hash();
   $CONFIG{$_} = $params_hash->{$_} for keys %$params_hash;
 
-  die("ERROR: File not found (".$CONFIG{file}.") and unable to generate GFF file in offline mode\n") if $self->{config}{offline} && ($CONFIG{file} && !-e $CONFIG{file}) ;
-
   #for REST calls report all data (use json output flag)
   $self->{config}->{output_format} ||= $CONFIG{output_format};
 
@@ -133,9 +151,6 @@ sub new {
   $refresh = 1 if (exists $CONFIG{species} && $CONFIG{species} ne $self->{config}{species});
 
   unless($CONFIG{file} && !$refresh) {
-
-    die("ERROR: Unable to generate GFF file in offline mode\n") if $self->{config}->{offline};
-
     my $pkg = __PACKAGE__;
     $pkg .= '.pm';
 
@@ -188,7 +203,7 @@ sub generate_phenotype_gff {
   my ($self, $file) = @_;
 
   my $config = $self->{config};
-  die("ERROR: Unable to generate GFF file in offline mode\n") if $config->{offline};
+  die("ERROR: File not found (".$file.") and unable to generate GFF file in offline mode\n") if $config->{offline};
   die("ERROR: Not allowed to generate GFF file in rest mode\n") if $config->{rest};
   
   # test bgzip
@@ -287,7 +302,8 @@ sub run {
   my ($self, $bvfo) = @_;
   
   my $vf = $bvfo->base_variation_feature;
-  
+  $self->{is_sv} = $vf->isa('Bio::EnsEMBL::Variation::StructuralVariationFeature');
+
   # adjust coords for tabix
   my ($s, $e) = ($vf->{start}, $vf->{end});
   ($s, $e) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end}); # swap for insertions
@@ -361,7 +377,11 @@ sub parse_data {
     return undef if $data->{type} && !$inc_types->{$data->{type}};
   }
   else {
-    return undef if $data->{type} && $self->exclude_types->{$data->{type}};
+    return undef if $data->{type} && (
+                      $self->exclude_types->{$data->{type}} ||
+                      # avoid annotating SVs with short variant-associated phenotypes
+                      ($self->{is_sv} && $data->{type} eq 'Variation')
+                    );
   }
 
   # parse attributes
