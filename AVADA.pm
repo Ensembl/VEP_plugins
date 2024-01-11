@@ -61,12 +61,12 @@ By default, the variants are matched with the HGNC gene symbol
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file
 
 The output always includes the following columns:
-AVADA_FEATURE_ID
-AVADA_PMID/AVADA_PMID_WITH_VARIANT_STRING
+AVADA_GENE_ID
+AVADA_PMID or AVADA_PMID_WITH_VARIANT_STRING
 
-AVADA_FEATURE_ID: Feature ID associated with variant as reported by AVADA
+AVADA_GENE_ID: Gene ID associated with variant as reported by AVADA
 AVADA_PMID: PubMed ID evidence for the variant as reported by AVADA
-AVADA_PMID_WITH_VARIANT_STRING: PubMed ID evidence for the variant as reported by AVADA along with the original variant string reported
+AVADA_PMID_WITH_VARIANT_STRING: PubMed ID evidence for the variant as reported by AVADA along with the RefSeq id and the original variant string
 
 The plugin can optionally be run by specifying the feature to match with
 
@@ -76,13 +76,8 @@ In order to match by HGNC gene symbol:
 In order to match by ENSEMBL gene identifier :
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=ensembl_gene_id
 
-In order to match by RefSeq transcript identifier :
-./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=refseq_transcript_id
-
-In order to match by RefSeq protein identifier :
-./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=refseq_protein_id
-
-The plugin can also be run to report the original variant string reported in the publication
+The plugin can also be run to report the original variant string associated with a RefSeq trancript/protein id 
+reported in the publication. The RefSeq identifier from VEP cache/database is matched with AVADA data.
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,original_variant_string=1
 
 =cut
@@ -100,14 +95,15 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 my $feature_match_by;
 my $original_variant_string;
+my $match_by_refseq;
 
 sub get_header_info {
   my $self = shift;
   my %header;
 
-  $header{"AVADA_FEATURE_ID"} = "Feature ID associated with variant as reported by AVADA" ; 
+  $header{"AVADA_GENE_ID"} = "Gene ID associated with variant as reported by AVADA" ; 
   $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA"; 
-  $header{"AVADA_PMID_WITH_VARIANT_STRING"} = "PubMed ID evidence for the variant as reported by AVADA along with the original variant string reported"; 
+  $header{"AVADA_PMID_WITH_VARIANT_STRING"} = "PubMed ID evidence for the variant as reported by AVADA along with the RefSeq id and original variant string"; 
 
   return \%header
 }
@@ -127,10 +123,9 @@ sub new {
   $self->add_file($file);
   $feature_match_by = $param_hash->{feature_match_by}; 
   $original_variant_string = $param_hash->{original_variant_string}; 
-  if (defined($feature_match_by) && $feature_match_by  eq "refseq_transcript_id") {
+
+  if ($original_variant_string) {
     $self->{config}->{refseq} = 1 unless $self->{config}->{database} == 1 ; # when using db, refseq is not enabled in spite of forcing in code
-    # Currently sets use_given_ref to 1 always
-    $self->{config}->{use_given_ref} = 1;
     die "\n ERROR: Matching by Refseq ID requires the option --refseq when using the database  \n" if $self->{config}->{refseq} == 0 && $self->{config}->{database} == 1;
   }
   return $self;
@@ -143,67 +138,67 @@ sub run {
 
   my $vf = $tva->variation_feature;
   my $tv = $tva->transcript_variation;
+
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
   ($vf_start, $vf_end) = ($vf_end, $vf_start) if ($vf_start > $vf_end);
+
   my $transcript = $tva->transcript;
+  my $alt_allele = $tva->variation_feature_seq;
   my %output;
+  my $refseq_transcript;
+  my $refseq_protein;
+  my $gene_key = "AVADA_GENE_SYMBOL";
   my @data;
 
   if (!defined($feature_match_by)){
-    @data = @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_GENE_SYMBOL}  if scalar @data && defined $data[0]->{AVADA_GENE_SYMBOL} ; 
+    @data = @{$self->get_data($vf->{chr}, $vf_start, $vf_end)}; 
   }
   elsif ( $feature_match_by eq "gene_symbol"){
     @data = grep {
     $_->{AVADA_GENE_SYMBOL} eq $transcript->{_gene_symbol}
     }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_GENE_SYMBOL} if scalar @data && defined $data[0]->{AVADA_GENE_SYMBOL}  ;
-  }
-  elsif ( $feature_match_by eq "refseq_transcript_id" ){
-    my $refseq_transcript = $transcript->{stable_id};
-    @data = grep {
-      $_->{AVADA_REFSEQ_ID} eq $refseq_transcript 
-      }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_REFSEQ_ID} if scalar @data && defined $data[0]->{AVADA_REFSEQ_ID} ;
-  }
-  elsif ( $feature_match_by eq "refseq_protein_id" ){
-    my $refseq_protein = $transcript->translation->{stable_id};
-    $refseq_protein =~ s/cds-// if $self->{config}->{database} == 1;
-    @data = grep {
-      $_->{AVADA_REFSEQ_ID} eq $refseq_protein
-      }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-    $output{"AVADA_FEATURE_ID"} = $data[0]->{AVADA_REFSEQ_ID} if scalar @data && defined $data[0]->{AVADA_REFSEQ_ID} ;
   }
   elsif ( $feature_match_by eq "ensembl_gene_id" ){
   @data = grep {
     $_->{AVADA_ENSEMBL_ID} eq $transcript->{_gene_stable_id}
     }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-  $output{"AVADA_FEATURE_ID"} =  $data[0]->{AVADA_ENSEMBL_ID} if scalar @data && defined $data[0]->{AVADA_ENSEMBL_ID} ;
+  $gene_key = "AVADA_ENSEMBL_ID";
   }
   else{
-    die("ERROR: feature_match_by can only take one of the options gene_symbol|ensembl_gene_id|refseq_transcript_id ");
+    die("ERROR: feature_match_by can only take one of the options gene_symbol|ensembl_gene_id ");
   }
+  if ( $original_variant_string ){
+    $refseq_transcript = $transcript->{stable_id};
+    $refseq_protein = $transcript->translation->{stable_id} if defined($transcript->translation);
+    $refseq_protein =~ s/cds-// if $self->{config}->{database} == 1;
+    @data = grep {
+      split(".",$_->{AVADA_REFSEQ_ID}) eq split(".",$refseq_transcript) || 
+      $_->{AVADA_REFSEQ_ID} eq $refseq_protein 
+      } @data;
+  }
+
   return {} unless scalar @data;
+
   my $pmid_string;
   my $output_key;
   my %seen;
   foreach my $data_value (uniq @data) {
-    print(Dumper($data_value));
-    if($original_variant_string)
+    next unless $alt_allele eq $data_value->{AVADA_ALT};
+    $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key};
+    if ($original_variant_string)
     {
-    my $pmid_variant = $data_value->{AVADA_PMID}."&".$data_value->{AVADA_VARIANT_STRING};
+    my $pmid_variant = $data_value->{AVADA_PMID}."&".$data_value->{AVADA_REFSEQ_ID}.":".$data_value->{AVADA_VARIANT_STRING};
     $output_key = "AVADA_PMID_WITH_VARIANT_STRING";
     $pmid_string = $pmid_string ? $pmid_string.",".$pmid_variant : $pmid_variant; 
     }
-    else{
+    else {
     next unless (! exists $seen{$data_value->{AVADA_PMID}} );
     $pmid_string = $pmid_string ? $pmid_string.",".$data_value->{AVADA_PMID} : $data_value->{AVADA_PMID}; 
     $output_key = "AVADA_PMID";
     $seen{$data_value->{AVADA_PMID}} = 1;   
     }
   }
-  
-  $output{$output_key} = $pmid_string;
+  $output{$output_key} = $pmid_string if defined($output_key);
   return \%output;
 }
 
@@ -225,6 +220,7 @@ sub parse_data {
   $refseq_transcript_id =~ s/REFSEQ_ID=//;
   $original_variant_string =~ s/ORIGINAL_VARIANT_STRING=//;
   return {
+    AVADA_ALT => $alt,
     AVADA_PMID => $pmid,
     AVADA_ENSEMBL_ID => $ensembl_gene_id,
     AVADA_GENE_SYMBOL => $gene_symbol,
