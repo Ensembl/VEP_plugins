@@ -48,8 +48,8 @@ limitations under the License.
  The CADD SV data files (and respective Tabix index files)  can be downloaded from -
  https://kircherlab.bihealth.org/download/CADD-SV/v1.1/
 
- By default, the plugin tries not to annotate SV variant if a SNV and/or indels CADD annotation 
- file is provided. Because it can results in too many lines matched from the annotation 
+ By default the plugin is designed to not annotate SV variant if a SNV and/or indels CADD
+ annotation file is provided. Because it can results in too many lines matched from the annotation
  files and increase run time exponentially. You can override this behavior by providing 
  force_annotate=1 which will force the plugin to annotate with the expense of increasing runtime.
 
@@ -118,8 +118,8 @@ sub new {
   $self->{non_sv_ann_file} = 0;
   # Check files in arguments
   if (!keys %$params) {
-    warn "WARNING: Using snv or indels CADD annotation file with structural variant can increase run time exponentially. ".
-         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation.\n"
+    warn "WARNING: Using snv and/or indels CADD annotation file with structural variant can increase run time exponentially. ".
+         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n"
     if scalar @{$self->params} > 2;
     
 
