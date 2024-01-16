@@ -80,25 +80,27 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
    dir          : Directory with paralogue annotation (the annotation is
-                  downloaded to this location, if not available)
-   paralogues   : File with paralogue annotation (the annotation is downloaded
-                  with this filename, if not available); if set to
-                  'remote', paralogue annotation is directly fetched from
-                  Ensembl API
+                  downloaded to this folder if the required files do not exist)
+   paralogues   : Tabix-indexed TSV file with paralogue annotation (the
+                  annotation is downloaded with this filename, if the file does
+                  not exist); if set to 'remote', paralogue annotation is
+                  fetched from Ensembl API
    min_perc_cov : Minimum alignment percentage of the peptide associated with
                   the input variant (default: 0)
    min_perc_pos : Minimum percentage of positivity (similarity) between both
                   homologues (default: 50)
 
-   vcf          : Custom VCF file (by default, overlapping variants are fetched
-                  from VEP cache in cache/offline mode or Ensembl API in
-                  database mode)
-   fields       : Colon-separated list of information from paralogue variant to
-                  return (by default, 'identifier:alleles:clinical_significance');
-                  available fields include 'identifier', 'chromosome', 'start',
-                  'alleles', 'perc_cov', 'perc_pos', and 'clinical_significance'
-                  (if `clnsig_col` is defined for custom VCF); additional fields
+   vcf          : Custom Tabix-indexed VCF file with information for overlapping 
+                  variants (by default, overlapping variants are fetched from
+                  VEP cache in cache/offline mode or Ensembl API in database mode)
+   fields       : Colon-separated list of information from paralogue variants to
+                  output (default: 'identifier:alleles:clinical_significance');
+                  keyword 'all' can be used to print all fields; available
+                  fields include 'identifier', 'chromosome', 'start', 'alleles',
+                  'perc_cov', 'perc_pos', and 'clinical_significance' (if
+                  `clnsig_col` is defined for custom VCF); additional fields
                   are available depending on variant source:
+                    - VEP cache: 'end' and 'strand'
                     - Ensembl API: 'end', 'strand', 'source', 'consequence' and
                       'gene_symbol'
                     - Custom VCF: 'quality', 'filter' and name of INFO fields
