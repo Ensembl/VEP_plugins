@@ -122,8 +122,8 @@ sub new {
          "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n"
     if scalar @{$self->params} > 2;
     
-
-    @files = @{$self->params};  
+    @files = map { $_ ne "1" ? ($_) : () } @{$self->params};
+    $self->{force_annotate} = $self->params->[-1] eq "1" ? 1 : 0;
   } else {
     my @param_keys = keys %{$params};
     
