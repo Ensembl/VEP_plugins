@@ -48,10 +48,10 @@ limitations under the License.
  The CADD SV data files (and respective Tabix index files)  can be downloaded from -
  https://kircherlab.bihealth.org/download/CADD-SV/v1.1/
 
- By default, the plugin does not annotate if there is too many lines matched from the 
- CADD annotation files. It can happen if CADD SNV and indels annotation files are used
- with structural variant as input. You can override this behavior by providing force_annotate=1
- which will force the plugin to annotate with the expense of increasing runtime.
+ By default the plugin is designed to not annotate SV variant if a SNV and/or indels CADD
+ annotation file is provided. Because it can results in too many lines matched from the annotation
+ files and increase run time exponentially. You can override this behavior by providing 
+ force_annotate=1 which will force the plugin to annotate with the expense of increasing runtime.
 
  The plugin works with all versions of available CADD files. The plugin only
  reports scores and does not consider any additional annotations from a CADD
@@ -115,33 +115,31 @@ sub new {
 
   my $params = $self->params_to_hash();
   my @files;
+  $self->{non_sv_ann_file} = 0;
   # Check files in arguments
   if (!keys %$params) {
-    warn "WARNING: Using snv or indels CADD annotation file with structural variant can increase run time exponentially.".
-         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation.\n"
-    if scalar @{$self->params} > 2;
-    
-
-    @files = @{$self->params};  
+    @files = map { $_ ne "1" ? ($_) : () } @{$self->params};
+    $self->{force_annotate} = $self->params->[-1] eq "1" ? 1 : 0;
   } else {
     my @param_keys = keys %{$params};
-    
-    # using snv/indels files on SV can slow down VEP exponentially
-    if ( grep( /^sv$/, @param_keys ) && ( grep( /^snv$/, @param_keys ) || grep( /^indels$/, @param_keys ) ) ) {
-      warn "WARNING: Using snv=<file> and/or indels=<file> with structural variant can increase run time exponentially.".
-           "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n";
-    }
 
     for my $key ( @param_keys ){
       next if $key eq "force_annotate";
       push @files, $params->{$key};
+
+      $self->{non_sv_ann_file} = 1 if ($key eq "snv" || $key eq "indels");
     }
+
+    $self->{force_annotate} = $params->{force_annotate} ? 1 : 0;
   }
 
   die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @files > 0;
   $self->add_file($_) for @files;
 
-  $self->{force_annotate} = $params->{force_annotate} ? 1 : 0;
+  warn "WARNING: Using snv and/or indels CADD annotation file with structural variant can increase run time exponentially. ".
+        "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n"
+  if $self->{force_annotate};
+
   my $assembly = $self->{config}->{assembly};
 
   $self->{header} = ();
@@ -224,6 +222,9 @@ sub run {
     return {} unless $allele =~ /^[ACGT-]+$/;
 
   } else {
+    # Do not annotate sv if there is snv/indels annotation file
+    return {} if ($self->{non_sv_ann_file} && !$self->{force_annotate});
+
     $start = $bvf->{start} - 1;
     $end = $bvf->{end};
     $so_term = $bvf->class_SO_term();
@@ -232,6 +233,8 @@ sub run {
   };
 
   my @data =  @{$self->get_data($bvf->{chr}, $start - 2, $end)};
+
+  # Do not annotate if matched lines from annotation file is over threshold
   if(scalar @data > 100000 && !$self->{force_annotate}) {
     my $location = $bvf->{chr} . "_" . $start . "_" . $end;
     warn "WARNING: too many match found (", scalar @data, ") for CADD variant with location $location. No CADD annotation will be made. " .
