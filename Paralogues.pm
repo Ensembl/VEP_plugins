@@ -190,21 +190,26 @@ sub _get_homology_adaptor {
   my $self   = shift;
   my $config = $self->{config};
   my $reg    = $config->{reg};
-  return $self->{ha} if $self->{ha};
 
-  # reconnect to DB without species param
-  if ($config->{host}) {
-    $reg->load_registry_from_db(
-      -host       => $config->{host},
-      -user       => $config->{user},
-      -pass       => $config->{password},
-      -port       => $config->{port},
-      -db_version => $config->{db_version},
-      -no_cache   => $config->{no_slice_cache},
-    );
+  if (!defined $self->{ha}) {
+    $self->{ha} = $reg->get_adaptor( "multi", "compara", "homology" );
   }
 
-  return $reg->get_adaptor( "multi", "compara", "homology" );
+  if (!defined $self->{ha}) {
+    # reconnect to DB without species param
+    if ($config->{host}) {
+      $reg->load_registry_from_db(
+        -host       => $config->{host},
+        -user       => $config->{user},
+        -pass       => $config->{password},
+        -port       => $config->{port},
+        -db_version => $config->{db_version},
+        -no_cache   => $config->{no_slice_cache},
+      );
+    }
+    $self->{ha} = $reg->get_adaptor( "multi", "compara", "homology" );
+  }
+  return $self->{ha};
 }
 
 sub _get_method_link_species_set_id {
@@ -269,8 +274,7 @@ sub _generate_paralogue_annotation {
 
   print "### Paralogues plugin: Querying Ensembl compara database (this may take a few minutes)\n" unless $config->{quiet};
 
-  $self->{ha} ||= $self->_get_homology_adaptor;
-  my $mlss_id = _get_method_link_species_set_id($self->{ha}, $species, 'ENSEMBL_PARALOGUES');
+  my $mlss_id = _get_method_link_species_set_id($self->_get_homology_adaptor, $species, 'ENSEMBL_PARALOGUES');
 
   # Create paralogue annotation
   my @query = qq/
@@ -332,10 +336,9 @@ sub _get_database_homologies {
   my $species = $config->{species};
   my $reg     = $config->{reg};
 
-  $self->{ha} ||= $self->_get_homology_adaptor;
   $self->{ga} ||= $reg->get_adaptor($species, 'core', 'gene');
   my $gene = $self->{ga}->fetch_by_stable_id( $transcript->{_gene_stable_id} );
-  my $homologies = $self->{ha}->fetch_all_by_Gene(
+  my $homologies = $self->_get_homology_adaptor->fetch_all_by_Gene(
     $gene, -METHOD_LINK_TYPE => 'ENSEMBL_PARALOGUES', -TARGET_SPECIES => $species);
   return $homologies;
 }
@@ -596,11 +599,20 @@ sub fetch_cache_vars {
   while(my $line = $iter->next) {
     chomp $line;
     my $var = $as->parse_variation($line);
+
+    my $slice = Bio::EnsEMBL::Slice->new(
+      -seq_region_name  => $var->{chr},
+      -start            => $var->{start},
+      -end              => $var->{end},
+      -strand           => $var->{strand},
+    );
+
     my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
       -variation_name        => $var->{variation_name},
       -seq_region_name       => $var->{chr},
       -start                 => $var->{start},
       -end                   => $var->{end},
+      -slice                 => $slice,
       -strand                => $var->{strand},
       -allele_string         => $var->{allele_string},
       -is_somatic            => $var->{somatic},
