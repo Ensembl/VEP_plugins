@@ -147,7 +147,7 @@ our @VCF_FIELDS = (
   'perc_pos',
 );
 
-our @VAR_FIELDS = (
+our @CACHE_FIELDS = (
   'identifier',
   'chromosome',
   'start',
@@ -155,9 +155,13 @@ our @VAR_FIELDS = (
   'strand',
   'alleles',
   'clinical_significance',
-  'source',
   'perc_cov',
   'perc_pos',
+);
+
+our @API_FIELDS = (
+  @CACHE_FIELDS,
+  'source',
   'consequence',
   'gene_symbol',
 );
@@ -629,10 +633,14 @@ sub _get_valid_fields {
   my $selected  = shift;
   my $available = shift;
 
+  # return all available fields when using 'all'
+  return $available if $selected eq 'all';
+  my @fields = split(/:/, $selected);
+
   # check if the selected fields exist
   my @valid;
   my @invalid;
-  for my $field (@$selected) {
+  for my $field (@fields) {
     if ( grep { $_ eq $field } @$available ) {
       push(@valid, $field);
     } else {
@@ -685,7 +693,7 @@ sub new {
     my $info = $vcf_file->get_metadata_by_pragma('INFO');
     my $info_ids = [ map { $_->{ID} } @$info ];
 
-    @fields = @{ _get_valid_fields([ split(/:/, $params->{fields}) ], [@VCF_FIELDS, @$info_ids]) }
+    @fields = @{ _get_valid_fields($params->{fields}, [@VCF_FIELDS, @$info_ids]) }
       if defined $params->{fields};
 
     # check if clinical significance column exists
@@ -698,9 +706,11 @@ sub new {
       die "ERROR: clnsig_col $self->{clnsig_col} not found in $filename. Available INFO fields are:\n" .
         join(", ", @$info_ids)."\n" unless grep { $self->{clnsig_col} eq $_ } @$info_ids;
     }
-  } else {
-    @fields = split(/:/, $params->{fields}) if defined $params->{fields};
-    @fields = @{ _get_valid_fields(\@fields, \@VAR_FIELDS) };
+  } elsif (defined $params->{fields}) {
+    # valid fields differ if using cache or database
+    my @VAR_FIELDS = ($self->{matches} || $self->{config}->{cache}) ?
+      @CACHE_FIELDS : @API_FIELDS;
+    @fields = @{ _get_valid_fields($params->{fields}, \@VAR_FIELDS) };
   }
   $self->{fields} = \@fields;
 
@@ -798,7 +808,7 @@ sub _summarise_vf {
       }
       $info = join('/', @symbols);
     }
-    push @var, $info if $info;
+    push @var, $info || '';
   }
   return { PARALOGUE_VARIANTS => join(':', @var) };
 }
