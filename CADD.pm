@@ -118,20 +118,10 @@ sub new {
   $self->{non_sv_ann_file} = 0;
   # Check files in arguments
   if (!keys %$params) {
-    warn "WARNING: Using snv and/or indels CADD annotation file with structural variant can increase run time exponentially. ".
-         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n"
-    if scalar @{$self->params} > 2;
-    
     @files = map { $_ ne "1" ? ($_) : () } @{$self->params};
     $self->{force_annotate} = $self->params->[-1] eq "1" ? 1 : 0;
   } else {
     my @param_keys = keys %{$params};
-    
-    # using snv/indels files on SV can slow down VEP exponentially
-    if ( grep( /^sv$/, @param_keys ) && ( grep( /^snv$/, @param_keys ) || grep( /^indels$/, @param_keys ) ) ) {
-      warn "WARNING: Using snv=<file> and/or indels=<file> with structural variant can increase run time exponentially. ".
-           "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n";
-    }
 
     for my $key ( @param_keys ){
       next if $key eq "force_annotate";
@@ -145,6 +135,11 @@ sub new {
   $self->add_file($_) for @files;
 
   $self->{force_annotate} = $params->{force_annotate} ? 1 : 0;
+
+  warn "WARNING: Using snv and/or indels CADD annotation file with structural variant can increase run time exponentially. ".
+        "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n"
+  if $params->{force_annotate};
+
   my $assembly = $self->{config}->{assembly};
 
   $self->{header} = ();
