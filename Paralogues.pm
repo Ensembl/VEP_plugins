@@ -29,6 +29,11 @@ limitations under the License.
 
  mv Paralogues.pm ~/.vep/Plugins
 
+ # Use a matches file to highlight variants whose clinical significance
+ # partially matches 'pathogenic' -- fastest method; download Paralogues cache
+ # files from https://ftp.ensembl.org/pub/current_variation/Paralogues
+ ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues_clinvar_20240107.vcf.gz
+
  # Download Ensembl paralogue annotation (if not in current directory) and fetch
  # variants from VEP cache whose clinical significance partially matches 'pathogenic'
  ./vep -i variations.vcf --cache --plugin Paralogues
@@ -89,6 +94,17 @@ limitations under the License.
                   the input variant (default: 0)
    min_perc_pos : Minimum percentage of positivity (similarity) between both
                   homologues (default: 50)
+
+   matches      : Tabix-indexed VCF file containing matches between variants and
+                  their paralogues; these files can be downloaded from
+                  https://ftp.ensembl.org/pub/current_variation/Paralogues ;
+                  files with Paralogues matches can be obtained by running VEP
+                  on a big set of variants (such as ClinVar) with Paralogues
+                  plugin (recommended options: 'fields=all', 'min_perc_cov=0', 
+                  'min_perc_pos=0', 'clnsig=ignore'); the `matches` option is
+                  incompatible with the `paralogues` and `vcf` options
+   matches_info_field : Name of the INFO key used in the matches file with
+                        consequence information (default: 'CSQ')
 
    vcf          : Custom Tabix-indexed VCF file with information for overlapping 
                   variants (by default, overlapping variants are fetched from
@@ -580,7 +596,65 @@ sub _get_transcript_from_translation {
 
 ## FETCH VARIANTS FROM SOURCE --------------------------------------------------
 
-sub fetch_cache_vars {
+sub _fetch_matches_vars {
+  # fetch variants from matches file
+  my ($self, $tva) = @_;
+
+  my $vf     = $tva->variation_feature;
+  my $allele = $tva->base_variation_feature->alt_alleles;
+
+  # get matches from VCF
+  my $file  = $self->{matches};
+  my $chr   = $vf->{chr};
+  my $start = $vf->{start};
+  my $end   = $vf->{end};
+  my $data  = `tabix $file $chr:$start-$end`;
+  my @data = split /\n/, $data;
+
+  foreach (@data) {
+    my $row = $self->parse_data($_);
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => $allele,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $row->{ref},
+       alts => [ split /,/, $row->{alt} ],
+       pos  => $row->{start},
+      }
+    );
+    return {} unless @$matches;
+
+    my $all_results = {};
+    my $feature_id = $tva->feature->stable_id;
+    for my $field (split /,/, $row->{$self->{matches_info_field}}) {
+      my %hash;
+      @hash{ @{$self->{matches_info_keys}} } = split /\|/, $field;
+
+      next unless
+        $hash{Feature} eq $feature_id and
+        grep $hash{Allele}, @$allele;
+
+      for my $var (split(/\&/, $hash{'PARALOGUE_VARIANTS'})) {
+        my %par_var;
+        @par_var{ @{$self->{matches_paralogue_fields}} } = split /\:/, $var;
+        next unless $self->_is_clinically_significant (
+          [ split "/", $par_var{clinical_significance} ]);
+
+        my $info = join(':', map { $par_var{$_} } @{$self->{fields}});
+        $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
+      }
+    }
+    return $all_results;
+  }
+
+  return {};
+}
+
+sub _fetch_cache_vars {
   # fetch variants from VEP cache
   my ($self, $chr, $start, $end) = @_;
 
@@ -623,7 +697,7 @@ sub fetch_cache_vars {
   return $variants;
 }
 
-sub fetch_database_vars {
+sub _fetch_database_vars {
   # fetch variants from Ensembl API
   my ($self, $chr, $start, $end) = @_;
 
@@ -668,6 +742,38 @@ sub _get_valid_fields {
   return \@valid;
 }
 
+sub _prepare_matches_params {
+  my ($self, $params) = @_;
+
+  die "ERROR: options 'cache' and 'paralogues' are incompatible\n"
+    if defined $params->{paralogues};
+  die "ERROR: options 'cache' and 'vcf' are incompatible\n"
+    if defined $params->{vcf};
+
+  $self->{matches_info_field} = $params->{matches_info_field} || 'CSQ';
+  die "ERROR: 'matches=$self->{matches}': file not found\n"
+    unless -e $self->{matches};
+  die "ERROR: 'matches=$self->{matches}': respective TBI file not found\n"
+    unless -e $self->{matches} . ".tbi" || -e $self->{matches} . ".csi";
+
+  my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($self->{matches});
+  my $info = $vcf_file->get_metadata_by_pragma('INFO');
+  for (@$info) {
+    my $description = $_->{'Description'}
+      if $_->{'ID'} eq $self->{matches_info_field};
+    next unless defined $description;
+    my ($format) = $description =~ 'Format: (.*)';
+    $self->{matches_info_keys} = [ split /\|/, ($format || '') ];
+  }
+
+  my $par_pragma = $vcf_file->get_metadata_by_pragma('PARALOGUE_VARIANTS');
+  if (defined $par_pragma) {
+    my ($par_fields) = $par_pragma =~ 'fields: (.*?)\)?$';
+    $self->{matches_paralogue_fields} = [ split /\:/, ($par_fields || '') ];
+  }
+  return $self;
+}
+
 sub new {
   my $class = shift;  
   my $self = $class->SUPER::new(@_);
@@ -682,6 +788,10 @@ sub new {
   # Thresholds for minimum percentage of homology similarity and coverage
   $self->{min_perc_cov} = $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
   $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
+
+  # File with matches between variant and their paralogues
+  $self->{matches} = $params->{matches} if defined $params->{matches};
+  $self->_prepare_matches_params($params) if defined $self->{matches};
 
   # Prepare clinical significance parameters
   my $no_clnsig = defined $params->{clnsig} && $params->{clnsig} eq 'ignore';
@@ -725,6 +835,7 @@ sub new {
     @fields = @{ _get_valid_fields($params->{fields}, \@VAR_FIELDS) };
   }
   $self->{fields} = \@fields;
+  return $self if $self->{matches};
 
   # Check if paralogue annotation should be downloaded
   $self->{remote} = defined $params->{paralogues} && $params->{paralogues} eq 'remote';
@@ -752,7 +863,9 @@ sub get_header_info {
   my $self = shift;
 
   my $source;
-  if (defined $self->{vcf}) {
+  if (defined $self->{matches}) {
+    $source = basename $self->{matches};
+  } elsif (defined $self->{vcf}) {
     $source = basename $self->{vcf};
   } elsif ($self->{config}->{cache}) {
     $source = 'VEP cache';
@@ -869,7 +982,12 @@ sub run {
 
   my $vf = $tva->variation_feature;
   my $translation_start = $tva->base_variation_feature_overlap->translation_start;
-  return {} unless defined $translation_start;
+  my $translation_end   = $tva->base_variation_feature_overlap->translation_end;
+  return {} unless
+    defined $translation_start and defined $translation_end and
+    $translation_start == $translation_end;
+
+  return $self->_fetch_matches_vars($tva) if $self->{matches};
 
   my $homologies = [];
   if ($self->{remote}) {
@@ -911,9 +1029,9 @@ sub run {
       # get Ensembl variants from mapped genomic coordinates
       my $variants;
       if ($self->{config}->{cache}) {
-        $variants = $self->fetch_cache_vars($chr, $start, $end);
+        $variants = $self->_fetch_cache_vars($chr, $start, $end);
       } elsif ($self->{config}->{database}) {
-        $variants = $self->fetch_database_vars($chr, $start, $end);
+        $variants = $self->_fetch_database_vars($chr, $start, $end);
       } else {
         die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
       }
@@ -954,6 +1072,8 @@ sub parse_data {
     'start'                 => $start,
     'identifier'            => $id,
     'alleles'               => $ref.'/'.$alt,
+    'ref'                   => $ref,
+    'alt'                   => $alt,
     'quality'               => $qual,
     'filter'                => $filter,
   );
