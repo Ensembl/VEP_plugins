@@ -129,16 +129,16 @@ sub new {
 
       $self->{non_sv_ann_file} = 1 if ($key eq "snv" || $key eq "indels");
     }
+
+    $self->{force_annotate} = $params->{force_annotate} ? 1 : 0;
   }
 
   die "\nERROR: No CADD files specified\nTip: Add a file after command, example:\nvep ... --plugin CADD,/FULL_PATH_TO_CADD_FILE/whole_genome_SNVs.tsv.gz\n" unless @files > 0;
   $self->add_file($_) for @files;
 
-  $self->{force_annotate} = $params->{force_annotate} ? 1 : 0;
-
   warn "WARNING: Using snv and/or indels CADD annotation file with structural variant can increase run time exponentially. ".
         "Consider creating separate input files for SNV/indels and SV and use appropriate CADD annotation file.\n"
-  if $params->{force_annotate};
+  if $self->{force_annotate};
 
   my $assembly = $self->{config}->{assembly};
 
