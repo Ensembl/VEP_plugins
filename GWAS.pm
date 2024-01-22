@@ -64,6 +64,7 @@ limitations under the License.
 
  file   : (mandatory) Path to GWAS curated or summary statistics file
  type   : type of the file. Valid values are "curated" and "sstate".
+ quiet  : do not display warning messages
 
 =cut
 
@@ -95,6 +96,8 @@ sub new {
   $self->{type} = $param_hash->{type} || "curated";
   die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
     $self->{type} eq "curated" || $self->{type} eq "sstate");
+
+  $self->{quiet} = $param_hash->{quiet} || 0;
   
   # processed file is assumed to be present under --dir 
   my $config = $self->{config};
@@ -245,7 +248,7 @@ sub parse_curated_file {
   my $ratio_info     = $content{'95% CI (TEXT)'};
   my @accessions     = split/\,/, $content{'MAPPED_TRAIT_URI'};
 
-  warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if ($phenotype eq '');
+  warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if (($phenotype eq '') && !$self->{quiet});
   next if ($phenotype eq '');
 
   $gene =~ s/\s+//g;
@@ -303,7 +306,7 @@ sub parse_curated_file {
   }
 
   # if we did not get any rsIds, skip this row (this will also get rid of the header)
-  warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
+  warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids) && !$self->{quiet});
   next if (!scalar(@ids));
 
   map {
