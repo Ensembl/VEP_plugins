@@ -123,10 +123,8 @@ sub new {
       
       $self->{"va"} = $reg->get_adaptor('human', 'variation', 'variation');
       
-      # parse the raw file
-      my $data = $self->parse_curated_file($self->{file});
-      # create the processed file
-      $self->create_curated_processed_file($data);
+      # create the processed file from the input file given
+      $self->create_curated_processed_file($self->{file});
     }
   }
   # process for summary statistics file
@@ -231,7 +229,113 @@ sub get_vfs_from_id {
 }
 
 sub parse_curated_file {
+  my ($self, $line_content) = @_;
+
+  my %content= %$line_content;
+  $content{$_} = $row_data[$headers{$_}] for keys %headers;
+
+  my $pubmed_id      = $content{'PUBMEDID'};
+  my $study          = $content{'STUDY ACCESSION'};
+  my $phenotype      = $content{'DISEASE/TRAIT'};
+  my $gene           = ($content{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content{'REPORTED GENE(S)'};
+  my $rs_risk_allele = ($content{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content{'STRONGEST SNP-RISK ALLELE'};
+  my $rs_id          = $content{'SNPS'};
+  my $pvalue         = ($content{'P-VALUE'} ne '') ? $content{'P-VALUE'} : '';
+  my $ratio          = $content{'OR OR BETA'};
+  my $ratio_info     = $content{'95% CI (TEXT)'};
+  my @accessions     = split/\,/, $content{'MAPPED_TRAIT_URI'};
+
+  warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if ($phenotype eq '');
+  next if ($phenotype eq '');
+
+  $gene =~ s/\s+//g;
+  $gene =~ s/–/-/g;
+  $gene =~ s/[^\x00-\x7F]//g; # Remove non ASCII characters
+  $gene = '' if $gene eq '-' or $gene eq 'NR'; #Skip uninformative entries, missing data in original curation see the NHGRI-EBI GWAS Catalog curation
+
+  my %data = (
+    'GWAS_associated_gene' => $gene,
+    'GWAS_p_value' => $pvalue,
+    'GWAS_accessions'   => \@accessions,
+    'GWAS_pmid' => $pubmed_id,
+    'GWAS_study' => $study 
+  );
+
+  # post process the ratio data
+  if (defined($ratio)) {
+    if ($ratio =~ /(\d+)?(\.\d+)$/) {
+      my $pre  = $1;
+      my $post = $2;
+      $ratio = (defined($pre)) ? "$pre$post" : "0$post";
+      $ratio = 0 if ($ratio eq '0.00');
+    } else {
+      $ratio = undef;
+    }
+  }
+
+  # add ratio/coef
+  if (defined($ratio)) {
+    # parse the ratio info column to extract the unit information (we are not interested in the confidence interval)
+    if ($ratio_info =~ /^\s*(\[.+\])?\s*(.+)$/) {
+      my $unit = $2;
+          $unit =~ s/\(//g;
+          $unit =~ s/\)//g;
+          $unit =~ s/µ/micro/g;
+      if ($unit =~ /decrease|increase/) {
+        $data{'GWAS_beta_coef'} = "$ratio $unit";
+      }
+      else {
+        $data{'GWAS_odds_ratio'} = $ratio;
+      }
+    }
+    else {
+      $data{'GWAS_odds_ratio'} = $ratio;
+    }
+  }
+  $data{'GWAS_odds_ratio'} = "" unless defined $data{'GWAS_odds_ratio'};
+  $data{'GWAS_beta_coef'} = "" unless defined $data{'GWAS_beta_coef'};
+
+  # parse the ids
+  my @ids;
+  $rs_id ||= "";
+  while ($rs_id =~ m/(rs[0-9]+)/g) {
+    push(@ids, $1);
+  }
+
+  # if we did not get any rsIds, skip this row (this will also get rid of the header)
+  warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
+  next if (!scalar(@ids));
+
+  map {
+    my $id = $_;
+
+    my $t_data = dclone \%data;
+    
+    my $vfs = $self->get_vfs_from_id($id);
+    $t_data->{"id"} = $id;
+    $t_data->{"vfs"} = $vfs;
+    
+    my $risk_allele;
+    map {
+      if ($_ =~ /$id/) {
+        my $risk_allele_with_id = $_;
+        $risk_allele = ( split("-", $risk_allele_with_id) )[1];
+      }
+    } split(/[;,x]/, $rs_risk_allele);
+    $t_data->{"GWAS_risk_allele"} = $risk_allele;
+
+    push(@phenotypes, $t_data);
+  } @ids;
+
+  my %result = ('phenotypes' => \@phenotypes);
+  return \%result;
+}
+
+sub create_curated_processed_file {
   my ($self, $input_file) = @_;
+
+  my $temp_processed_file = $self->{"processed_file"} . "_temp";
+  open(my $temp_processed_FH, '>', $temp_processed_file) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
 
   # open the input file for reading
   my $input_FH;
@@ -258,141 +362,39 @@ sub parse_curated_file {
 
       my %content;
       $content{$_} = $row_data[$headers{$_}] for keys %headers;
-
-      my $pubmed_id      = $content{'PUBMEDID'};
-      my $study          = $content{'STUDY ACCESSION'};
-      my $phenotype      = $content{'DISEASE/TRAIT'};
-      my $gene           = ($content{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content{'REPORTED GENE(S)'};
-      my $rs_risk_allele = ($content{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content{'STRONGEST SNP-RISK ALLELE'};
-      my $rs_id          = $content{'SNPS'};
-      my $pvalue         = ($content{'P-VALUE'} ne '') ? $content{'P-VALUE'} : '';
-      my $ratio          = $content{'OR OR BETA'};
-      my $ratio_info     = $content{'95% CI (TEXT)'};
-      my @accessions     = split/\,/, $content{'MAPPED_TRAIT_URI'};
-
-      warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if ($phenotype eq '');
-      next if ($phenotype eq '');
-
-      $gene =~ s/\s+//g;
-      $gene =~ s/–/-/g;
-      $gene =~ s/[^\x00-\x7F]//g; # Remove non ASCII characters
-      $gene = '' if $gene eq '-' or $gene eq 'NR'; #Skip uninformative entries, missing data in original curation see the NHGRI-EBI GWAS Catalog curation
-
-      my %data = (
-        'GWAS_associated_gene' => $gene,
-        'GWAS_p_value' => $pvalue,
-        'GWAS_accessions'   => \@accessions,
-        'GWAS_pmid' => $pubmed_id,
-        'GWAS_study' => $study 
-      );
-
-      # post process the ratio data
-      if (defined($ratio)) {
-        if ($ratio =~ /(\d+)?(\.\d+)$/) {
-          my $pre  = $1;
-          my $post = $2;
-          $ratio = (defined($pre)) ? "$pre$post" : "0$post";
-          $ratio = 0 if ($ratio eq '0.00');
-        } else {
-          $ratio = undef;
-        }
-      }
-
-      # add ratio/coef
-      if (defined($ratio)) {
-        # parse the ratio info column to extract the unit information (we are not interested in the confidence interval)
-        if ($ratio_info =~ /^\s*(\[.+\])?\s*(.+)$/) {
-          my $unit = $2;
-             $unit =~ s/\(//g;
-             $unit =~ s/\)//g;
-             $unit =~ s/µ/micro/g;
-          if ($unit =~ /decrease|increase/) {
-            $data{'GWAS_beta_coef'} = "$ratio $unit";
-          }
-          else {
-            $data{'GWAS_odds_ratio'} = $ratio;
-          }
-        }
-        else {
-          $data{'GWAS_odds_ratio'} = $ratio;
-        }
-      }
-      $data{'GWAS_odds_ratio'} = "" unless defined $data{'GWAS_odds_ratio'};
-      $data{'GWAS_beta_coef'} = "" unless defined $data{'GWAS_beta_coef'};
-
-      # parse the ids
-      my @ids;
-      $rs_id ||= "";
-      while ($rs_id =~ m/(rs[0-9]+)/g) {
-        push(@ids, $1);
-      }
-
-      # if we did not get any rsIds, skip this row (this will also get rid of the header)
-      warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
-      next if (!scalar(@ids));
-
-      map {
-        my $id = $_;
-
-        my $t_data = dclone \%data;
-        
-        my $vfs = $self->get_vfs_from_id($id);
-        $t_data->{"id"} = $id;
-        $t_data->{"vfs"} = $vfs;
-        
-        my $risk_allele;
-        map {
-          if ($_ =~ /$id/) {
-            my $risk_allele_with_id = $_;
-            $risk_allele = ( split("-", $risk_allele_with_id) )[1];
-          }
-        } split(/[;,x]/, $rs_risk_allele);
-        $t_data->{"GWAS_risk_allele"} = $risk_allele;
-
-        push(@phenotypes, $t_data);
-      } @ids;
-    }
-  }
-  close($input_FH);
-
-  my %result = ('phenotypes' => \@phenotypes);
-  return \%result;
-}
-
-sub create_curated_processed_file {
-  my ($self, $data) = @_;
+      
+      my $data = parse_curated_file(\%content);
   
-  my $temp_processed_file = $self->{"processed_file"} . "_temp";
-  open(my $temp_processed_FH, '>', $temp_processed_file) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
-  
-  foreach my $phenotype (@{ $data->{"phenotypes"} }){
-    foreach my $vf (@{ $phenotype->{"vfs"} }){
-      next unless $vf;
-      
-      next unless $phenotype->{"GWAS_risk_allele"};
-      my $GWAS_risk_allele = $phenotype->{"GWAS_risk_allele"} || "";
-      
-      my $GWAS_associated_gene = $phenotype->{"GWAS_associated_gene"} || "";
-      my $GWAS_p_value = $phenotype->{"GWAS_p_value"} || "";
-      my $GWAS_study = $phenotype->{"GWAS_study"} || "";
-      my $GWAS_pmid = $phenotype->{"GWAS_pmid"} || "";
-      my $accessions = join(",", @{ $phenotype->{"GWAS_accessions"} }) || "";
-      my $GWAS_beta_coef = $phenotype->{"GWAS_beta_coef"} || "";
-      my $GWAS_odds_ratio = $phenotype->{"GWAS_odds_ratio"} || "";
+      foreach my $phenotype (@{ $data->{"phenotypes"} }){
+        foreach my $vf (@{ $phenotype->{"vfs"} }){
+          next unless $vf;
+          
+          next unless $phenotype->{"GWAS_risk_allele"};
+          my $GWAS_risk_allele = $phenotype->{"GWAS_risk_allele"} || "";
+          
+          my $GWAS_associated_gene = $phenotype->{"GWAS_associated_gene"} || "";
+          my $GWAS_p_value = $phenotype->{"GWAS_p_value"} || "";
+          my $GWAS_study = $phenotype->{"GWAS_study"} || "";
+          my $GWAS_pmid = $phenotype->{"GWAS_pmid"} || "";
+          my $accessions = join(",", @{ $phenotype->{"GWAS_accessions"} }) || "";
+          my $GWAS_beta_coef = $phenotype->{"GWAS_beta_coef"} || "";
+          my $GWAS_odds_ratio = $phenotype->{"GWAS_odds_ratio"} || "";
 
-      my $line = join("\t", (
-        $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
-        $GWAS_associated_gene,
-        $GWAS_risk_allele,
-        $GWAS_p_value,
-        $GWAS_study,
-        $GWAS_pmid,
-        $accessions,
-        $GWAS_beta_coef,
-        $GWAS_odds_ratio,
-      ));
-      
-      print $temp_processed_FH $line . "\n";
+          my $line = join("\t", (
+            $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
+            $GWAS_associated_gene,
+            $GWAS_risk_allele,
+            $GWAS_p_value,
+            $GWAS_study,
+            $GWAS_pmid,
+            $accessions,
+            $GWAS_beta_coef,
+            $GWAS_odds_ratio,
+          ));
+          
+          print $temp_processed_FH $line . "\n";
+        }
+      }
     }
   }
   
