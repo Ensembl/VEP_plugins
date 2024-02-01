@@ -44,15 +44,20 @@ limitations under the License.
  - dbNSFP v4   https://www.ncbi.nlm.nih.gov/pubmed/33261662
  
  You must have the 'Bio::DB::HTS' module or the tabix utility must be installed
- in your path to use this plugin. The dbNSFP data file can be downloaded from
- https://sites.google.com/site/jpopgen/dbNSFP
+ in your path to use this plugin.
+ 
+ About dbNSFP data files:
+   - Downoad dbNSFP files from https://sites.google.com/site/jpopgen/dbNSFP.
+   - There are two distinct branches of the files provided for academic and
+     commercial usage. Please use the appropriate files for your use case.
+   - The file must be processed depending on dbNSFP release version and assembly
+     (see commands below). We recommend using '-T' option with the sort command
+     to specify a temporary directory with sufficient space.
+   - The resulting file must be indexed with tabix before use by this plugin
+     (see commands below).
 
- The file must be processed and indexed with tabix before use by this plugin.
- The file must be processed according to the dbNSFP release version and the assembly you use.
- It is recommended to use the -T option with the sort command to specify a temporary directory with sufficient space.
-
- For release 4.4a:
- > version=4.4a
+ For release 4.5c:
+ > version=4.5c
  > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP${version}.zip
  > unzip dbNSFP${version}.zip
  > zcat dbNSFP${version}_variant.chr1.gz | head -n1 > h
@@ -65,20 +70,20 @@ limitations under the License.
  > zgrep -h -v ^#chr dbNSFP${version}_variant.chr* | awk '$8 != "." ' | sort -k8,8 -k9,9n - | cat h - | bgzip -c > dbNSFP${version}_grch37.gz
  > tabix -s 8 -b 9 -e 9 dbNSFP${version}_grch37.gz
 
-When running the plugin you must list at least one column to retrieve from the
- dbNSFP file, specified as parameters to the plugin e.g.
- 
- --plugin dbNSFP,/path/to/dbNSFP.gz,LRT_score,GERP++_RS
+ When running the plugin you must list at least one column to retrieve from the
+ dbNSFP file, specified as parameters to the plugin, such as:
+
+   --plugin dbNSFP,/path/to/dbNSFP.gz,LRT_score,GERP++_RS
 
  You may include all columns with 'ALL'; this fetches a large amount of data per
- variant!:
- 
- --plugin dbNSFP,/path/to/dbNSFP.gz,ALL
+ variant:
+
+   --plugin dbNSFP,/path/to/dbNSFP.gz,ALL
  
  Tabix also allows the data file to be hosted on a remote server. This plugin is
  fully compatible with such a setup - simply use the URL of the remote file:
- 
- --plugin dbNSFP,http://my.files.com/dbNSFP.gz,col1,col2
+
+   --plugin dbNSFP,http://my.files.com/dbNSFP.gz,col1,col2
 
  The plugin replaces occurrences of ';' with ',' and '|' with '&'. However, some
  data field columns, e.g. 'Interpro_domain', use the replacement characters. We
@@ -88,7 +93,7 @@ When running the plugin you must list at least one column to retrieve from the
  the file 'dbNSFP_replacement_logic' in the VEP_plugins directory or provide their own
  file as second argument when calling the plugin:
 
- --plugin dbNSFP,/path/to/dbNSFP.gz,/path/to/dbNSFP_replacement_logic,LRT_score,GERP++_RS
+   --plugin dbNSFP,/path/to/dbNSFP.gz,/path/to/dbNSFP_replacement_logic,LRT_score,GERP++_RS
  
  Note that transcript sequences referred to in dbNSFP may be out of sync with
  those in the latest release of Ensembl; this may lead to discrepancies with
@@ -98,32 +103,31 @@ When running the plugin you must list at least one column to retrieve from the
  column descriptions will be read from this and incorporated into the VEP output
  file header.
 
-The plugin matches rows in the tabix-indexed dbNSFP file on:
+ The plugin matches rows in the tabix-indexed dbNSFP file on:
+   - genomic position
+   - alt allele
+   - 'aaref' - reference amino acid
+   - 'aaalt' - alternative amino acid
 
- - genomic position
- - alt allele
- - 'aaref' - reference amino acid
- - 'aaalt' - alternative amino acid
+ To match only on the genomic position and the alt allele use 'pep_match=0':
 
-To match only on the genomic position and the alt allele use 'pep_match=0':
+   --plugin dbNSFP,/path/to/dbNSFP.gz,pep_match=0,col1,col2
 
---plugin dbNSFP,/path/to/dbNSFP.gz,pep_match=0,col1,col2
+ Some fields contain multiple values, one per Ensembl transcript ID.
+ By default all values are returned, separated by ';' in the default VEP output format.
+ To return values only for the matched Ensembl transcript ID use 'transcript_match=1'.
+ This behaviour only affects transcript-specific fields; non-transcript-specific fields
+ are unaffected.
 
-Some fields contain multiple values, one per Ensembl transcript ID.
-By default all values are returned, separated by ';' in the default VEP output format.
-To return values only for the matched Ensembl transcript ID use 'transcript_match=1'.
-This behaviour only affects transcript-specific fields; non-transcript-specific fields
-are unaffected.
+   --plugin dbNSFP,/path/to/dbNSFP.gz,transcript_match=1,col1,col2
 
---plugin dbNSFP,/path/to/dbNSFP.gz,transcript_match=1,col1,col2
+ NB 1: Using this flag may cause no value to return if the version of the Ensembl
+ transcript set differs between VEP and dbNSFP.
 
-NB 1: Using this flag may cause no value to return if the version of the Ensembl
-transcript set differs between VEP and dbNSFP.
-
-NB 2: MutationTaster entries are keyed on a different set of transcript IDs. Using
-the 'transcript_match' flag with any MutationTaster field selected will have no effect
-i.e. all entries are returned. Information on corresponding transcript(s) for
-MutationTaster fields can be found using http://www.mutationtaster.org/ChrPos.html
+ NB 2: MutationTaster entries are keyed on a different set of transcript IDs. Using
+ the 'transcript_match' flag with any MutationTaster field selected will have no effect
+ i.e. all entries are returned. Information on corresponding transcript(s) for
+ MutationTaster fields can be found using http://www.mutationtaster.org/ChrPos.html
 
 =cut
 
