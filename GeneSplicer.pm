@@ -29,6 +29,7 @@ limitations under the License.
 
  mv GeneSplicer.pm ~/.vep/Plugins
  ./vep -i variants.vcf --plugin GeneSplicer,[path_to_genesplicer_bin],[path_to_training_dir],[option1=value],[option2=value]
+ ./vep -i variants.vcf --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
 
 =head1 DESCRIPTION
 
@@ -41,48 +42,52 @@ limitations under the License.
  sequence included either side defaults to 100bp, but can be modified
  by passing e.g. "context=50" as a parameter to the plugin.
 
- Any predicted splicing regions that overlap the variant are reported
- in the output with one of four states: no_change, diff, gain, loss
+ You will need to download the GeneSplicer binary and data from
+ ftp://ftp.ccb.jhu.edu/pub/software/genesplicer/GeneSplicer.tar.gz. Extract the
+ folder using:
 
- There follows a "/"-separated string consisting of the following data:
+ tar -xzf GeneSplicer.tar.gz
 
- 1) type (donor, acceptor)
- 2) coordinates (start-end)
- 3) confidence (Low, Medium, High)
- 4) score
+ GeneSplicer comes with precompiled binaries for multiple systems. If the
+ provided binaries do not run, compile `genesplicer` from source:
 
- Example: loss/acceptor/727006-727007/High/16.231924
+ ```
+ cd $GS/sources
+ # if macOS, run this step
+ [[ $(uname -s) == "Darwin" ]] && perl -pi -e "s/^main  /int main  /" genesplicer.cpp
+ make
+ cd -
+ ./vep [options] --plugin GeneSplicer,$GS/sources/genesplicer,$GS/human
+ ```
+
+ Predicted splicing regions that overlap the variant are reported in the output
+ with a '/'-separated string (e.g., 'loss/acceptor/727006-727007/High/16.231924')
+ consisting of the following data by this order:
+
+ 1) state (no_change, diff, gain, loss)
+ 2) type (donor, acceptor)
+ 3) coordinates (start-end)
+ 4) confidence (Low, Medium, High)
+ 5) score
 
  If multiple sites are predicted, their reports are separated by ",".
 
  For diff, the confidence and score for both the reference and alternate
- sequences is reported as REF-ALT.
-
- Example: diff/donor/621915-621914/Medium-Medium/7.020731-6.988368
+ sequences is reported as REF-ALT, such as
+ 'diff/donor/621915-621914/Medium-Medium/7.020731-6.988368'.
 
  Several key=value parameters can be modified in the the plugin string:
 
+ binary     : path to `genesplicer` binary (default: `genesplicer`)
+ training   : directory to species training data (such as, `GeneSplicer/human`)
  context    : change the amount of sequence added either side of
               the variant (default: 100bp)
- tmpdir     : change the temporary directory used (default: /tmp)
+ tmpdir     : change the temporary directory used (default: `/tmp`)
  cache_size : change how many sequences' scores are cached in memory
               (default: 50)
 
  Example:
    --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
-
- On some systems the binaries provided will not execute, but can be compiled from source:
-
-   cd $GS/sources
-   make
-   cd -
-   ./vep [options] --plugin GeneSplicer,$GS/sources/genesplicer,$GS/human
-
- On Mac OSX the make step is known to fail; the genesplicer.cpp file requires modification:
-
-   cd $GS/sources
-   perl -pi -e "s/^main  /int main  /" genesplicer.cpp
-   make
  
 
 =cut
@@ -115,14 +120,12 @@ sub _check_binary {
   my $test = `$bin 2>&1` || '';
   die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
    = $bin;
-  return 1;
 }
 
 sub _check_training_dir {
   my $training_dir = shift;
   die("ERROR: training directory not specified\n") unless $training_dir;
   die("ERROR: training directory not found\n") unless -d $training_dir;
-  return 1;
 }
 
 sub new {
