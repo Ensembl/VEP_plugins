@@ -118,8 +118,11 @@ sub new {
 
   my $bin = shift @$params;
   die("ERROR: genesplicer binary not specified\n") unless $bin;
+  # if $bin is the genesplicer command, try to get its path to check if it exists
+  $bin = (`which $bin 2>&1` || '') unless -e bin;
   die("ERROR: genesplicer binary not found\n") unless -e $bin;
-  my $test = `$bin 2>&1`;
+
+  my $test = `$bin 2>&1` || '';
   die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
   $self->{_bin} = $bin;
   
