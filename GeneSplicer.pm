@@ -28,8 +28,12 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv GeneSplicer.pm ~/.vep/Plugins
- ./vep -i variants.vcf --plugin GeneSplicer,[path_to_genesplicer_bin],[path_to_training_dir],[option1=value],[option2=value]
- ./vep -i variants.vcf --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
+ ./vep -i variants.vcf --plugin GeneSplicer,binary=$GS/bin/linux/genesplicer,training=$GS/human
+ ./vep -i variants.vcf --plugin GeneSplicer,binary=$GS/bin/linux/genesplicer,training=$GS/human,context=200,tmpdir=/mytmp
+
+ # VEP Docker/Singularity: if 'genesplicer' is a command available in $PATH,
+ # there is no need to specify the location of the binary
+ ./vep -i variants.vcf --plugin GeneSplicer,training=$GS/human
 
 =head1 DESCRIPTION
 
@@ -88,8 +92,12 @@ limitations under the License.
               (default: 50)
 
  Example:
-   --plugin GeneSplicer,$GS/bin/linux/genesplicer,$GS/human,context=200,tmpdir=/mytmp
- 
+   --plugin GeneSplicer,binary=$GS/bin/linux/genesplicer,training=$GS/human,context=200,tmpdir=/mytmp
+
+ When using VEP Docker/Singularity, the `binary` argument can be ommitted, as
+ the `genesplicer` command is exported in the $PATH variable and is thus
+ automatically detected by the plugin:
+   --plugin GeneSplicer,training=$GS/human,context=200,tmpdir=/mytmp
 
 =cut
 
