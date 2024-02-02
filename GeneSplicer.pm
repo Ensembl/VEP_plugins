@@ -78,8 +78,9 @@ limitations under the License.
 
  Several key=value parameters can be modified in the the plugin string:
 
+ training   : (mandatory) directory to species-specific training data, such as
+              `GeneSplicer/human`
  binary     : path to `genesplicer` binary (default: `genesplicer`)
- training   : directory to species training data (such as, `GeneSplicer/human`)
  context    : change the amount of sequence added either side of
               the variant (default: 100bp)
  tmpdir     : change the temporary directory used (default: `/tmp`)
