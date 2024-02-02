@@ -106,6 +106,25 @@ our %DEFAULTS = (
   cache_size => 50,
 );
 
+sub _check_binary {
+  my $bin = shift;
+  # if $bin is the genesplicer command, try to get its path to check if it exists
+  $bin = (`which $bin 2>&1` || '') unless -e bin;
+  die("ERROR: genesplicer binary not found\n") unless -e $bin;
+
+  my $test = `$bin 2>&1` || '';
+  die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
+   = $bin;
+  return 1;
+}
+
+sub _check_training_dir {
+  my $training_dir = shift;
+  die("ERROR: training directory not specified\n") unless $training_dir;
+  die("ERROR: training directory not found\n") unless -d $training_dir;
+  return 1;
+}
+
 sub new {
   my $class = shift;
 
@@ -116,35 +135,38 @@ sub new {
 
   my $params = $self->params;
 
-  my $bin = shift @$params;
-  die("ERROR: genesplicer binary not specified\n") unless $bin;
-  # if $bin is the genesplicer command, try to get its path to check if it exists
-  $bin = (`which $bin 2>&1` || '') unless -e bin;
-  die("ERROR: genesplicer binary not found\n") unless -e $bin;
-
-  my $test = `$bin 2>&1` || '';
-  die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
-  $self->{_bin} = $bin;
-  
-  my $training_dir = shift @$params;
-  die("ERROR: training directory not specified\n") unless $training_dir;
-  die("ERROR: training directory not found\n") unless -d $training_dir;
-  $self->{_training_dir} = $training_dir;
-
   # defaults
   $self->{'_param_'.$_} = $DEFAULTS{$_} for keys %DEFAULTS;
 
-  # REST API passes 1 as first param
-  shift @$params if $params->[0] && $params->[0] eq '1';
-
   # set/override with user params
   foreach my $param(@$params) {
-    my ($key, $val) = split('=', $param);
-    die("ERROR: Failed to parse parameter $param\n") unless defined($key) && defined($val);
+    next if $param eq '1'; # REST API passes 1 as a param
 
-    $self->{'_param_'.$key} = $val;
+    my ($key, $val) = split('=', $param);
+
+    if (!defined $val) {
+      # for positional arguments, set 'binary' and 'training data'
+      if (!defined $self->{_bin}) {
+        $self->{_bin} = $param;
+        next;
+      } elsif (!defined $self->{_training_dir}) {
+        $self->{_training_dir} = $param;
+        next;
+      }
+      die("ERROR: Failed to parse parameter $param\n") unless defined($key);
+    }
+
+    if ($key eq 'binary') {
+      $self->{_bin} = $val;
+    } elsif ($key eq 'training') {
+      $self->{_training_dir} = $val;
+    } else {
+      $self->{'_param_'.$key} = $val;
+    }
   }
 
+  $self->{_bin} if _check_binary($self->{_bin});
+  $self->{_training_dir} if _check_training_dir($self->{_training_dir});
   return $self;
 }
 
