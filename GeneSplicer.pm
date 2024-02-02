@@ -165,8 +165,9 @@ sub new {
     }
   }
 
-  $self->{_bin} if _check_binary($self->{_bin});
-  $self->{_training_dir} if _check_training_dir($self->{_training_dir});
+  $self->{_bin} ||= 'genesplicer';
+  _check_binary($self->{_bin});
+  _check_training_dir($self->{_training_dir});
   return $self;
 }
 
