@@ -84,6 +84,8 @@ sub feature_types {
 sub get_header_info {
   return {
     RiboseqORFs_id                => 'Ribo-seq ORF identifier',
+    RiboseqORFs_gene_ids          => 'List of gene_ids that are fully compatible with the ORF sequences',
+    RiboseqORFs_transcript_ids    => 'List of transcript_ids that are fully compatible with the ORF sequences',
     RiboseqORFs_consequences      => 'Recalculated consequences based on Ribo-seq ORF evidence',
     RiboseqORFs_cDNA_position     => 'Recalculated position of base pair in cDNA sequence',
     RiboseqORFs_CDS_position      => 'Recalculated position of base pair in coding sequence',
@@ -173,6 +175,9 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
   my $impact = $ocs[0]->impact if @ocs;
 
   my $hash = {
+    RiboseqORFs_id               => $new_tr->stable_id,
+    RiboseqORFs_gene_ids         => [ split(",", $orf->{all_gene_ids}) ],
+    RiboseqORFs_transcript_ids   => [ split(",", $orf->{all_transcript_ids}) ],
     RiboseqORFs_consequences     => [ map { $_->SO_term } @ocs ],
     RiboseqORFs_impact           => $impact,
     RiboseqORFs_codons           => $tva_orf->display_codon_allele_string,
@@ -180,6 +185,7 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
     RiboseqORFs_protein_position => format_coords($tv->translation_start, $tv->translation_end),
     RiboseqORFs_cDNA_position    => format_coords($tv->cdna_start, $tv->cdna_end),
     RiboseqORFs_CDS_position     => format_coords($tv->cds_start, $tv->cds_end),
+    RiboseqORFs_publications     => [ split(",", $orf->{ref_studies}) ],
   };
   delete $hash->{RiboseqORFs_codons}      unless $hash->{RiboseqORFs_codons};
   delete $hash->{RiboseqORFs_amino_acids} unless $hash->{RiboseqORFs_amino_acids};
@@ -195,8 +201,6 @@ sub run {
     next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
 
     my $res = _recreate_TranscriptVariationAllele_with_ORF($tva, $_);
-    $res->{RiboseqORFs_id}           = $_->{name};
-    $res->{RiboseqORFs_publications} = [ split(",", $_->{ref_studies}) ];
 
     # Group results for JSON and REST
     if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
