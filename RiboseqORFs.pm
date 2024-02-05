@@ -118,28 +118,32 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
   my $exons;
   my @block_start = split(',', $orf->{chromStarts});
   my @block_size  = split(',', $orf->{blockSize});
+  my @exon_frames = split(',', $orf->{exonFrames});
 
   for my $k ( 0 .. $orf->{blockCount} - 1 ) {
     my $exon_start = $orf->{chromStart} + $block_start[$k];
     my $exon_end   = $exon_start + $block_size[$k];
+
     push @$exons, Bio::EnsEMBL::Exon->new(
                     -SLICE     => $slice,
                     -START     => $exon_start + 1,
                     -END       => $exon_end,
                     -STRAND    => $strand,
-                    -PHASE     => 0,
-                    -END_PHASE => 0,
+                    -PHASE     => $exon_frames[$k],
                   );
   }
   $exons = [ reverse @$exons ] if $strand == -1;
 
   # Create new transcript (the ORF) with previous exons (ORF blocks)
   my $new_tr = Bio::EnsEMBL::Transcript->new(
-    -BIOTYPE => 'protein_coding',
-    -START   => $orf->{chromStart},
-    -END     => $orf->{chromEnd},
-    -STRAND  => $strand,
-    -EXONS   => $exons,
+    -STABLE_ID => $orf->{name},
+    -BIOTYPE   => $orf->{transcript_biotype},
+    -SLICE     => $slice,
+    -START     => $orf->{chromStart},
+    -END       => $orf->{chromEnd},
+    -STRAND    => $strand,
+    -VERSION   => 1,
+    -EXONS     => $exons,
   );
 
   # Create respective translation
@@ -148,6 +152,7 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
     -END_EXON   => $exons->[-1],
     -SEQ_START  => 1,
     -SEQ_END    => length($new_tr->spliced_seq),
+    -VERSION    => 1
   ));
 
   # Check if translation matches the one from annotation
@@ -164,14 +169,28 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
     -variation_feature => $tva->variation_feature,
   );
 
+  # Define start when the variant start is upstream of the translation start
+  $tv->translation_start(1) unless defined $tv->translation_start;
+  $tv->cdna_start(1) unless defined $tv->cdna_start;
+  $tv->cds_start(1) unless defined $tv->cds_start;
+  $tv->cdna_start_unshifted(1) unless defined $tv->cdna_start_unshifted;
+
   # Create new TranscriptVariationAllele object with the current allele info
+  my $ref_allele = Bio::EnsEMBL::Variation::TranscriptVariationAllele->new(
+    -base_variation_feature_overlap => $tv,
+    -variation_feature_seq          => $tva->base_variation_feature->ref_allele_string,
+    -is_reference                   => 1,
+  );
+  $tv->add_TranscriptVariationAllele($ref_allele);
+
   my $tva_orf = Bio::EnsEMBL::Variation::TranscriptVariationAllele->new(
     -base_variation_feature_overlap => $tv,
     -variation_feature_seq          => $tva->variation_feature_seq,
-    -is_reference                   => $tva->{is_reference},
+    -is_reference                   => 0,
   );
+  $tv->add_TranscriptVariationAllele($tva_orf);
 
-  my @ocs    = sort {$a->rank <=> $b->rank} @{$tva_orf->get_all_OverlapConsequences};
+  my @ocs    = sort {$a->rank <=> $b->rank} @{$tv->get_all_alternate_TranscriptVariationAlleles->[0]->get_all_OverlapConsequences};
   my $impact = $ocs[0]->impact if @ocs;
 
   my $hash = {
