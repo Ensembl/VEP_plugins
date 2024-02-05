@@ -214,8 +214,13 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
 sub run {
   my ($self, $tva) = @_;
   my $vf   = $tva->variation_feature;
-  my @data = @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
-  
+
+  my $start = $vf->{start};
+  my $end   = $vf->{end};
+  ($start, $end) = $start > $end ? ($end, $start) : ($start, $end);
+
+  my @data = @{$self->get_data($vf->{chr}, $start, $end)};
+
   for (@data) {
     next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
 
