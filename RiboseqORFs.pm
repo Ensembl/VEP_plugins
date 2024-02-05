@@ -215,11 +215,10 @@ sub run {
   my ($self, $tva) = @_;
   my $vf   = $tva->variation_feature;
 
-  my $start = $vf->{start};
-  my $end   = $vf->{end};
-  ($start, $end) = $start > $end ? ($end, $start) : ($start, $end);
+  my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
+     ($vf_start, $vf_end) = ($vf_end, $vf_start) if $vf_start > $vf_end;
 
-  my @data = @{$self->get_data($vf->{chr}, $start, $end)};
+  my @data = @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
 
   for (@data) {
     next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
