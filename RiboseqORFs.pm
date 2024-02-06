@@ -84,8 +84,6 @@ sub feature_types {
 sub get_header_info {
   return {
     RiboseqORFs_id                => 'Ribo-seq ORF identifier',
-    RiboseqORFs_gene_ids          => 'List of gene_ids that are fully compatible with the ORF sequences',
-    RiboseqORFs_transcript_ids    => 'List of transcript_ids that are fully compatible with the ORF sequences',
     RiboseqORFs_consequences      => 'Recalculated consequences based on Ribo-seq ORF evidence',
     RiboseqORFs_cDNA_position     => 'Recalculated position of base pair in cDNA sequence',
     RiboseqORFs_CDS_position      => 'Recalculated position of base pair in coding sequence',
@@ -195,8 +193,6 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
 
   my $hash = {
     RiboseqORFs_id               => $new_tr->stable_id,
-    RiboseqORFs_gene_ids         => [ split(",", $orf->{all_gene_ids}) ],
-    RiboseqORFs_transcript_ids   => [ split(",", $orf->{all_transcript_ids}) ],
     RiboseqORFs_consequences     => [ map { $_->SO_term } @ocs ],
     RiboseqORFs_impact           => $impact,
     RiboseqORFs_codons           => $tva_orf->display_codon_allele_string,
