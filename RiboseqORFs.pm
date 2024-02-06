@@ -167,7 +167,7 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
     -variation_feature => $tva->variation_feature,
   );
 
-  # Fix start_lost not returning when the variant starts upstream of the translation
+  # Fix start_lost consequence not being returned when the variant starts upstream of the translation
   $tv->translation_start(1) unless defined $tv->translation_start;
   $tv->cdna_start(1) unless defined $tv->cdna_start;
   $tv->cds_start(1) unless defined $tv->cds_start;
