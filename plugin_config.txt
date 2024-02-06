@@ -1828,7 +1828,7 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Transcript annotation",
       "helptip" => "A VEP plugin that calculates consequences for variants overlapping Ribo-seq ORFs",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/111/RiboseqORFs.pm",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/RiboseqORFs.pm",
       "params"  => [
         "#file=/path/to/Ribo-seq_ORFs.bed.gz"
       ],
