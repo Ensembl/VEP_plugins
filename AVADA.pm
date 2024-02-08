@@ -93,17 +93,16 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 
 
-my $feature_match_by;
-my $original_variant_string;
-my $match_by_refseq;
+# my $self->feature_match_by;
+# my $original_variant_string;
 
 sub get_header_info {
   my $self = shift;
   my %header;
 
   $header{"AVADA_GENE_ID"} = "Gene ID associated with variant as reported by AVADA" ; 
-  $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA"; 
-  $header{"AVADA_PMID_WITH_VARIANT_STRING"} = "PubMed ID evidence for the variant as reported by AVADA along with the RefSeq id and original variant string"; 
+  $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA" if not $self->{original_variant_string};  
+  $header{"AVADA_PMID_WITH_VARIANT_STRING"} = "PubMed ID evidence for the variant as reported by AVADA along with the RefSeq id and original variant string" if $self->{original_variant_string}; 
 
   return \%header
 }
@@ -121,10 +120,10 @@ sub new {
   my $file = $param_hash->{file};
   die "\n  ERROR: No file specified\nTry using 'AVADA,file=path/to/file.tsv.gz'\n" unless defined($file);
   $self->add_file($file);
-  $feature_match_by = $param_hash->{feature_match_by}; 
-  $original_variant_string = $param_hash->{original_variant_string}; 
+  $self->{feature_match_by} = $param_hash->{feature_match_by}; 
+  $self->{original_variant_string} = $param_hash->{original_variant_string}; 
 
-  if ($original_variant_string) {
+  if ($self->{original_variant_string}) {
     $self->{config}->{refseq} = 1 unless $self->{config}->{database} == 1 ; # when using db, refseq is not enabled in spite of forcing in code
     die "\n ERROR: Matching by Refseq ID requires the option --refseq when using the database  \n" if $self->{config}->{refseq} == 0 && $self->{config}->{database} == 1;
   }
@@ -150,15 +149,15 @@ sub run {
   my $gene_key = "AVADA_GENE_SYMBOL";
   my @data;
 
-  if (!defined($feature_match_by)){
+  if (!defined($self->{feature_match_by})){
     @data = @{$self->get_data($vf->{chr}, $vf_start, $vf_end)}; 
   }
-  elsif ( $feature_match_by eq "gene_symbol"){
+  elsif ( $self->{feature_match_by} eq "gene_symbol"){
     @data = grep {
     $_->{AVADA_GENE_SYMBOL} eq $transcript->{_gene_symbol}
     }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
   }
-  elsif ( $feature_match_by eq "ensembl_gene_id" ){
+  elsif ( $self->{feature_match_by} eq "ensembl_gene_id" ){
   @data = grep {
     $_->{AVADA_ENSEMBL_ID} eq $transcript->{_gene_stable_id}
     }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
@@ -167,7 +166,7 @@ sub run {
   else{
     die("ERROR: feature_match_by can only take one of the options gene_symbol|ensembl_gene_id ");
   }
-  if ( $original_variant_string ){
+  if ( $self->{original_variant_string} ){
     $refseq_transcript = $transcript->{stable_id};
     $refseq_protein = $transcript->translation->{stable_id} if defined($transcript->translation);
     $refseq_protein =~ s/cds-// if $self->{config}->{database} == 1;
@@ -185,16 +184,18 @@ sub run {
   foreach my $data_value (uniq @data) {
     next unless $alt_allele eq $data_value->{AVADA_ALT};
     $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key};
-    if ($original_variant_string)
+    if ($self->{original_variant_string})
     {
-    # Output is in the format "PMID&RefSeq_ID:Variant_string"
-    my $pmid_variant = $data_value->{AVADA_PMID}."&".$data_value->{AVADA_REFSEQ_ID}.":".$data_value->{AVADA_VARIANT_STRING};
+    # Output is in the format "PMID:RefSeq_ID:Variant_string"
+    my $pmid_variant = $data_value->{AVADA_PMID}.":".$data_value->{AVADA_REFSEQ_ID}.":".$data_value->{AVADA_VARIANT_STRING};
     $output_key = "AVADA_PMID_WITH_VARIANT_STRING";
-    $pmid_string = $pmid_string ? $pmid_string.",".$pmid_variant : $pmid_variant; 
+    # $pmid_string = $pmid_string ? $pmid_string.",".$pmid_variant : $pmid_variant; 
+    push @$pmid_string, $pmid_variant;
     }
     else {
     next unless (! exists $seen{$data_value->{AVADA_PMID}} );
-    $pmid_string = $pmid_string ? $pmid_string.",".$data_value->{AVADA_PMID} : $data_value->{AVADA_PMID}; 
+    # $pmid_string = $pmid_string ? $pmid_string.",".$data_value->{AVADA_PMID} : $data_value->{AVADA_PMID}; 
+    push @$pmid_string, $data_value->{AVADA_PMID} ;
     $output_key = "AVADA_PMID";
     $seen{$data_value->{AVADA_PMID}} = 1;   
     }
