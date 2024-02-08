@@ -186,7 +186,20 @@ sub run {
     if ($self->{original_variant_string})
     {
     # Output is in the format "PMID%RefSeq_ID%Variant_string"
-    my $pmid_variant = $data_value->{AVADA_PMID}."%".$data_value->{AVADA_REFSEQ_ID}."%".$data_value->{AVADA_VARIANT_STRING};
+      my $pmid_variant;
+      if (not $self->{config}->{output_format} eq 'json')
+      {
+        $pmid_variant = [$data_value->{AVADA_PMID}, $data_value->{AVADA_REFSEQ_ID}, $data_value->{AVADA_VARIANT_STRING}];
+        $pmid_variant = join('%', @$pmid_variant);
+      }
+      else
+      {
+        $pmid_variant = {
+                        "avada_pmid"=> $data_value->{AVADA_PMID},
+                        "avada_refseq_id"=> $data_value->{AVADA_REFSEQ_ID}, 
+                        "avada_variant_string"=> $data_value->{AVADA_VARIANT_STRING}
+                        };
+      }
     $output_key = "AVADA_PMID_WITH_VARIANT_STRING";
     push @$pmid_string, $pmid_variant;
     }
