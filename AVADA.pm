@@ -185,8 +185,8 @@ sub run {
     $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key};
     if ($self->{original_variant_string})
     {
-    # Output is in the format "PMID%RefSeq_ID%Variant_string"
       my $pmid_variant;
+      # Output (except json) is in the format "PMID%RefSeq_ID%Variant_string" 
       if (not $self->{config}->{output_format} eq 'json')
       {
         $pmid_variant = [$data_value->{AVADA_PMID}, $data_value->{AVADA_REFSEQ_ID}, $data_value->{AVADA_VARIANT_STRING}];
