@@ -33,6 +33,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin Conservation,/path/to/bigwigfile.bw
  ./vep -i variations.vcf --plugin Conservation,/path/to/bigwigfile.bw,MAX
  ./vep -i variations.vcf --plugin Conservation,database,GERP_CONSERVATION_SCORE,mammals
+ ./vep -i variations.vcf --plugin Conservation,database,GERP_CONSERVATION_SCORE,mammals,MAX
 
 =head1 DESCRIPTION
 
@@ -65,6 +66,7 @@ use Bio::EnsEMBL::Slice;
 use Bio::EnsEMBL::IO::Parser::BigWig;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use Net::FTP;
+use Data::Dumper;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
@@ -210,8 +212,14 @@ sub run {
   }
   # Grab the score
   my @values = ();
-  push @values, $parser->{waiting_block}[3];
-  my $divide = 1;
+  my $length = $parser->{waiting_block}[2] - $parser->{waiting_block}[1];
+  my $divide = 0;
+  while($length >= 2) {
+    push @values, $parser->{waiting_block}[3];
+    $divide++;
+    $length--;
+  }
+#  print Dumper($parser);
   
   # If multiple bases affected, grab those scores as well from the oparser object
   foreach (@{ $parser->{cache}->{features} }) {
@@ -224,6 +232,8 @@ sub run {
         $length--;
     }
   }
+  print "@values\n";
+  print "$divide\n";
   $parser->next;
 
   # Output - if multiple scores do average or max, if single score just output that.
