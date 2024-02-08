@@ -93,8 +93,7 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 
 
-# my $self->feature_match_by;
-# my $original_variant_string;
+
 
 sub get_header_info {
   my $self = shift;
@@ -189,12 +188,10 @@ sub run {
     # Output is in the format "PMID%RefSeq_ID%Variant_string"
     my $pmid_variant = $data_value->{AVADA_PMID}."%".$data_value->{AVADA_REFSEQ_ID}."%".$data_value->{AVADA_VARIANT_STRING};
     $output_key = "AVADA_PMID_WITH_VARIANT_STRING";
-    # $pmid_string = $pmid_string ? $pmid_string.",".$pmid_variant : $pmid_variant; 
     push @$pmid_string, $pmid_variant;
     }
     else {
-    next unless (! exists $seen{$data_value->{AVADA_PMID}} );
-    # $pmid_string = $pmid_string ? $pmid_string.",".$data_value->{AVADA_PMID} : $data_value->{AVADA_PMID}; 
+    next unless (! exists $seen{$data_value->{AVADA_PMID}} ); 
     push @$pmid_string, $data_value->{AVADA_PMID} ;
     $output_key = "AVADA_PMID";
     $seen{$data_value->{AVADA_PMID}} = 1;   
