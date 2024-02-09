@@ -116,7 +116,7 @@ sub run {
       # splice the mutant peptide sequence into the reference sequence
 
       my $mut_seq = $ref_seq;
-      # Remove represented deleted peptide from alt sequence 
+      # Remove represented deleted peptide "-" from alt sequence 
       $mut_aa =~ s/-//g;
       substr($mut_seq, $tl_start-1, $tl_end - $tl_start + 1) = $mut_aa;
       # print out our reference and mutant sequences
