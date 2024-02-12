@@ -434,8 +434,7 @@ sub _get_paralogues {
 
   # get paralogues for this variant region
   my $file = $self->{paralogues};
-  my $data = `tabix $file $var_chr:$var_start-$var_end`;
-  my @data = split /\n/, $data;
+  my @data = @{$self->get_data($var_chr, $var_start, $var_end, $file)};
 
   my $paralogues = [];
   for (@data) {
@@ -608,11 +607,9 @@ sub _fetch_matches_vars {
   my $chr   = $vf->{chr};
   my $start = $vf->{start};
   my $end   = $vf->{end};
-  my $data  = `tabix $file $chr:$start-$end`;
-  my @data = split /\n/, $data;
 
+  my @data = @{$self->get_data($chr, $start - 2, $end, $file)};
   foreach (@data) {
-    my $row = $self->parse_data($_);
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
@@ -621,16 +618,16 @@ sub _fetch_matches_vars {
         strand => $vf->strand
       },
       {
-       ref  => $row->{ref},
-       alts => [ split /,/, $row->{alt} ],
-       pos  => $row->{start},
+       ref  => $_->{ref},
+       alts => [ split /,/, $_->{alt} ],
+       pos  => $_->{start},
       }
     );
     return {} unless @$matches;
 
     my $all_results = {};
     my $feature_id = $tva->feature->stable_id;
-    for my $field (split /,/, $row->{$self->{matches_info_field}}) {
+    for my $field (split /,/, $_->{$self->{matches_info_field}}) {
       my %hash;
       @hash{ @{$self->{matches_info_keys}} } = split /\|/, $field;
 
@@ -713,6 +710,40 @@ sub _fetch_database_vars {
   return $self->{vfa}->fetch_all_by_Slice($slice);
 }
 
+sub _get_paralogue_vars {
+  my ($self, $chr, $start, $end, $perc_cov, $perc_pos, $all_results) = @_;
+
+  my $vcf = $self->{vcf};
+  if (defined $vcf) {
+    # get variants from custom VCF file
+    my @data = @{$self->get_data($chr, $start - 2, $end, $vcf)};
+    for my $var (@data) {
+      next unless $self->_is_clinically_significant([ $var->{clinical_significance} ]);
+      my $info = $self->_prepare_vcf_info($var, $perc_cov, $perc_pos);
+      $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
+    }
+  } else {
+    # get Ensembl variants from mapped genomic coordinates
+    my $variants;
+    if ($self->{config}->{cache}) {
+      $variants = $self->_fetch_cache_vars($chr, $start, $end);
+    } elsif ($self->{config}->{database}) {
+      $variants = $self->_fetch_database_vars($chr, $start, $end);
+    } else {
+      die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
+    }
+
+    foreach my $var (@$variants) {
+      # check clinical significance (if set)
+      next unless $self->_is_clinically_significant($var->{clinical_significance});
+      my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
+      $all_results = $self->_join_results($all_results, $res);
+    }
+  }
+
+  return $all_results;
+}
+
 ## PLUGIN ----------------------------------------------------------------------
 
 sub _get_valid_fields {
@@ -790,8 +821,11 @@ sub new {
   $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
 
   # File with matches between variant and their paralogues
-  $self->{matches} = $params->{matches} if defined $params->{matches};
-  $self->_prepare_matches_params($params) if defined $self->{matches};
+  if (defined $params->{matches}) {
+    $self->{matches} = $params->{matches};
+    $self->add_file($self->{matches});
+    $self->_prepare_matches_params($params);
+  }
 
   # Prepare clinical significance parameters
   my $no_clnsig = defined $params->{clnsig} && $params->{clnsig} eq 'ignore';
@@ -852,6 +886,7 @@ sub new {
 
   $self->_generate_paralogue_annotation($annot) unless (-e $annot || -e "$annot.lock");
   $self->{paralogues} = $annot;
+  $self->add_file($self->{paralogues});
   return $self;
 }
 
@@ -1016,39 +1051,16 @@ sub run {
 
     my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $aln);
     next unless defined $chr and defined $start and defined $end;
-
-    if (defined $self->{vcf}) {
-      # get variants from custom VCF file
-      my @data = @{$self->get_data($chr, $start - 2, $end)};
-      for my $var (@data) {
-        next unless $self->_is_clinically_significant([ $var->{clinical_significance} ]);
-        my $info = $self->_prepare_vcf_info($var, $perc_cov, $perc_pos);
-        $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
-      }
-    } else {
-      # get Ensembl variants from mapped genomic coordinates
-      my $variants;
-      if ($self->{config}->{cache}) {
-        $variants = $self->_fetch_cache_vars($chr, $start, $end);
-      } elsif ($self->{config}->{database}) {
-        $variants = $self->_fetch_database_vars($chr, $start, $end);
-      } else {
-        die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
-      }
-
-      foreach my $var (@$variants) {
-        # check clinical significance (if set)
-        next unless $self->_is_clinically_significant($var->{clinical_significance});
-        my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
-        $all_results = $self->_join_results($all_results, $res);
-      }
-    }
+    $all_results = $self->_get_paralogue_vars($chr, $start, $end, $perc_cov, $perc_pos, $all_results);
   }
   return $all_results;
 }
 
 sub parse_data {
   my ($self, $line, $file) = @_;
+
+  # do not parse here paralogue annotation
+  return $line if defined $self->{paralogues} and $file eq $self->{paralogues};
 
   # parse custom VCF data
   my ($chrom, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
