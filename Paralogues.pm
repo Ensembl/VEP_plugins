@@ -776,9 +776,9 @@ sub _get_valid_fields {
 sub _prepare_matches_params {
   my ($self, $params) = @_;
 
-  die "ERROR: options 'cache' and 'paralogues' are incompatible\n"
+  die "ERROR: options 'matches' and 'paralogues' are incompatible\n"
     if defined $params->{paralogues};
-  die "ERROR: options 'cache' and 'vcf' are incompatible\n"
+  die "ERROR: options 'matches' and 'vcf' are incompatible\n"
     if defined $params->{vcf};
 
   $self->{matches_info_field} = $params->{matches_info_field} || 'CSQ';
