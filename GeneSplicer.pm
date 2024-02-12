@@ -121,14 +121,13 @@ our %DEFAULTS = (
 );
 
 sub _check_binary {
-  my $bin = shift;
-  # if $bin is the genesplicer command, try to get its path to check if it exists
-  $bin = (`which $bin 2>&1` || '') unless -e bin;
-  die("ERROR: genesplicer binary not found\n") unless -e $bin;
+  my $binary_file = shift;
+  # if $binary_file is the genesplicer command, try to get its path to check if it exists
+  $binary_file = (`which $binary_file 2>&1` || '') unless -e $binary_file;
+  die("ERROR: genesplicer binary not found\n") unless -e $binary_file;
 
-  my $test = `$bin 2>&1` || '';
+  my $test = `$binary_file 2>&1` || '';
   die("ERROR: failed to run genesplicer binary:\n$test\n") unless $test =~ /^USAGE/;
-   = $bin;
 }
 
 sub _check_training_dir {
