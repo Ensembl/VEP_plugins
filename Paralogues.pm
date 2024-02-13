@@ -29,13 +29,13 @@ limitations under the License.
 
  mv Paralogues.pm ~/.vep/Plugins
 
- # Use a 'matches' file with variants matched to paralogue regions and fetch
+ # Use a 'matches' file with variants mapped to paralogue regions and fetch
  # variants within those regions from VEP cache and whose clinical significance
  # partially matches 'pathogenic' -- fastest method; download 'matches' files
  # from https://ftp.ensembl.org/pub/current_variation/Paralogues
  ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues.pm_homo_sapiens_112_GRCh38_clinvar_20240107.vcf.gz
 
- # Find paralogue regions of input variants using Ensembl paralogue annotation
+ # Find paralogue regions of all input variants using Ensembl paralogue annotation
  # (automatically created if not in current directory) and fetch variants within
  # those regions from VEP cache and whose clinical significance partially
  # matches 'pathogenic'
@@ -61,9 +61,9 @@ limitations under the License.
 
  This plugin can determine paralogue regions for a variant based on:
    1. Pre-computed matches between sets of human variants and their paralogue
-      regions; download paralogue regions for ClinVar variants from
+      regions; download ClinVar variants mapped to their paralogue regions from
       https://ftp.ensembl.org/pub/current_variation/Paralogues and set option
-      `matches` to the file path; if you also want to create these matched
+      `matches` to the file path; if you also want to create these mapped
       annotations with any set of variants, run VEP with VCF output and
       Paralogues plugin (using options:
       'regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore')
@@ -119,8 +119,8 @@ limitations under the License.
    regions      : Boolean value to return regions used to look up paralogue
                   variants (default: 1)
 
-   matches      : Tabix-indexed VCF file containing matches between variants and
-                  their paralogue regions; pre-computed matches between ClinVar
+   matches      : Tabix-indexed VCF file containing variants mapped to their
+                  paralogue regions; pre-computed matches between ClinVar
                   variants and their paralogue regions can be downloaded from
                   https://ftp.ensembl.org/pub/current_variation/Paralogues; the
                   `matches` option is incompatible with the `paralogues` option
