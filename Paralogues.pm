@@ -29,18 +29,25 @@ limitations under the License.
 
  mv Paralogues.pm ~/.vep/Plugins
 
- # Use a matches file to highlight variants whose clinical significance
- # partially matches 'pathogenic' -- fastest method; download Paralogues cache
- # files from https://ftp.ensembl.org/pub/current_variation/Paralogues
- ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues_clinvar_20240107.vcf.gz
+ # Use a 'matches' file with variants matched to paralogue regions and fetch
+ # variants within those regions from VEP cache and whose clinical significance
+ # partially matches 'pathogenic' -- fastest method; download 'matches' files
+ # from https://ftp.ensembl.org/pub/current_variation/Paralogues
+ ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues.pm_homo_sapiens_112_GRCh38_clinvar_20240107.vcf.gz
 
- # Download Ensembl paralogue annotation (if not in current directory) and fetch
- # variants from VEP cache whose clinical significance partially matches 'pathogenic'
+ # Find paralogue regions of input variants using Ensembl paralogue annotation
+ # (automatically created if not in current directory) and fetch variants within
+ # those regions from VEP cache and whose clinical significance partially
+ # matches 'pathogenic'
  ./vep -i variations.vcf --cache --plugin Paralogues
 
- # Download Ensembl paralogue annotation (if not in current directory) and fetch
- # all variants from custom VCF file
- ./vep -i variations.vcf --cache --plugin Paralogues,vcf=/path/to/file.vcf,clnsig='ignore'
+ # Find paralogue regions of input variants using Ensembl paralogue annotation
+ # (automatically created if not in current directory) and fetch variants within
+ # those regions from a custom VCF file (regardless of their clinical significance)
+ ./vep -i variations.vcf --cache --plugin Paralogues,vcf=/path/to/file.vcf,clnsig=ignore
+
+ # Same using a custom VCF file but filtering for 'pathogenic' variants
+ ./vep -i variations.vcf --cache --plugin Paralogues,vcf=/path/to/file.vcf,clnsig_col=CLNSIG
 
  # Fetch all Ensembl variants in paralogue proteins using only the Ensembl API
  # (requires database access)
@@ -52,57 +59,71 @@ limitations under the License.
  acids aligned between paralogue proteins. This is useful to predict the
  pathogenicity of variants in paralogue positions.
 
- This plugin fetches variants overlapping the genomic coordinates of the
- paralogue's affected aminoacid from one of the following sources by this order:
-   1. Custom VCF (if 'vcf' parameter is defined)
+ This plugin can determine paralogue regions for a variant based on:
+   1. Pre-computed matches between sets of human variants and their paralogue
+      regions; download paralogue regions for ClinVar variants from
+      https://ftp.ensembl.org/pub/current_variation/Paralogues and set option
+      `matches` to the file path; if you also want to create these matched
+      annotations with any set of variants, run VEP with VCF output and
+      Paralogues plugin (using options:
+      'regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore')
+   2. Ensembl paralogue annotation; these versatile annotations can look up
+      paralogue regions for all variants from any species with Ensembl paralogues
+
+ After retrieving the paralogue regions, this plugin fetches variants
+ overlapping those regions from one of the following sources (by this order):
+   1. Custom VCF via the 'vcf' parameter
    2. VEP cache (in cache/offline mode)
    3. Ensembl API (in database mode)
 
+ To use a file with pre-computed matches between variants and paralogue regions,
+ download the file and its TBI and use option `matches`:
+   --plugin Paralogues,matches=/path/to/matches_file.vcf.gz
+
  This plugin automatically downloads paralogue annotation from Ensembl databases
- if not available in the current directory (by default). Use argument `dir` to
+ if not available in the current directory (by default). Use option `dir` to
  change the directory of the paralogue annotation:
    --plugin Paralogues
    --plugin Paralogues,dir=/path/to/dir
 
  It is also possible to point to a custom tabix-indexed TSV file by using
- argument `paralogues`:
+ option `paralogues`:
    --plugin Paralogues,paralogues=file.tsv.gz
    --plugin Paralogues,dir=/path/to/dir,paralogues=paralogues_file.tsv.gz
    --plugin Paralogues,paralogues=/path/to/dir/paralogues_file.tsv.gz
 
  Returned variants can be filtered based on clinical significance by using
- argument `clnsig` (use keyword 'ignore' to avoid this filtering):
+ option `clnsig` (use keyword 'ignore' to avoid this filtering):
    --plugin Paralogues,clnsig=ignore
    --plugin Paralogues,clnsig=pathogenic,clnsig_match=partial
    --plugin Paralogues,clnsig='likely pathogenic',clnsig_match=exact
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=benign,clnsig_col=CLNSIG
 
  The overlapping variants can be fetched from Ensembl API (by default) or a
- custom tabix-indexed VCF file. You can point to a VCF file using argument `vcf`
+ custom tabix-indexed VCF file. You can point to a VCF file using option `vcf`
  and input a colon-delimited list of INFO fields in `fields`:
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig_col=CLNSIG
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=ignore,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
 
  Options are passed to the plugin as key=value pairs:
-   dir          : Directory with paralogue annotation (the annotation is
-                  downloaded to this folder if the required files do not exist)
+   dir          : Directory with paralogue annotation (the annotation is created
+                  in this folder if the required files do not exist)
    paralogues   : Tabix-indexed TSV file with paralogue annotation (the
-                  annotation is downloaded with this filename, if the file does
-                  not exist); if set to 'remote', paralogue annotation is
-                  fetched from Ensembl API
+                  annotation is created with this filename, if the file does not
+                  exist); if set to 'remote', paralogue annotation is fetched
+                  from Ensembl API
    min_perc_cov : Minimum alignment percentage of the peptide associated with
                   the input variant (default: 0)
    min_perc_pos : Minimum percentage of positivity (similarity) between both
                   homologues (default: 50)
+   regions      : Boolean value to return regions used to look up paralogue
+                  variants (default: 1)
 
    matches      : Tabix-indexed VCF file containing matches between variants and
-                  their paralogues; these files can be downloaded from
-                  https://ftp.ensembl.org/pub/current_variation/Paralogues ;
-                  files with Paralogues matches can be obtained by running VEP
-                  on a big set of variants (such as ClinVar) with Paralogues
-                  plugin (recommended options: 'fields=all', 'min_perc_cov=0', 
-                  'min_perc_pos=0', 'clnsig=ignore'); the `matches` option is
-                  incompatible with the `paralogues` and `vcf` options
+                  their paralogue regions; pre-computed matches between ClinVar
+                  variants and their paralogue regions can be downloaded from
+                  https://ftp.ensembl.org/pub/current_variation/Paralogues; the
+                  `matches` option is incompatible with the `paralogues` option
    matches_info_field : Name of the INFO key used in the matches file with
                         consequence information (default: 'CSQ')
 
@@ -124,11 +145,10 @@ limitations under the License.
    clnsig       : Clinical significance term to filter variants (default:
                   'pathogenic'); use 'ignore' to fetch all paralogue variants,
                   regardless of clinical significance
-   clnsig_match : Type of match when filtering variants based on argument
+   clnsig_match : Type of match when filtering variants based on option
                   `clnsig`: 'partial' (default), 'exact' or 'regex'
    clnsig_col   : Column name containing clinical significance in custom VCF
-                  (required when using using `vcf` argument and
-                  `clnsig` different than 'ignore')
+                  (required with `vcf` option and if `clnsig` is not 'ignore')
 
  The tabix utility must be installed in your path to read the paralogue
  annotation and the custom VCF file.
@@ -593,12 +613,10 @@ sub _get_transcript_from_translation {
   return $transcript;
 }
 
-## FETCH VARIANTS FROM SOURCE --------------------------------------------------
+## GET PARALOGUE VARIANTS BASED ON MATCHES OR ANNOTATION -----------------------
 
-sub _fetch_matches_vars {
-  # fetch variants from matches file
+sub _get_paralogue_vars_from_matches {
   my ($self, $tva) = @_;
-
   my $vf     = $tva->variation_feature;
   my $allele = $tva->base_variation_feature->alt_alleles;
 
@@ -623,7 +641,7 @@ sub _fetch_matches_vars {
        pos  => $_->{start},
       }
     );
-    return {} unless @$matches;
+    next unless @$matches;
 
     my $all_results = {};
     my $feature_id = $tva->feature->stable_id;
@@ -632,24 +650,57 @@ sub _fetch_matches_vars {
       @hash{ @{$self->{matches_info_keys}} } = split /\|/, $field;
 
       next unless
+        $hash{'PARALOGUE_REGIONS'} and
         $hash{Feature} eq $feature_id and
         grep $hash{Allele}, @$allele;
 
-      for my $var (split(/\&/, $hash{'PARALOGUE_VARIANTS'})) {
-        my %par_var;
-        @par_var{ @{$self->{matches_paralogue_fields}} } = split /\:/, $var;
-        next unless $self->_is_clinically_significant (
-          [ split "/", $par_var{clinical_significance} ]);
-
-        my $info = join(':', map { $par_var{$_} } @{$self->{fields}});
-        $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
+      for my $var (split(/\&/, $hash{'PARALOGUE_REGIONS'})) {
+        my ($par_chr, $par_start, $par_end, $perc_cov, $perc_pos) = split(':', $var);
+        $all_results = $self->_get_paralogue_vars($par_chr, $par_start, $par_end, $perc_cov, $perc_pos, $all_results);
       }
     }
     return $all_results;
   }
-
   return {};
 }
+
+sub _get_paralogue_vars_from_annotation {
+  my ($self, $tva) = @_;
+  my $vf = $tva->variation_feature;
+
+  my $homologies = [];
+  if ($self->{remote}) {
+    $homologies = $self->_get_database_homologies($tva->transcript);
+  } else {
+    my $translation = $tva->transcript->translation;
+    $homologies = $self->{_cache_homologies}->{$translation->stable_id} ||=
+      $self->_get_paralogues($vf, $translation);
+  }
+  return {} unless @$homologies;
+
+  my $all_results = {};
+  for my $aln (@$homologies) {
+    my ($perc_cov, $perc_pos);
+    if ($aln->isa('Bio::EnsEMBL::Compara::Homology')) {
+      my $ref = $aln->get_all_Members->[0];
+      $perc_cov = $ref->perc_cov;
+      $perc_pos = $ref->perc_pos;
+      $aln = $aln->get_SimpleAlign;
+    } elsif ($aln->isa('Bio::SimpleAlign')) {
+      $perc_cov = $aln->{_stats}->{ref_perc_cov};
+      $perc_pos = $aln->{_stats}->{ref_perc_pos};
+    } else {
+      next;
+    }
+
+    my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $aln);
+    next unless defined $chr and defined $start and defined $end;
+    $all_results = $self->_get_paralogue_vars($chr, $start, $end, $perc_cov, $perc_pos, $all_results);
+  }
+  return $all_results;
+}
+
+## FETCH VARIANTS FROM SOURCE --------------------------------------------------
 
 sub _fetch_cache_vars {
   # fetch variants from VEP cache
@@ -737,10 +788,14 @@ sub _get_paralogue_vars {
       # check clinical significance (if set)
       next unless $self->_is_clinically_significant($var->{clinical_significance});
       my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
-      $all_results = $self->_join_results($all_results, $res);
+      $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
     }
   }
 
+  if ($self->{regions}) {
+    my $regions = { PARALOGUE_REGIONS => "$chr:$start:$end:$perc_cov:$perc_pos" };
+    $all_results = $self->_join_results($all_results, $regions);
+  }
   return $all_results;
 }
 
@@ -778,8 +833,6 @@ sub _prepare_matches_params {
 
   die "ERROR: options 'matches' and 'paralogues' are incompatible\n"
     if defined $params->{paralogues};
-  die "ERROR: options 'matches' and 'vcf' are incompatible\n"
-    if defined $params->{vcf};
 
   $self->{matches_info_field} = $params->{matches_info_field} || 'CSQ';
   die "ERROR: 'matches=$self->{matches}': file not found\n"
@@ -787,6 +840,7 @@ sub _prepare_matches_params {
   die "ERROR: 'matches=$self->{matches}': respective TBI file not found\n"
     unless -e $self->{matches} . ".tbi" || -e $self->{matches} . ".csi";
 
+  # Get keys for CSQ fields
   my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($self->{matches});
   my $info = $vcf_file->get_metadata_by_pragma('INFO');
   for (@$info) {
@@ -797,11 +851,9 @@ sub _prepare_matches_params {
     $self->{matches_info_keys} = [ split /\|/, ($format || '') ];
   }
 
-  my $par_pragma = $vcf_file->get_metadata_by_pragma('PARALOGUE_VARIANTS');
-  if (defined $par_pragma) {
-    my ($par_fields) = $par_pragma =~ 'fields: (.*?)\)?$';
-    $self->{matches_paralogue_fields} = [ split /\:/, ($par_fields || '') ];
-  }
+  # Check if PARALOGUE_REGIONS is described in header
+  my $par_pragma = $vcf_file->get_metadata_by_pragma('PARALOGUE_REGIONS');
+  die "ERROR: could not find 'PARALOGUE_REGIONS' in header of $self->{matches}\n" unless defined $par_pragma;
   return $self;
 }
 
@@ -817,11 +869,12 @@ sub new {
   my $config = $self->{config};
 
   # Thresholds for minimum percentage of homology similarity and coverage
-  $self->{min_perc_cov} = $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
-  $self->{min_perc_pos} = $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
+  $self->{min_perc_cov} = defined $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
+  $self->{min_perc_pos} = defined $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
+  $self->{regions}      = defined $params->{regions}      ? $params->{regions}      : 1;
 
-  # File with matches between variant and their paralogues
   if (defined $params->{matches}) {
+    # File with matches between variants and their paralogues regions
     $self->{matches} = $params->{matches};
     $self->add_file($self->{matches});
     $self->_prepare_matches_params($params);
@@ -898,9 +951,7 @@ sub get_header_info {
   my $self = shift;
 
   my $source;
-  if (defined $self->{matches}) {
-    $source = basename $self->{matches};
-  } elsif (defined $self->{vcf}) {
+  if (defined $self->{vcf}) {
     $source = basename $self->{vcf};
   } elsif ($self->{config}->{cache}) {
     $source = 'VEP cache';
@@ -910,7 +961,9 @@ sub get_header_info {
 
   my $fields = join(':', @{ $self->{fields} });
   my $description = "Variants from $source in paralogue proteins (colon-separated fields: $fields)";
-  return { PARALOGUE_VARIANTS => $description };
+  my $header = { PARALOGUE_VARIANTS => $description };
+  $header->{PARALOGUE_REGIONS} = 'Regions used to look up paralogue variants (colon-separated fields: chromosome:start:end:perc_cov:perc_pos)' if $self->{regions};
+  return $header;
 }
 
 sub _join_results {
@@ -970,7 +1023,7 @@ sub _summarise_vf {
     }
     push @var, $info || '';
   }
-  return { PARALOGUE_VARIANTS => join(':', @var) };
+  return join(':', @var);
 }
 
 sub _is_clinically_significant {
@@ -1015,6 +1068,7 @@ sub _prepare_vcf_info {
 sub run {
   my ($self, $tva) = @_;
 
+  # Quick checks to save time
   my $vf = $tva->variation_feature;
   my $translation_start = $tva->base_variation_feature_overlap->translation_start;
   my $translation_end   = $tva->base_variation_feature_overlap->translation_end;
@@ -1022,38 +1076,9 @@ sub run {
     defined $translation_start and defined $translation_end and
     $translation_start == $translation_end;
 
-  return $self->_fetch_matches_vars($tva) if $self->{matches};
-
-  my $homologies = [];
-  if ($self->{remote}) {
-    $homologies = $self->_get_database_homologies($tva->transcript);
-  } else {
-    my $translation = $tva->transcript->translation;
-    $homologies = $self->{_cache_homologies}->{$translation->stable_id} ||=
-      $self->_get_paralogues($vf, $translation);
-  }
-  return {} unless @$homologies;
-
-  my $all_results = {};
-  for my $aln (@$homologies) {
-    my ($perc_cov, $perc_pos);
-    if ($aln->isa('Bio::EnsEMBL::Compara::Homology')) {
-      my $ref = $aln->get_all_Members->[0];
-      $perc_cov = $ref->perc_cov;
-      $perc_pos = $ref->perc_pos;
-      $aln = $aln->get_SimpleAlign;
-    } elsif ($aln->isa('Bio::SimpleAlign')) {
-      $perc_cov = $aln->{_stats}->{ref_perc_cov};
-      $perc_pos = $aln->{_stats}->{ref_perc_pos};
-    } else {
-      next;
-    }
-
-    my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $aln);
-    next unless defined $chr and defined $start and defined $end;
-    $all_results = $self->_get_paralogue_vars($chr, $start, $end, $perc_cov, $perc_pos, $all_results);
-  }
-  return $all_results;
+  return $self->{matches} ?
+    $self->_get_paralogue_vars_from_matches($tva) :
+    $self->_get_paralogue_vars_from_annotation($tva);
 }
 
 sub parse_data {
