@@ -65,8 +65,7 @@ limitations under the License.
       https://ftp.ensembl.org/pub/current_variation/Paralogues and set option
       `matches` to the file path; if you also want to create these mapped
       annotations with any set of variants, run VEP with VCF output and
-      Paralogues plugin (using options:
-      'regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore')
+      Paralogues plugin (options: 'regions=1,min_perc_cov=0,min_perc_pos=0')
    2. Ensembl paralogue annotation; these versatile annotations can look up
       paralogue regions for all variants from any species with Ensembl paralogues
 
