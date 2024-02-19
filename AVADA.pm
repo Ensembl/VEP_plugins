@@ -90,7 +90,6 @@ package AVADA;
 
 use strict;
 use warnings;
-use Data::Dumper;
 use List::MoreUtils qw(uniq);
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
