@@ -38,7 +38,7 @@ monogenic disease and convert it to genomic coordinates.
 Please cite the AVADA publication alongside the VEP if you use this resource:
 https://pubmed.ncbi.nlm.nih.gov/31467448/
 
-NB: The plugin currently does not annotate for downstream_gene_variant and upstream_gene_variant 
+NB: The plugin currently does not annotate for downstream_gene_variant and upstream_gene_variant.
 
 Pre-requisites
 1) AVADA data is available for GRCh37 and can be downloaded from: 
@@ -69,7 +69,7 @@ AVADA_PMID_WITH_VARIANT: PubMed ID evidence for the variant as reported by AVADA
 AVADA_PMID_WITH_REFSEQ: PubMed ID evidence for the variant as reported by AVADA along with RefSeq id
 AVADA_PMID_WITH_REFSEQ_AND_VARIANT: PubMed ID evidence for the variant as reported by AVADA along with RefSeq id and original variant string
 
-The plugin can optionally be run by specifying the feature to match with
+The plugin can optionally be run by specifying the feature to match with.
 
 In order to match by HGNC gene symbol:
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=gene_symbol 
@@ -77,11 +77,10 @@ In order to match by HGNC gene symbol:
 In order to match by Ensembl gene identifier :
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=ensembl_gene_id
 
-The plugin can also be run to report the original variant string associated with a RefSeq trancript/protein id 
-reported in the publication. 
+The plugin can also be run to report the original variant string reported in the publication. 
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,original_variant_string=1
 
-Additionally, the plugin can be run to match RefSeq identifier from VEP cache/database with AVADA data
+Additionally, the plugin can be run to match RefSeq identifier from VEP cache/database with AVADA data.
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,match_by_refseq=1
 
 =cut
