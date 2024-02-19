@@ -117,8 +117,10 @@ sub run {
 
       my $mut_seq = $ref_seq;
       
-      # Remove represented deleted peptide "-" from alt sequence 
-      $mut_aa =~ s/-//g;
+      # Remove represented deleted peptide "-" from alt sequence except stop_lost variants
+      
+      $mut_aa =~ s/-//g unless grep {$_->SO_term eq 'stop_lost'} @{$tva->get_all_OverlapConsequences};
+
       
       substr($mut_seq, $tl_start-1, $tl_end - $tl_start + 1) = $mut_aa;
       # print out our reference and mutant sequences
