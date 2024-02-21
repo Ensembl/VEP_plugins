@@ -62,9 +62,10 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
 
- file   : (mandatory) Path to GWAS curated or summary statistics file
- type   : type of the file. Valid values are "curated" and "sstate".
- quiet  : do not display warning messages
+ file     : (mandatory) Path to GWAS curated or summary statistics file
+ type     : type of the file. Valid values are "curated" and "sstate". Default is "curated".
+ quiet    : do not display warning messages. Valid values are 0 or 1. Default is 0.
+ skip_db  : skip querying database during creation of parsed file. It will make the creation of the parsed file faster. Valid values are 0 or 1. Default is 0.
 
 =cut
 
@@ -98,6 +99,7 @@ sub new {
     $self->{type} eq "curated" || $self->{type} eq "sstate");
 
   $self->{quiet} = $param_hash->{quiet} || 0;
+  $self->{skip_db} = $param_hash->{skip_db} || 0;
   
   # processed file is assumed to be present under --dir 
   my $config = $self->{config};
@@ -110,22 +112,6 @@ sub new {
   if ($self->{type} eq "curated") {
     # create processed file with genomic location and index - only run if already not created
     unless (-e $self->{processed_file}){
-      my $reg = 'Bio::EnsEMBL::Registry';
-
-      if($config->{host}) {
-          $reg->load_registry_from_db(
-              -host       => $config->{host},
-              -user       => $config->{user},
-              -pass       => $config->{password},
-              -port       => $config->{port},
-              -species    => $config->{species},
-              -db_version => $config->{db_version},
-              -no_cache   => $config->{no_slice_cache},
-          );
-      }
-      
-      $self->{"va"} = $reg->get_adaptor('human', 'variation', 'variation');
-      
       # create the processed file from the input file given
       $self->create_curated_processed_file($self->{file});
     }
@@ -208,12 +194,28 @@ sub run {
   return {};
 }
 
-sub get_vfs_from_id {
+sub get_vfs_from_db {
   my ($self, $id) = @_;
+
+  my $reg = 'Bio::EnsEMBL::Registry';
+  my $config = $self->{config};
+
+  if($config->{host}) {
+      $reg->load_registry_from_db(
+          -host       => $config->{host},
+          -user       => $config->{user},
+          -pass       => $config->{password},
+          -port       => $config->{port},
+          -species    => $config->{species},
+          -db_version => $config->{db_version},
+          -no_cache   => $config->{no_slice_cache},
+      );
+  }
+
+  my $va = $reg->get_adaptor($config->{species}, 'variation', 'variation');
+  return [] unless defined $va;
   
-  return [] unless defined $self->{va};
-  
-  my $v = $self->{va}->fetch_by_name($id);
+  my $v = $va->fetch_by_name($id);
   return [] unless defined $v;
   
   my $locations = [];
@@ -231,25 +233,47 @@ sub get_vfs_from_id {
   return $locations;
 }
 
+sub get_vfs_from_file {
+  my ($self, $chr, $start, $end) = @_;
+
+  my @chrs = split(/[;,x]/, $chr);
+  my @starts = split(/[;,x]/, $start);
+  my @ends = split(/[;,x]/, $end);
+
+  my $locations = [];
+  for (0..$#chrs) {
+    my $location = {
+      "seq"   => $chrs[$_],
+      "start" => $starts[$_],
+      "end"   => $ends[$_],
+      "ref"   => "N"
+    };
+
+    push @{ $locations }, $location;
+  }
+  
+  return $locations;
+}
+
 sub parse_curated_file {
-  my ($self, $line_content) = @_;
+  my ($self, $content) = @_;
 
-  my %content= %$line_content;
-  $content{$_} = $row_data[$headers{$_}] for keys %headers;
-
-  my $pubmed_id      = $content{'PUBMEDID'};
-  my $study          = $content{'STUDY ACCESSION'};
-  my $phenotype      = $content{'DISEASE/TRAIT'};
-  my $gene           = ($content{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content{'REPORTED GENE(S)'};
-  my $rs_risk_allele = ($content{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content{'STRONGEST SNP-RISK ALLELE'};
-  my $rs_id          = $content{'SNPS'};
-  my $pvalue         = ($content{'P-VALUE'} ne '') ? $content{'P-VALUE'} : '';
-  my $ratio          = $content{'OR OR BETA'};
-  my $ratio_info     = $content{'95% CI (TEXT)'};
-  my @accessions     = split/\,/, $content{'MAPPED_TRAIT_URI'};
+  my $pubmed_id      = $content->{'PUBMEDID'};
+  my $study          = $content->{'STUDY ACCESSION'};
+  my $phenotype      = $content->{'DISEASE/TRAIT'};
+  my $gene           = ($content->{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content->{'REPORTED GENE(S)'};
+  my $rs_risk_allele = ($content->{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content->{'STRONGEST SNP-RISK ALLELE'};
+  my $rs_id          = $content->{'SNPS'};
+  my $pvalue         = ($content->{'P-VALUE'} ne '') ? $content->{'P-VALUE'} : '';
+  my $ratio          = $content->{'OR OR BETA'};
+  my $ratio_info     = $content->{'95% CI (TEXT)'};
+  my @accessions     = split/\,/, $content->{'MAPPED_TRAIT_URI'};
+  my $chr            = $content->{'CHR_ID'};
+  my $start          = $content->{'CHR_POS'};;
+  my $end            = $content->{'CHR_POS'};; 
 
   warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if (($phenotype eq '') && !$self->{quiet});
-  next if ($phenotype eq '');
+  return {} if ($phenotype eq '');
 
   $gene =~ s/\s+//g;
   $gene =~ s/–/-/g;
@@ -307,14 +331,15 @@ sub parse_curated_file {
 
   # if we did not get any rsIds, skip this row (this will also get rid of the header)
   warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids) && !$self->{quiet});
-  next if (!scalar(@ids));
+  return {} if (!scalar(@ids));
 
+  my @phenotypes;
   map {
     my $id = $_;
 
     my $t_data = dclone \%data;
     
-    my $vfs = $self->get_vfs_from_id($id);
+    my $vfs = $self->{skip_db} ? $self->get_vfs_from_file($chr, $start, $end) : $self->get_vfs_from_db($id);
     $t_data->{"id"} = $id;
     $t_data->{"vfs"} = $vfs;
     
@@ -349,7 +374,7 @@ sub create_curated_processed_file {
     open($input_FH, '<', $input_file) || die ("Could not open $input_file for reading: $!\n");
   }
 
-  my (%headers, @phenotypes);
+  my %headers;
   # read through the file and parse out the desired fields
   while (<$input_FH>) {
     chomp;
@@ -365,8 +390,7 @@ sub create_curated_processed_file {
 
       my %content;
       $content{$_} = $row_data[$headers{$_}] for keys %headers;
-      
-      my $data = parse_curated_file(\%content);
+      my $data = $self->parse_curated_file(\%content);
   
       foreach my $phenotype (@{ $data->{"phenotypes"} }){
         foreach my $vf (@{ $phenotype->{"vfs"} }){
