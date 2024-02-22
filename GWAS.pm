@@ -57,15 +57,16 @@ limitations under the License.
  Please keep the filename format as it is because filename is parsed to get information.
  
  When run for the first time the for either type of file plugin will create a processed file that have genomic locations and indexed and 
- put it under the --dir location determined by Ensembl VEP. It might take 1~2 hour(s) to create the processed file depending on the file size. 
- But subsequent runs will be faster as the plugin will be using the already generated processed file.
+ put it under the --dir location determined by Ensembl VEP. If use_db=1 option is used, depending on the file size it might take hour(s) to create 
+ the processed file. Subsequent runs will be faster as the plugin will be using the already generated processed file. This option is not used by 
+ default and the variant information is generally taken directly from the file provided.
 
  Options are passed to the plugin as key=value pairs:
 
  file     : (mandatory) Path to GWAS curated or summary statistics file
  type     : type of the file. Valid values are "curated" and "sstate". Default is "curated".
  quiet    : do not display warning messages. Valid values are 0 or 1. Default is 0.
- skip_db  : skip querying database during creation of parsed file. It will make the creation of the parsed file faster. Valid values are 0 or 1. Default is 0.
+ use_db   : get variant information from Ensembl database during creation of processed file. Valid values are 0 or 1. Default is 0.
 
 =cut
 
@@ -99,7 +100,7 @@ sub new {
     $self->{type} eq "curated" || $self->{type} eq "sstate");
 
   $self->{quiet} = $param_hash->{quiet} || 0;
-  $self->{skip_db} = $param_hash->{skip_db} || 0;
+  $self->{use_db} = $param_hash->{use_db} || 0;
   
   # processed file is assumed to be present under --dir 
   my $config = $self->{config};
@@ -176,7 +177,7 @@ sub run {
   foreach (@data) {
     # if use_db=0 is used we do not check ref allele 
     $_->{ref} = $vf->ref_allele_string if ($_->{ref} eq "" || $_->{ref} eq "N");
-    
+
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
@@ -241,6 +242,8 @@ sub get_vfs_from_file {
   my @chrs = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $chr);
   my @starts = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $start);
   my @ends = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $end);
+
+  return [] if (scalar @chrs != scalar @starts && scalar @chrs != scalar @ends);
 
   my $locations = [];
   for (0..$#chrs) {
@@ -341,7 +344,7 @@ sub parse_curated_file {
 
     my $t_data = dclone \%data;
     
-    my $vfs = $self->{skip_db} ? $self->get_vfs_from_file($chr, $start, $end) : $self->get_vfs_from_db($id);
+    my $vfs = $self->{use_db} ? $self->get_vfs_from_db($id) : $self->get_vfs_from_file($chr, $start, $end);
     $t_data->{"id"} = $id;
     $t_data->{"vfs"} = $vfs;
     
