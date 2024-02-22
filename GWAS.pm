@@ -174,7 +174,9 @@ sub run {
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
   foreach (@data) {
-    $_->{ref} = $vf->ref_allele_string if $_->{ref} eq "";
+    # if use_db=0 is used we do not check ref allele 
+    $_->{ref} = $vf->ref_allele_string if ($_->{ref} eq "" || $_->{ref} eq "N");
+    
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
@@ -236,9 +238,9 @@ sub get_vfs_from_db {
 sub get_vfs_from_file {
   my ($self, $chr, $start, $end) = @_;
 
-  my @chrs = split(/[;,x]/, $chr);
-  my @starts = split(/[;,x]/, $start);
-  my @ends = split(/[;,x]/, $end);
+  my @chrs = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $chr);
+  my @starts = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $start);
+  my @ends = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $end);
 
   my $locations = [];
   for (0..$#chrs) {
