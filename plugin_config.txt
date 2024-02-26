@@ -20,7 +20,7 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
-        #"/path/to/dbNSFP4.5c_grch38.gz",
+        #"/path/to/dbNSFP4.6c_grch38.gz",
         "@*"
       ],
       "species" => [
@@ -36,7 +36,7 @@ my $VEP_PLUGIN_CONFIG = {
           'multiple' => 1,
           'style' => 'height:150px',
           'required' => 1,
-          'notes' => 'Field descriptions in <a rel="external" href="https://usf.app.box.com/s/jpg94a3t0qi529095v7wn4kpmr1at2aa">dbNSFP README</a>',
+          'notes' => 'Field descriptions in <a rel="external" href="https://usf.box.com/s/azp443vfh3zlpep4bt0oap0k3c3afzgj">dbNSFP README</a>',
           # "class" => "jquery-multiselect",
           "values" => [
             #"#chr",
@@ -718,8 +718,14 @@ my $VEP_PLUGIN_CONFIG = {
             "clinvar_OMIM_id",
             "clinvar_Orphanet_id",
             "Interpro_domain",
-            "GTEx_V8_gene",
-            "GTEx_V8_tissue",
+            "GTEx_V8_eQTL_gene",
+            "GTEx_V8_eQTL_tissue",
+            "GTEx_V8_sQTL_gene",
+            "GTEx_V8_sQTL_tissue",
+            "eQTLGen_snp_id",
+            "eQTLGen_gene_id",
+            "eQTLGen_gene_symbol",
+            "eQTLGen_cis_or_trans",
             "Geuvadis_eQTL_target_gene",
           ],
         },
