@@ -110,7 +110,7 @@ sub run {
     substr($cds_seq, $start - 1, $end - $start + 1) = $tva->seq_length > 0 ? $tva->feature_seq : '';
 
     my $low_pos = $start > $end ? $end : $start;
-    my $last_complete_codon = $low_pos - ( ( ( $low_pos - 1 ) % 3 ) + 1 );
+    my $last_complete_codon = $low_pos - ( $low_pos  % 3 );
 
     my $downstream_seq = substr($cds_seq, $last_complete_codon > 0 ? $last_complete_codon : 0);
     my $three_prime_utr = $tr->three_prime_utr ? $tr->three_prime_utr->seq() : '';
