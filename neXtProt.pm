@@ -88,7 +88,7 @@ limitations under the License.
   Of notice, multiple values can be returned for the same label. In this case, the values will
   be separeted by '|' for tab and txt format, and '&' for VCF format. 
 
-  N/B: This plugin requires a connection to the Database and API, can not be used in offline mode.
+  N/B: This plugin requires a connection to the Ensembl database, and can not be used in offline mode.
 
  The plugin can then be run as default:
  ./vep -i variations.vcf --plugin neXtProt
@@ -126,7 +126,7 @@ sub new {
   my $param_hash = $self->params_to_hash();
 
   if (defined($self->{config}->{offline})) {
-    die "Plugin can not work in offline mode \n";
+    die "This plugin requires a connection to the Ensembl database, and can not be used in offline mode.Plugin can not work in offline mode. \n";
   }
 
   if(defined($param_hash->{max_set}) && defined($param_hash->{return_values})) {
