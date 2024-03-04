@@ -88,6 +88,8 @@ limitations under the License.
   Of notice, multiple values can be returned for the same label. In this case, the values will
   be separeted by '|' for tab and txt format, and '&' for VCF format. 
 
+  N/B: This plugin requires a connection to the Ensembl database, and can not be used in offline mode.
+
  The plugin can then be run as default:
  ./vep -i variations.vcf --plugin neXtProt
 
@@ -122,6 +124,10 @@ sub new {
   my $self = $class->SUPER::new(@_);
 
   my $param_hash = $self->params_to_hash();
+
+  if (defined($self->{config}->{offline})) {
+    die "This plugin requires a connection to the Ensembl database, and can not be used in offline mode. \n";
+  }
 
   if(defined($param_hash->{max_set}) && defined($param_hash->{return_values})) {
     die "ERROR: Can't use max_set and return_values simultaneously!\n";
@@ -198,11 +204,14 @@ sub run {
   my $translation_id = $tva->transcript->translation->stable_id;
 
   my $tl = $tva->transcript->translation;
+
   my @uniprot = @{$tl->get_all_DBLinks('Uniprot_isoform')};
 
+
   return {} unless defined($peptide_start) && scalar @uniprot > 0; 
-  
+
   my $isoform_id = $uniprot[0]->display_id;
+
 
   my $query = $self->get_sparql_query($peptide_start,$isoform_id);
 
@@ -212,7 +221,6 @@ sub run {
     $query_output = `curl -X POST -H "Accept:application/sparql-results+json" --data-urlencode "query=$query" https://sparql.nextprot.org/ 2> /dev/null`;
   };
   warn $@ if $@;
-
   my $output = decode_json ($query_output);
 
   my %result_hash;
