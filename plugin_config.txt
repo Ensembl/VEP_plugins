@@ -957,24 +957,6 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
-    # pLI
-    # Requires pLI_values.txt file as first param (available in VEP_plugins GitHub repo)
-    {
-      "key" => "pLI",
-      "helptip" => "Provides a per-gene or per transcript probability of being loss-of-function intolerant (pLI)",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/pLI.pm",
-      "requires_data" => 1,
-      "species" => [
-        "homo_sapiens"
-      ],
-      "params" => [
-        # "/path/to/pLI_values.txt"
-      ]
-    },
-
     # MPC
     # Requires fordist_constraint_official_mpc_values.txt.gz data file
     {
@@ -1074,26 +1056,6 @@ my $VEP_PLUGIN_CONFIG = {
         # "/path/to/ClinPred_tabbed.tsv.gz"
       ]
     },
-    
-    # LOEUF
-    # Requires data file processed from supplementary_dataset_11_full_constraint_metrics.tsv.gz
-    # Only available for GRCh37
-    {
-      "key" => "LOEUF",
-      "helptip" => "LOEUF stands for the 'loss-of-function observed/expected upper bound fraction'. This plugin adds constraint scores derived from gnomAD to VEP",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Pathogenicity predictions",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/LOEUF.pm",
-      "requires_data" => 1,
-      "species" => [
-        "homo_sapiens"
-      ],
-      "params"  => [
-        # "/path/to/loeuf_dataset.gz",
-        "@*"
-      ]
-    },
 
     # EVE
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/EVE.pm
@@ -1150,24 +1112,6 @@ my $VEP_PLUGIN_CONFIG = {
       "params" => [
         #"/path/to/BayesDel.vcf.gz"
       ]
-    },
-
-    # DosageSensitivity
-    {
-      "key" => "DosageSensitivity",
-      "label" => "DosageSensitivity",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Pathogenicity predictions",
-      "helptip" => "DosageSensitivity determines the likelihood of a gene being haploinsufficient or triplosensitive",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DosageSensitivity.pm",
-      "requires_data" => 1,
-      "params"  => [
-        "#file=/path/to/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz"
-      ],
-      "species" => [
-        "homo_sapiens"
-      ],
     },
 
     ## SPLICING PREDICTIONS
@@ -1806,6 +1750,65 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "section" => "Structural variant data",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/StructuralVariantOverlap.pm"
+    },
+
+    ## GENE TOLERANCE TO CHANGE
+    ###########################
+
+    # DosageSensitivity
+    {
+      "key" => "DosageSensitivity",
+      "label" => "DosageSensitivity",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Gene tolerance to change",
+      "helptip" => "DosageSensitivity determines the likelihood of a gene being haploinsufficient or triplosensitive",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DosageSensitivity.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#file=/path/to/Collins_rCNV_2022.dosage_sensitivity_scores.tsv.gz"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+    },
+
+    # LOEUF
+    # Requires data file processed from supplementary_dataset_11_full_constraint_metrics.tsv.gz
+    # Only available for GRCh37
+    {
+      "key" => "LOEUF",
+      "helptip" => "LOEUF stands for the 'loss-of-function observed/expected upper bound fraction'. This plugin adds constraint scores derived from gnomAD to VEP",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Gene tolerance to change",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/LOEUF.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params"  => [
+        # "/path/to/loeuf_dataset.gz",
+        "@*"
+      ]
+    },
+
+    # pLI
+    # Requires pLI_values.txt file as first param (available in VEP_plugins GitHub repo)
+    {
+      "key" => "pLI",
+      "helptip" => "Provides a per-gene or per transcript probability of being loss-of-function intolerant (pLI)",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Gene tolerance to change",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/pLI.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        # "/path/to/pLI_values.txt"
+      ]
     },
 
     ## TRANSCRIPT ANNOTATION
