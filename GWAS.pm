@@ -65,7 +65,7 @@ limitations under the License.
 
  file     : (mandatory) Path to GWAS curated or summary statistics file
  type     : type of the file. Valid values are "curated" and "sstate". Default is "curated".
- quiet    : do not display warning messages. Valid values are 0 or 1. Default is 0.
+ verbose  : display info level messages. Valid values are 0 or 1. Default is 0.
  use_db   : get variant information from Ensembl database during creation of processed file. Valid values are 0 or 1. Default is 0.
 
 =cut
@@ -99,7 +99,7 @@ sub new {
   die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
     $self->{type} eq "curated" || $self->{type} eq "sstate");
 
-  $self->{quiet} = $param_hash->{quiet} || 0;
+  $self->{verbose} = $param_hash->{verbose} || 0;
   $self->{use_db} = $param_hash->{use_db} || 0;
   
   # processed file is assumed to be present under --dir 
@@ -277,7 +277,7 @@ sub parse_curated_file {
   my $start          = $content->{'CHR_POS'};;
   my $end            = $content->{'CHR_POS'};; 
 
-  warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if (($phenotype eq '') && !$self->{quiet});
+  warn "INFO: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if (($phenotype eq '') && $self->{verbose});
   return {} if ($phenotype eq '');
 
   $gene =~ s/\s+//g;
@@ -335,7 +335,7 @@ sub parse_curated_file {
   }
 
   # if we did not get any rsIds, skip this row (this will also get rid of the header)
-  warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids) && !$self->{quiet});
+  warn "INFO: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids) && $self->{verbose});
   return {} if (!scalar(@ids));
 
   my @phenotypes;
