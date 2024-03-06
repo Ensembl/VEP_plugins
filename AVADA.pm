@@ -97,7 +97,7 @@ sub get_header_info {
   my $self = shift;
   my %header;
 
-  $header{"AVADA_GENE_ID"} = "Gene ID associated with variant as reported by AVADA" ; 
+  $header{"AVADA_GENE_ID"} = "Gene ID associated with variant as reported by AVADA" if $self->{feature_match_by} ; 
   $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA" if not $self->{original_variant_string} and not $self->{match_by_refseq} ;  
   $header{"AVADA_PMID_WITH_VARIANT"} = "PubMed ID evidence for the variant as reported by AVADA along with original variant string" if $self->{original_variant_string} and not $self->{match_by_refseq}; 
   $header{"AVADA_PMID_WITH_REFSEQ"} = "PubMed ID evidence for the variant as reported by AVADA along with RefSeq id" if not $self->{original_variant_string} and $self->{match_by_refseq}; 
@@ -124,8 +124,7 @@ sub new {
   $self->{original_variant_string} = $param_hash->{original_variant_string}; 
 
   if ($self->{match_by_refseq}) {
-    $self->{config}->{refseq} = 1 unless $self->{config}->{database} == 1 ; # when using db, refseq is not enabled in spite of forcing in code
-    die "\n ERROR: Matching by Refseq ID requires the option --refseq when using the database  \n" if $self->{config}->{refseq} == 0 && $self->{config}->{database} == 1;
+    die "\n ERROR: Matching by Refseq ID requires the option --refseq or --merged \n" unless (defined($self->{config}->{refseq}) || defined($self->{config}->{merged}));
   }
   return $self;
 }
@@ -183,7 +182,7 @@ sub run {
   my %seen;
   foreach my $data_value (uniq @data) {
     next unless $alt_allele eq $data_value->{AVADA_ALT};
-    $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key};
+    $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key} if (defined($self->{feature_match_by}));
 
     my $pmid_variant;
     # Output (except json) is in string format (Eg: "PMID%RefSeq_ID%Variant_string") 
