@@ -27,7 +27,7 @@ limitations under the License.
 
 =head1 SYNOPSIS
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file
-./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=<gene_symbol|ensembl_gene_id>
+./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=<gene_symbol|ensembl_gene_id|refseq_id>
 
 =head1 DESCRIPTION
 
@@ -60,14 +60,11 @@ The plugin can then be run to retrieve AVADA annotations.
 By default, the variants are matched with the HGNC gene symbol
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file
 
-The output always includes the following column:
-AVADA_GENE_ID: Gene ID associated with variant as reported by AVADA
-
-One of the following columns is included depending on the option passed:
+The output always includes one of the following columns depending on the option passed:
 AVADA_PMID: PubMed ID evidence for the variant as reported by AVADA
 AVADA_PMID_WITH_VARIANT: PubMed ID evidence for the variant as reported by AVADA along with the original variant string
-AVADA_PMID_WITH_REFSEQ: PubMed ID evidence for the variant as reported by AVADA along with RefSeq id
-AVADA_PMID_WITH_REFSEQ_AND_VARIANT: PubMed ID evidence for the variant as reported by AVADA along with RefSeq id and original variant string
+AVADA_PMID_WITH_FEATURE: PubMed ID evidence for the variant as reported by AVADA along with feature id
+AVADA_PMID_WITH_FEATURE_AND_VARIANT: PubMed ID evidence for the variant as reported by AVADA along with feature id and original variant string
 
 The plugin can optionally be run by specifying the feature to match with.
 
@@ -77,11 +74,12 @@ In order to match by HGNC gene symbol:
 In order to match by Ensembl gene identifier :
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=ensembl_gene_id
 
+In order to match by RefSeq identifier :
+./vep -i variations.vcf --plugin AVADA,file=path/to/file,feature_match_by=refseq_id
+
 The plugin can also be run to report the original variant string reported in the publication. 
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file,original_variant_string=1
 
-Additionally, the plugin can be run to match RefSeq identifier from VEP cache/database with AVADA data.
-./vep -i variations.vcf --plugin AVADA,file=path/to/file,match_by_refseq=1
 
 =cut
 
@@ -97,11 +95,10 @@ sub get_header_info {
   my $self = shift;
   my %header;
 
-  $header{"AVADA_GENE_ID"} = "Gene ID associated with variant as reported by AVADA" if $self->{feature_match_by} ; 
-  $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA" if not $self->{original_variant_string} and not $self->{match_by_refseq} ;  
-  $header{"AVADA_PMID_WITH_VARIANT"} = "PubMed ID evidence for the variant as reported by AVADA along with original variant string" if $self->{original_variant_string} and not $self->{match_by_refseq}; 
-  $header{"AVADA_PMID_WITH_REFSEQ"} = "PubMed ID evidence for the variant as reported by AVADA along with RefSeq id" if not $self->{original_variant_string} and $self->{match_by_refseq}; 
-  $header{"AVADA_PMID_WITH_REFSEQ_AND_VARIANT"} = "PubMed ID evidence for the variant as reported by AVADA along with RefSeq id and original variant string" if $self->{original_variant_string} and $self->{match_by_refseq}; 
+  $header{"AVADA_PMID"} = "PubMed ID evidence for the variant as reported by AVADA" if not $self->{original_variant_string} and not $self->{feature_match_by} ;  
+  $header{"AVADA_PMID_WITH_VARIANT"} = "PubMed ID evidence for the variant as reported by AVADA along with original variant string. The string is of format: PMID\%variant_string" if $self->{original_variant_string} and not $self->{feature_match_by}; 
+  $header{"AVADA_PMID_WITH_FEATURE"} = "PubMed ID evidence for the variant as reported by AVADA along with feature id. The string is of format: PMID\%feature_id" if not $self->{original_variant_string} and $self->{feature_match_by}; 
+  $header{"AVADA_PMID_WITH_FEATURE_AND_VARIANT"} = "PubMed ID evidence for the variant as reported by AVADA along with feature id and original variant string. The string is of format: PMID\%feature_id\%variant_string" if $self->{original_variant_string} and $self->{feature_match_by}; 
 
   return \%header
 }
@@ -120,10 +117,9 @@ sub new {
   die "\n  ERROR: No file specified\nTry using 'AVADA,file=path/to/file.tsv.gz'\n" unless defined($file);
   $self->add_file($file);
   $self->{feature_match_by} = $param_hash->{feature_match_by}; 
-  $self->{match_by_refseq} = $param_hash->{match_by_refseq}; 
   $self->{original_variant_string} = $param_hash->{original_variant_string}; 
 
-  if ($self->{match_by_refseq}) {
+  if ($self->{feature_match_by} and $self->{feature_match_by} eq "refseq_id" ) {
     die "\n ERROR: Matching by Refseq ID requires the option --refseq or --merged \n" unless (defined($self->{config}->{refseq}) || defined($self->{config}->{merged}));
   }
   return $self;
@@ -145,7 +141,7 @@ sub run {
   my %output;
   my $refseq_transcript;
   my $refseq_protein;
-  my $gene_key = "AVADA_GENE_SYMBOL";
+  my $feature_key; 
   my @data;
 
   if (!defined($self->{feature_match_by})){
@@ -155,17 +151,15 @@ sub run {
     @data = grep {
     $_->{AVADA_GENE_SYMBOL} eq $transcript->{_gene_symbol}
     }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
+    $feature_key = "AVADA_GENE_SYMBOL";
   }
   elsif ( $self->{feature_match_by} eq "ensembl_gene_id" ){
-  @data = grep {
+    @data = grep {
     $_->{AVADA_ENSEMBL_ID} eq $transcript->{_gene_stable_id}
     }@{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
-  $gene_key = "AVADA_ENSEMBL_ID";
+    $feature_key = "AVADA_ENSEMBL_ID";
   }
-  else{
-    die("ERROR: feature_match_by can only take one of the options gene_symbol|ensembl_gene_id ");
-  }
-  if ( $self->{match_by_refseq} ){
+  elsif ( $self->{feature_match_by} eq "refseq_id" ){
     $refseq_transcript = $transcript->{stable_id};
     $refseq_protein = $transcript->translation->{stable_id} if defined($transcript->translation);
     $refseq_protein =~ s/cds-// if $self->{config}->{database} == 1;
@@ -173,7 +167,12 @@ sub run {
       split(".",$_->{AVADA_REFSEQ_ID}) eq split(".",$refseq_transcript) || 
       $_->{AVADA_REFSEQ_ID} eq $refseq_protein 
       } @data;
+    $feature_key = "AVADA_REFSEQ_ID";
   }
+  else{
+    die("ERROR: feature_match_by can only take one of the options gene_symbol|ensembl_gene_id|refseq_id");
+  }
+  
 
   return {} unless scalar @data;
 
@@ -182,14 +181,12 @@ sub run {
   my %seen;
   foreach my $data_value (uniq @data) {
     next unless $alt_allele eq $data_value->{AVADA_ALT};
-    $output{"AVADA_GENE_ID"} =  $data_value->{$gene_key} if (defined($self->{feature_match_by}));
-
     my $pmid_variant;
-    # Output (except json) is in string format (Eg: "PMID%RefSeq_ID%Variant_string") 
+    # Output (except json) is in string format (Eg: "PMID%feature_id%variant_string") 
     if (not $self->{config}->{output_format} eq 'json')
     {
       $pmid_variant = [$data_value->{AVADA_PMID}];
-      push @$pmid_variant,$data_value->{AVADA_REFSEQ_ID} if $self->{match_by_refseq};
+      push @$pmid_variant,$data_value->{$feature_key} if $self->{feature_match_by};
       push @$pmid_variant,$data_value->{AVADA_VARIANT_STRING} if $self->{original_variant_string};
       $pmid_variant = join('%', @$pmid_variant);
     }
@@ -197,15 +194,15 @@ sub run {
     {
       $pmid_variant->{"avada_pmid"} = $data_value->{AVADA_PMID};
       $pmid_variant->{"avada_variant_string"} = $data_value->{AVADA_VARIANT_STRING} if $self->{original_variant_string};
-      $pmid_variant->{"avada_refseq_id"} = $data_value->{AVADA_REFSEQ_ID} if $self->{match_by_refseq};
+      $pmid_variant->{"avada_feature_id"} = $data_value->{$feature_key} if $self->{feature_match_by};
     }
     next unless (! exists $seen{$pmid_variant});
     push @$pmid_string, $pmid_variant;
     $seen{$pmid_variant} = 1;   
-    $output_key = "AVADA_PMID_WITH_VARIANT" if $self->{original_variant_string} and not  $self->{match_by_refseq};
-    $output_key = "AVADA_PMID_WITH_REFSEQ" if $self->{match_by_refseq} and not $self->{original_variant_string};
-    $output_key = "AVADA_PMID_WITH_REFSEQ_AND_VARIANT" if $self->{match_by_refseq} and $self->{original_variant_string};
-    $output_key = "AVADA_PMID" if not $self->{match_by_refseq} and not $self->{original_variant_string};; 
+    $output_key = "AVADA_PMID_WITH_VARIANT" if $self->{original_variant_string} and not  $self->{feature_match_by};
+    $output_key = "AVADA_PMID_WITH_FEATURE" if $self->{feature_match_by} and not $self->{original_variant_string};
+    $output_key = "AVADA_PMID_WITH_FEATURE_AND_VARIANT" if $self->{feature_match_by} and $self->{original_variant_string};
+    $output_key = "AVADA_PMID" if not $self->{feature_match_by} and not $self->{original_variant_string};; 
     
   }
   $output{$output_key} = $pmid_string if defined($output_key);
