@@ -1469,6 +1469,16 @@ my $VEP_PLUGIN_CONFIG = {
     ## VARIANT DATA
     ###############
 
+    # DeNovo
+    {
+      "key" => "DeNovo",
+      "helptip" => "Identifies de novo variants in a VCF file",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Variant data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DeNovo.pm",
+    },
+
     # Open Targets Genetics
     {
       "key" => "OpenTargets",
@@ -2032,14 +2042,5 @@ my $VEP_PLUGIN_CONFIG = {
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/CSN.pm",
     },
-
-    {
-      "key" => "DeNovo",
-      "helptip" => "Identifies de novo variants in a VCF file",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/DeNovo.pm",
-    }
-
   ]
 };
