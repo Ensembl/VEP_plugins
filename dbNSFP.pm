@@ -56,8 +56,8 @@ limitations under the License.
    - The resulting file must be indexed with tabix before use by this plugin
      (see commands below).
 
- For release 4.6c:
- > version=4.6c
+ For release 4.7c:
+ > version=4.7c
  > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP${version}.zip
  > unzip dbNSFP${version}.zip
  > zcat dbNSFP${version}_variant.chr1.gz | head -n1 > h
