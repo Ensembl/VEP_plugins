@@ -137,9 +137,9 @@ sub feature_types {
 sub get_header_info {
 
     my $self = shift;
-    
+    my $method_str = $self->{method} eq 'MAX' ? "maximum" : "average";
     return {
-        Conservation => "The conservation score for this site"
+        Conservation => "The $method_str conservation score for this site"
     };
 }
 
