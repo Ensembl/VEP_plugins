@@ -64,8 +64,10 @@ limitations under the License.
 
  The prediction scores of AlphaMissense can be downloaded from 
  https://console.cloud.google.com/storage/browser/dm_alphamissense 
- (AlphaMissense Database Copyright (2023) DeepMind Technologies Limited).  Data contained within the 
- AlphaMissense Database is provided for non-commercial research use only under CC BY-NC-SA 4.0 license. 
+ (AlphaMissense Database Copyright (2023) DeepMind Technologies Limited). Data contained within the
+ AlphaMissense Database is licensed under the Creative Commons Attribution 4.0 International License
+ (CC-BY) (the “License”). You may obtain a copy of the License at:
+ https://creativecommons.org/licenses/by/4.0/legalcode.
  Use of the AlphaMissense Database is subject to Google Cloud Platform Terms of Service  
 
  Please cite the AlphaMissense publication alongside the VEP
