@@ -202,8 +202,8 @@ sub get_header_info {
   @header{ @keys } = @vals;
 
   # Custom headers
-  $header{"am_pathogenicity"} = "AlphaMissense pathogenicity score; " . $suffix;
-  $header{"am_class"} = "AlphaMissense pathogenicity prediction; " . $suffix;
+  $header{"am_pathogenicity"} = "Continuous AlphaMissense score between 0 and 1 which can be interpreted as the predicted probability of the variant being pathogenic; " . $suffix;
+  $header{"am_class"} = "The AlphaMissense thresholds are: 'Likely benign' if score < 0.34, 'Likely pathogenic' if score > 0.564, 'ambiguous' otherwise -- see doi.org/10.1126/science.adg7492 for details; " . $suffix;
   $header{"am_protein_variant"} = "Amino acid change used in AlphaMissense prediction; " . $suffix;
   $header{"am_uniprot_id"} = "Protein isoform used in AlphaMissense prediction; " . $suffix;
   $header{"am_transcript_id"} = "Transcript sequence in AlphaMissense prediction; " . $suffix;
