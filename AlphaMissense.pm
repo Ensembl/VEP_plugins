@@ -64,8 +64,10 @@ limitations under the License.
 
  The prediction scores of AlphaMissense can be downloaded from 
  https://console.cloud.google.com/storage/browser/dm_alphamissense 
- (AlphaMissense Database Copyright (2023) DeepMind Technologies Limited).  Data contained within the 
- AlphaMissense Database is provided for non-commercial research use only under CC BY-NC-SA 4.0 license. 
+ (AlphaMissense Database Copyright (2023) DeepMind Technologies Limited). Data contained within the
+ AlphaMissense Database is licensed under the Creative Commons Attribution 4.0 International License
+ (CC-BY) (the “License”). You may obtain a copy of the License at:
+ https://creativecommons.org/licenses/by/4.0/legalcode.
  Use of the AlphaMissense Database is subject to Google Cloud Platform Terms of Service  
 
  Please cite the AlphaMissense publication alongside the VEP
@@ -200,8 +202,8 @@ sub get_header_info {
   @header{ @keys } = @vals;
 
   # Custom headers
-  $header{"am_pathogenicity"} = "AlphaMissense pathogenicity score; " . $suffix;
-  $header{"am_class"} = "AlphaMissense pathogenicity prediction; " . $suffix;
+  $header{"am_pathogenicity"} = "Continuous AlphaMissense score between 0 and 1 which can be interpreted as the predicted probability of the variant being pathogenic; " . $suffix;
+  $header{"am_class"} = "The AlphaMissense thresholds are: 'Likely benign' if score < 0.34, 'Likely pathogenic' if score > 0.564, 'ambiguous' otherwise -- see doi.org/10.1126/science.adg7492 for details; " . $suffix;
   $header{"am_protein_variant"} = "Amino acid change used in AlphaMissense prediction; " . $suffix;
   $header{"am_uniprot_id"} = "Protein isoform used in AlphaMissense prediction; " . $suffix;
   $header{"am_transcript_id"} = "Transcript sequence in AlphaMissense prediction; " . $suffix;
