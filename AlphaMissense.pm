@@ -274,7 +274,10 @@ sub run {
     # Filter user-selected columns
     my %res = %{ $_->{result} };
     %res = map { $_ => $res{$_} } @{ $self->{cols} };
-    return \%res if (@$matches);
+    if (@$matches) {
+      return ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?
+        { AlphaMissense => \%res } : \%res;
+    }
   }
   return {};
 }
