@@ -90,7 +90,7 @@ sub new {
   
   $self->expand_left(0);
   $self->expand_right(0);
-  
+
   my $param_hash = $self->params_to_hash();
 
   die "ERROR: please supply a file of NHGRI-EBI GWAS Catalog data using the 'file' parameter to use the GWAS plugin\n" unless defined $param_hash->{file};
@@ -201,25 +201,15 @@ sub run {
 sub get_vfs_from_db {
   my ($self, $id) = @_;
 
-  my $reg = 'Bio::EnsEMBL::Registry';
-  my $config = $self->{config};
+  if (!defined $self->{va}) {
+    my $reg = $self->{config}->{reg};
+    my $config = $self->{config};
 
-  if($config->{host}) {
-      $reg->load_registry_from_db(
-          -host       => $config->{host},
-          -user       => $config->{user},
-          -pass       => $config->{password},
-          -port       => $config->{port},
-          -species    => $config->{species},
-          -db_version => $config->{db_version},
-          -no_cache   => $config->{no_slice_cache},
-      );
+    $self->{va} = $reg->get_adaptor($config->{species}, 'variation', 'variation');
   }
-
-  my $va = $reg->get_adaptor($config->{species}, 'variation', 'variation');
-  return [] unless defined $va;
+  return [] unless defined $self->{va};
   
-  my $v = $va->fetch_by_name($id);
+  my $v = $self->{va}->fetch_by_name($id);
   return [] unless defined $v;
   
   my $locations = [];
