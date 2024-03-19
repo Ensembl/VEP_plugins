@@ -64,7 +64,7 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
 
  file     : (mandatory) Path to GWAS curated or summary statistics file
- type     : type of the file. Valid values are "curated" and "sstate". Default is "curated".
+ type     : type of the file. Valid values are "curated" and "sstate" (summary statistics). Default is "curated".
  verbose  : display info level messages. Valid values are 0 or 1. Default is 0.
  use_db   : get variant information from Ensembl database during creation of processed file. Valid values are 0 or 1. Default is 0.
 
