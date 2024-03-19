@@ -56,7 +56,7 @@ limitations under the License.
  
  Please keep the filename format as it is because filename is parsed to get information.
  
- When run for the first time the for either type of file plugin will create a processed file that have genomic locations and indexed and 
+ When run for the first time for either type of file, the plugin will create a processed file that have genomic locations and indexed and 
  put it under the --dir location determined by Ensembl VEP. If use_db=1 option is used, depending on the file size it might take hour(s) to create 
  the processed file. Subsequent runs will be faster as the plugin will be using the already generated processed file. This option is not used by 
  default and the variant information is generally taken directly from the file provided.
