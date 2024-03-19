@@ -66,7 +66,7 @@ limitations under the License.
  file     : (mandatory) Path to GWAS curated or summary statistics file
  type     : type of the file. Valid values are "curated" and "sstate" (summary statistics). Default is "curated".
  verbose  : display info level messages. Valid values are 0 or 1. Default is 0.
- db       : get variant information from Ensembl database during creation of processed file. Valid values are 0 or 1. If Default is 0 (variant
+ db       : get variant information from Ensembl database during creation of processed file. Valid values are 0 or 1. Default is 0 (variant
             information is retrieved from curated file)
 
 =cut
