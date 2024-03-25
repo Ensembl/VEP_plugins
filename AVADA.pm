@@ -182,6 +182,7 @@ sub run {
   foreach my $data_value (uniq @data) {
     next unless $alt_allele eq $data_value->{AVADA_ALT};
     my $pmid_variant;
+    my $pmid_variant_key;
     # Output (except json) is in string format (Eg: "PMID%feature_id%variant_string") 
     if (not $self->{config}->{output_format} eq 'json')
     {
@@ -189,16 +190,19 @@ sub run {
       push @$pmid_variant,$data_value->{$feature_key} if $self->{feature_match_by};
       push @$pmid_variant,$data_value->{AVADA_VARIANT_STRING} if $self->{original_variant_string};
       $pmid_variant = join('%', @$pmid_variant);
+      $pmid_variant_key = $pmid_variant; 
     }
     else
     {
       $pmid_variant->{"avada_pmid"} = $data_value->{AVADA_PMID};
       $pmid_variant->{"avada_variant_string"} = $data_value->{AVADA_VARIANT_STRING} if $self->{original_variant_string};
       $pmid_variant->{"avada_feature_id"} = $data_value->{$feature_key} if $self->{feature_match_by};
+      $pmid_variant_key =  join('%', values %{$pmid_variant});
     }
-    next unless (! exists $seen{$pmid_variant});
+    next unless (! exists $seen{$pmid_variant_key});
     push @$pmid_string, $pmid_variant;
-    $seen{$pmid_variant} = 1;   
+    $seen{$pmid_variant_key} = 1;
+
     $output_key = "AVADA_PMID_WITH_VARIANT" if $self->{original_variant_string} and not  $self->{feature_match_by};
     $output_key = "AVADA_PMID_WITH_FEATURE" if $self->{feature_match_by} and not $self->{original_variant_string};
     $output_key = "AVADA_PMID_WITH_FEATURE_AND_VARIANT" if $self->{feature_match_by} and $self->{original_variant_string};
