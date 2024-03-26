@@ -752,6 +752,16 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # AVADA
+    {
+      "key" => "AVADA",
+      "label" => "AVADA",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Phenotype data and citations",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/AVADA.pm",
+    },
+
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
     {
