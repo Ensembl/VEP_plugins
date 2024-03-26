@@ -213,13 +213,13 @@ sub run {
     $allele = $bvf->alt_alleles->[$ALT_NUM];
     $ref = $bvf->ref_allele_string;
 
-    if (($ALT_NUM + 1) == scalar(@{$bvf->alt_alleles})) {
+    if (($ALT_NUM + 1) >= scalar(@{$bvf->alt_alleles})) {
       $ALT_NUM = 0;
     } else {
       $ALT_NUM += 1;
     };
 
-    return {} unless $allele =~ /^[ACGT-]+$/;
+    return {} unless defined($allele) && $allele =~ /^[ACGT-]+$/;
 
   } else {
     # Do not annotate sv if there is snv/indels annotation file
