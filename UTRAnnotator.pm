@@ -562,7 +562,7 @@ sub uSTOP_gained {
                 "Evidence" => $uSTOP_gained_evidence,
               );
 
-        $output_flag = "5_prime_UTR_stop_codon_gain_variant";
+        $output_flag = "5_prime_UTR_uORF_stop_codon_gain_variant";
         my $size = (keys %output_effects) + 1;
         $output_effects{$size} = \%uORF_effect;
       }
@@ -704,7 +704,7 @@ sub uSTOP_lost {
           "Evidence" => $uSTOP_lost_evidence,
         );
 
-        $output_flag = "5_prime_UTR_stop_codon_loss_variant";
+        $output_flag = "5_prime_UTR_uORF_stop_codon_loss_variant";
         my $size = (keys %output_effects) + 1;
         $output_effects{$size} = \%uORF_effect;
       }
