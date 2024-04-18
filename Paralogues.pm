@@ -29,12 +29,6 @@ limitations under the License.
 
  mv Paralogues.pm ~/.vep/Plugins
 
- # Use a 'matches' file with variants mapped to paralogue regions and fetch
- # variants within those regions from VEP cache and whose clinical significance
- # partially matches 'pathogenic' -- fastest method; download 'matches' files
- # from https://ftp.ensembl.org/pub/current_variation/Paralogues
- ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues.pm_homo_sapiens_112_GRCh38_clinvar_20240107.vcf.gz
-
  # Find paralogue regions of all input variants using Ensembl paralogue annotation
  # (automatically created if not in current directory) and fetch variants within
  # those regions from VEP cache and whose clinical significance partially
@@ -59,25 +53,15 @@ limitations under the License.
  acids aligned between paralogue proteins. This is useful to predict the
  pathogenicity of variants in paralogue positions.
 
- This plugin can determine paralogue regions for a variant based on:
-   1. Pre-computed matches between sets of human variants and their paralogue
-      regions; download ClinVar variants mapped to their paralogue regions from
-      https://ftp.ensembl.org/pub/current_variation/Paralogues and set option
-      `matches` to the file path; if you also want to create these mapped
-      annotations with any set of variants, run VEP with VCF output and
-      Paralogues plugin (options: 'regions=1,min_perc_cov=0,min_perc_pos=0')
-   2. Ensembl paralogue annotation; these versatile annotations can look up
-      paralogue regions for all variants from any species with Ensembl paralogues
+ This plugin determines paralogue regions for a variant based on Ensembl
+ paralogue annotation. These versatile annotations allow to look up paralogue
+ regions for all variants from any species with Ensembl paralogues.
 
  After retrieving the paralogue regions, this plugin fetches variants
  overlapping those regions from one of the following sources (by this order):
    1. Custom VCF via the 'vcf' parameter
    2. VEP cache (in cache/offline mode)
    3. Ensembl API (in database mode)
-
- To use a file with pre-computed matches between variants and paralogue regions,
- download the file and its TBI and use option `matches`:
-   --plugin Paralogues,matches=/path/to/matches_file.vcf.gz
 
  This plugin automatically downloads paralogue annotation from Ensembl databases
  if not available in the current directory (by default). Use option `dir` to
@@ -117,14 +101,6 @@ limitations under the License.
                   homologues (default: 50)
    regions      : Boolean value to return regions used to look up paralogue
                   variants (default: 1)
-
-   matches      : Tabix-indexed VCF file containing variants mapped to their
-                  paralogue regions; pre-computed matches between ClinVar
-                  variants and their paralogue regions can be downloaded from
-                  https://ftp.ensembl.org/pub/current_variation/Paralogues; the
-                  `matches` option is incompatible with the `paralogues` option
-   matches_info_field : Name of the INFO key used in the matches file with
-                        consequence information (default: 'CSQ')
 
    vcf          : Custom Tabix-indexed VCF file with information for overlapping 
                   variants (by default, overlapping variants are fetched from
@@ -618,54 +594,54 @@ sub _get_transcript_from_translation {
 
 ## GET PARALOGUE VARIANTS BASED ON MATCHES OR ANNOTATION -----------------------
 
-sub _get_paralogue_vars_from_matches {
-  my ($self, $tva) = @_;
-  my $vf     = $tva->variation_feature;
-  my $allele = $tva->base_variation_feature->alt_alleles;
-
-  # get matches from VCF
-  my $file  = $self->{matches};
-  my $chr   = $vf->{chr};
-  my $start = $vf->{start};
-  my $end   = $vf->{end};
-
-  my @data = @{$self->get_data($chr, $start - 2, $end, $file)};
-  foreach (@data) {
-    my $matches = get_matched_variant_alleles(
-      {
-        ref    => $vf->ref_allele_string,
-        alts   => $allele,
-        pos    => $vf->{start},
-        strand => $vf->strand
-      },
-      {
-       ref  => $_->{ref},
-       alts => [ split /,/, $_->{alt} ],
-       pos  => $_->{start},
-      }
-    );
-    next unless @$matches;
-
-    my $all_results = {};
-    my $feature_id = $tva->feature->stable_id;
-    for my $field (split /,/, $_->{$self->{matches_info_field}}) {
-      my %hash;
-      @hash{ @{$self->{matches_info_keys}} } = split /\|/, $field;
-
-      next unless
-        $hash{'PARALOGUE_REGIONS'} and
-        $hash{Feature} eq $feature_id and
-        grep $hash{Allele}, @$allele;
-
-      for my $var (split(/\&/, $hash{'PARALOGUE_REGIONS'})) {
-        my ($par_chr, $par_start, $par_end, $perc_cov, $perc_pos) = split(':', $var);
-        $all_results = $self->_get_paralogue_vars($par_chr, $par_start, $par_end, $perc_cov, $perc_pos, $all_results);
-      }
-    }
-    return $all_results;
-  }
-  return {};
-}
+#sub _get_paralogue_vars_from_matches {
+#  my ($self, $tva) = @_;
+#  my $vf     = $tva->variation_feature;
+#  my $allele = $tva->base_variation_feature->alt_alleles;
+#
+#  # get matches from VCF
+#  my $file  = $self->{matches};
+#  my $chr   = $vf->{chr};
+#  my $start = $vf->{start};
+#  my $end   = $vf->{end};
+#
+#  my @data = @{$self->get_data($chr, $start - 2, $end, $file)};
+#  foreach (@data) {
+#    my $matches = get_matched_variant_alleles(
+#      {
+#        ref    => $vf->ref_allele_string,
+#        alts   => $allele,
+#        pos    => $vf->{start},
+#        strand => $vf->strand
+#      },
+#      {
+#       ref  => $_->{ref},
+#       alts => [ split /,/, $_->{alt} ],
+#       pos  => $_->{start},
+#      }
+#    );
+#    next unless @$matches;
+#
+#    my $all_results = {};
+#    my $feature_id = $tva->feature->stable_id;
+#    for my $field (split /,/, $_->{$self->{matches_info_field}}) {
+#      my %hash;
+#      @hash{ @{$self->{matches_info_keys}} } = split /\|/, $field;
+#
+#      next unless
+#        $hash{'PARALOGUE_REGIONS'} and
+#        $hash{Feature} eq $feature_id and
+#        grep $hash{Allele}, @$allele;
+#
+#      for my $var (split(/\&/, $hash{'PARALOGUE_REGIONS'})) {
+#        my ($par_chr, $par_start, $par_end, $perc_cov, $perc_pos) = split(':', $var);
+#        $all_results = $self->_get_paralogue_vars($par_chr, $par_start, $par_end, $perc_cov, $perc_pos, $all_results);
+#      }
+#    }
+#    return $all_results;
+#  }
+#  return {};
+#}
 
 sub _get_paralogue_vars_from_annotation {
   my ($self, $tva) = @_;
@@ -880,34 +856,34 @@ sub _get_valid_fields {
   return \@valid;
 }
 
-sub _prepare_matches_params {
-  my ($self, $params) = @_;
-
-  die "ERROR: options 'matches' and 'paralogues' are incompatible\n"
-    if defined $params->{paralogues};
-
-  $self->{matches_info_field} = $params->{matches_info_field} || 'CSQ';
-  die "ERROR: 'matches=$self->{matches}': file not found\n"
-    unless -e $self->{matches};
-  die "ERROR: 'matches=$self->{matches}': respective TBI file not found\n"
-    unless -e $self->{matches} . ".tbi" || -e $self->{matches} . ".csi";
-
-  # Get keys for CSQ fields
-  my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($self->{matches});
-  my $info = $vcf_file->get_metadata_by_pragma('INFO');
-  for (@$info) {
-    my $description = $_->{'Description'}
-      if $_->{'ID'} eq $self->{matches_info_field};
-    next unless defined $description;
-    my ($format) = $description =~ 'Format: (.*)';
-    $self->{matches_info_keys} = [ split /\|/, ($format || '') ];
-  }
-
-  # Check if PARALOGUE_REGIONS is described in header
-  my $par_pragma = $vcf_file->get_metadata_by_pragma('PARALOGUE_REGIONS');
-  die "ERROR: could not find 'PARALOGUE_REGIONS' in header of $self->{matches}\n" unless defined $par_pragma;
-  return $self;
-}
+#sub _prepare_matches_params {
+#  my ($self, $params) = @_;
+#
+#  die "ERROR: options 'matches' and 'paralogues' are incompatible\n"
+#    if defined $params->{paralogues};
+#
+#  $self->{matches_info_field} = $params->{matches_info_field} || 'CSQ';
+#  die "ERROR: 'matches=$self->{matches}': file not found\n"
+#    unless -e $self->{matches};
+#  die "ERROR: 'matches=$self->{matches}': respective TBI file not found\n"
+#    unless -e $self->{matches} . ".tbi" || -e $self->{matches} . ".csi";
+#
+#  # Get keys for CSQ fields
+#  my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($self->{matches});
+#  my $info = $vcf_file->get_metadata_by_pragma('INFO');
+#  for (@$info) {
+#    my $description = $_->{'Description'}
+#      if $_->{'ID'} eq $self->{matches_info_field};
+#    next unless defined $description;
+#    my ($format) = $description =~ 'Format: (.*)';
+#    $self->{matches_info_keys} = [ split /\|/, ($format || '') ];
+#  }
+#
+#  # Check if PARALOGUE_REGIONS is described in header
+#  my $par_pragma = $vcf_file->get_metadata_by_pragma('PARALOGUE_REGIONS');
+#  die "ERROR: could not find 'PARALOGUE_REGIONS' in header of $self->{matches}\n" unless defined $par_pragma;
+#  return $self;
+#}
 
 sub new {
   my $class = shift;  
@@ -925,12 +901,12 @@ sub new {
   $self->{min_perc_pos} = defined $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
   $self->{regions}      = defined $params->{regions}      ? $params->{regions}      : 1;
 
-  if (defined $params->{matches}) {
-    # File with matches between variants and their paralogues regions
-    $self->{matches} = $params->{matches};
-    $self->add_file($self->{matches});
-    $self->_prepare_matches_params($params);
-  }
+  #if (defined $params->{matches}) {
+  #  # File with matches between variants and their paralogues regions
+  #  $self->{matches} = $params->{matches};
+  #  $self->add_file($self->{matches});
+  #  $self->_prepare_matches_params($params);
+  #}
 
   # Prepare clinical significance parameters
   my $no_clnsig = defined $params->{clnsig} && $params->{clnsig} eq 'ignore';
@@ -969,12 +945,13 @@ sub new {
     }
   } elsif (defined $params->{fields}) {
     # valid fields differ if using cache or database
-    my @VAR_FIELDS = ($self->{matches} || $self->{config}->{cache}) ?
-      @CACHE_FIELDS : @API_FIELDS;
+    #my @VAR_FIELDS = ($self->{matches} || $self->{config}->{cache}) ?
+    #  @CACHE_FIELDS : @API_FIELDS;
+    my @VAR_FIELDS = $self->{config}->{cache} ? @CACHE_FIELDS : @API_FIELDS;
     @fields = @{ _get_valid_fields($params->{fields}, \@VAR_FIELDS) };
   }
   $self->{fields} = \@fields;
-  return $self if $self->{matches};
+  #return $self if $self->{matches};
 
   # Check if paralogue annotation should be downloaded
   $self->{remote} = defined $params->{paralogues} && $params->{paralogues} eq 'remote';
@@ -1128,9 +1105,10 @@ sub run {
     defined $translation_start and defined $translation_end and
     $translation_start == $translation_end;
 
-  return $self->{matches} ?
-    $self->_get_paralogue_vars_from_matches($tva) :
-    $self->_get_paralogue_vars_from_annotation($tva);
+  #return $self->{matches} ?
+  #  $self->_get_paralogue_vars_from_matches($tva) :
+  #  $self->_get_paralogue_vars_from_annotation($tva);
+  return $self->_get_paralogue_vars_from_annotation($tva);
 }
 
 sub parse_data {
