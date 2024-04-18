@@ -744,6 +744,8 @@ sub _fetch_cache_vars {
       push @$variants, $vf;
     }
   } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
+    warn("RiboseqORFs plugin with non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n");
+
     # code based on AnnotationSource::Cache::Variation and AnnotationSource
     my $cache_region_size = $as->{cache_region_size};
     my ($source_chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
