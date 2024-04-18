@@ -161,10 +161,13 @@ use warnings;
 
 use List::Util qw(any);
 use File::Basename;
+use Compress::Zlib;
+
 use Bio::SimpleAlign;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::VariationFeature;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+use Bio::EnsEMBL::Variation::Utils::VariationEffect qw(overlap);
 use Bio::EnsEMBL::IO::Parser::VCF4Tabix;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
@@ -534,13 +537,14 @@ sub _get_AnnotationSource {
 
   my %match = (
     'Transcript'     => 'Bio::EnsEMBL::VEP::AnnotationSource::Cache::Transcript',
+    'Variation'      => 'Bio::EnsEMBL::VEP::AnnotationSource::Cache::Variation',
     'VariationTabix' => 'Bio::EnsEMBL::VEP::AnnotationSource::Cache::VariationTabix',
   );
 
   if (!defined $self->{asa}) {
     # Cache all annotation sources
     my $cfg = $self->_get_config;
-    $cfg->{_params}->{check_existing} = 1; # enable to fetch VariationTabix from VEP cache
+    $cfg->{_params}->{check_existing} = 1; # enable to fetch variants from VEP cache
     $self->{asa} = Bio::EnsEMBL::VEP::AnnotationSourceAdaptor->new({config => $cfg});
   }
 
@@ -705,41 +709,88 @@ sub _fetch_cache_vars {
   # fetch variants from VEP cache
   my ($self, $chr, $start, $end) = @_;
 
-  # code based on AnnotationSource::Cache::VariationTabix
-  my $as = $self->_get_AnnotationSource('VariationTabix');
-  die "ERROR: could not get variants from VEP cache" unless defined $as;
+  my ($as, $variants);
+  if (defined($as = $self->_get_AnnotationSource('VariationTabix'))) {
+    # code based on AnnotationSource::Cache::VariationTabix
+    my $source_chr = $as->get_source_chr_name($chr);
+    my $tabix_obj = $as->_get_tabix_obj($source_chr);
+    next unless $tabix_obj;
 
-  my $source_chr = $as->get_source_chr_name($chr);
-  my $tabix_obj = $as->_get_tabix_obj($source_chr);
-  next unless $tabix_obj;
+    my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
+    next unless $iter;
 
-  my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
-  next unless $iter;
+    while(my $line = $iter->next) {
+      chomp $line;
+      my $var = $as->parse_variation($line);
 
-  my $variants;
-  while(my $line = $iter->next) {
-    chomp $line;
-    my $var = $as->parse_variation($line);
+      my $slice = Bio::EnsEMBL::Slice->new(
+        -seq_region_name  => $var->{chr},
+        -start            => $var->{start},
+        -end              => $var->{end},
+        -strand           => $var->{strand},
+      );
 
-    my $slice = Bio::EnsEMBL::Slice->new(
-      -seq_region_name  => $var->{chr},
-      -start            => $var->{start},
-      -end              => $var->{end},
-      -strand           => $var->{strand},
-    );
+      my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+        -variation_name        => $var->{variation_name},
+        -seq_region_name       => $var->{chr},
+        -start                 => $var->{start},
+        -end                   => $var->{end},
+        -slice                 => $slice,
+        -strand                => $var->{strand},
+        -allele_string         => $var->{allele_string},
+        -is_somatic            => $var->{somatic},
+        -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
+      );
+      push @$variants, $vf;
+    }
+  } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
+    # code based on AnnotationSource::Cache::Variation and AnnotationSource
+    my $cache_region_size = $as->{cache_region_size};
+    my ($source_chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
+      $chr, $start, $end, undef, $cache_region_size, $as->up_down_size());
 
-    my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-      -variation_name        => $var->{variation_name},
-      -seq_region_name       => $var->{chr},
-      -start                 => $var->{start},
-      -end                   => $var->{end},
-      -slice                 => $slice,
-      -strand                => $var->{strand},
-      -allele_string         => $var->{allele_string},
-      -is_somatic            => $var->{somatic},
-      -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
-    );
-    push @$variants, $vf;
+    for my $region (@regions) {
+      my ($c, $s) = @$region;
+
+      my $file = $as->get_dump_file_name(
+        $c,
+        ($s * $cache_region_size) + 1,
+        ($s + 1) * $cache_region_size
+      );
+      next unless -e $file;
+      my $gz = gzopen($file, 'rb');
+
+      my $line;
+      while($gz->gzreadline($line)) {
+        chomp $line;
+
+        # ignore non-overlapping variants
+        my $var = $as->parse_variation($line);
+        next unless overlap($start, $end, $var->{start}, $var->{end});
+
+        my $slice = Bio::EnsEMBL::Slice->new(
+          -seq_region_name  => $c,
+          -start            => $var->{start},
+          -end              => $var->{end},
+          -strand           => $var->{strand},
+        );
+
+        my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+          -variation_name        => $var->{variation_name},
+          -seq_region_name       => $c,
+          -start                 => $var->{start},
+          -end                   => $var->{end},
+          -slice                 => $slice,
+          -strand                => $var->{strand},
+          -allele_string         => $var->{allele_string},
+          -is_somatic            => $var->{somatic},
+          -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
+        );
+        push @$variants, $vf;
+      }
+    }
+  } else {
+    die "ERROR: could not get variants from VEP cache";
   }
   return $variants;
 }
