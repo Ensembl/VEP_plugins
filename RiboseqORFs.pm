@@ -42,6 +42,9 @@ limitations under the License.
    bgzip Ribo-seq_ORFs.bed
    tabix Ribo-seq_ORFs.bed.gz
 
+ For optimal performance when running this plugin in VEP, please use a FASTA
+ file (`--fasta`). A FASTA file is always required in offline mode.
+
  Please cite the publication for the Ribo-seq ORF annotation alongside the VEP
  if you use this resource: https://doi.org/10.1038/s41587-022-01369-0
 
@@ -66,6 +69,17 @@ sub new {
   $self->expand_left(0);
   $self->expand_right(0); 
   $self->get_user_params();
+
+  # Check if using FASTA file
+  if(!defined($self->{config}->{fasta})) {
+    # Error when using offline mode
+    die("ERROR: Cannot generate sequences in offline mode without FASTA file (--fasta)\n")
+      if defined $self->{config}->{offline};
+
+    # Warn when using database instead of FASTA file
+    warn("WARNING: RiboseqORFs plugin will fetch sequences from Ensembl database; use a FASTA file (--fasta) for optimal performance\n")
+      if defined $self->{config}->{cache} and !defined $self->{config}->{quiet};
+  }
 
   # Add plugin data file
   my $param_hash = $self->params_to_hash();
