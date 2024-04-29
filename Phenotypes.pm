@@ -349,12 +349,14 @@ sub run {
 
   foreach my $tmp_data(@f_data) {
     # subset phenotype data columns
-    my %tmp = map { $_ => $tmp_data->{$_} } keys %cols;
+    my %tmp = map { $_ => ($tmp_data->{$_} || '') } keys %cols;
     $tmp_data = \%tmp;
 
     if (!$output_format{'json'}) {
       # replace link characters with _
-      $tmp_data->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/;
+      foreach (keys %$tmp_data){
+        $tmp_data->{$_} =~ tr/ ;,)(/\_\_\_\_\_/;
+      }
 
       # report only unique set of fields
       my $record_line = join(",", values %$tmp_data);
