@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,11 +42,10 @@ limitations under the License.
 
  1) The data file. mutfunc SQLite db can be downloaded from - 
  https://ftp.ensembl.org/pub/current_variation/mutfunc/mutfunc_data.db
- 
- Options are passed to the plugin as key=value pairs:
 
  By default all the fields (motif, int, mod, and exp) are added in the output. But if you want to have some selected fields and not all of
  them just select the relevant options. The default behavior will then go away outputting only the selected fields.
+ Options are passed to the plugin as key=value pairs:
 
  db			  : (mandatory) Path to SQLite database containing data for other analysis.
  motif    : Select this option to have mutfunc motif analysis in the output

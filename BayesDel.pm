@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,15 +51,15 @@ limitations under the License.
 
 
  For GRCh37:
- tar zxvf BayesDel_170824_addAF.tgz
- rm *.gz.tbi
- gunzip *.gz
- for f in BayesDel_170824_addAF_chr*; do grep -v "^#" $f >> BayesDel_170824_addAF.txt; done
- cat BayesDel_170824_addAF.txt | sort -k1,1 -k2,2n > BayesDel_170824_addAF_sorted.txt
- grep "^#" BayesDel_170824_addAF_chr1 > BayesDel_170824_addAF_all_scores.txt
- cat BayesDel_170824_addAF_sorted.txt >> BayesDel_170824_addAF_all_scores.txt
- bgzip BayesDel_170824_addAF_all_scores.txt
- tabix -s 1 -b 2 -e 2 BayesDel_170824_addAF_all_scores.txt.gz
+ > tar zxvf BayesDel_170824_addAF.tgz
+ > rm *.gz.tbi
+ > gunzip *.gz
+ > for f in BayesDel_170824_addAF_chr*; do grep -v "^#" $f >> BayesDel_170824_addAF.txt; done
+ > cat BayesDel_170824_addAF.txt | sort -k1,1 -k2,2n > BayesDel_170824_addAF_sorted.txt
+ > grep "^#" BayesDel_170824_addAF_chr1 > BayesDel_170824_addAF_all_scores.txt
+ > cat BayesDel_170824_addAF_sorted.txt >> BayesDel_170824_addAF_all_scores.txt
+ > bgzip BayesDel_170824_addAF_all_scores.txt
+ > tabix -s 1 -b 2 -e 2 BayesDel_170824_addAF_all_scores.txt.gz
 
  For GRCh38:
  Remap GRCh37 file

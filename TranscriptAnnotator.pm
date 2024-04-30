@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,9 +38,11 @@ limitations under the License.
 
  Example of a valid tab-separated annotation file:
 
-   #Chrom  Pos       Ref  Alt  Transcript       SIFT_score  SIFT_pred    Comment
-   11      436154    A    G    NM_001347882.2   0.03        Deleterious  Bad
-   11      1887471   C	  T    ENST00000421485  0.86        Tolerated    Good
+ ```
+ #Chrom  Pos       Ref  Alt  Transcript       SIFT_score  SIFT_pred    Comment
+ 11      436154    A    G    NM_001347882.2   0.03        Deleterious  Bad
+ 11      1887471   C    T    ENST00000421485  0.86        Tolerated    Good
+ ```
 
  Please bgzip and tabix the file with commands such as:
 
@@ -49,16 +51,16 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
 
-   file:   (mandatory) Tabix-indexed file to parse. Must contain variant
-           location (chromosome, position, reference allele, alternative allele)
-           and transcript ID as the first 5 columns. Accepted transcript IDs
-           include those from Ensembl and RefSeq.
-   cols:   Colon-delimited list with names of the columns to append. Column
-           names are based on the last header line. By default, all columns
-           (except the first 5) are appended.
-   prefix: String to prefix the name of appended columns (default: basename of
-           the filename without extensions). Set to 0 to avoid any prefix.
-   trim:   Trim whitespaces from both ends of each column (default: 1).
+   file   : (mandatory) Tabix-indexed file to parse. Must contain variant
+            location (chromosome, position, reference allele, alternative allele)
+            and transcript ID as the first 5 columns. Accepted transcript IDs
+            include those from Ensembl and RefSeq.
+   cols   : Colon-delimited list with names of the columns to append. Column
+            names are based on the last header line. By default, all columns
+            (except the first 5) are appended.
+   prefix : String to prefix the name of appended columns (default: basename of
+            the filename without extensions). Set to 0 to avoid any prefix.
+   trim   : Trim whitespaces from both ends of each column (default: 1).
 
  The tabix and bgzip utilities must be installed in your path to read the
  tabix-indexed annotation file: check https://github.com/samtools/htslib.git for

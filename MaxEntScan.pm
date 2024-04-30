@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,8 +45,8 @@ limitations under the License.
  The plugin executes the logic from one of the scripts depending on which
  splice region the variant overlaps:
 
- score5.pl : last 3 bases of exon    --> first 6 bases of intron
- score3.pl : last 20 bases of intron --> first 3 bases of exon
+ - score5.pl : last 3 bases of exon    --> first 6 bases of intron
+ - score3.pl : last 20 bases of intron --> first 3 bases of exon
 
  The plugin reports the reference, alternate and difference (REF - ALT) maximum
  entropy scores.

@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,11 +37,11 @@ limitations under the License.
  may be reported if the genes overlap the variant or if genes are
  equidistant.
 
- Various parameters can be altered by passing them to the plugin command:
+ Various key=value parameters can be altered by passing them to the plugin command:
 
- - limit     : limit the number of genes returned (default: 1)
- - range     : initial search range in bp (default: 1000)
- - max_range : maximum search range in bp (default: 10000)
+   limit     : limit the number of genes returned (default: 1)
+   range     : initial search range in bp (default: 1000)
+   max_range : maximum search range in bp (default: 10000)
 
  Parameters are passed e.g.:
 

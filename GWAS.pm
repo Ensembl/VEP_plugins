@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,14 +56,18 @@ limitations under the License.
  
  Please keep the filename format as it is because filename is parsed to get information.
  
- When run for the first time the for either type of file plugin will create a processed file that have genomic locations and indexed and 
- put it under the --dir location determined by Ensembl VEP. It might take 1~2 hour(s) to create the processed file depending on the file size. 
- But subsequent runs will be faster as the plugin will be using the already generated processed file.
+ When run for the first time for either type of file, the plugin will create a processed file that have genomic locations and indexed and 
+ put it under the --dir location determined by Ensembl VEP. If db=1 option is used, depending on the file size it might take hour(s) to create 
+ the processed file. Subsequent runs will be faster as the plugin will be using the already generated processed file. This option is not used by 
+ default and the variant information is generally taken directly from the file provided.
 
  Options are passed to the plugin as key=value pairs:
 
- file   : (mandatory) Path to GWAS curated or summary statistics file
- type   : type of the file. Valid values are "curated" and "sstate".
+ file     : (mandatory) Path to GWAS curated or summary statistics file
+ type     : type of the file. Valid values are "curated" and "sstate" (summary statistics). Default is "curated".
+ verbose  : display info level messages. Valid values are 0 or 1. Default is 0.
+ db       : get variant information from Ensembl database during creation of processed file. Valid values are 0 or 1. Default is 0 (variant
+            information is retrieved from curated file)
 
 =cut
 
@@ -86,7 +90,7 @@ sub new {
   
   $self->expand_left(0);
   $self->expand_right(0);
-  
+
   my $param_hash = $self->params_to_hash();
 
   die "ERROR: please supply a file of NHGRI-EBI GWAS Catalog data using the 'file' parameter to use the GWAS plugin\n" unless defined $param_hash->{file};
@@ -95,6 +99,9 @@ sub new {
   $self->{type} = $param_hash->{type} || "curated";
   die "ERROR: provided type ($self->{type}) is not recognized\n" unless(
     $self->{type} eq "curated" || $self->{type} eq "sstate");
+
+  $self->{verbose} = $param_hash->{verbose} || 0;
+  $self->{db} = $param_hash->{db} || 0;
   
   # processed file is assumed to be present under --dir 
   my $config = $self->{config};
@@ -107,26 +114,8 @@ sub new {
   if ($self->{type} eq "curated") {
     # create processed file with genomic location and index - only run if already not created
     unless (-e $self->{processed_file}){
-      my $reg = 'Bio::EnsEMBL::Registry';
-
-      if($config->{host}) {
-          $reg->load_registry_from_db(
-              -host       => $config->{host},
-              -user       => $config->{user},
-              -pass       => $config->{password},
-              -port       => $config->{port},
-              -species    => $config->{species},
-              -db_version => $config->{db_version},
-              -no_cache   => $config->{no_slice_cache},
-          );
-      }
-      
-      $self->{"va"} = $reg->get_adaptor('human', 'variation', 'variation');
-      
-      # parse the raw file
-      my $data = $self->parse_curated_file($self->{file});
-      # create the processed file
-      $self->create_curated_processed_file($data);
+      # create the processed file from the input file given
+      $self->create_curated_processed_file($self->{file});
     }
   }
   # process for summary statistics file
@@ -187,7 +176,9 @@ sub run {
   my @data =  @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
   
   foreach (@data) {
-    $_->{ref} = $vf->ref_allele_string if $_->{ref} eq "";
+    # if db=0 is used we do not check ref allele 
+    $_->{ref} = $vf->ref_allele_string if ($_->{ref} eq "" || $_->{ref} eq "N");
+
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
@@ -207,9 +198,15 @@ sub run {
   return {};
 }
 
-sub get_vfs_from_id {
+sub get_vfs_from_db {
   my ($self, $id) = @_;
-  
+
+  if (!defined $self->{va}) {
+    my $reg = $self->{config}->{reg};
+    my $config = $self->{config};
+
+    $self->{va} = $reg->get_adaptor($config->{species}, 'variation', 'variation');
+  }
   return [] unless defined $self->{va};
   
   my $v = $self->{va}->fetch_by_name($id);
@@ -230,8 +227,139 @@ sub get_vfs_from_id {
   return $locations;
 }
 
+sub get_vfs_from_file {
+  my ($self, $chr, $start, $end) = @_;
+
+  my @chrs = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $chr);
+  my @starts = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $start);
+  my @ends = map { local $_ = $_; s/\s+//g; $_ } split(/[;,x]/, $end);
+
+  return [] if (scalar @chrs != scalar @starts && scalar @chrs != scalar @ends);
+
+  my $locations = [];
+  for (0..$#chrs) {
+    my $location = {
+      "seq"   => $chrs[$_],
+      "start" => $starts[$_],
+      "end"   => $ends[$_],
+      "ref"   => "N"
+    };
+
+    push @{ $locations }, $location;
+  }
+  
+  return $locations;
+}
+
 sub parse_curated_file {
+  my ($self, $content) = @_;
+
+  my $pubmed_id      = $content->{'PUBMEDID'};
+  my $study          = $content->{'STUDY ACCESSION'};
+  my $phenotype      = $content->{'DISEASE/TRAIT'};
+  my $gene           = ($content->{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content->{'REPORTED GENE(S)'};
+  my $rs_risk_allele = ($content->{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content->{'STRONGEST SNP-RISK ALLELE'};
+  my $rs_id          = $content->{'SNPS'};
+  my $pvalue         = ($content->{'P-VALUE'} ne '') ? $content->{'P-VALUE'} : '';
+  my $ratio          = $content->{'OR OR BETA'};
+  my $ratio_info     = $content->{'95% CI (TEXT)'};
+  my @accessions     = split/\,/, $content->{'MAPPED_TRAIT_URI'};
+  my $chr            = $content->{'CHR_ID'};
+  my $start          = $content->{'CHR_POS'};;
+  my $end            = $content->{'CHR_POS'};; 
+
+  warn "INFO: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if (($phenotype eq '') && $self->{verbose});
+  return {} if ($phenotype eq '');
+
+  $gene =~ s/\s+//g;
+  $gene =~ s/–/-/g;
+  $gene =~ s/[^\x00-\x7F]//g; # Remove non ASCII characters
+  $gene = '' if $gene eq '-' or $gene eq 'NR'; #Skip uninformative entries, missing data in original curation see the NHGRI-EBI GWAS Catalog curation
+
+  my %data = (
+    'GWAS_associated_gene' => $gene,
+    'GWAS_p_value' => $pvalue,
+    'GWAS_accessions'   => \@accessions,
+    'GWAS_pmid' => $pubmed_id,
+    'GWAS_study' => $study 
+  );
+
+  # post process the ratio data
+  if (defined($ratio)) {
+    if ($ratio =~ /(\d+)?(\.\d+)$/) {
+      my $pre  = $1;
+      my $post = $2;
+      $ratio = (defined($pre)) ? "$pre$post" : "0$post";
+      $ratio = 0 if ($ratio eq '0.00');
+    } else {
+      $ratio = undef;
+    }
+  }
+
+  # add ratio/coef
+  if (defined($ratio)) {
+    # parse the ratio info column to extract the unit information (we are not interested in the confidence interval)
+    if ($ratio_info =~ /^\s*(\[.+\])?\s*(.+)$/) {
+      my $unit = $2;
+          $unit =~ s/\(//g;
+          $unit =~ s/\)//g;
+          $unit =~ s/µ/micro/g;
+      if ($unit =~ /decrease|increase/) {
+        $data{'GWAS_beta_coef'} = "$ratio $unit";
+      }
+      else {
+        $data{'GWAS_odds_ratio'} = $ratio;
+      }
+    }
+    else {
+      $data{'GWAS_odds_ratio'} = $ratio;
+    }
+  }
+  $data{'GWAS_odds_ratio'} = "" unless defined $data{'GWAS_odds_ratio'};
+  $data{'GWAS_beta_coef'} = "" unless defined $data{'GWAS_beta_coef'};
+
+  # parse the ids
+  my @ids;
+  $rs_id ||= "";
+  while ($rs_id =~ m/(rs[0-9]+)/g) {
+    push(@ids, $1);
+  }
+
+  # if we did not get any rsIds, skip this row (this will also get rid of the header)
+  warn "INFO: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids) && $self->{verbose});
+  return {} if (!scalar(@ids));
+
+  my @phenotypes;
+  map {
+    my $id = $_;
+
+    my $t_data = dclone \%data;
+    
+    my $vfs = $self->{db} ? $self->get_vfs_from_db($id) : $self->get_vfs_from_file($chr, $start, $end);
+    $t_data->{"id"} = $id;
+    $t_data->{"vfs"} = $vfs;
+    
+    my $risk_allele;
+    map {
+      if ($_ =~ /$id/) {
+        my $risk_allele_with_id = $_;
+        $risk_allele = ( split("-", $risk_allele_with_id) )[1];
+      }
+    } split(/[;,x]/, $rs_risk_allele);
+    $t_data->{"GWAS_risk_allele"} = $risk_allele;
+
+    push(@phenotypes, $t_data);
+  } @ids;
+
+  my %result = ('phenotypes' => \@phenotypes);
+  return \%result;
+}
+
+sub create_curated_processed_file {
   my ($self, $input_file) = @_;
+
+  my $temp_processed_file = $self->{"processed_file"} . "_temp";
+  open(my $temp_processed_FH, '>', $temp_processed_file) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
 
   # open the input file for reading
   my $input_FH;
@@ -242,7 +370,7 @@ sub parse_curated_file {
     open($input_FH, '<', $input_file) || die ("Could not open $input_file for reading: $!\n");
   }
 
-  my (%headers, @phenotypes);
+  my %headers;
   # read through the file and parse out the desired fields
   while (<$input_FH>) {
     chomp;
@@ -258,141 +386,38 @@ sub parse_curated_file {
 
       my %content;
       $content{$_} = $row_data[$headers{$_}] for keys %headers;
-
-      my $pubmed_id      = $content{'PUBMEDID'};
-      my $study          = $content{'STUDY ACCESSION'};
-      my $phenotype      = $content{'DISEASE/TRAIT'};
-      my $gene           = ($content{'REPORTED GENE(S)'} =~ /\?/) ? '' : $content{'REPORTED GENE(S)'};
-      my $rs_risk_allele = ($content{'STRONGEST SNP-RISK ALLELE'} =~ /\?/) ? '' : $content{'STRONGEST SNP-RISK ALLELE'};
-      my $rs_id          = $content{'SNPS'};
-      my $pvalue         = ($content{'P-VALUE'} ne '') ? $content{'P-VALUE'} : '';
-      my $ratio          = $content{'OR OR BETA'};
-      my $ratio_info     = $content{'95% CI (TEXT)'};
-      my @accessions     = split/\,/, $content{'MAPPED_TRAIT_URI'};
-
-      warn "WARNING: 'DISEASE/TRAIT' entry is empty for '$rs_id'\n" if ($phenotype eq '');
-      next if ($phenotype eq '');
-
-      $gene =~ s/\s+//g;
-      $gene =~ s/–/-/g;
-      $gene =~ s/[^\x00-\x7F]//g; # Remove non ASCII characters
-      $gene = '' if $gene eq '-' or $gene eq 'NR'; #Skip uninformative entries, missing data in original curation see the NHGRI-EBI GWAS Catalog curation
-
-      my %data = (
-        'GWAS_associated_gene' => $gene,
-        'GWAS_p_value' => $pvalue,
-        'GWAS_accessions'   => \@accessions,
-        'GWAS_pmid' => $pubmed_id,
-        'GWAS_study' => $study 
-      );
-
-      # post process the ratio data
-      if (defined($ratio)) {
-        if ($ratio =~ /(\d+)?(\.\d+)$/) {
-          my $pre  = $1;
-          my $post = $2;
-          $ratio = (defined($pre)) ? "$pre$post" : "0$post";
-          $ratio = 0 if ($ratio eq '0.00');
-        } else {
-          $ratio = undef;
-        }
-      }
-
-      # add ratio/coef
-      if (defined($ratio)) {
-        # parse the ratio info column to extract the unit information (we are not interested in the confidence interval)
-        if ($ratio_info =~ /^\s*(\[.+\])?\s*(.+)$/) {
-          my $unit = $2;
-             $unit =~ s/\(//g;
-             $unit =~ s/\)//g;
-             $unit =~ s/µ/micro/g;
-          if ($unit =~ /decrease|increase/) {
-            $data{'GWAS_beta_coef'} = "$ratio $unit";
-          }
-          else {
-            $data{'GWAS_odds_ratio'} = $ratio;
-          }
-        }
-        else {
-          $data{'GWAS_odds_ratio'} = $ratio;
-        }
-      }
-      $data{'GWAS_odds_ratio'} = "" unless defined $data{'GWAS_odds_ratio'};
-      $data{'GWAS_beta_coef'} = "" unless defined $data{'GWAS_beta_coef'};
-
-      # parse the ids
-      my @ids;
-      $rs_id ||= "";
-      while ($rs_id =~ m/(rs[0-9]+)/g) {
-        push(@ids, $1);
-      }
-
-      # if we did not get any rsIds, skip this row (this will also get rid of the header)
-      warn "WARNING: Could not parse any rsIds from string '$rs_id'\n" if (!scalar(@ids));
-      next if (!scalar(@ids));
-
-      map {
-        my $id = $_;
-
-        my $t_data = dclone \%data;
-        
-        my $vfs = $self->get_vfs_from_id($id);
-        $t_data->{"id"} = $id;
-        $t_data->{"vfs"} = $vfs;
-        
-        my $risk_allele;
-        map {
-          if ($_ =~ /$id/) {
-            my $risk_allele_with_id = $_;
-            $risk_allele = ( split("-", $risk_allele_with_id) )[1];
-          }
-        } split(/[;,x]/, $rs_risk_allele);
-        $t_data->{"GWAS_risk_allele"} = $risk_allele;
-
-        push(@phenotypes, $t_data);
-      } @ids;
-    }
-  }
-  close($input_FH);
-
-  my %result = ('phenotypes' => \@phenotypes);
-  return \%result;
-}
-
-sub create_curated_processed_file {
-  my ($self, $data) = @_;
+      my $data = $self->parse_curated_file(\%content);
   
-  my $temp_processed_file = $self->{"processed_file"} . "_temp";
-  open(my $temp_processed_FH, '>', $temp_processed_file) || die ("Could not open " . $self->{processed_file} . " for writing: $!\n");
-  
-  foreach my $phenotype (@{ $data->{"phenotypes"} }){
-    foreach my $vf (@{ $phenotype->{"vfs"} }){
-      next unless $vf;
-      
-      next unless $phenotype->{"GWAS_risk_allele"};
-      my $GWAS_risk_allele = $phenotype->{"GWAS_risk_allele"} || "";
-      
-      my $GWAS_associated_gene = $phenotype->{"GWAS_associated_gene"} || "";
-      my $GWAS_p_value = $phenotype->{"GWAS_p_value"} || "";
-      my $GWAS_study = $phenotype->{"GWAS_study"} || "";
-      my $GWAS_pmid = $phenotype->{"GWAS_pmid"} || "";
-      my $accessions = join(",", @{ $phenotype->{"GWAS_accessions"} }) || "";
-      my $GWAS_beta_coef = $phenotype->{"GWAS_beta_coef"} || "";
-      my $GWAS_odds_ratio = $phenotype->{"GWAS_odds_ratio"} || "";
+      foreach my $phenotype (@{ $data->{"phenotypes"} }){
+        foreach my $vf (@{ $phenotype->{"vfs"} }){
+          next unless $vf;
+          
+          next unless $phenotype->{"GWAS_risk_allele"};
+          my $GWAS_risk_allele = $phenotype->{"GWAS_risk_allele"} || "";
+          
+          my $GWAS_associated_gene = $phenotype->{"GWAS_associated_gene"} || "";
+          my $GWAS_p_value = $phenotype->{"GWAS_p_value"} || "";
+          my $GWAS_study = $phenotype->{"GWAS_study"} || "";
+          my $GWAS_pmid = $phenotype->{"GWAS_pmid"} || "";
+          my $accessions = join(",", @{ $phenotype->{"GWAS_accessions"} }) || "";
+          my $GWAS_beta_coef = $phenotype->{"GWAS_beta_coef"} || "";
+          my $GWAS_odds_ratio = $phenotype->{"GWAS_odds_ratio"} || "";
 
-      my $line = join("\t", (
-        $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
-        $GWAS_associated_gene,
-        $GWAS_risk_allele,
-        $GWAS_p_value,
-        $GWAS_study,
-        $GWAS_pmid,
-        $accessions,
-        $GWAS_beta_coef,
-        $GWAS_odds_ratio,
-      ));
-      
-      print $temp_processed_FH $line . "\n";
+          my $line = join("\t", (
+            $vf->{"seq"}, $vf->{"start"}, $vf->{"end"}, $vf->{"ref"}, 
+            $GWAS_associated_gene,
+            $GWAS_risk_allele,
+            $GWAS_p_value,
+            $GWAS_study,
+            $GWAS_pmid,
+            $accessions,
+            $GWAS_beta_coef,
+            $GWAS_odds_ratio,
+          ));
+          
+          print $temp_processed_FH $line . "\n";
+        }
+      }
     }
   }
   

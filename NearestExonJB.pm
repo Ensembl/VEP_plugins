@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,13 +40,13 @@ limitations under the License.
  exon boundary, the boundary type (start or end of exon) and the total
  length in nucleotides of the exon.
 
- Various parameters can be altered by passing them to the plugin command:
+ Various key=value parameters can be altered by passing them to the plugin command:
 
- - max_range : maximum search range in bp (default: 10000)
+   max_range : maximum search range in bp (default: 10000)
 
  Parameters are passed e.g.:
 
- --plugin NearestExonJB,max_range=50000
+   --plugin NearestExonJB,max_range=50000
 
 =cut
 

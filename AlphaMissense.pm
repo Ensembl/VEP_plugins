@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,15 +46,15 @@ limitations under the License.
 
  This plugin will add two annotations per missense variant:
 
- 'am_pathogenicity', a continuous score between 0 and 1 which can be interpreted as the predicted 
+ - 'am_pathogenicity', a continuous score between 0 and 1 which can be interpreted as the predicted 
  probability of the variant being pathogenic. 
 
- 'am_class' is the classification of the variant into one of three discrete categories:  
- 'Likely pathogenic', 'Likely benign', or 'ambiguous'. These are derived using the following 
-  thresholds of am_pathogenicity: 
-    'Likely benign' if am_pathogenicity < 0.34; 
-    'Likely pathogenic' if am_pathogenicity > 0.564; 
-    'ambiguous' otherwise. 
+ - 'am_class' is the classification of the variant into one of three discrete categories:  
+   'likely_pathogenic', 'likely_benign', or 'ambiguous'. These are derived using the following 
+   thresholds of am_pathogenicity: 
+     'likely_benign'     if 'am_pathogenicity' < 0.34; 
+     'likely_pathogenic' if 'am_pathogenicity' > 0.564; 
+     'ambiguous' otherwise. 
 
  These thresholds were chosen to achieve 90% precision for both pathogenic and benign ClinVar variants. 
  Note that AlphaMissense was not trained on ClinVar variants. Variants labeled as 'ambiguous' should be 
@@ -94,7 +94,7 @@ limitations under the License.
    file             : (mandatory) Tabix-indexed AlphaMissense data
    cols             : (optional) Colon-separated columns to print from
                       AlphaMissense data; if set to 'all', all columns are printed
-                      (default: Missense_pathogenicity:Missense_class)
+                      (default: 'Missense_pathogenicity:Missense_class')
    transcript_match : Only print data if transcript identifiers match those from
                       AlphaMissense data (default: 0)
 
@@ -274,7 +274,10 @@ sub run {
     # Filter user-selected columns
     my %res = %{ $_->{result} };
     %res = map { $_ => $res{$_} } @{ $self->{cols} };
-    return \%res if (@$matches);
+    if (@$matches) {
+      return ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?
+        { AlphaMissense => \%res } : \%res;
+    }
   }
   return {};
 }

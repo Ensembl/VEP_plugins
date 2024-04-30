@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,7 +33,9 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that draws pictures of the transcript model showing the
- variant location. Can take five optional paramters:
+ variant location.
+
+ Takes five optional paramters:
  
  1) File name stem for images
  2) Image width in pixels (default: 1000px)
@@ -45,7 +47,7 @@ limitations under the License.
  
  ./vep -i variations.vcf --plugin Draw,myimg,2000,100
  
- Images are written to [file_stem]_[transcript_id]_[variant_id].png
+ Images are written to '[file_stem]_[transcript_id]_[variant_id].png'
  
  Requires GD library installed to run.
 

@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,8 +53,7 @@ pLI - Add pLI score to the VEP output
   VEP_plugins GitHub repository. The file contains the fields gene and pLI 
   extracted from the file at 
     
-    https://ftp.broadinstitute.org/pub/ExAC_release/release0.3/functional_gene_constraint/
-      fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt
+    https://ftp.broadinstitute.org/pub/ExAC_release/release0.3/functional_gene_constraint/fordist_cleaned_exac_r03_march16_z_pli_rec_null_data.txt
 
   From this file, extract gene or transcipt pLI scores:
    To extract gene scores : 

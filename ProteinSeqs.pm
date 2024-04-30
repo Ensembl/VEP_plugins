@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -116,7 +116,12 @@ sub run {
       # splice the mutant peptide sequence into the reference sequence
 
       my $mut_seq = $ref_seq;
+      
+      # Remove represented deleted peptide "-" from alt sequence except stop_lost variants
+      
+      $mut_aa =~ s/-//g unless grep {$_->SO_term eq 'stop_lost'} @{$tva->get_all_OverlapConsequences};
 
+      
       substr($mut_seq, $tl_start-1, $tl_end - $tl_start + 1) = $mut_aa;
       # print out our reference and mutant sequences
       
