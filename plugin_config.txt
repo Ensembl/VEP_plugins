@@ -741,6 +741,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/AlphaMissense.pm",
       "helptip" => "Annotates missense variants with the pre-computed AlphaMissense pathogenicity scores. AlphaMissense is a deep learning model developed by Google DeepMind that predicts the pathogenicity of single nucleotide missense variants.",
       "requires_data" => 1,
       "species" => [
@@ -1451,7 +1452,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/Mastermind.pm"
     },
-    
+
     # GWAS
     {
       "key" => "GWAS",
@@ -1841,7 +1842,7 @@ my $VEP_PLUGIN_CONFIG = {
     ## TRANSCRIPT ANNOTATION
     ############
 
-    # NMD 
+    # NMD
     {
       "key" => "NMD",
       "helptip" => "Nonsense-mediated mRNA decay escaping variants prediction",
@@ -2025,8 +2026,8 @@ my $VEP_PLUGIN_CONFIG = {
         }
       ]
     },
-    
-    ## REGULATORY IMPACT 
+
+    ## REGULATORY IMPACT
     ####################
 
     # Enformer
