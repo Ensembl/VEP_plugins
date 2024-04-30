@@ -1602,7 +1602,16 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Variant data",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/SubsetVCF.pm"
     },
-
+    # GeneBe
+    {
+      "key" => "GeneBe",
+      "label" => "GeneBe",
+      "helptip" => "Retrieves automatic ACMG variant classification data from GeneBe",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Variant data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/GeneBe.pm",
+    },
 
 
     ## NEARBY FEATURES
