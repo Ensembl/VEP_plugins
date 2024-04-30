@@ -117,9 +117,6 @@ sub run {
     my $locus = sprintf 'chr%s-%s-%s-%s', $chr, $start, $ref_allele, $alt_allele;
 
     # check the cache
-
-
-
     if(!exists($self->{lovd_cache}->{$locus})) {
 
         # Define the base URL of your API
@@ -128,8 +125,6 @@ sub run {
         # Construct the URL with the variables
         my $api_url = sprintf('%s?chr=%s&pos=%d&ref=%s&alt=%s&genome=hg38',
                       $base_url, $chr, $start, $ref_allele, $alt_allele);
-
-        print "$api_url\n";
 
         # Execute curl command to make the HTTP request
         my $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
