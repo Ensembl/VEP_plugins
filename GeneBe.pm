@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2023] EMBL-European Bioinformatics Institute
+Copyright [2016-2024] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@ limitations under the License.
 =head1 DESCRIPTION
 
  A VEP plugin that retrieves automatic ACMG variant classification data from https://genebe.net/.
+ Please cite the GeneBe publication alongside the VEP if you use this resource:
+ https://onlinelibrary.wiley.com/doi/10.1111/cge.14516 .
 
 
  Please be advised that the GeneBe API is freely accessible for academic purposes only, with a limited
@@ -48,6 +50,7 @@ use warnings;
 use JSON;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
@@ -91,7 +94,9 @@ sub run {
     my $start = $vf->{start};
 
     my $ref_allele = $vf->ref_allele_string;
-    my $alt_allele = $tva->variation_feature_seq;
+    my $alt_alleles = $tva->base_variation_feature->alt_alleles;
+    my $allele_number = $tva->{allele_number};
+    my $alt_allele = @$alt_alleles[$allele_number - 1];
 
     return {} unless defined $vf;
 
@@ -113,6 +118,8 @@ sub run {
 
     # check the cache
 
+
+
     if(!exists($self->{lovd_cache}->{$locus})) {
 
         # Define the base URL of your API
@@ -122,7 +129,7 @@ sub run {
         my $api_url = sprintf('%s?chr=%s&pos=%d&ref=%s&alt=%s&genome=hg38',
                       $base_url, $chr, $start, $ref_allele, $alt_allele);
 
-        print "API URL: $api_url\n";
+        print "$api_url\n";
 
         # Execute curl command to make the HTTP request
         my $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
@@ -130,7 +137,7 @@ sub run {
 
         if($? == 0) {
 
-               # Decode the JSON response
+            # Decode the JSON response
             my $json_response = decode_json($curl_output);
 
             # Check if 'variants' array exists and has at least one element
@@ -139,26 +146,15 @@ sub run {
                 my $variant_data = $json_response->{variants}[0];
 
                 # Extract required values
-                my $acmg_score = $variant_data->{acmg_score};
-                my $acmg_classification = $variant_data->{acmg_classification};
-                my $acmg_criteria = $variant_data->{acmg_criteria};
-                $acmg_criteria =~ tr/,/&/;
-
+                my $acmg_score = $variant_data->{acmg_score} // '';
+                my $acmg_classification = $variant_data->{acmg_classification} // '';
+                my $acmg_criteria = $variant_data->{acmg_criteria} // '';
+                $acmg_criteria =~ tr/,/&/ if defined $acmg_criteria;
 
                 $self->{lovd_cache}->{$locus} = join(',', $acmg_score, $acmg_classification, $acmg_criteria);
 
-                # Now you have the required data in the variables
-                # print "ACMG Score: $acmg_score\n";
-                # print "ACMG Classification: $acmg_classification\n";
-                # print "ACMG Criteria: $acmg_criteria\n";
-
                 return {GeneBe_ACMG_score => $acmg_score, GeneBe_ACMG_classification => $acmg_classification, GeneBe_ACMG_criteria => $acmg_criteria };
-            } else {
-                # print "No variants data found in the response.\n";
             }
-        }else {
-            # Print the status code and message from the response
-            # print "Error executing curl command: $!\n";
         }
     }
     else {
