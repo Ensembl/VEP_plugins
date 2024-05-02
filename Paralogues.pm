@@ -594,55 +594,6 @@ sub _get_transcript_from_translation {
 
 ## GET PARALOGUE VARIANTS BASED ON MATCHES OR ANNOTATION -----------------------
 
-#sub _get_paralogue_vars_from_matches {
-#  my ($self, $tva) = @_;
-#  my $vf     = $tva->variation_feature;
-#  my $allele = $tva->base_variation_feature->alt_alleles;
-#
-#  # get matches from VCF
-#  my $file  = $self->{matches};
-#  my $chr   = $vf->{chr};
-#  my $start = $vf->{start};
-#  my $end   = $vf->{end};
-#
-#  my @data = @{$self->get_data($chr, $start - 2, $end, $file)};
-#  foreach (@data) {
-#    my $matches = get_matched_variant_alleles(
-#      {
-#        ref    => $vf->ref_allele_string,
-#        alts   => $allele,
-#        pos    => $vf->{start},
-#        strand => $vf->strand
-#      },
-#      {
-#       ref  => $_->{ref},
-#       alts => [ split /,/, $_->{alt} ],
-#       pos  => $_->{start},
-#      }
-#    );
-#    next unless @$matches;
-#
-#    my $all_results = {};
-#    my $feature_id = $tva->feature->stable_id;
-#    for my $field (split /,/, $_->{$self->{matches_info_field}}) {
-#      my %hash;
-#      @hash{ @{$self->{matches_info_keys}} } = split /\|/, $field;
-#
-#      next unless
-#        $hash{'PARALOGUE_REGIONS'} and
-#        $hash{Feature} eq $feature_id and
-#        grep $hash{Allele}, @$allele;
-#
-#      for my $var (split(/\&/, $hash{'PARALOGUE_REGIONS'})) {
-#        my ($par_chr, $par_start, $par_end, $perc_cov, $perc_pos) = split(':', $var);
-#        $all_results = $self->_get_paralogue_vars($par_chr, $par_start, $par_end, $perc_cov, $perc_pos, $all_results);
-#      }
-#    }
-#    return $all_results;
-#  }
-#  return {};
-#}
-
 sub _get_paralogue_vars_from_annotation {
   my ($self, $tva) = @_;
   my $vf = $tva->variation_feature;
@@ -857,35 +808,6 @@ sub _get_valid_fields {
   return \@valid;
 }
 
-#sub _prepare_matches_params {
-#  my ($self, $params) = @_;
-#
-#  die "ERROR: options 'matches' and 'paralogues' are incompatible\n"
-#    if defined $params->{paralogues};
-#
-#  $self->{matches_info_field} = $params->{matches_info_field} || 'CSQ';
-#  die "ERROR: 'matches=$self->{matches}': file not found\n"
-#    unless -e $self->{matches};
-#  die "ERROR: 'matches=$self->{matches}': respective TBI file not found\n"
-#    unless -e $self->{matches} . ".tbi" || -e $self->{matches} . ".csi";
-#
-#  # Get keys for CSQ fields
-#  my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($self->{matches});
-#  my $info = $vcf_file->get_metadata_by_pragma('INFO');
-#  for (@$info) {
-#    my $description = $_->{'Description'}
-#      if $_->{'ID'} eq $self->{matches_info_field};
-#    next unless defined $description;
-#    my ($format) = $description =~ 'Format: (.*)';
-#    $self->{matches_info_keys} = [ split /\|/, ($format || '') ];
-#  }
-#
-#  # Check if PARALOGUE_REGIONS is described in header
-#  my $par_pragma = $vcf_file->get_metadata_by_pragma('PARALOGUE_REGIONS');
-#  die "ERROR: could not find 'PARALOGUE_REGIONS' in header of $self->{matches}\n" unless defined $par_pragma;
-#  return $self;
-#}
-
 sub new {
   my $class = shift;  
   my $self = $class->SUPER::new(@_);
@@ -901,13 +823,6 @@ sub new {
   $self->{min_perc_cov} = defined $params->{min_perc_cov} ? $params->{min_perc_cov} : 0;
   $self->{min_perc_pos} = defined $params->{min_perc_pos} ? $params->{min_perc_pos} : 50;
   $self->{regions}      = defined $params->{regions}      ? $params->{regions}      : 1;
-
-  #if (defined $params->{matches}) {
-  #  # File with matches between variants and their paralogues regions
-  #  $self->{matches} = $params->{matches};
-  #  $self->add_file($self->{matches});
-  #  $self->_prepare_matches_params($params);
-  #}
 
   # Prepare clinical significance parameters
   my $no_clnsig = defined $params->{clnsig} && $params->{clnsig} eq 'ignore';
@@ -946,8 +861,6 @@ sub new {
     }
   } elsif (defined $params->{fields}) {
     # valid fields differ if using cache or database
-    #my @VAR_FIELDS = ($self->{matches} || $self->{config}->{cache}) ?
-    #  @CACHE_FIELDS : @API_FIELDS;
     my @VAR_FIELDS = $self->{config}->{cache} ? @CACHE_FIELDS : @API_FIELDS;
     @fields = @{ _get_valid_fields($params->{fields}, \@VAR_FIELDS) };
   }
@@ -1106,9 +1019,6 @@ sub run {
     defined $translation_start and defined $translation_end and
     $translation_start == $translation_end;
 
-  #return $self->{matches} ?
-  #  $self->_get_paralogue_vars_from_matches($tva) :
-  #  $self->_get_paralogue_vars_from_annotation($tva);
   return $self->_get_paralogue_vars_from_annotation($tva);
 }
 
