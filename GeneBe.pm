@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- ACMG automatic criteria assignment, GeneBe implementation
+ GeneBe - ACMG automatic criteria assignment
 
 =head1 SYNOPSIS
 
