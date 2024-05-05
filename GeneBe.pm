@@ -144,17 +144,17 @@ sub run {
                 my $acmg_score = $variant_data->{acmg_score} // '';
                 my $acmg_classification = $variant_data->{acmg_classification} // '';
                 my $acmg_criteria = $variant_data->{acmg_criteria} // '';
-                $acmg_criteria =~ tr/,/&/ if defined $acmg_criteria;
+                $acmg_criteria = [ split /,/, $acmg_criteria ] if defined $acmg_criteria;
 
-                $self->{lovd_cache}->{$locus} = join(',', $acmg_score, $acmg_classification, $acmg_criteria);
+                $self->{genebe_cache}->{$locus} = [$acmg_score, $acmg_classification, $acmg_criteria];
 
                 return {GeneBe_ACMG_score => $acmg_score, GeneBe_ACMG_classification => $acmg_classification, GeneBe_ACMG_criteria => $acmg_criteria };
             }
         }
     }
     else {
-        my $cached_data = $self->{lovd_cache}->{$locus};
-        my ($acmg_score, $acmg_classification, $acmg_criteria) = split(',', $cached_data);
+        my $cached_data = $self->{genebe_cache}->{$locus};
+        my ($acmg_score, $acmg_classification, $acmg_criteria) = @$cached_data;
         return {GeneBe_ACMG_score => $acmg_score, GeneBe_ACMG_classification => $acmg_classification, GeneBe_ACMG_criteria => $acmg_criteria };
     }
 
