@@ -117,7 +117,7 @@ sub run {
     my $locus = sprintf 'chr%s-%s-%s-%s', $chr, $start, $ref_allele, $alt_allele;
 
     # check the cache
-    if(!exists($self->{lovd_cache}->{$locus})) {
+    if(!exists($self->{genebe_cache}->{$locus})) {
 
         # Define the base URL of your API
         my $base_url = 'https://api.genebe.net/cloud/api-public/v1/variant';
