@@ -17,7 +17,7 @@ limitations under the License.
 
 =head1 CONTACT
 
- Ensembl <http://www.ensembl.org/info/about/contact/index.html>
+ Piotr Stawinski <genebeambio@gmail.com>
 
 =cut
 
