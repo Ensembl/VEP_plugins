@@ -143,7 +143,7 @@ sub run {
                 # Extract required values
                 my $acmg_score = $variant_data->{acmg_score} // '';
                 my $acmg_classification = $variant_data->{acmg_classification} // '';
-                my $acmg_criteria = $variant_data->{acmg_criteria} // '';
+                my $acmg_criteria = $variant_data->{acmg_criteria} // '.';
                 $acmg_criteria = [ split /,/, $acmg_criteria ] if defined $acmg_criteria;
 
                 $self->{genebe_cache}->{$locus} = [$acmg_score, $acmg_classification, $acmg_criteria];
