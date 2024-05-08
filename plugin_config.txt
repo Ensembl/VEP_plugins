@@ -1194,7 +1194,7 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Phenotype data and citations",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/Mastermind.pm"
     },
-    
+
     # GWAS
     {
       "key" => "GWAS",
@@ -1344,7 +1344,16 @@ my $VEP_PLUGIN_CONFIG = {
       "section" => "Variant data",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/SubsetVCF.pm"
     },
-
+    # GeneBe
+    {
+      "key" => "GeneBe",
+      "label" => "GeneBe",
+      "helptip" => "Retrieves automatic ACMG variant classification data from GeneBe",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Variant data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/GeneBe.pm",
+    },
 
 
     ## NEARBY FEATURES
@@ -1584,7 +1593,7 @@ my $VEP_PLUGIN_CONFIG = {
     ## TRANSCRIPT ANNOTATION
     ############
 
-    # NMD 
+    # NMD
     {
       "key" => "NMD",
       "helptip" => "Nonsense-mediated mRNA decay escaping variants prediction",
@@ -1768,8 +1777,8 @@ my $VEP_PLUGIN_CONFIG = {
         }
       ]
     },
-    
-    ## REGULATORY IMPACT 
+
+    ## REGULATORY IMPACT
     ####################
 
     # Enformer
