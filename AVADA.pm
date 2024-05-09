@@ -54,17 +54,15 @@ tabix avada_v1.00_2016.vcf.gz
 
 3) As you have already noticed, tabix utility must be installed in your path to use this plugin. 
 
-Options are passed to the plugin as key=value pairs:
-
 The plugin can then be run to retrieve AVADA annotations. 
 By default, the variants are matched with the HGNC gene symbol
 ./vep -i variations.vcf --plugin AVADA,file=path/to/file
 
 The output always includes one of the following columns depending on the option passed:
-AVADA_PMID: PubMed ID evidence for the variant as reported by AVADA
-AVADA_PMID_WITH_VARIANT: PubMed ID evidence for the variant as reported by AVADA along with the original variant string
-AVADA_PMID_WITH_FEATURE: PubMed ID evidence for the variant as reported by AVADA along with feature id
-AVADA_PMID_WITH_FEATURE_AND_VARIANT: PubMed ID evidence for the variant as reported by AVADA along with feature id and original variant string
+- `AVADA_PMID`: PubMed ID evidence for the variant as reported by AVADA
+- `AVADA_PMID_WITH_VARIANT`: PubMed ID evidence for the variant as reported by AVADA along with the original variant string
+- `AVADA_PMID_WITH_FEATURE`: PubMed ID evidence for the variant as reported by AVADA along with feature id
+- `AVADA_PMID_WITH_FEATURE_AND_VARIANT`: PubMed ID evidence for the variant as reported by AVADA along with feature id and original variant string
 
 The plugin can optionally be run by specifying the feature to match with.
 
