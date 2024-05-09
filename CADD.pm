@@ -212,6 +212,7 @@ sub run {
     $end = $bvf->{end};
     $ref = $bvf->ref_allele_string;
 
+<<<<<<< HEAD
  
     for my $ALT_NUM (0 .. scalar(@{$bvf->alt_alleles}) - 1) {
       $allele = $bvf->alt_alleles->[$ALT_NUM];
@@ -219,6 +220,16 @@ sub run {
     }
 
     # Increment index for next iteration
+=======
+    if (($ALT_NUM + 1) >= scalar(@{$bvf->alt_alleles})) {
+      $ALT_NUM = 0;
+    } else {
+      $ALT_NUM += 1;
+    };
+
+    return {} unless defined($allele) && $allele =~ /^[ACGT-]+$/;
+
+>>>>>>> parent of 7bcb3ef (Adding the fix for the edge case)
   } else {
     # Do not annotate sv if there is snv/indels annotation file
     return {} if ($self->{non_sv_ann_file} && !$self->{force_annotate});
