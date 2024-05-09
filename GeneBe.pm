@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 =head1 CONTACT
-
  Piotr Stawinski <genebeambio@gmail.com>
 
 =cut
@@ -32,10 +31,11 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves automatic ACMG variant classification data from https://genebe.net/.
+ A user-contributed VEP plugin that retrieves automatic ACMG variant classification data from
+ https://genebe.net/
+
  Please cite the GeneBe publication alongside the VEP if you use this resource:
  https://onlinelibrary.wiley.com/doi/10.1111/cge.14516 .
-
 
  Please be advised that the GeneBe API is freely accessible for academic purposes only, with a limited
  number of queries per day, albeit at a high threshold. Kindly utilize this resource judiciously
