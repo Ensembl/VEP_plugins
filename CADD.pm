@@ -210,6 +210,7 @@ sub run {
   if ($bvf->isa("Bio::EnsEMBL::Variation::VariationFeature")){
     $start = $bvf->{start};
     $end = $bvf->{end};
+    $allele = $bvf->alt_alleles->[$ALT_NUM];
     $ref = $bvf->ref_allele_string;
 
 
