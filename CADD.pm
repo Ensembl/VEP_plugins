@@ -221,6 +221,7 @@ sub run {
     };
 
     return {} unless defined($allele) && $allele =~ /^[ACGT-]+$/;
+    $ALT_NUM = 0; # setting $ALT_NUM = 0 
 
   } else {
     # Do not annotate sv if there is snv/indels annotation file
