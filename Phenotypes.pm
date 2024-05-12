@@ -356,6 +356,7 @@ sub run {
       # replace link characters with _
       foreach (keys %$tmp_data){
         $tmp_data->{$_} =~ tr/ ;,)(/\_\_\_\_\_/;
+        $tmp_data->{$_} =~ s/\+/%2B/ if $output_format{'vcf'};
       }
 
       # report only unique set of fields
