@@ -36,6 +36,7 @@ limitations under the License.
 
  The plugin has multiple configuration options, though minimally requires only
  the CSV file of G2P data.
+ This Plugin is available for GRCh38 and GRCh37.
 
  For further information see:
  Thormann A, Halachev M, McLaren W, et al. Flexible and scalable diagnostic filtering of genomic variants using G2P with Ensembl VEP.
@@ -298,8 +299,6 @@ sub new {
     $params->{log_dir} = $log_dir;
   }
 
-
-
   foreach my $report_type (qw/txt_report html_report/) {
     if (!$params->{$report_type}) {
       my $file_type = ($report_type eq 'txt_report') ? 'txt' : 'html';
@@ -411,8 +410,8 @@ sub new {
   if (defined($params->{only_mane}) and $self->{config}->{assembly} ne "GRCh38") {
     die "The option only_mane only works with GRCh38 assembly \n";
   }
-  
-   
+
+
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
   $self->{user_params} = $params;
@@ -422,8 +421,6 @@ sub new {
   $self->{gene_data} = $self->read_gene_data_from_file($file);
   $self->synonym_mappings();
   $self->hgnc_mappings();
-
-
 
   # force some config params
   $self->{config}->{individual} //= ['all'];
@@ -439,8 +436,6 @@ sub new {
   # tell VEP we have a cache so stuff gets shared/merged between forks
   $self->{has_cache} = 1;
   $self->{cache}->{g2p_in_vcf} = {};
-  
-
 
   return $self;
 }
@@ -500,7 +495,7 @@ sub get_header_info {
 =cut
 sub run {
   my ($self, $tva, $line) = @_;
-  
+
   # only interested if we know the zygosity
   my $zyg = defined($line->{Extra}) ? $line->{Extra}->{ZYG} : $line->{ZYG};
   return {} unless $zyg;
