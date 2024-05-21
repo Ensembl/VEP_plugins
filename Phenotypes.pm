@@ -97,6 +97,14 @@ Phenotypes
                      phenotype (such as overlapping gene or structural
                      variation) and annotation source (default: 0)
 
+ cols           : &-separated list of column and/or attribute names to output
+                  from the gff file. The output fields will be ordered in the same
+                  way given in cols argument. (default: 'phenotype' or 'source,phenotype,id'
+                  if you set phenotype_feature=1)
+
+ id_match       : Return results only if the identifiers matches with the 
+                  variant or the gene depending on the type (default: 0)
+
  Example:
 
  --plugin Phenotypes,file=${HOME}/phenotypes.gff.gz,include_types=Gene
@@ -124,8 +132,7 @@ my %CONFIG = (
 my %output_format;
 my $char_sep = "|";
 
-my %cols = (phenotype => 1, source => 1, id => 1);
-my @fields_order = ("phenotype", "source", "id");
+my (%cols, @fields_order);
 
 my @FIELDS = qw(seq_region_name source type start end score strand frame attributes comments);
 
@@ -173,6 +180,20 @@ sub new {
       $CONFIG{file} = sprintf("%s_%s_%i_%s.gvf.gz", $INC{$pkg}, $species, $version, $assembly);
     }
     $CONFIG{species} = $species;
+  }
+
+  # set which columns to output
+  if ($CONFIG{cols}){
+    %cols = %{ $self->cols };
+    @fields_order = split('&', $CONFIG{cols} || '');
+  }
+  elsif ($CONFIG{phenotype_feature}){
+    %cols =  (phenotype => 1, source => 1, id => 1);
+    @fields_order = ("phenotype", "source", "id");
+  }
+  else {
+    %cols =  (phenotype => 1);
+    @fields_order = ("phenotype");
   }
 
   $self->generate_phenotype_gff($CONFIG{file}) if !(-e $CONFIG{file}) || (-e $CONFIG{file}.'.lock');
@@ -304,6 +325,9 @@ sub run {
   my $vf = $bvfo->base_variation_feature;
   $self->{is_sv} = $vf->isa('Bio::EnsEMBL::Variation::StructuralVariationFeature');
 
+  my $tr = $bvfo->transcript;
+  my $gene_stable_id = defined $tr ? $tr->{_gene_stable_id} : "";
+
   # adjust coords for tabix
   my ($s, $e) = ($vf->{start}, $vf->{end});
   ($s, $e) = ($vf->{end}, $vf->{start}) if ($vf->{start} > $vf->{end}); # swap for insertions
@@ -312,43 +336,43 @@ sub run {
 
   return {} unless $data && scalar @$data;
 
-  return { PHENOTYPES =>  $data } if ($output_format{'json'} && !$CONFIG{phenotype_feature});
-
-  if ($CONFIG{phenotype_feature}){
-    my %tmp_res_uniq;
-    my @result_str = ();
-    my @result_data = ();
-
-    foreach my $tmp_data(@{$data}) {
-      # subset phenotype data columns
-      my %tmp = map { $_ => $tmp_data->{$_} } keys %cols;
-      $tmp_data = \%tmp;
-
-      if (!$output_format{'json'}) {
-        # replace link characters with _
-        $tmp_data->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/;
-
-        # report only unique set of fields
-        my $record_line = join(",", values %$tmp_data);
-        next if defined $tmp_res_uniq{$record_line};
-        $tmp_res_uniq{$record_line} = 1;
-
-        push(@result_str, join($char_sep, @$tmp_data{@fields_order}));
-      }
-
-      push @result_data, $tmp_data;
-    }
-
-    # output options: phenotype_feature + json OR phenotype_feature + vep|vcf|tab
-    return {
-      PHENOTYPES => defined($output_format{'json'}) ? \@result_data : \@result_str
-    };
+  my @f_data = @$data;
+  if ($CONFIG{id_match}){
+    @f_data = grep { $_->{id} eq ($_->{type} eq "Gene" ? $gene_stable_id : $vf->variation_name) } @$data;
   }
 
-  my %result_uniq = map { $_ => 1} map {$_->{phenotype} =~ tr/ ;,)(/\_\_\_\_\_/; $_->{phenotype}} @$data;
+  return { PHENOTYPES =>  \@f_data } if ($output_format{'json'} && !$CONFIG{phenotype_feature});
 
+  my %tmp_res_uniq;
+  my @result_str = ();
+  my @result_data = ();
+
+  foreach my $tmp_data(@f_data) {
+    # subset phenotype data columns
+    my %tmp = map { $_ => ($tmp_data->{$_} || '') } keys %cols;
+    $tmp_data = \%tmp;
+
+    if (!$output_format{'json'}) {
+      # replace link characters with _
+      foreach (keys %$tmp_data){
+        $tmp_data->{$_} =~ tr/ ;,)(/\_\_\_\_\_/;
+        $tmp_data->{$_} =~ s/\+/%2B/ if $output_format{'vcf'};
+      }
+
+      # report only unique set of fields
+      my $record_line = join(",", values %$tmp_data);
+      next if defined $tmp_res_uniq{$record_line};
+      $tmp_res_uniq{$record_line} = 1;
+
+      push(@result_str, join($char_sep, @$tmp_data{@fields_order}));
+    }
+
+    push @result_data, $tmp_data;
+  }
+
+  # output options: phenotype_feature + json OR phenotype_feature + vep|vcf|tab
   return {
-    PHENOTYPES => join(",", keys %result_uniq )
+    PHENOTYPES => defined($output_format{'json'}) ? \@result_data : \@result_str
   };
 }
 
@@ -437,6 +461,10 @@ sub include_sources {
 
 sub include_types {
   return $_[0]->_generic_inc_exc('include_types');
+}
+
+sub cols {
+  return $_[0]->_generic_inc_exc('cols');
 }
 
 sub _generic_inc_exc {
