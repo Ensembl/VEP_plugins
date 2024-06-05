@@ -251,8 +251,17 @@ sub run {
         $hash{$prefix. 'DP_DL'} = $data_values[8];
       }
 
+     # Make a tab output for Ensembl VEP
       else {
-        $hash{'SpliceAI_pred'} = $data_value->{result};
+        $hash{'SpliceAI_pred_SYMBOL'} = (split /\|/, $data_value->{result})[0];
+        $hash{'SpliceAI_pred_DS_AG'} = (split /\|/, $data_value->{result})[1];
+        $hash{'SpliceAI_pred_DS_AL'} = (split /\|/, $data_value->{result})[2];
+        $hash{'SpliceAI_pred_DS_DG'} = (split /\|/, $data_value->{result})[3];
+        $hash{'SpliceAI_pred_DS_DL'} = (split /\|/, $data_value->{result})[4];
+        $hash{'SpliceAI_pred_DP_AG'} = (split /\|/, $data_value->{result})[5];
+        $hash{'SpliceAI_pred_DP_AL'} = (split /\|/, $data_value->{result})[6];
+        $hash{'SpliceAI_pred_DP_DG'} = (split /\|/, $data_value->{result})[7];
+        $hash{'SpliceAI_pred_SP_DL'} = (split /\|/, $data_value->{result})[8];
       }
 
       # Add a flag if cutoff is used
