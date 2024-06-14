@@ -26,8 +26,6 @@ limitations under the License.
 =head1 DESCRIPTION
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated scores from ClinPred.
  ClinPred is a prediction tool to identify disease-relevant nonsynonymous variants.
-
- This Plugin is only available for GRCh37
  
  Please cite the ClinPred publication alongside the VEP if you use this resource:
  https://www.sciencedirect.com/science/article/pii/S0002929718302714
@@ -36,12 +34,23 @@ limitations under the License.
  https://sites.google.com/site/clinpred/download
  
  The following steps are neccessary to tabix the ClinPred.txt.gz file before running the plugin:
+
+ For GRCh37
  gzip -d ClinPred.txt.gz # to unzip the text file 
  cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
  sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  # to add a # in the first line of the file 
  sed '1s/C/c/' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr
  bgzip ClinPred_tabbed.tsv
  tabix -f -s 1 -b 2 -e 2 ClinPred_tabbed.tsv.gz
+
+ For GRCh38
+ gzip -d ClinPred_hg38.txt.gz # to unzip the text file 
+ cat ClinPred_hg38.txt | tr " " "\t" > ClinPred_hg38_tabbed.tsv # to change the file to a tabbed delimited file 
+ sed '1s/.*/#&/'  ClinPred_hg38_tabbed.tsv > tabbed_hg38_ClinPred.tsv  # to add a # in the first line of the file 
+ sed '1s/C/c/' tabbed_hg38_ClinPred.tsv > ClinPred_hg38_tabbed.tsv # to convert the Chr to chr
+ { head -n 1 ClinPred_hg38_tabbed.tsv; tail -n +2 ClinPred_hg38_tabbed.tsv | sort -k1,1V -k2,2V; } > ClinPred_hg38_sorted_tabbed.tsv # to sort the file based on the chromosome and position.
+ bgzip ClinPred_hg38_sorted_tabbed.tsv
+ tabix -f -s 1 -b 2 -e 2 ClinPred_hg38_sorted_tabbed.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
  Check https://github.com/samtools/htslib.git for instructions.
@@ -80,9 +89,6 @@ sub new {
   
   my $assembly = $self->{config}->{assembly};
 
-  if ($assembly ne "GRCh37") {
-    die "Assembly is not GRCh37, ClinPred only works with GRCh37. \n";
-  }
   return $self;
 }
 
