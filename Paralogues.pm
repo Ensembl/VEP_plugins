@@ -102,11 +102,11 @@ limitations under the License.
    --plugin Paralogues,clnsig='likely pathogenic',clnsig_match=exact
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=benign,clnsig_col=CLNSIG
 
- The overlapping variants can be fetched from Ensembl API (by default) or a
- custom tabix-indexed VCF file. You can point to a VCF file using option `vcf`
- and input a colon-delimited list of INFO fields in `fields`:
+ Instead of using Ensembl API or cache, the overlapping variants can be fetched
+ from a custom tabix-indexed VCF file. You can point to a VCF file using option
+ `vcf` and input a colon-delimited list of INFO fields in `fields`:
    --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig_col=CLNSIG
-   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=ignore,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
+   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=ignore,clnsig_col=CLNSIG,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
 
  Options are passed to the plugin as key=value pairs:
    dir          : Directory with paralogue annotation (the annotation is created
@@ -700,10 +700,10 @@ sub _fetch_cache_vars {
     # code based on AnnotationSource::Cache::VariationTabix
     my $source_chr = $as->get_source_chr_name($chr);
     my $tabix_obj = $as->_get_tabix_obj($source_chr);
-    next unless $tabix_obj;
+    return unless $tabix_obj;
 
     my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
-    next unless $iter;
+    return unless $iter;
 
     while(my $line = $iter->next) {
       chomp $line;
@@ -730,7 +730,8 @@ sub _fetch_cache_vars {
       push @$variants, $vf;
     }
   } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
-    warn("RiboseqORFs plugin with non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n") unless $self->{slow_warning};
+    warn("Using non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n")
+      unless $self->{slow_warning};
     $self->{slow_warning} = 1;
 
     # code based on AnnotationSource::Cache::Variation and AnnotationSource
@@ -933,15 +934,19 @@ sub new {
       if defined $params->{fields};
 
     # check if clinical significance column exists
-    if (defined $self->{clnsig_term}) {
+    if (defined $self->{clnsig_term} || defined $params->{clnsig_col}) {
       $self->{clnsig_col} = $params->{clnsig_col};
-      die "ERROR: clnsig_col must be set when using a custom VCF with clnsig\n"
-        unless defined $self->{clnsig_col};
+      die "ERROR: clnsig_col must be set when using a custom VCF unless clnsig=ignore\n"
+        unless defined $self->{clnsig_col} or $no_clnsig;
 
       my $filename = basename $vcf;
       die "ERROR: clnsig_col $self->{clnsig_col} not found in $filename. Available INFO fields are:\n" .
         join(", ", @$info_ids)."\n" unless grep { $self->{clnsig_col} eq $_ } @$info_ids;
     }
+
+    # warn if trying to return clinical significance when the user does not input its VCF field
+    warn("WARNING: clnsig_col not defined; clinical significance of paralogue variants will be empty\n")
+      if !defined $self->{clnsig_col} && grep { /^clinical_significance$/ } @fields;
   } elsif (defined $params->{fields}) {
     # valid fields differ if using cache or database
     my @VAR_FIELDS = $self->{config}->{cache} ? @CACHE_FIELDS : @API_FIELDS;
