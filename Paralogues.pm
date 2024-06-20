@@ -691,150 +691,30 @@ sub _get_paralogue_vars_from_annotation {
 
 ## FETCH VARIANTS FROM SOURCE --------------------------------------------------
 
-sub _fetch_cache_vars {
-  # fetch variants from VEP cache
-  my ($self, $chr, $start, $end) = @_;
-
-  my ($as, $variants);
-  if (defined($as = $self->_get_AnnotationSource('VariationTabix'))) {
-    # code based on AnnotationSource::Cache::VariationTabix
-    my $source_chr = $as->get_source_chr_name($chr);
-    my $tabix_obj = $as->_get_tabix_obj($source_chr);
-    return unless $tabix_obj;
-
-    my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
-    return unless $iter;
-
-    while(my $line = $iter->next) {
-      chomp $line;
-      my $var = $as->parse_variation($line);
-
-      my $slice = Bio::EnsEMBL::Slice->new(
-        -seq_region_name  => $var->{chr},
-        -start            => $var->{start},
-        -end              => $var->{end},
-        -strand           => $var->{strand},
-      );
-
-      my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-        -variation_name        => $var->{variation_name},
-        -seq_region_name       => $var->{chr},
-        -start                 => $var->{start},
-        -end                   => $var->{end},
-        -slice                 => $slice,
-        -strand                => $var->{strand},
-        -allele_string         => $var->{allele_string},
-        -is_somatic            => $var->{somatic},
-        -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
-      );
-      push @$variants, $vf;
-    }
-  } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
-    warn("Using non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n")
-      unless $self->{slow_warning};
-    $self->{slow_warning} = 1;
-
-    # code based on AnnotationSource::Cache::Variation and AnnotationSource
-    my $cache_region_size = $as->{cache_region_size};
-    my ($source_chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
-      $chr, $start, $end, undef, $cache_region_size, $as->up_down_size());
-
-    for my $region (@regions) {
-      my ($c, $s) = @$region;
-
-      my $file = $as->get_dump_file_name(
-        $c,
-        ($s * $cache_region_size) + 1,
-        ($s + 1) * $cache_region_size
-      );
-      next unless -e $file;
-      my $gz = gzopen($file, 'rb');
-
-      my $line;
-      while($gz->gzreadline($line)) {
-        chomp $line;
-
-        # ignore non-overlapping variants
-        my $var = $as->parse_variation($line);
-        next unless overlap($start, $end, $var->{start}, $var->{end});
-
-        my $slice = Bio::EnsEMBL::Slice->new(
-          -seq_region_name  => $c,
-          -start            => $var->{start},
-          -end              => $var->{end},
-          -strand           => $var->{strand},
-        );
-
-        my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-          -variation_name        => $var->{variation_name},
-          -seq_region_name       => $c,
-          -start                 => $var->{start},
-          -end                   => $var->{end},
-          -slice                 => $slice,
-          -strand                => $var->{strand},
-          -allele_string         => $var->{allele_string},
-          -is_somatic            => $var->{somatic},
-          -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
-        );
-        push @$variants, $vf;
-      }
-    }
-  } else {
-    die "ERROR: could not get variants from VEP cache";
-  }
-  return $variants;
-}
-
-sub _fetch_database_vars {
-  # fetch variants from Ensembl API
-  my ($self, $chr, $start, $end) = @_;
-
-  my $config  = $self->{config};
-  my $reg     = $config->{reg};
-  my $species = $config->{species};
-
-  $self->{sa}  ||= $reg->get_adaptor($species, 'core', 'slice');
-  $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
-
-  my $slice = $self->{sa}->fetch_by_region('chromosome', $chr, $start, $end);
-  next unless defined $slice;
-  return $self->{vfa}->fetch_all_by_Slice($slice);
-}
-
 sub _get_paralogue_vars {
   my ($self, $chr, $start, $end, $transcript_id, $perc_cov, $perc_pos, $all_results) = @_;
 
-  my $vcf = $self->{vcf};
-  if (defined $vcf) {
+  my $variants;
+  if (defined $self->{vcf}) {
     # get variants from custom VCF file
-    my @data = @{$self->get_data($chr, $start, $end, $vcf)};
-    for my $var (@data) {
-      next unless $self->_is_clinically_significant([ $var->{clinical_significance} ]);
-      my $info = $self->_prepare_vcf_info($var, $perc_cov, $perc_pos);
-      if (!grep(/^$info$/, @{$all_results->{PARALOGUE_VARIANTS}})) {
-        # avoid duplicates
-        $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
-      }
-    }
+    $variants = $self->get_data($chr, $start, $end, $self->{vcf});
   } else {
     # get Ensembl variants from mapped genomic coordinates
-    my $variants;
-    if ($self->{config}->{cache}) {
-      $variants = $self->_fetch_cache_vars($chr, $start, $end);
-    } elsif ($self->{config}->{database}) {
-      $variants = $self->_fetch_database_vars($chr, $start, $end);
-    } else {
-      die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
-    }
+    $variants = $self->fetch_variants($chr, $start, $end);
+  }
 
-    foreach my $var (@$variants) {
-      # check clinical significance (if set)
-      next unless $self->_is_clinically_significant($var->{clinical_significance});
-      my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
-      if (!grep(/^$res$/, @{$all_results->{PARALOGUE_VARIANTS}})) {
-        # avoid duplicates
-        $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
-      }
+  foreach my $var (@$variants) {
+    # check clinical significance (if set)
+    my $cln_sig = $var->{clinical_significance};
+    $cln_sig = [ $cln_sig ] if defined $self->{vcf};
+    next unless $self->_is_clinically_significant();
+
+    my $FUN = defined $self->{vcf} ? '_prepare_vcf_info' : '_summarise_vf';
+    my $res = $self->$FUN($var, $perc_cov, $perc_pos);
+
+    # avoid duplicates
+    if (!grep(/^$res$/, @{$all_results->{PARALOGUE_VARIANTS}})) {
+      $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
     }
   }
 
