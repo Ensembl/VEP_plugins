@@ -74,6 +74,53 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+sub _create_meta_table {
+  my $self = shift;
+
+  $self->{dbh}->do("CREATE TABLE meta(key, value, PRIMARY KEY (key, value))");
+  my $sth = $self->{dbh}->prepare("INSERT INTO meta VALUES(?, ?)");
+
+  my $mysql = $self->{va}->db->dbc->prepare(qq{
+    SELECT meta_key, meta_value
+    FROM meta m
+    WHERE meta_key NOT LIKE 'schema_%'
+  }, {mysql_use_result => 1});
+
+  my ($key, $value);
+  $mysql->execute();
+  $mysql->bind_columns(\$key, \$value);
+  $sth->execute($key, $value) while $mysql->fetch();
+  $sth->finish();
+  $mysql->finish();
+  return 1;
+}
+
+sub _create_predictions_table {
+  my $self = shift;
+
+  $self->{dbh}->do("CREATE TABLE predictions(md5, analysis, matrix)");
+
+  my $sth = $self->{dbh}->prepare("INSERT INTO predictions VALUES(?, ?, ?)");
+
+  my $mysql = $self->{va}->db->dbc->prepare(qq{
+    SELECT m.translation_md5, a.value, p.prediction_matrix
+    FROM translation_md5 m, attrib a, protein_function_predictions p
+    WHERE m.translation_md5_id = p.translation_md5_id
+    AND p.analysis_attrib_id = a.attrib_id
+    AND a.value IN ('sift', 'polyphen_humdiv', 'polyphen_humvar')
+  }, {mysql_use_result => 1});
+
+  my ($md5, $attrib, $matrix);
+  $mysql->execute();
+  $mysql->bind_columns(\$md5, \$attrib, \$matrix);
+  $sth->execute($md5, $attrib, $matrix) while $mysql->fetch();
+  $sth->finish();
+  $mysql->finish();
+
+  $self->{dbh}->do("CREATE INDEX md5_idx ON predictions(md5)");
+  return 1;
+}
+
 sub new {
   my $class = shift;
   
@@ -90,26 +137,12 @@ sub new {
     die("ERROR: DB file $db already exists - remove and re-run to overwrite\n") if -e $db;
 
     $self->{dbh} = DBI->connect("dbi:SQLite:dbname=$db","","");
-    $self->{dbh}->do("CREATE TABLE predictions(md5, analysis, matrix)");
+    $self->{va} ||= Bio::EnsEMBL::Registry->get_adaptor($species, 'variation', 'variation');
+    print "Creating meta table with assemblies list...\n";
+    $self->_create_meta_table();
 
-    my $sth = $self->{dbh}->prepare("INSERT INTO predictions VALUES(?, ?, ?)");
-
-    my $mysql = Bio::EnsEMBL::Registry->get_adaptor($species, 'variation', 'variation')->db->dbc->prepare(qq{
-      SELECT m.translation_md5, a.value, p.prediction_matrix
-      FROM translation_md5 m, attrib a, protein_function_predictions p
-      WHERE m.translation_md5_id = p.translation_md5_id
-      AND p.analysis_attrib_id = a.attrib_id
-      AND a.value IN ('sift', 'polyphen_humdiv', 'polyphen_humvar')
-    }, {mysql_use_result => 1});
-
-    my ($md5, $attrib, $matrix);
-    $mysql->execute();
-    $mysql->bind_columns(\$md5, \$attrib, \$matrix);
-    $sth->execute($md5, $attrib, $matrix) while $mysql->fetch();
-    $sth->finish();
-    $mysql->finish();
-
-    $self->{dbh}->do("CREATE INDEX md5_idx ON predictions(md5)");
+    print "Creating predictions table...\n";
+    $self->_create_predictions_table();
   }
 
   die("ERROR: DB file $db not found - you need to download or create it first, see documentation in plugin file\n") unless -e $db;
