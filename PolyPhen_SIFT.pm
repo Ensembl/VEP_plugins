@@ -28,7 +28,17 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv PolyPhen_SIFT.pm ~/.vep/Plugins
+
+ # Read PolyPhen/SIFT data from default SQLite database in $HOME/.vep
  ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT
+
+ # Read database with custom name and/or located in a custom directory
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,db=custom.db
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,dir=/some/custom/dir
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,db=custom.db,dir=/some/custom/dir
+
+ # Create database by copying Ensembl data locally
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,create_db=1
 
 =head1 DESCRIPTION
 
@@ -40,25 +50,25 @@ limitations under the License.
  You must create a SQLite database of the predictions or point to the SQLite
  database file already created.
 
- You may point to the file by adding db=[file] as a parameter:
+ You may point to the file by adding parameter `db=[file]`:
 
  --plugin PolyPhen_SIFT,db=[file]
 
- Place the SQLite database file in $HOME/.vep to have the plugin find it automatically.
- You may change this directory by adding dir=[dir] as a parameter:
+ Place the SQLite database file in `HOME/.vep` so that the plugin finds it
+ automatically. You may change this directory by adding parameter `dir=[dir]`:
 
  --plugin PolyPhen_SIFT,dir=[dir]
 
- To create the database, you must have an active database connection
- (i.e. not using --offline) and add create_db=1 as a parameter:
+ To create a SQLite database using PolyPhen/SIFT data from the Ensembl database,
+ you must have an active database connection (i.e. not using `--offline`) and
+ add parameter `create_db=1`. This will create a SQLite file named
+ `[species].PolyPhen_SIFT.db`, placed in the directory specified by the `dir`
+ parameter:
 
  --plugin PolyPhen_SIFT,create_db=1
+ --plugin PolyPhen_SIFT,create_db=1,dir=/some/specific/directory
 
- *** NB: this will take some time!!! ***
-
- By default the file is created as:
-
- ${HOME}/.vep/[species].PolyPhen_SIFT.db
+ *** NB: this will take some hours! ***
  
 =cut
 

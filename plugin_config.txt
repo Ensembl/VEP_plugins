@@ -874,6 +874,15 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # PolyPhen_SIFT
+    {
+      "key" => "PolyPhen_SIFT",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/PolyPhen_SIFT.pm",
+    },
+
     ## SPLICING PREDICTIONS
     #######################
 
@@ -1810,14 +1819,6 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/CSN.pm",
-    },
-
-    # PolyPhen_SIFT
-    {
-      "key" => "PolyPhen_SIFT",
-      "available" => 0,
-      "enabled" => 0,
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/PolyPhen_SIFT.pm",
     },
   ]
 };
