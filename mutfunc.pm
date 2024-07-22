@@ -43,8 +43,9 @@ limitations under the License.
  1) The data file. mutfunc SQLite db can be downloaded from - 
  https://ftp.ensembl.org/pub/current_variation/mutfunc/mutfunc_data.db
 
- By default all the fields (motif, int, mod, and exp) are added in the output. But if you want to have some selected fields and not all of
- them just select the relevant options. The default behavior will then go away outputting only the selected fields.
+ 2) If you are using --offline please provide a FASTA file as this plugin requires the
+ translation sequence to function.
+
  Options are passed to the plugin as key=value pairs:
 
  db			  : (mandatory) Path to SQLite database containing data for other analysis.
@@ -53,6 +54,9 @@ limitations under the License.
  mod      : Select this option to have mutfunc protein structure analysis in the output
  exp      : Select this option to have mutfunc protein structure (experimental) analysis in the output
  extended : By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.
+
+ By default all of the four type of analysis (motif, int, mod, and exp) data are available in the output. But if you want to have 
+ some selected analysis and not all of them just select the relevant options.
 
 =cut
 
