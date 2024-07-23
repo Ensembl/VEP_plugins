@@ -29,7 +29,7 @@ limitations under the License.
 
  mv PolyPhen_SIFT.pm ~/.vep/Plugins
 
- # Read PolyPhen/SIFT data from default SQLite database in $HOME/.vep
+ # Read default PolyPhen/SIFT SQLite file in $HOME/.vep
  ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT
 
  # Read database with custom name and/or located in a custom directory
@@ -48,16 +48,14 @@ limitations under the License.
  does not contain these predictions.
 
  You must create a SQLite database of the predictions or point to the SQLite
- database file already created.
+ database file already created. Compatible SQLite databases based on pangenome
+ data are available at http://ftp.ensembl.org/pub/current_variation/pangenomes
 
- You may point to the file by adding parameter `db=[file]`:
+ You may point to the file by adding parameter `db=[file]`. If the file is not
+ in `HOME/.vep`, you can also use parameter `dir=[dir]` to indicate its path.
 
  --plugin PolyPhen_SIFT,db=[file]
-
- Place the SQLite database file in `HOME/.vep` so that the plugin finds it
- automatically. You may change this directory by adding parameter `dir=[dir]`:
-
- --plugin PolyPhen_SIFT,dir=[dir]
+ --plugin PolyPhen_SIFT,db=[file],dir=[dir]
 
  To create a SQLite database using PolyPhen/SIFT data from the Ensembl database,
  you must have an active database connection (i.e. not using `--offline`) and
@@ -69,7 +67,12 @@ limitations under the License.
  --plugin PolyPhen_SIFT,create_db=1,dir=/some/specific/directory
 
  *** NB: this will take some hours! ***
- 
+
+ When creating a PolyPhen_SIFT by simply using `create_db=1`, you do not need to
+ specify any parameters to load the appropriate file based on the species:
+
+ --plugin PolyPhen_SIFT
+
 =cut
 
 package PolyPhen_SIFT;
