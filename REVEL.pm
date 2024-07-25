@@ -129,7 +129,7 @@ sub new {
   }
   $self->{revel_file_columns} = $column_count;
 
-  my $assembly = $self->{config}->{assembly};
+  my $assembly = $self->{config}->{assembly} || $self->{config}->{human_assembly};
   die "specify assembly using --assembly [assembly]\n" unless defined $assembly;
 
   my %assembly_to_hdr = ('GRCh37' => 'hg19_pos',
