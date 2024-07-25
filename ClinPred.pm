@@ -35,20 +35,20 @@ limitations under the License.
  
  The following steps are neccessary to tabix the ClinPred.txt.gz file before running the plugin:
 
- For GRCh37
+ For GRCh37:
  gzip -d ClinPred.txt.gz # to unzip the text file 
- cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # to change the file to a tabbed delimited file 
- sed '1s/.*/#&/'  ClinPred_tabbed.tsv > tabbed_ClinPred.tsv  # to add a # in the first line of the file 
- sed '1s/C/c/' tabbed_ClinPred.tsv > ClinPred_tabbed.tsv # to convert the Chr to chr
+ cat ClinPred.txt | tr " " "\t" > ClinPred_tabbed.tsv # change to tab-delimited file 
+ sed -i '1s/.*/#&/' ClinPred_tabbed.tsv  # comment the first line
+ sed -i '1s/Chr/chr/' ClinPred_tabbed.tsv # convert Chr to chr
  bgzip ClinPred_tabbed.tsv
  tabix -f -s 1 -b 2 -e 2 ClinPred_tabbed.tsv.gz
 
- For GRCh38
- gzip -d ClinPred_hg38.txt.gz # to unzip the text file 
- cat ClinPred_hg38.txt | tr " " "\t" > ClinPred_hg38_tabbed.tsv # to change the file to a tabbed delimited file 
- sed '1s/.*/#&/'  ClinPred_hg38_tabbed.tsv > tabbed_hg38_ClinPred.tsv  # to add a # in the first line of the file 
- sed '1s/C/c/' tabbed_hg38_ClinPred.tsv > ClinPred_hg38_tabbed.tsv # to convert the Chr to chr
- { head -n 1 ClinPred_hg38_tabbed.tsv; tail -n +2 ClinPred_hg38_tabbed.tsv | sort -k1,1V -k2,2V; } > ClinPred_hg38_sorted_tabbed.tsv # to sort the file based on the chromosome and position.
+ For GRCh38:
+ gzip -d ClinPred_hg38.txt.gz # unzip the text file 
+ awk '($2 == "Start" || $2 ~ /^[0-9]+$/){print $0}' ClinPred_hg38.txt > "ClinPred_hg38_tabbed.tsv" # remove problematic lines
+ sed -i '1s/.*/#&/' ClinPred_hg38_tabbed.tsv # comment the first line
+ sed -i '1s/Chr/chr/' ClinPred_hg38_tabbed.tsv # convert Chr to chr
+ { head -n 1 ClinPred_hg38_tabbed.tsv; tail -n +2 ClinPred_hg38_tabbed.tsv | sort -k1,1V -k2,2V; } > ClinPred_hg38_sorted_tabbed.tsv # sort file by chromosome and position
  bgzip ClinPred_hg38_sorted_tabbed.tsv
  tabix -f -s 1 -b 2 -e 2 ClinPred_hg38_sorted_tabbed.tsv.gz
 
