@@ -91,10 +91,8 @@ sub new {
 
   my $param_hash = $self->params_to_hash();
 
-  $self->{annotate} = 1;
   if ($self->{config}->{offline} && !$self->{config}->{fasta}) {
-    warn "The mutfunc plugin cannot annotate without translation sequence, please provide a FASTA if --offline is used\n";
-    $self->{annotate} = 0;  
+    die "The mutfunc plugin cannot annotate without translation sequence, please provide a FASTA if --offline is used\n";
   }
 
   # default behavior is to output all field
@@ -388,8 +386,6 @@ sub run {
   my ($self, $tva) = @_;
 
   my $result = {};
-
-  return $result unless $self->{annotate};
 
   my $hash_from_db = $self->process_from_db($tva);
   @$result{ keys %$hash_from_db } = values %$hash_from_db;
