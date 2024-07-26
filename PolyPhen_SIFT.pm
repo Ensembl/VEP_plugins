@@ -37,7 +37,7 @@ limitations under the License.
  ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,dir=/some/custom/dir
  ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,db=custom.db,dir=/some/custom/dir
 
- # Create database by copying Ensembl data locally
+ # Create PolyPhen/SIFT SQLite file based on Ensembl database
  ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,create_db=1
 
 =head1 DESCRIPTION
