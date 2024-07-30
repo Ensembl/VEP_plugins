@@ -28,7 +28,17 @@ limitations under the License.
 =head1 SYNOPSIS
 
  mv PolyPhen_SIFT.pm ~/.vep/Plugins
+
+ # Read default PolyPhen/SIFT SQLite file in $HOME/.vep
  ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT
+
+ # Read database with custom name and/or located in a custom directory
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,db=custom.db
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,dir=/some/custom/dir
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,db=custom.db,dir=/some/custom/dir
+
+ # Create PolyPhen/SIFT SQLite file based on Ensembl database
+ ./vep -i variations.vcf -cache --plugin PolyPhen_SIFT,create_db=1
 
 =head1 DESCRIPTION
 
@@ -38,28 +48,31 @@ limitations under the License.
  does not contain these predictions.
 
  You must create a SQLite database of the predictions or point to the SQLite
- database file already created.
+ database file already created. Compatible SQLite databases based on pangenome
+ data are available at http://ftp.ensembl.org/pub/current_variation/pangenomes
 
- You may point to the file by adding db=[file] as a parameter:
+ You may point to the file by adding parameter `db=[file]`. If the file is not
+ in `HOME/.vep`, you can also use parameter `dir=[dir]` to indicate its path.
 
  --plugin PolyPhen_SIFT,db=[file]
+ --plugin PolyPhen_SIFT,db=[file],dir=[dir]
 
- Place the SQLite database file in $HOME/.vep to have the plugin find it automatically.
- You may change this directory by adding dir=[dir] as a parameter:
-
- --plugin PolyPhen_SIFT,dir=[dir]
-
- To create the database, you must have an active database connection
- (i.e. not using --offline) and add create_db=1 as a parameter:
+ To create a SQLite database using PolyPhen/SIFT data from the Ensembl database,
+ you must have an active database connection (i.e. not using `--offline`) and
+ add parameter `create_db=1`. This will create a SQLite file named
+ `[species].PolyPhen_SIFT.db`, placed in the directory specified by the `dir`
+ parameter:
 
  --plugin PolyPhen_SIFT,create_db=1
+ --plugin PolyPhen_SIFT,create_db=1,dir=/some/specific/directory
 
- *** NB: this will take some time!!! ***
+ *** NB: this will take some hours! ***
 
- By default the file is created as:
+ When creating a PolyPhen_SIFT by simply using `create_db=1`, you do not need to
+ specify any parameters to load the appropriate file based on the species:
 
- ${HOME}/.vep/[species].PolyPhen_SIFT.db
- 
+ --plugin PolyPhen_SIFT
+
 =cut
 
 package PolyPhen_SIFT;
@@ -73,6 +86,53 @@ use Bio::EnsEMBL::Variation::ProteinFunctionPredictionMatrix;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+
+sub _create_meta_table {
+  my $self = shift;
+
+  $self->{dbh}->do("CREATE TABLE meta(key, value, PRIMARY KEY (key, value))");
+  my $sth = $self->{dbh}->prepare("INSERT INTO meta VALUES(?, ?)");
+
+  my $mysql = $self->{va}->db->dbc->prepare(qq{
+    SELECT meta_key, meta_value
+    FROM meta m
+    WHERE meta_key NOT LIKE 'schema_%'
+  }, {mysql_use_result => 1});
+
+  my ($key, $value);
+  $mysql->execute();
+  $mysql->bind_columns(\$key, \$value);
+  $sth->execute($key, $value) while $mysql->fetch();
+  $sth->finish();
+  $mysql->finish();
+  return 1;
+}
+
+sub _create_predictions_table {
+  my $self = shift;
+
+  $self->{dbh}->do("CREATE TABLE predictions(md5, analysis, matrix)");
+
+  my $sth = $self->{dbh}->prepare("INSERT INTO predictions VALUES(?, ?, ?)");
+
+  my $mysql = $self->{va}->db->dbc->prepare(qq{
+    SELECT m.translation_md5, a.value, p.prediction_matrix
+    FROM translation_md5 m, attrib a, protein_function_predictions p
+    WHERE m.translation_md5_id = p.translation_md5_id
+    AND p.analysis_attrib_id = a.attrib_id
+    AND a.value IN ('sift', 'polyphen_humdiv', 'polyphen_humvar')
+  }, {mysql_use_result => 1});
+
+  my ($md5, $attrib, $matrix);
+  $mysql->execute();
+  $mysql->bind_columns(\$md5, \$attrib, \$matrix);
+  $sth->execute($md5, $attrib, $matrix) while $mysql->fetch();
+  $sth->finish();
+  $mysql->finish();
+
+  $self->{dbh}->do("CREATE INDEX md5_idx ON predictions(md5)");
+  return 1;
+}
 
 sub new {
   my $class = shift;
@@ -90,26 +150,12 @@ sub new {
     die("ERROR: DB file $db already exists - remove and re-run to overwrite\n") if -e $db;
 
     $self->{dbh} = DBI->connect("dbi:SQLite:dbname=$db","","");
-    $self->{dbh}->do("CREATE TABLE predictions(md5, analysis, matrix)");
+    $self->{va} ||= Bio::EnsEMBL::Registry->get_adaptor($species, 'variation', 'variation');
+    print "Creating meta table with assemblies list...\n";
+    $self->_create_meta_table();
 
-    my $sth = $self->{dbh}->prepare("INSERT INTO predictions VALUES(?, ?, ?)");
-
-    my $mysql = Bio::EnsEMBL::Registry->get_adaptor($species, 'variation', 'variation')->db->dbc->prepare(qq{
-      SELECT m.translation_md5, a.value, p.prediction_matrix
-      FROM translation_md5 m, attrib a, protein_function_predictions p
-      WHERE m.translation_md5_id = p.translation_md5_id
-      AND p.analysis_attrib_id = a.attrib_id
-      AND a.value IN ('sift', 'polyphen_humdiv', 'polyphen_humvar')
-    }, {mysql_use_result => 1});
-
-    my ($md5, $attrib, $matrix);
-    $mysql->execute();
-    $mysql->bind_columns(\$md5, \$attrib, \$matrix);
-    $sth->execute($md5, $attrib, $matrix) while $mysql->fetch();
-    $sth->finish();
-    $mysql->finish();
-
-    $self->{dbh}->do("CREATE INDEX md5_idx ON predictions(md5)");
+    print "Creating predictions table...\n";
+    $self->_create_predictions_table();
   }
 
   die("ERROR: DB file $db not found - you need to download or create it first, see documentation in plugin file\n") unless -e $db;
