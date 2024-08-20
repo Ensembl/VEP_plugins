@@ -619,8 +619,9 @@ sub _get_paralogue_vars_from_matches {
 
   my $file  = $self->{matches};
   my $chr   = $vf->{chr};
-  my $start = $vf->{start};
-  my $end   = $vf->{end};
+  my ($start, $end) = $vf->{start} < $vf->{end} ?
+    ($vf->{start}, $vf->{end}) :
+    ($vf->{end}, $vf->{start});
 
   # get paralogue variants for this region
   my @data = @{$self->get_data($chr, $start, $end, $file)};
