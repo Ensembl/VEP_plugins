@@ -78,9 +78,9 @@ limitations under the License.
    2. VEP cache (in cache/offline mode)
    3. Ensembl API (in database mode)
 
- To create your own file based on a custom set of variants, run VEP using the
- Paralogues plugin with 'regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore'
- and the `--vcf` option. On the output of the VEP command, run:
+ To create a 'matches' file based on a custom set of variants, run VEP using
+ `--plugin Paralogues,regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore`
+ and the `--vcf` option. Afterwards, process the output of the VEP command:
  `perl -e "use Paralogues; Paralogues::prepare_matches_file('variant_effect_output.txt')"`
 
  Options are passed to the plugin as key=value pairs:
