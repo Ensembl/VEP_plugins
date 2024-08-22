@@ -847,12 +847,42 @@ my $VEP_PLUGIN_CONFIG = {
       "label" => "Variants in paralogue proteins",
       "available" => 0,
       "enabled" => 0,
-      "section" => "Pathogenicity predictions",
+      "section" => "Variant data",
       "helptip" => "Retrieves variants overlapping the genomic coordinates of amino acids aligned between paralogue proteins.",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/Paralogues.pm",
       "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
       "params" => [
-        #"/path/to/paralogue/annotation/dir"
+        #"matches=/path/to/paralogues_matches.tsv.gz",
+        "@*"
+      ],
+      "form" => [
+        {
+          "name" => "clnsig",
+          "label" => "Clinical significance",
+          "helptip" => "Clinical significance term used to filter paralogue variants",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "clnsig=pathogenic",             "caption" => "Pathogenic" },
+            { "value" => "clnsig=benign",                 "caption" => "Benign" },
+            { "value" => "clnsig=uncertain_significance", "caption" => "Uncertain significance" },
+            { "value" => "clnsig=ignore",                 "caption" => "Ignore (fetch all paralogue variants)" }
+          ],
+          "value" => "clnsig=pathogenic"
+        },
+        {
+          "name" => "clnsig_match",
+          "label" => "Clinical significance match type",
+          "helptip" => "Type of match when filtering paralogue variants based on clinical significance (e.g., using 'Pathogenic' and 'Partial match' will fetch variants that are pathogenic and likely pathogenic, whereas 'Exact match' will only fetch pathogenic variants)",
+          "type" => "dropdown",
+          "values" => [
+            { "value" => "clnsig_match=partial", "caption" => "Partial match" },
+            { "value" => "clnsig_match=exact",   "caption" => "Exact match" }
+          ],
+          "value" => "clnsig_match=partial"
+        }
       ]
     },
 
