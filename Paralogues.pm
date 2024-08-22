@@ -1045,9 +1045,9 @@ sub get_header_info {
   }
 
   my $fields = join(':', @{ $self->{fields} });
-  my $description = "Variants from $source in paralogue proteins (colon-separated fields: $fields)";
+  my $description = "Variants from $source in paralogue locations (colon-separated fields: $fields)";
   my $header = { PARALOGUE_VARIANTS => $description };
-  $header->{PARALOGUE_REGIONS} = 'Regions used to look up paralogue variants (colon-separated fields: chromosome:start:end:transcript_id:perc_cov:perc_pos)' if $self->{regions};
+  $header->{PARALOGUE_REGIONS} = 'Genomic location of paralogue regions (colon-separated fields: chromosome:start:end:transcript_id:perc_cov:perc_pos)' if $self->{regions};
   return $header;
 }
 
@@ -1294,7 +1294,7 @@ sub prepare_matches_file {
   # perl -e "use Paralogues; Paralogues::prepare_matches_file('variant_effect_output.txt')"
 
   my $results_file = shift;
-  my $outfile = shift || 'paralogue_matches.tsv';
+  my $outfile = shift || dirname($results_file) . '/' . 'paralogues_matches.tsv';
 
   $results_file = File::Spec->rel2abs($results_file);
   die "File not found: $results_file\n" unless -e $results_file;
@@ -1345,7 +1345,6 @@ sub prepare_matches_file {
         }
       }
     }
-    last if $progress eq 1000;
   }
   print "Sorting file...\n";
   system "cat ${outfile} | (sed -u 1q; sort -k1,1V -k2,2n -k3,3n -k7,7V -k8,8n -k9,9n) > ${outfile}_sorted && rm ${outfile}" and die $!;
