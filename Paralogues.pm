@@ -193,6 +193,155 @@ our @API_FIELDS = (
   'gene_symbol',
 );
 
+## FETCH VARIANTS --------------------------------------------------------------
+
+=head2 _create_vf
+  Arg[1]     : hash
+  Description: Create variant feature from a variant hash
+  Returntype : Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub _create_vf {
+  my ($self, $var) = @_;
+
+  my $slice = Bio::EnsEMBL::Slice->new(
+    -seq_region_name  => $var->{chr},
+    -start            => $var->{start},
+    -end              => $var->{end},
+    -strand           => $var->{strand},
+  );
+
+  my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+    -variation_name        => $var->{variation_name},
+    -seq_region_name       => $var->{chr},
+    -start                 => $var->{start},
+    -end                   => $var->{end},
+    -slice                 => $slice,
+    -strand                => $var->{strand},
+    -allele_string         => $var->{allele_string},
+    -is_somatic            => $var->{somatic},
+    -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
+  );
+  return $vf;
+}
+
+=head2 _fetch_cache_vars
+  Arg[1]     : $seq_region_name
+  Arg[2]     : $start
+  Arg[3]     : $end
+  Description: Fetch variant features within a given genomic region from VEP
+               cache; supports indexed (faster) and non-indexed (slower) cache
+  Returntype : arrayref of Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub _fetch_cache_vars {
+  my ($self, $chr, $start, $end) = @_;
+
+  my ($as, $variants);
+  if (defined($as = $self->_get_AnnotationSource('VariationTabix'))) {
+    # code based on AnnotationSource::Cache::VariationTabix
+    my $source_chr = $as->get_source_chr_name($chr);
+    my $tabix_obj = $as->_get_tabix_obj($source_chr);
+    return unless $tabix_obj;
+
+    my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
+    return unless $iter;
+
+    while(my $line = $iter->next) {
+      chomp $line;
+      my $var = $as->parse_variation($line);
+      push @$variants, $self->_create_vf($var);
+    }
+  } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
+    warn("Using non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n")
+      unless $self->{skip_slow_warning};
+    $self->{skip_slow_warning} = 1;
+
+    # code based on AnnotationSource::Cache::Variation and AnnotationSource
+    my $cache_region_size = $as->{cache_region_size};
+    my ($source_chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
+      $chr, $start, $end, undef, $cache_region_size, $as->up_down_size());
+
+    for my $region (@regions) {
+      my ($c, $s) = @$region;
+
+      my $file = $as->get_dump_file_name(
+        $c,
+        ($s * $cache_region_size) + 1,
+        ($s + 1) * $cache_region_size
+      );
+      next unless -e $file;
+      my $gz = gzopen($file, 'rb');
+
+      my $line;
+      while($gz->gzreadline($line)) {
+        chomp $line;
+        # ignore non-overlapping variants
+        my $var = $as->parse_variation($line);
+        $var->{chr} = $c;
+        next unless overlap($start, $end, $var->{start}, $var->{end});
+        push @$variants, $self->_create_vf($var);
+      }
+    }
+  } else {
+    die "ERROR: could not get variants from VEP cache";
+  }
+  return $variants;
+}
+
+=head2 _fetch_database_vars
+  Arg[1]     : $seq_region_name
+  Arg[2]     : $start
+  Arg[3]     : $end
+  Description: Fetch variant features within a given genomic region from Ensembl
+               database (requires database connection)
+  Returntype : arrayref of Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub _fetch_database_vars {
+  my ($self, $chr, $start, $end) = @_;
+
+  my $config  = $self->{config};
+  my $reg     = $config->{reg};
+  my $species = $config->{species};
+
+  $self->{slice_adaptor} ||= $reg->get_adaptor($species, 'core', 'slice');
+  $self->{vf_adaptor}    ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
+
+  my $slice = $self->{slice_adaptor}->fetch_by_region('chromosome', $chr, $start, $end);
+  next unless defined $slice;
+  return $self->{vf_adaptor}->fetch_all_by_Slice($slice);
+}
+
+=head2 _fetch_database_vars
+  Arg[1]     : $seq_region_name
+  Arg[2]     : $start
+  Arg[3]     : $end
+  Description: Fetch variant features within a given genomic region from:
+               - VEP cache (indexed or non-indexed) if --cache is enabled
+               - Ensembl database if --database is enabled
+               Throws error if --cache and --database are not enabled
+  Returntype : arrayref of Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub fetch_variants {
+  my ($self, $chr, $start, $end) = @_;
+
+  my $variants;
+  if ($self->config->{cache}) {
+    $variants = $self->_fetch_cache_vars($chr, $start, $end);
+  } elsif ($self->config->{database}) {
+    $variants = $self->_fetch_database_vars($chr, $start, $end);
+  } else {
+    die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
+  }
+  return $variants;
+}
+
 ## GENERATE PARALOGUE ANNOTATION -----------------------------------------------
 
 sub _prepare_filename {
