@@ -690,6 +690,8 @@ sub _prepare_paralogue_vars_output {
   my ($self, $chr, $start, $end, $transcript_id, $perc_cov, $perc_pos,
       $variants, $all_results) = @_;
 
+  my $is_rest = $self->{config}->{output_format} eq 'json' || $self->{config}->{rest};
+
   foreach my $var (@$variants) {
     # check clinical significance (if set)
     my $cln_sig = $var->{clinical_significance};
@@ -700,15 +702,29 @@ sub _prepare_paralogue_vars_output {
       '_prepare_vcf_info' : '_summarise_vf';
     my $res = $self->$FUN($var, $perc_cov, $perc_pos);
 
-    # avoid duplicates
-    if (!grep(/^$res$/, @{$all_results->{PARALOGUE_VARIANTS}})) {
-      $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
+    if ($is_rest) {
+      my %res_hash;
+      @res_hash{ @{$self->{fields}} } = @{$res};
+      $res = \%res_hash;
+    } else {
+      $res = join(':', @{$res});
     }
+    $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
   }
 
   if ($self->{regions}) {
-    my $regions = { PARALOGUE_REGIONS => "$chr:$start:$end:$transcript_id:$perc_cov:$perc_pos" };
-    $all_results = $self->_join_results($all_results, $regions);
+    my @keys   = qw/chromosome start end transcript_id perc_cov perc_pos/;
+    my @values = ($chr, $start, $end, $transcript_id, $perc_cov, $perc_pos);
+
+    my $regions;
+    if ($is_rest) {
+      my %regions_hash;
+      @regions_hash{@keys} = @values;
+      $regions = \%regions_hash;
+    } else {
+      $regions = join(':', @values);
+    }
+    $all_results = $self->_join_results($all_results, { PARALOGUE_REGIONS => $regions });
   }
   return $all_results;
 }
@@ -886,20 +902,47 @@ sub get_header_info {
   return $header;
 }
 
+sub _obj_in_arrayref {
+  # Returns whether $obj is equal to any element of $arrayref
+  my ($arrayref, $obj) = @_;
+
+  for my $elem (@$arrayref) {
+    if (ref $elem eq 'HASH') {
+      next unless ref $obj eq 'HASH';
+
+      # Compare if keys are the same length between the two objects
+      my @keys_obj = sort keys %$obj;
+      my @keys_k   = sort keys %$elem;
+      next unless $#keys_k eq $#keys_obj;
+
+      # Compare keys and values between two hashes
+      my $sum = 0;
+      my $total = 0;
+      for (@keys_obj) {
+        # sum equal values
+        $sum += $obj->{$_} eq $elem->{$_} ? 1 : 0;
+        $total++;
+      }
+      return 1 if $sum eq $total;
+    } else {
+      return 1 if $elem eq $obj;
+    }
+  }
+  return 0;
+}
+
 sub _join_results {
   my $self = shift;
   my $all_results = shift;
   my $res = shift;
 
-  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
-    # Group results for JSON and REST
-    $all_results->{"Paralogues"} = [] unless defined $all_results->{"Paralogues"};
-    push(@{ $all_results->{"Paralogues"} }, $res);
-  } else {
-    # Create array of results per key
-    for (keys %$res) {
-      $all_results->{$_} = [] if !$all_results->{$_};
-      push(@{ $all_results->{$_} }, $res->{$_} || "NA");
+  # Create array of results per key
+  for (keys %$res) {
+    $all_results->{$_} = [] unless defined $all_results->{$_};
+
+    if (not _obj_in_arrayref($all_results->{$_}, $res->{$_})) {
+      # Avoid storing duplicate elements
+      push(@{ $all_results->{$_} }, $res->{$_})
     }
   }
   return $all_results;
@@ -943,7 +986,7 @@ sub _summarise_vf {
     }
     push @var, $info || '';
   }
-  return join(':', @var);
+  return \@var;
 }
 
 sub _is_clinically_significant {
@@ -982,7 +1025,7 @@ sub _prepare_vcf_info {
     $value =~ s/[:|]/_/g;
     push @res, $value;
   }
-  return join(':', @res);
+  return \@res;
 }
 
 sub run {
