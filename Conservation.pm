@@ -209,6 +209,9 @@ sub run {
   else{
     $parser->seek($chr, $vf->{start} - 1, $vf->{end});
   }
+  
+  return {} unless $parser->{waiting_block};
+
   # Grab the score
   my @values = ();
   my $length = $parser->{waiting_block}[2] - $parser->{waiting_block}[1];
