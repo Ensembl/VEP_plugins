@@ -844,11 +844,11 @@ my $VEP_PLUGIN_CONFIG = {
     # Paralogues
     {
       "key" => "Paralogues",
-      "label" => "Variants in paralogue proteins",
+      "label" => "Paralogue variants",
       "available" => 0,
       "enabled" => 0,
       "section" => "Variant data",
-      "helptip" => "Retrieves variants overlapping the genomic coordinates of amino acids aligned between paralogue proteins.",
+      "helptip" => "Retrieves variants that overlap genomic coordinates corresponding to aligned amino acid positions in paralogous proteins.",
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/112/Paralogues.pm",
       "requires_data" => 1,
       "species" => [
