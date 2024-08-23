@@ -193,6 +193,8 @@ our @API_FIELDS = (
   'gene_symbol',
 );
 
+our @MATCHES_HEADER = qw/chr start end feature perc_cov perc_pos var_id var_chr var_start var_end var_ref var_alt var_feature/;
+
 ## FETCH VARIANTS --------------------------------------------------------------
 
 =head2 _create_vf
@@ -963,10 +965,8 @@ sub new {
     $self->{matches_col} = [ split /\t/, $self->{matches_col} ];
 
     # Remove basic columns from user-selectable columns
-    for my $elem (
-      '#chr', 'start', 'end', 'feature', 'perc_cov', 'perc_pos',
-      'var_chr', 'var_start', 'var_end', 'var_ref', 'var_alt', 'var_feature'
-    ) {
+    for my $elem (@MATCHES_HEADER) {
+      $elem = '#' . $elem if $elem eq 'chr'; # Add hash to first column name
       $self->{matches_col} = [ grep { $elem ne $_ } @{ $self->{matches_col} } ];
     }
 
@@ -1322,7 +1322,7 @@ sub prepare_matches_file {
     print("Processing line ", $progress, "...\n") if $progress++ % 100000 == 0;
 
     if (!$has_header) {
-      print OUT "#", join("\t", qw/chr start end feature perc_cov perc_pos var_id var_chr var_start var_end var_ref var_alt var_feature/, @$info_fields), "\n";
+      print OUT "#", join("\t", @MATCHES_HEADER, @$info_fields), "\n";
       $has_header = 1;
     }
 
