@@ -1196,7 +1196,7 @@ sub run {
 sub _parse_matches {
   my ($self, $line, $file) = @_;
 
-  my ($chrom, $start, $end, $feature, $perc_cov, $perc_pos, $var_chr, $var_start, $var_end, $var_ref, $var_alt, $var_feature, @INFO) = split /\t/, $line;
+  my ($chrom, $start, $end, $feature, $perc_cov, $perc_pos, $var_id, $var_chr, $var_start, $var_end, $var_ref, $var_alt, $var_feature, @INFO) = split /\t/, $line;
 
   my %data = (
     'chromosome' => $chrom,
@@ -1210,6 +1210,7 @@ sub _parse_matches {
       'chromosome' => $var_chr,
       'start'      => $var_start,
       'end'        => $var_end,
+      'identifier' => $var_id,
       'alleles'    => $var_ref . "/" . $var_alt,
       'feature'    => $var_feature
     }
@@ -1221,9 +1222,6 @@ sub _parse_matches {
   # Save clinical significance
   my $clnsig_col = $self->{clnsig_col};
   $data{var}{clinical_significance} = $data{var}{$clnsig_col} if $clnsig_col;
-
-  # ClinVar-specific data
-  $data{var}{identifier} = $data{var}{'ALLELEID'} if $data{var}{'ALLELEID'};
 
   return \%data;
 }
@@ -1324,7 +1322,7 @@ sub prepare_matches_file {
     print("Processing line ", $progress, "...\n") if $progress++ % 100000 == 0;
 
     if (!$has_header) {
-      print OUT "#", join("\t", qw/chr start end feature perc_cov perc_pos var_chr var_start var_end var_ref var_alt var_feature/, @$info_fields), "\n";
+      print OUT "#", join("\t", qw/chr start end feature perc_cov perc_pos var_id var_chr var_start var_end var_ref var_alt var_feature/, @$info_fields), "\n";
       $has_header = 1;
     }
 
@@ -1339,7 +1337,7 @@ sub prepare_matches_file {
         for my $region (split /&/, $res{PARALOGUE_REGIONS}) {
           $region =~ s/:/\t/g;
           my $end = $start + length($alt) - 1;
-          my $data = join("\t", $region, $chr, $start, $end, $ref, $alt, $res{Feature},
+          my $data = join("\t", $region, $id, $chr, $start, $end, $ref, $alt, $res{Feature},
             map { $_ ne "CSQ" and defined $info->{$_} ? $info->{$_} : "NA" } @$info_fields );
           print OUT $data, "\n";
         }
