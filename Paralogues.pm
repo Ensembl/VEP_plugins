@@ -64,13 +64,13 @@ limitations under the License.
  pathogenicity of variants in paralogue positions.
 
  This plugin can determine paralogue regions for a variant based on:
-   1. Pre-computed matches between genomic regions and paralogue variants; 
-      download file calculated using ClinVar variants and respective TBI from
-      https://ftp.ensembl.org/pub/current_variation/Paralogues; details on how
-      to create such 'matches' file can be find below
-   2. Ensembl paralogue annotation; these versatile annotations can look up
+   1. Pre-computed matches between genomic regions and paralogue variants.
+      For this approach, either download the file calculated using ClinVar variants and respective TBI from
+      https://ftp.ensembl.org/pub/current_variation/Paralogues or create such matches file yourself. Details on how
+      to create such 'matches' file can be found below.
+   2. Ensembl paralogue annotation. These versatile annotations can look up
       paralogue regions for all variants from any species with Ensembl
-      paralogues, but take longer to process
+      paralogues, but take longer to process.
 
  After retrieving the paralogue regions, this plugin fetches variants
  overlapping those regions from one of the following sources (by this order):
