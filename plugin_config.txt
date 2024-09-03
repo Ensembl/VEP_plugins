@@ -20,7 +20,7 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "requires_install" => 1,
       "params"  => [
-        #"/path/to/dbNSFP4.7c_grch38.gz",
+        #"/path/to/dbNSFP4.9c_grch38.gz",
         "@*"
       ],
       "species" => [
@@ -36,7 +36,7 @@ my $VEP_PLUGIN_CONFIG = {
           'multiple' => 1,
           'style' => 'height:150px',
           'required' => 1,
-          'notes' => 'Field descriptions in <a rel="external" href="https://usf.box.com/s/h9mqovab0on1r3hpopwypcjr9i9mf0s3">dbNSFP README</a>',
+          'notes' => 'Field descriptions in <a rel="external" href="https://usf.box.com/s/py6pfknr4h6464do2dw322oe2ux09hpd">dbNSFP README</a>',
           # "class" => "jquery-multiselect",
           "values" => [
             #"#chr",
@@ -163,6 +163,13 @@ my $VEP_PLUGIN_CONFIG = {
             "EVE_Class75_pred",
             "EVE_Class80_pred",
             "EVE_Class90_pred",
+            "AlphaMissense_score",
+            "AlphaMissense_rankscore",
+            "AlphaMissense_pred",
+            "PHACTboost_score",
+            "PHACTboost_rankscore",
+            "MutFormer_score",
+            "MutFormer_rankscore",
             "Aloft_Fraction_transcripts_affected",
             "Aloft_prob_Tolerant",
             "Aloft_prob_Recessive",
@@ -199,6 +206,8 @@ my $VEP_PLUGIN_CONFIG = {
             "GERP++_NR",
             "GERP++_RS",
             "GERP++_RS_rankscore",
+            "GERP_91_mammals",
+            "GERP_91_mammals_rankscore",
             "phyloP100way_vertebrate",
             "phyloP100way_vertebrate_rankscore",
             "phyloP470way_mammalian",
