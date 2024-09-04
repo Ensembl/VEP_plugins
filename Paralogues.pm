@@ -43,9 +43,19 @@ limitations under the License.
  # Same using a custom VCF file but filtering for 'pathogenic' variants
  ./vep -i variations.vcf --cache --plugin Paralogues,vcf=/path/to/file.vcf,clnsig_col=CLNSIG
 
+ # Same but output different fields
+ ./vep -i variations.vcf --cache --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig_col=CLNSIG,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
+
+ # Use a file with regions matched to paralogue variants -- fastest method;
+ # download 'matches' files from https://ftp.ensembl.org/pub/current_variation/Paralogues
+ ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues.pm_homo_sapiens_113_GRCh38_clinvar_20240107.tsv.gz,clnsig=ignore
+
+ # Same using a 'matches' file but filtering for 'pathogenic' variants (default)
+ ./vep -i variations.vcf --cache --plugin Paralogues,matches=Paralogues.pm_homo_sapiens_113_GRCh38_clinvar_20240107.tsv.gz
+
  # Fetch all Ensembl variants in paralogue proteins using only the Ensembl API
  # (requires database access)
- ./vep -i variations.vcf --database --plugin Paralogues,mode=remote,clnsig='ignore'
+ ./vep -i variations.vcf --database --plugin Paralogues,mode=remote,clnsig=ignore
 
 =head1 DESCRIPTION
 
@@ -53,9 +63,14 @@ limitations under the License.
  acids aligned between paralogue proteins. This is useful to predict the
  pathogenicity of variants in paralogue positions.
 
- This plugin determines paralogue regions for a variant based on Ensembl
- paralogue annotation. These versatile annotations allow to look up paralogue
- regions for all variants from any species with Ensembl paralogues.
+ This plugin can determine paralogue regions for a variant based on:
+   1. Pre-computed matches between genomic regions and paralogue variants.
+      For this approach, either download the file calculated using ClinVar variants and respective TBI from
+      https://ftp.ensembl.org/pub/current_variation/Paralogues or create such matches file yourself. Details on how
+      to create such 'matches' file can be found below.
+   2. Ensembl paralogue annotation. These versatile annotations can look up
+      paralogue regions for all variants from any species with Ensembl
+      paralogues, but take longer to process.
 
  After retrieving the paralogue regions, this plugin fetches variants
  overlapping those regions from one of the following sources (by this order):
@@ -63,48 +78,25 @@ limitations under the License.
    2. VEP cache (in cache/offline mode)
    3. Ensembl API (in database mode)
 
- This plugin automatically downloads paralogue annotation from Ensembl databases
- if not available in the current directory (by default). Use option `dir` to
- change the directory of the paralogue annotation:
-   --plugin Paralogues
-   --plugin Paralogues,dir=/path/to/dir
-
- It is also possible to point to a custom tabix-indexed TSV file by using
- option `paralogues`:
-   --plugin Paralogues,paralogues=file.tsv.gz
-   --plugin Paralogues,dir=/path/to/dir,paralogues=paralogues_file.tsv.gz
-   --plugin Paralogues,paralogues=/path/to/dir/paralogues_file.tsv.gz
-
- Returned variants can be filtered based on clinical significance by using
- option `clnsig` (use keyword 'ignore' to avoid this filtering):
-   --plugin Paralogues,clnsig=ignore
-   --plugin Paralogues,clnsig=pathogenic,clnsig_match=partial
-   --plugin Paralogues,clnsig='likely pathogenic',clnsig_match=exact
-   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=benign,clnsig_col=CLNSIG
-
- The overlapping variants can be fetched from Ensembl API (by default) or a
- custom tabix-indexed VCF file. You can point to a VCF file using option `vcf`
- and input a colon-delimited list of INFO fields in `fields`:
-   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig_col=CLNSIG
-   --plugin Paralogues,vcf=/path/to/file.vcf.gz,clnsig=ignore,fields=identifier:alleles:CLNSIG:CLNVI:GENEINFO
+ To create a 'matches' file based on a custom set of variants, run VEP using
+ `--plugin Paralogues,regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore`
+ and the `--vcf` option. Afterwards, process the output of the VEP command:
+ `perl -e "use Paralogues; Paralogues::prepare_matches_file('variant_effect_output.txt')"`
 
  Options are passed to the plugin as key=value pairs:
-   dir          : Directory with paralogue annotation (the annotation is created
-                  in this folder if the required files do not exist)
-   paralogues   : Tabix-indexed TSV file with paralogue annotation (the
-                  annotation is created with this filename, if the file does not
-                  exist); if set to 'remote', paralogue annotation is fetched
-                  from Ensembl API
-   min_perc_cov : Minimum alignment percentage of the peptide associated with
-                  the input variant (default: 0)
-   min_perc_pos : Minimum percentage of positivity (similarity) between both
-                  homologues (default: 50)
-   regions      : Boolean value to return regions used to look up paralogue
-                  variants (default: 1)
+   matches      : Tabix-indexed TSV file with pre-computed matches between
+                  genomic regions and paralogue variants (fastest method); this
+                  option is incompatible with the `paralogues` and `vcf` options
 
-   vcf          : Custom Tabix-indexed VCF file with information for overlapping 
-                  variants (by default, overlapping variants are fetched from
-                  VEP cache in cache/offline mode or Ensembl API in database mode)
+   dir          : Directory with paralogue annotation (the annotation is created
+                  in this folder if the paralogue annotation files do not exist)
+   paralogues   : Tabix-indexed TSV file with paralogue annotation (if the file
+                  does not exist, the annotation is automatically created); if
+                  set to 'remote', the annotation is fetched but not stored
+   vcf          : Tabix-indexed VCF file to fetch variant information (if not
+                  used, variants are fetched from VEP cache in cache/offline
+                  mode or Ensembl API in database mode)
+
    fields       : Colon-separated list of information from paralogue variants to
                   output (default: 'identifier:alleles:clinical_significance');
                   keyword 'all' can be used to print all fields; available
@@ -116,6 +108,7 @@ limitations under the License.
                     - Ensembl API: 'end', 'strand', 'source', 'consequence' and
                       'gene_symbol'
                     - Custom VCF: 'quality', 'filter' and name of INFO fields
+                    - Matches file: check column names in file header
 
    clnsig       : Clinical significance term to filter variants (default:
                   'pathogenic'); use 'ignore' to fetch all paralogue variants,
@@ -125,12 +118,20 @@ limitations under the License.
    clnsig_col   : Column name containing clinical significance in custom VCF
                   (required with `vcf` option and if `clnsig` is not 'ignore')
 
+   min_perc_cov : Minimum alignment percentage of the peptide associated with
+                  the input variant (default: 0)
+   min_perc_pos : Minimum percentage of positivity (similarity) between both
+                  homologues (default: 50)
+   regions      : Boolean value to return regions used to look up paralogue
+                  variants (default: 1)
+
  The tabix utility must be installed in your path to read the paralogue
- annotation and the custom VCF file.
+ annotation, the custom VCF file and the matches file.
 
 =cut
 
 package Paralogues;
+@EXPORT_OK = qw(&process_data);
 
 use strict;
 use warnings;
@@ -138,6 +139,7 @@ use warnings;
 use List::Util qw(any);
 use File::Basename;
 use Compress::Zlib;
+use File::Spec;
 
 use Bio::SimpleAlign;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
@@ -148,6 +150,17 @@ use Bio::EnsEMBL::IO::Parser::VCF4Tabix;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+
+our @MATCHES_FIELDS = (
+  'identifier',
+  'chromosome',
+  'start',
+  'end',
+  'alleles',
+  'clinical_significance',
+  'perc_cov',
+  'perc_pos',
+);
 
 our @VCF_FIELDS = (
   'identifier',
@@ -179,6 +192,157 @@ our @API_FIELDS = (
   'consequence',
   'gene_symbol',
 );
+
+our @MATCHES_HEADER = qw/chr start end feature perc_cov perc_pos var_id var_chr var_start var_end var_ref var_alt var_feature/;
+
+## FETCH VARIANTS --------------------------------------------------------------
+
+=head2 _create_vf
+  Arg[1]     : hash
+  Description: Create variant feature from a variant hash
+  Returntype : Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub _create_vf {
+  my ($self, $var) = @_;
+
+  my $slice = Bio::EnsEMBL::Slice->new(
+    -seq_region_name  => $var->{chr},
+    -start            => $var->{start},
+    -end              => $var->{end},
+    -strand           => $var->{strand},
+  );
+
+  my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+    -variation_name        => $var->{variation_name},
+    -seq_region_name       => $var->{chr},
+    -start                 => $var->{start},
+    -end                   => $var->{end},
+    -slice                 => $slice,
+    -strand                => $var->{strand},
+    -allele_string         => $var->{allele_string},
+    -is_somatic            => $var->{somatic},
+    -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
+  );
+  return $vf;
+}
+
+=head2 _fetch_cache_vars
+  Arg[1]     : $seq_region_name
+  Arg[2]     : $start
+  Arg[3]     : $end
+  Description: Fetch variant features within a given genomic region from VEP
+               cache; supports indexed (faster) and non-indexed (slower) cache
+  Returntype : arrayref of Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub _fetch_cache_vars {
+  my ($self, $chr, $start, $end) = @_;
+
+  my ($as, $variants);
+  if (defined($as = $self->_get_AnnotationSource('VariationTabix'))) {
+    # code based on AnnotationSource::Cache::VariationTabix
+    my $source_chr = $as->get_source_chr_name($chr);
+    my $tabix_obj = $as->_get_tabix_obj($source_chr);
+    return unless $tabix_obj;
+
+    my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
+    return unless $iter;
+
+    while(my $line = $iter->next) {
+      chomp $line;
+      my $var = $as->parse_variation($line);
+      push @$variants, $self->_create_vf($var);
+    }
+  } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
+    warn("Using non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n")
+      unless $self->{skip_slow_warning};
+    $self->{skip_slow_warning} = 1;
+
+    # code based on AnnotationSource::Cache::Variation and AnnotationSource
+    my $cache_region_size = $as->{cache_region_size};
+    my ($source_chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
+      $chr, $start, $end, undef, $cache_region_size, $as->up_down_size());
+
+    for my $region (@regions) {
+      my ($c, $s) = @$region;
+
+      my $file = $as->get_dump_file_name(
+        $c,
+        ($s * $cache_region_size) + 1,
+        ($s + 1) * $cache_region_size
+      );
+      next unless -e $file;
+      my $gz = gzopen($file, 'rb');
+
+      my $line;
+      while($gz->gzreadline($line)) {
+        chomp $line;
+        # ignore non-overlapping variants
+        my $var = $as->parse_variation($line);
+        $var->{chr} = $c;
+        next unless overlap($start, $end, $var->{start}, $var->{end});
+        push @$variants, $self->_create_vf($var);
+      }
+    }
+  } else {
+    die "ERROR: could not get variants from VEP cache";
+  }
+  return $variants;
+}
+
+=head2 _fetch_database_vars
+  Arg[1]     : $seq_region_name
+  Arg[2]     : $start
+  Arg[3]     : $end
+  Description: Fetch variant features within a given genomic region from Ensembl
+               database (requires database connection)
+  Returntype : arrayref of Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub _fetch_database_vars {
+  my ($self, $chr, $start, $end) = @_;
+
+  my $config  = $self->{config};
+  my $reg     = $config->{reg};
+  my $species = $config->{species};
+
+  $self->{slice_adaptor} ||= $reg->get_adaptor($species, 'core', 'slice');
+  $self->{vf_adaptor}    ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
+
+  my $slice = $self->{slice_adaptor}->fetch_by_region('chromosome', $chr, $start, $end);
+  next unless defined $slice;
+  return $self->{vf_adaptor}->fetch_all_by_Slice($slice);
+}
+
+=head2 _fetch_database_vars
+  Arg[1]     : $seq_region_name
+  Arg[2]     : $start
+  Arg[3]     : $end
+  Description: Fetch variant features within a given genomic region from:
+               - VEP cache (indexed or non-indexed) if --cache is enabled
+               - Ensembl database if --database is enabled
+               Throws error if --cache and --database are not enabled
+  Returntype : arrayref of Bio::EnsEMBL::Variation::VariationFeature
+  Status     : Experimental
+=cut
+
+sub fetch_variants {
+  my ($self, $chr, $start, $end) = @_;
+
+  my $variants;
+  if ($self->config->{cache}) {
+    $variants = $self->_fetch_cache_vars($chr, $start, $end);
+  } elsif ($self->config->{database}) {
+    $variants = $self->_fetch_database_vars($chr, $start, $end);
+  } else {
+    die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
+  }
+  return $variants;
+}
 
 ## GENERATE PARALOGUE ANNOTATION -----------------------------------------------
 
@@ -494,7 +658,8 @@ sub _get_paralogue_coords {
   my $chr   = $para_tr->seq_region_name;
   my $start = $para_coords->start;
   my $end   = $para_coords->end;
-  return ($chr, $start, $end);
+  my $transcript_id = $para_tr->stable_id || '';
+  return ($chr, $start, $end, $transcript_id);
 }
 
 ## GET DATA FROM ANNOTATION ----------------------------------------------------
@@ -594,6 +759,36 @@ sub _get_transcript_from_translation {
 
 ## GET PARALOGUE VARIANTS BASED ON MATCHES OR ANNOTATION -----------------------
 
+sub _get_paralogue_vars_from_matches {
+  my ($self, $tva) = @_;
+  my $vf     = $tva->variation_feature;
+  my $allele = $tva->base_variation_feature->alt_alleles;
+
+  # get transcript for this feature (skip if not available)
+  return {} unless $tva->can('transcript');
+  my $feat   = $tva->transcript->stable_id;
+
+  my $file  = $self->{matches};
+  my $chr   = $vf->{chr};
+  my ($start, $end) = $vf->{start} < $vf->{end} ?
+    ($vf->{start}, $vf->{end}) :
+    ($vf->{end}, $vf->{start});
+
+  # get paralogue variants for this region
+  my @data = @{$self->get_data($chr, $start, $end, $file)};
+
+  my $all_results = {};
+  foreach (@data) {
+    next unless $feat eq $_->{feature};
+
+    my $var = $_->{var};
+    $all_results = $self->_prepare_paralogue_vars_output(
+      $var->{chr}, $var->{start}, $var->{end}, $var->{feature},
+      $_->{perc_cov}, $_->{perc_pos}, [ $var ], $all_results);
+  }
+  return $all_results;
+}
+
 sub _get_paralogue_vars_from_annotation {
   my ($self, $tva) = @_;
   my $vf = $tva->variation_feature;
@@ -623,158 +818,64 @@ sub _get_paralogue_vars_from_annotation {
       next;
     }
 
-    my ($chr, $start, $end) = $self->_get_paralogue_coords($tva, $aln);
+    my ($chr, $start, $end, $transcript_id) = $self->_get_paralogue_coords($tva, $aln);
     next unless defined $chr and defined $start and defined $end;
-    $all_results = $self->_get_paralogue_vars($chr, $start, $end, $perc_cov, $perc_pos, $all_results);
+
+    my $variants;
+    if (defined $self->{vcf}) {
+      # get variants from custom VCF file
+      $variants = $self->get_data($chr, $start, $end, $self->{vcf});
+    } else {
+      # get Ensembl variants from mapped genomic coordinates
+      $variants = $self->fetch_variants($chr, $start, $end);
+    }
+
+    $all_results = $self->_prepare_paralogue_vars_output(
+      $chr, $start, $end, $transcript_id, $perc_cov, $perc_pos,
+      $variants, $all_results);
   }
   return $all_results;
 }
 
-## FETCH VARIANTS FROM SOURCE --------------------------------------------------
+sub _prepare_paralogue_vars_output {
+  my ($self, $chr, $start, $end, $transcript_id, $perc_cov, $perc_pos,
+      $variants, $all_results) = @_;
 
-sub _fetch_cache_vars {
-  # fetch variants from VEP cache
-  my ($self, $chr, $start, $end) = @_;
+  my $is_rest = $self->{config}->{output_format} eq 'json' || $self->{config}->{rest};
 
-  my ($as, $variants);
-  if (defined($as = $self->_get_AnnotationSource('VariationTabix'))) {
-    # code based on AnnotationSource::Cache::VariationTabix
-    my $source_chr = $as->get_source_chr_name($chr);
-    my $tabix_obj = $as->_get_tabix_obj($source_chr);
-    next unless $tabix_obj;
+  foreach my $var (@$variants) {
+    # check clinical significance (if set)
+    my $cln_sig = $var->{clinical_significance};
+    $cln_sig = [ $cln_sig ] if defined $self->{vcf} or defined $self->{matches};
+    next unless $self->_is_clinically_significant($cln_sig);
 
-    my $iter = $tabix_obj->query(sprintf("%s:%i-%i", $source_chr, $start - 1, $end + 1));
-    next unless $iter;
+    my $FUN = (defined $self->{matches} or defined $self->{vcf}) ?
+      '_prepare_vcf_info' : '_summarise_vf';
+    my $res = $self->$FUN($var, $perc_cov, $perc_pos);
 
-    while(my $line = $iter->next) {
-      chomp $line;
-      my $var = $as->parse_variation($line);
-
-      my $slice = Bio::EnsEMBL::Slice->new(
-        -seq_region_name  => $var->{chr},
-        -start            => $var->{start},
-        -end              => $var->{end},
-        -strand           => $var->{strand},
-      );
-
-      my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-        -variation_name        => $var->{variation_name},
-        -seq_region_name       => $var->{chr},
-        -start                 => $var->{start},
-        -end                   => $var->{end},
-        -slice                 => $slice,
-        -strand                => $var->{strand},
-        -allele_string         => $var->{allele_string},
-        -is_somatic            => $var->{somatic},
-        -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
-      );
-      push @$variants, $vf;
-    }
-  } elsif (defined($as = $self->_get_AnnotationSource('Variation'))) {
-    warn("RiboseqORFs plugin with non-indexed VEP cache is slow; for optimal performance, please use indexed VEP cache\n") unless $self->{slow_warning};
-    $self->{slow_warning} = 1;
-
-    # code based on AnnotationSource::Cache::Variation and AnnotationSource
-    my $cache_region_size = $as->{cache_region_size};
-    my ($source_chr, $min, $max, $seen, @regions) = $as->get_regions_from_coords(
-      $chr, $start, $end, undef, $cache_region_size, $as->up_down_size());
-
-    for my $region (@regions) {
-      my ($c, $s) = @$region;
-
-      my $file = $as->get_dump_file_name(
-        $c,
-        ($s * $cache_region_size) + 1,
-        ($s + 1) * $cache_region_size
-      );
-      next unless -e $file;
-      my $gz = gzopen($file, 'rb');
-
-      my $line;
-      while($gz->gzreadline($line)) {
-        chomp $line;
-
-        # ignore non-overlapping variants
-        my $var = $as->parse_variation($line);
-        next unless overlap($start, $end, $var->{start}, $var->{end});
-
-        my $slice = Bio::EnsEMBL::Slice->new(
-          -seq_region_name  => $c,
-          -start            => $var->{start},
-          -end              => $var->{end},
-          -strand           => $var->{strand},
-        );
-
-        my $vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-          -variation_name        => $var->{variation_name},
-          -seq_region_name       => $c,
-          -start                 => $var->{start},
-          -end                   => $var->{end},
-          -slice                 => $slice,
-          -strand                => $var->{strand},
-          -allele_string         => $var->{allele_string},
-          -is_somatic            => $var->{somatic},
-          -clinical_significance => $var->{clin_sig} ? [split /,/, $var->{clin_sig}] : []
-        );
-        push @$variants, $vf;
-      }
-    }
-  } else {
-    die "ERROR: could not get variants from VEP cache";
-  }
-  return $variants;
-}
-
-sub _fetch_database_vars {
-  # fetch variants from Ensembl API
-  my ($self, $chr, $start, $end) = @_;
-
-  my $config  = $self->{config};
-  my $reg     = $config->{reg};
-  my $species = $config->{species};
-
-  $self->{sa}  ||= $reg->get_adaptor($species, 'core', 'slice');
-  $self->{vfa} ||= $reg->get_adaptor($species, 'variation', 'variationfeature');
-
-  my $slice = $self->{sa}->fetch_by_region('chromosome', $chr, $start, $end);
-  next unless defined $slice;
-  return $self->{vfa}->fetch_all_by_Slice($slice);
-}
-
-sub _get_paralogue_vars {
-  my ($self, $chr, $start, $end, $perc_cov, $perc_pos, $all_results) = @_;
-
-  my $vcf = $self->{vcf};
-  if (defined $vcf) {
-    # get variants from custom VCF file
-    my @data = @{$self->get_data($chr, $start - 2, $end, $vcf)};
-    for my $var (@data) {
-      next unless $self->_is_clinically_significant([ $var->{clinical_significance} ]);
-      my $info = $self->_prepare_vcf_info($var, $perc_cov, $perc_pos);
-      $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $info });
-    }
-  } else {
-    # get Ensembl variants from mapped genomic coordinates
-    my $variants;
-    if ($self->{config}->{cache}) {
-      $variants = $self->_fetch_cache_vars($chr, $start, $end);
-    } elsif ($self->{config}->{database}) {
-      $variants = $self->_fetch_database_vars($chr, $start, $end);
+    if ($is_rest) {
+      my %res_hash;
+      @res_hash{ @{$self->{fields}} } = @{$res};
+      $res = \%res_hash;
     } else {
-      die("ERROR: cannot fetch variants from cache (no cache available?) neither from Ensembl API (database mode must be enabled)");
+      $res = join(':', @{$res});
     }
-
-    foreach my $var (@$variants) {
-      # check clinical significance (if set)
-      next unless $self->_is_clinically_significant($var->{clinical_significance});
-      my $res = $self->_summarise_vf($var, $perc_cov, $perc_pos);
-      $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
-    }
+    $all_results = $self->_join_results($all_results, { PARALOGUE_VARIANTS => $res });
   }
 
   if ($self->{regions}) {
-    my $regions = { PARALOGUE_REGIONS => "$chr:$start:$end:$perc_cov:$perc_pos" };
-    $all_results = $self->_join_results($all_results, $regions);
+    my @keys   = qw/chromosome start end transcript_id perc_cov perc_pos/;
+    my @values = ($chr, $start, $end, $transcript_id, $perc_cov, $perc_pos);
+
+    my $regions;
+    if ($is_rest) {
+      my %regions_hash;
+      @regions_hash{@keys} = @values;
+      $regions = \%regions_hash;
+    } else {
+      $regions = join(':', @values);
+    }
+    $all_results = $self->_join_results($all_results, { PARALOGUE_REGIONS => $regions });
   }
   return $all_results;
 }
@@ -808,6 +909,19 @@ sub _get_valid_fields {
   return \@valid;
 }
 
+sub _validate_matches_file {
+  my ($self, $params) = @_;
+  die "ERROR: options 'matches' and 'paralogues' are incompatible\n"
+    if defined $params->{paralogues};
+  die "ERROR: options 'matches' and 'vcf' are incompatible\n"
+    if defined $params->{vcf};
+  die "ERROR: 'matches=$self->{matches}': file not found\n"
+    unless -e $self->{matches};
+  die "ERROR: 'matches=$self->{matches}': respective TBI file not found\n"
+    unless -e $self->{matches} . ".tbi" || -e $self->{matches} . ".csi";
+  return $self;
+}
+
 sub new {
   my $class = shift;  
   my $self = $class->SUPER::new(@_);
@@ -837,7 +951,29 @@ sub new {
   # Check information to retrieve from paralogue variants
   my $vcf = $params->{vcf};
   my @fields= ('identifier', 'alleles', 'clinical_significance'); # default
-  if (defined $vcf) {
+  if (defined $params->{matches}) {
+    # File with matches between variants and their paralogues regions
+    my $file = $params->{matches};
+    $self->{matches} = $file;
+    $self->{clnsig_col} ||= 'CLNSIG';
+    $self->add_file($file);
+    $self->_validate_matches_file($params);
+
+    # Read column names from matches file
+    $self->{matches_col} = `tabix -H ${file}` or die $!;
+    chomp $self->{matches_col};
+    $self->{matches_col} = [ split /\t/, $self->{matches_col} ];
+
+    # Remove basic columns from user-selectable columns
+    for my $elem (@MATCHES_HEADER) {
+      $elem = '#' . $elem if $elem eq 'chr'; # Add hash to first column name
+      $self->{matches_col} = [ grep { $elem ne $_ } @{ $self->{matches_col} } ];
+    }
+
+    my $valid_fields = [ @MATCHES_FIELDS, @{$self->{matches_col}} ];
+    @fields = @{ _get_valid_fields($params->{fields}, $valid_fields) }
+      if defined $params->{fields};;
+  } elsif (defined $vcf) {
     $self->{vcf} = $vcf;
     $self->add_file($vcf);
 
@@ -850,22 +986,26 @@ sub new {
       if defined $params->{fields};
 
     # check if clinical significance column exists
-    if (defined $self->{clnsig_term}) {
+    if (defined $self->{clnsig_term} || defined $params->{clnsig_col}) {
       $self->{clnsig_col} = $params->{clnsig_col};
-      die "ERROR: clnsig_col must be set when using a custom VCF with clnsig\n"
-        unless defined $self->{clnsig_col};
+      die "ERROR: clnsig_col must be set when using a custom VCF unless clnsig=ignore\n"
+        unless defined $self->{clnsig_col} or $no_clnsig;
 
       my $filename = basename $vcf;
       die "ERROR: clnsig_col $self->{clnsig_col} not found in $filename. Available INFO fields are:\n" .
         join(", ", @$info_ids)."\n" unless grep { $self->{clnsig_col} eq $_ } @$info_ids;
     }
+
+    # warn if trying to return clinical significance when the user does not input its VCF field
+    warn("WARNING: clnsig_col not defined; clinical significance of paralogue variants will be empty\n")
+      if !defined $self->{clnsig_col} && grep { /^clinical_significance$/ } @fields;
   } elsif (defined $params->{fields}) {
     # valid fields differ if using cache or database
     my @VAR_FIELDS = $self->{config}->{cache} ? @CACHE_FIELDS : @API_FIELDS;
     @fields = @{ _get_valid_fields($params->{fields}, \@VAR_FIELDS) };
   }
   $self->{fields} = \@fields;
-  #return $self if $self->{matches};
+  return $self if $self->{matches};
 
   # Check if paralogue annotation should be downloaded
   $self->{remote} = defined $params->{paralogues} && $params->{paralogues} eq 'remote';
@@ -894,7 +1034,9 @@ sub get_header_info {
   my $self = shift;
 
   my $source;
-  if (defined $self->{vcf}) {
+  if (defined $self->{matches}) {
+    $source = basename $self->{matches};
+  } elsif (defined $self->{vcf}) {
     $source = basename $self->{vcf};
   } elsif ($self->{config}->{cache}) {
     $source = 'VEP cache';
@@ -903,10 +1045,39 @@ sub get_header_info {
   }
 
   my $fields = join(':', @{ $self->{fields} });
-  my $description = "Variants from $source in paralogue proteins (colon-separated fields: $fields)";
+  my $description = "Variants from $source in paralogue locations (colon-separated fields: $fields)";
   my $header = { PARALOGUE_VARIANTS => $description };
-  $header->{PARALOGUE_REGIONS} = 'Regions used to look up paralogue variants (colon-separated fields: chromosome:start:end:perc_cov:perc_pos)' if $self->{regions};
+  $header->{PARALOGUE_REGIONS} = 'Genomic location of paralogue regions (colon-separated fields: chromosome:start:end:transcript_id:perc_cov:perc_pos)' if $self->{regions};
   return $header;
+}
+
+sub _obj_in_arrayref {
+  # Returns whether $obj is equal to any element of $arrayref
+  my ($arrayref, $obj) = @_;
+
+  for my $elem (@$arrayref) {
+    if (ref $elem eq 'HASH') {
+      next unless ref $obj eq 'HASH';
+
+      # Compare if keys are the same length between the two objects
+      my @keys_obj = sort keys %$obj;
+      my @keys_k   = sort keys %$elem;
+      next unless $#keys_k eq $#keys_obj;
+
+      # Compare keys and values between two hashes
+      my $sum = 0;
+      my $total = 0;
+      for (@keys_obj) {
+        # sum equal values
+        $sum += $obj->{$_} eq $elem->{$_} ? 1 : 0;
+        $total++;
+      }
+      return 1 if $sum eq $total;
+    } else {
+      return 1 if $elem eq $obj;
+    }
+  }
+  return 0;
 }
 
 sub _join_results {
@@ -914,15 +1085,13 @@ sub _join_results {
   my $all_results = shift;
   my $res = shift;
 
-  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
-    # Group results for JSON and REST
-    $all_results->{"Paralogues"} = [] unless defined $all_results->{"Paralogues"};
-    push(@{ $all_results->{"Paralogues"} }, $res);
-  } else {
-    # Create array of results per key
-    for (keys %$res) {
-      $all_results->{$_} = [] if !$all_results->{$_};
-      push(@{ $all_results->{$_} }, $res->{$_} || "NA");
+  # Create array of results per key
+  for (keys %$res) {
+    $all_results->{$_} = [] unless defined $all_results->{$_};
+
+    if (not _obj_in_arrayref($all_results->{$_}, $res->{$_})) {
+      # Avoid storing duplicate elements
+      push(@{ $all_results->{$_} }, $res->{$_})
     }
   }
   return $all_results;
@@ -966,7 +1135,7 @@ sub _summarise_vf {
     }
     push @var, $info || '';
   }
-  return join(':', @var);
+  return \@var;
 }
 
 sub _is_clinically_significant {
@@ -1005,7 +1174,7 @@ sub _prepare_vcf_info {
     $value =~ s/[:|]/_/g;
     push @res, $value;
   }
-  return join(':', @res);
+  return \@res;
 }
 
 sub run {
@@ -1019,18 +1188,48 @@ sub run {
     defined $translation_start and defined $translation_end and
     $translation_start == $translation_end;
 
-  return $self->_get_paralogue_vars_from_annotation($tva);
+  return $self->{matches} ?
+    $self->_get_paralogue_vars_from_matches($tva) :
+    $self->_get_paralogue_vars_from_annotation($tva);
 }
 
-sub parse_data {
+sub _parse_matches {
   my ($self, $line, $file) = @_;
 
-  # do not parse here paralogue annotation
-  return $line if defined $self->{paralogues} and $file eq $self->{paralogues};
+  my ($chrom, $start, $end, $feature, $perc_cov, $perc_pos, $var_id, $var_chr, $var_start, $var_end, $var_ref, $var_alt, $var_feature, @INFO) = split /\t/, $line;
 
-  # parse custom VCF data
-  my ($chrom, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
+  my %data = (
+    'chromosome' => $chrom,
+    'start'      => $start,
+    'end'        => $end,
+    'feature'    => $feature,
+    'perc_cov'   => $perc_cov,
+    'perc_pos'   => $perc_pos,
+    'var'        => {
+      'chr'        => $var_chr,
+      'chromosome' => $var_chr,
+      'start'      => $var_start,
+      'end'        => $var_end,
+      'identifier' => $var_id,
+      'alleles'    => $var_ref . "/" . $var_alt,
+      'feature'    => $var_feature
+    }
+  );
 
+  # add all ClinVar INFO fields to variant object
+  $data{var}{ $_ } = shift @INFO for @{$self->{matches_col}};
+
+  # Save clinical significance
+  my $clnsig_col = $self->{clnsig_col};
+  $data{var}{clinical_significance} = $data{var}{$clnsig_col} if $clnsig_col;
+
+  return \%data;
+}
+
+sub _parse_vcf {
+  my ($self, $line) = @_;
+
+  my ($chrom, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;    
   # VCF-like adjustment of mismatched substitutions for comparison with VEP
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
@@ -1046,14 +1245,14 @@ sub parse_data {
 
   # fetch data from INFO fields
   my %data = (
-    'chromosome'            => $chrom,
-    'start'                 => $start,
-    'identifier'            => $id,
-    'alleles'               => $ref.'/'.$alt,
-    'ref'                   => $ref,
-    'alt'                   => $alt,
-    'quality'               => $qual,
-    'filter'                => $filter,
+    'chromosome' => $chrom,
+    'start'      => $start,
+    'identifier' => $id,
+    'alleles'    => $ref.'/'.$alt,
+    'ref'        => $ref,
+    'alt'        => $alt,
+    'quality'    => $qual,
+    'filter'     => $filter,
   );
   for my $field ( split /;/, $info ) {
     my ($key, $value) = split /=/, $field;
@@ -1065,12 +1264,99 @@ sub parse_data {
   return \%data;
 }
 
+sub parse_data {
+  my ($self, $line, $file) = @_;
+
+  if (defined $self->{paralogues} && $file eq $self->{paralogues}) {
+    return $line;
+  } elsif (defined $self->{matches} && $file eq $self->{matches}) {
+    return $self->_parse_matches($line, $file);
+  } else {
+    return $self->_parse_vcf($line);
+  }
+}
+
 sub get_start {
   return $_[1]->{start};
 }
 
 sub get_end {
   return $_[1]->{end};
+}
+
+sub prepare_matches_file {
+  # Prepare annotation containing matches between genomic regions and paralogue
+  # variant location; the file is then sorted, bgzipped and tabixed
+
+  # Use this function on VEP output with Paralogues plugin data:
+  # perl -e "use Paralogues; Paralogues::prepare_matches_file('variant_effect_output.txt')"
+
+  my $results_file = shift;
+  my $outfile = shift || dirname($results_file) . '/' . 'paralogues_matches.tsv';
+
+  $results_file = File::Spec->rel2abs($results_file);
+  die "File not found: $results_file\n" unless -e $results_file;
+  my $gz = gzopen($results_file, 'r') or die "Not able to open file: $results_file\n"; 
+
+  open(OUT, '>', $outfile) or die $!;
+
+  my ($info_fields, $csq_cols);
+  my $has_header = 0;
+  my $progress = 0;
+  # Split each region into new rows
+  while($gz->gzreadline($_) > 0) {
+    chomp;
+
+    # read INFO columns
+    if ($_ =~ /^##INFO=<ID=(.*?),/) {
+      if ($1 eq 'CSQ') {
+        $_ =~ /.*Format: (.*)">/;
+        $csq_cols = [ split /\|/, $1 ];
+      } else {
+        push @$info_fields, $1;
+      }
+    }
+    next if $_ =~ /^#/;
+
+    die "Could not find INFO attribute for CSQ; check if VCF header is okay\n" unless $csq_cols;
+    print("Processing line ", $progress, "...\n") if $progress++ % 100000 == 0;
+
+    if (!$has_header) {
+      print OUT "#", join("\t", @MATCHES_HEADER, @$info_fields), "\n";
+      $has_header = 1;
+    }
+
+    my ($chr, $start, $id, $ref, $alt, $qual, $filter, $info) = split "\t", $_;
+    $info = { map { split /=/ } split(/;/, $info) };
+    my $csq = $info->{'CSQ'};
+
+    for my $each_csq (split /,/, $csq) {
+      my %res;
+      @res{@$csq_cols} = split /\|/, $each_csq;
+      if (defined $res{PARALOGUE_REGIONS} and $res{PARALOGUE_REGIONS} ne '-') {
+        for my $region (split /&/, $res{PARALOGUE_REGIONS}) {
+          $region =~ s/:/\t/g;
+          my $end = $start + length($alt) - 1;
+          my $data = join("\t", $region, $id, $chr, $start, $end, $ref, $alt, $res{Feature},
+            map { $_ ne "CSQ" and defined $info->{$_} ? $info->{$_} : "NA" } @$info_fields );
+          print OUT $data, "\n";
+        }
+      }
+    }
+  }
+  print "Sorting file...\n";
+  system "cat ${outfile} | (sed -u 1q; sort -k1,1V -k2,2n -k3,3n -k7,7V -k8,8n -k9,9n) > ${outfile}_sorted && rm ${outfile}" and die $!;
+
+  my $outfile_gz = $outfile . '.gz';
+  print "Compressing file with bgzip...\n";
+  system "bgzip -c ${outfile}_sorted > $outfile_gz && rm ${outfile}_sorted"
+    and die $!;
+
+  print "Indexing file with tabix...\n";
+  system "tabix -s1 -b2 -e3 $outfile_gz" and die $!;
+
+  $gz->gzclose();
+  close OUT;
 }
 
 1;
