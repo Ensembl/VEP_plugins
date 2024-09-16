@@ -191,6 +191,7 @@ my $allelic_requirements = {
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'hemizygous_biallelic' => { af => 0.0001, rules => {HET => 2, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_Y_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
@@ -1287,14 +1288,19 @@ sub read_gene_data_from_file {
           }
           my @ars = ();
           my $allelic_requirement_panel_app = $tmp{"Model_Of_Inheritance"};
-          if ($allelic_requirement_panel_app =~ m/MONOALLELIC|BOTH/) {
+          if ($allelic_requirement_panel_app =~ m/BOTH monoallelic and biallelic/) {
             push @ars, 'monoallelic';
-          } elsif ($allelic_requirement_panel_app =~ m/BIALLELIC|BOTH/) {
             push @ars, 'biallelic';
           } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, biallelic mutations in females') {
             push @ars, 'hemizygous';
           } elsif ($allelic_requirement_panel_app eq 'X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)') {
             push @ars, 'x-linked dominant';
+          } elsif ($allelic_requirement_panel_app =~ m/MONOALLELIC/) {
+            push @ars, 'monoallelic';
+          } elsif ($allelic_requirement_panel_app =~ m/BIALLELIC/) {
+            push @ars, 'biallelic';
+          } elsif ($allelic_requirement_panel_app =~ m/MITOCHONDRIAL/) {
+            push @ars, 'mitochondrial';
           } else {
             $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
           }
