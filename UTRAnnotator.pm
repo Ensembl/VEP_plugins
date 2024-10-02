@@ -184,7 +184,7 @@ sub run {
     next if $pos > $UTR_end || $pos_end < $UTR_start;
 
     #avoid storing UTRs if variant goes over the maximum allowed UTR overlap percentage
-    my $UTR_length = $UTR_end - $UTR_start;
+    my $UTR_length = $UTR_end - $UTR_start + 1;
     my $UTR_overlap_start = max($UTR_start, $pos);
     my $UTR_overlap_end   = min($UTR_end, $pos_end);
     my $UTR_overlap_perc  = 100 * ($UTR_overlap_end - $UTR_overlap_start) / $UTR_length;
