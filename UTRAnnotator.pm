@@ -180,9 +180,6 @@ sub run {
     my $UTR_start = $utr->start(); # this will return the absolute starting positions in chromosome of the UTR exons
     my $UTR_end = $utr->end(); # this will return the absolute ending positions in chromosome of the UTR exons
 
-    #skip if UTR and variant do not overlap
-    next if $pos > $UTR_end || $pos_end < $UTR_start;
-
     #avoid storing UTRs if variant goes over the maximum allowed UTR overlap percentage
     my $UTR_length = $UTR_end - $UTR_start + 1;
     my $UTR_overlap_start = max($UTR_start, $pos);
