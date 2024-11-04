@@ -133,12 +133,12 @@ sub run {
         # Modified curl command to include API authentication if available
         my $curl_command;
         if ($email ne "your_email@example.com" && $api_key ne "your_api_key") {
-        # Use authentication if email and API key are provided
-        $curl_command = "curl -u \"$email:$api_key\" -s -A GeneBe_VEP_plugin \"$api_url\"";
+            # Use authentication if email and API key are provided
+            $curl_command = "curl -u \"$email:$api_key\" -s -A GeneBe_VEP_plugin \"$api_url\"";
         } else {
-        # Fallback to the default command without authentication
-        $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
-}
+            # Fallback to the default command without authentication
+            $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
+        }
 
 # Execute the curl command
 my $curl_output = `$curl_command`;
