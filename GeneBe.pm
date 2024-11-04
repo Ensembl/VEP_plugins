@@ -126,8 +126,12 @@ sub run {
         my $api_url = sprintf('%s?chr=%s&pos=%d&ref=%s&alt=%s&genome=hg38',
                       $base_url, $chr, $start, $ref_allele, $alt_allele);
 
-        # Execute curl command to make the HTTP request
-        my $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
+        # Set your API credentials here
+        my $email = "your_email@example.com";     # Your GeneBe account email
+        my $api_key = "your_api_key";             # Your GeneBe API key
+
+        # Modified curl command to use Basic Authentication 
+        my $curl_command = "curl -u \"$email:$api_key\" -s -A GeneBe_VEP_plugin \"$api_url\"";
         my $curl_output = `$curl_command`;
 
         if($? == 0) {
