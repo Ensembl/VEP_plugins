@@ -140,8 +140,8 @@ sub run {
             $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
         }
 
-# Execute the curl command
-my $curl_output = `$curl_command`;
+        # Execute the curl command
+        my $curl_output = `$curl_command`;
 
         if($? == 0) {
 
