@@ -99,8 +99,6 @@ my %INCLUDE_COLUMNS = (
 
 my $NON_COMMERCIAL_USE_CLAUSE = "CADD is only available here for non-commercial use. See CADD website for more information.";
 
-  my $ALT_NUM = 0;
-
 sub new {
   my $class = shift;
   
@@ -210,18 +208,10 @@ sub run {
   if ($bvf->isa("Bio::EnsEMBL::Variation::VariationFeature")){
     $start = $bvf->{start};
     $end = $bvf->{end};
-    $allele = $bvf->alt_alleles->[$ALT_NUM];
+    $allele = $tva->variation_feature_seq;
     $ref = $bvf->ref_allele_string;
 
-
-    if (($ALT_NUM + 1) >= scalar(@{$bvf->alt_alleles})) {
-      $ALT_NUM = 0;
-    } else {
-      $ALT_NUM += 1;
-    };
-
     return {} unless defined($allele) && $allele =~ /^[ACGT-]+$/;
-    $ALT_NUM = 0; # setting $ALT_NUM = 0 
 
   } else {
     # Do not annotate sv if there is snv/indels annotation file
