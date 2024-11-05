@@ -41,6 +41,9 @@ limitations under the License.
  number of queries per day, albeit at a high threshold. Kindly utilize this resource judiciously
  to ensure its availability for others. For further information, please visit https://genebe.net/about/api.
 
+ In order to extend your daily limits please make an account on https://genebe.net/ and use your username and API-key as follows:
+ ./vep -i variations.vcf --plugin GeneBe,user=example@email.com,password=your_api_key
+
 =cut
 
 package GeneBe;
@@ -53,6 +56,19 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+
+sub new {
+  my $class = shift;
+  
+  my $self = $class->SUPER::new(@_);
+
+  $self->get_user_params();
+  my $param_hash = $self->params_to_hash();
+
+  $self->{user} = $param_hash->{user} if defined $param_hash->{user};
+  $self->{password} = $param_hash->{password} if defined $param_hash->{password};
+
+}
 
 sub version {
     return '1.0';
