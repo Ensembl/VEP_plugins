@@ -127,16 +127,15 @@ sub run {
                       $base_url, $chr, $start, $ref_allele, $alt_allele);
         
         # Set your API credentials here
-        my $email = "your_email@example.com";     # Default placeholder
-        my $api_key = "your_api_key";             # Default placeholder
+        my $user = $self->{user} ? $self->{user} : undef;
+        my $password = $self->{password} ? $self->{password} : undef;
 
-        # Modified curl command to include API authentication if available
         my $curl_command;
-        if ($email ne "your_email@example.com" && $api_key ne "your_api_key") {
-            # Use authentication if email and API key are provided
-            $curl_command = "curl -u \"$email:$api_key\" -s -A GeneBe_VEP_plugin \"$api_url\"";
+        if (defined $user && defined $password) {
+            # Use user and password for authentication if provided
+            $curl_command = "curl -u \"$user:$password\" -s -A GeneBe_VEP_plugin \"$api_url\"";
         } else {
-            # Fallback to the default command without authentication
+            # Fallback to the default authentication using netrc
             $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
         }
 
