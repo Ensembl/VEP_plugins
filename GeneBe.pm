@@ -41,6 +41,9 @@ limitations under the License.
  number of queries per day, albeit at a high threshold. Kindly utilize this resource judiciously
  to ensure its availability for others. For further information, please visit https://genebe.net/about/api.
 
+ In order to extend your daily limits please make an account on https://genebe.net/ and use your username and API-key as follows:
+ ./vep -i variations.vcf --plugin GeneBe,user=example@email.com,password=your_api_key
+
 =cut
 
 package GeneBe;
@@ -53,6 +56,20 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+
+sub new {
+  my $class = shift;
+  
+  my $self = $class->SUPER::new(@_);
+
+
+  my $param_hash = $self->params_to_hash();
+
+  $self->{user} = $param_hash->{user} if defined $param_hash->{user};
+  $self->{password} = $param_hash->{password} if defined $param_hash->{password};
+
+  return $self;
+}
 
 sub version {
     return '1.0';
@@ -125,9 +142,21 @@ sub run {
         # Construct the URL with the variables
         my $api_url = sprintf('%s?chr=%s&pos=%d&ref=%s&alt=%s&genome=hg38',
                       $base_url, $chr, $start, $ref_allele, $alt_allele);
+        
+        # Set your API credentials here
+        my $user = $self->{user} ? $self->{user} : undef;
+        my $password = $self->{password} ? $self->{password} : undef;
 
-        # Execute curl command to make the HTTP request
-        my $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
+        my $curl_command;
+        if (defined $user && defined $password) {
+            # Use user and password for authentication if provided
+            $curl_command = "curl -u \"$user:$password\" -s -A GeneBe_VEP_plugin \"$api_url\"";
+        } else {
+            # Fallback to the default authentication using netrc
+            $curl_command = "curl --netrc -s -A GeneBe_VEP_plugin \"$api_url\"";
+        }
+
+        # Execute the curl command
         my $curl_output = `$curl_command`;
 
         if($? == 0) {
