@@ -62,12 +62,13 @@ sub new {
   
   my $self = $class->SUPER::new(@_);
 
-  $self->get_user_params();
+
   my $param_hash = $self->params_to_hash();
 
   $self->{user} = $param_hash->{user} if defined $param_hash->{user};
   $self->{password} = $param_hash->{password} if defined $param_hash->{password};
 
+  return $self;
 }
 
 sub version {
