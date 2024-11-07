@@ -48,25 +48,24 @@ limitations under the License.
 
 
  LOEUF scores can be downloaded from
- https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7334197/bin/41586_2020_2308_MOESM4_ESM.zip
+ GRCh37: https://gnomad.broadinstitute.org/downloads#v2-constraint (pLoF Metrics by Gene TSV)
+ GRCh38: https://gnomad.broadinstitute.org/downloads#v4-constraint (Constraint metrics TSV)
 
  For GRCh37:
  These files can be tabix-processed by:
- Unzip 41586_2020_2308_MOESM4_ESM.zip
- cd supplement
- zcat supplementary_dataset_11_full_constraint_metrics.tsv.gz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) > loeuf_temp.tsv
+ zcat gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) > loeuf_temp.tsv
  sed '1s/.*/#&/' loeuf_temp.tsv > loeuf_dataset.tsv
  bgzip loeuf_dataset.tsv
  tabix -f -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
 
  For GRCh38:
- The LOEUF scores are available for assembly GRCh37, to be able to run the plugin for GRCh38
- please remap the regions from file supplementary_dataset_11_full_constraint_metrics.tsv
- After the remapping the file can be tabix-processed by:
- cat supplementary_dataset_11_full_constraint_metrics_grch38.tsv | (head -n 1 && tail -n +2  | sort -t$'\t' -k 76,76 -k 77,77n ) > loeuf_grch38_temp.tsv
+ The GRCh38 file does not have gene co-ordinates information. First you need to add the gene co-ordiates information.
+ You can use the Ensembl Perl API to create a script and perform that - https://www.ensembl.org/info/docs/api/core/index.html.
+ After adding the start and end position of the genes at the last 2 columns you can process the file as follows:
+ cat gnomad.v4.1.constraint_metrics_with_coordinates.tsv | (head -n 1 && tail -n +2  | sort -t$'\t' -k 53,53 -k 56,56n ) > loeuf_grch38_temp.tsv
  sed '1s/.*/#&/' loeuf_grch38_temp.tsv > loeuf_dataset_grch38.tsv
  bgzip loeuf_dataset_grch38.tsv
- tabix -f -s 76 -b 77 -e 78 loeuf_dataset_grch38.tsv.gz
+ tabix -f -s 53 -b 56 -e 57 loeuf_dataset_grch38.tsv.gz
 
 
  The tabix utility must be installed in your path to use this plugin.
@@ -83,6 +82,20 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 use Scalar::Util qw(looks_like_number);
+
+# gnomAD v2 and v4 data have different headers
+my $valid_headers = {
+  "v2" => {
+    1 => "transcript",
+    30 => "oe_lof_upper",
+    64 => "gene_id"
+  },
+  "v4" => {
+    2 => "transcript",
+    22 => "lof.oe_ci.upper",
+    1 => "gene_id"
+  },
+};
 
 sub new {
   my $class = shift;
@@ -113,15 +126,23 @@ sub new {
 
   # Compare indexes of expected and observed columns
   die "ERROR: Could not read headers from $param_hash->{file}\n" unless defined($headers) && scalar @{$headers};
-  my @obs_columns = @{$headers}[1,30,64] ;
-  my @exp_columns = ("transcript", "oe_lof_upper", "gene_id"); 
+
   my @missing_columns;
-  foreach my $index (0 .. $#exp_columns){
-    if ($obs_columns[$index] ne  $exp_columns[$index]){
-      push @missing_columns,$exp_columns[$index];
+  foreach my $version (keys %{ $valid_headers }){
+    @missing_columns = ();
+    foreach my $index (keys %{ $valid_headers->{$version} }){
+      my $exp_column = $valid_headers->{$version}->{$index};
+      my $obs_column = $headers->[$index] ? $headers->[$index] : "";
+
+      push @missing_columns, $exp_column if $exp_column ne $obs_column;
+    }
+
+    unless (@missing_columns) {
+      $self->{data_version} = $version;
+      last;
     }
   }
-  my $missing_columns_str =  join(", ", @missing_columns) if scalar @missing_columns; 
+  my $missing_columns_str =  join(", ", @missing_columns) if scalar @missing_columns;
   die "ERROR: Missing columns: $missing_columns_str\n" if defined($missing_columns_str);
 
   # Check match_by argument and store on self
@@ -172,11 +193,12 @@ sub run {
     my $first_entry_flag = 0;
     foreach (@data){
       if (looks_like_number($_->{result}->{LOEUF})){
-	if (!$first_entry_flag){
-	  $min_loeuf_score = $_->{result}->{LOEUF};
-	  $first_entry_flag = 1 ;
-	  next;
-	}
+        if (!$first_entry_flag){
+          $min_loeuf_score = $_->{result}->{LOEUF};
+          $first_entry_flag = 1 ;
+          next;
+        }
+
         if ($_->{result}->{LOEUF} < $min_loeuf_score){
           $min_loeuf_score = $_->{result}->{LOEUF};
         }
@@ -194,7 +216,9 @@ sub run {
 sub parse_data {
   my ($self, $line) = @_;
   my @values = split /\t/, $line;
-  my ($transcript_id, $oe_lof_upper, $gene_id) = @values[1,30,64];
+
+  my ($transcript_id, $oe_lof_upper, $gene_id) = $self->{data_version} ? 
+    @values[keys %{ $valid_headers->{$self->{data_version}} }] : @values[1,30,64];
   return {
     gene_id => $gene_id,
     transcript_id => $transcript_id,
