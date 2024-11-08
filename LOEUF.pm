@@ -86,15 +86,13 @@ use Scalar::Util qw(looks_like_number);
 # gnomAD v2 and v4 data have different headers
 my $valid_headers = {
   "v2" => {
-    1 => "transcript",
-    30 => "oe_lof_upper",
-    64 => "gene_id"
+    "index" => [1, 30, 64],
+    "header" => ["transcript", "oe_lof_upper", "gene_id"]
   },
   "v4" => {
-    2 => "transcript",
-    22 => "lof.oe_ci.upper",
-    1 => "gene_id"
-  },
+    "index" => [2, 22, 1],
+    "header" => ["transcript", "lof.oe_ci.upper", "gene_id"]
+  }
 };
 
 sub new {
@@ -129,12 +127,14 @@ sub new {
 
   my @missing_columns;
   foreach my $version (keys %{ $valid_headers }){
+    my $i = 0;
     @missing_columns = ();
-    foreach my $index (keys %{ $valid_headers->{$version} }){
-      my $exp_column = $valid_headers->{$version}->{$index};
+    foreach my $index ( @{ $valid_headers->{$version}->{"index"} }){
+      my $exp_column = $valid_headers->{$version}->{"header"}->[$i];
       my $obs_column = $headers->[$index] ? $headers->[$index] : "";
 
       push @missing_columns, $exp_column if $exp_column ne $obs_column;
+      $i++;
     }
 
     unless (@missing_columns) {
@@ -218,7 +218,7 @@ sub parse_data {
   my @values = split /\t/, $line;
 
   my ($transcript_id, $oe_lof_upper, $gene_id) = $self->{data_version} ? 
-    @values[keys %{ $valid_headers->{$self->{data_version}} }] : @values[1,30,64];
+    @values[ @{ $valid_headers->{$self->{data_version}}->{"index"} } ] : @values[1,30,64];
   return {
     gene_id => $gene_id,
     transcript_id => $transcript_id,
