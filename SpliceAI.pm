@@ -197,43 +197,24 @@ sub run {
 
   foreach my $data_value (@data) {
 
-    my $ref_allele;
-    my $alt_allele;
+    my $ref_allele = $vf->ref_allele_string;
+    my $allele_number = $tva->allele_number; # necessary for multi-allelic variants
 
-    my $new_allele_string = $vf->ref_allele_string.'/'.$tva->variation_feature_seq;
+    # Fetch the specific alt allele
+    my @alt_alleles = $tva->base_variation_feature->alt_alleles;
+    my $alt_allele = $alt_alleles[0][$allele_number - 1];
 
-    if($vf->ref_allele_string =~ /-/) {
-      # convert to vcf format to compare the alt alleles
-      my $vf_2 = Bio::EnsEMBL::Variation::VariationFeature->new
-        (-start => $start,
-         -end => $end,
-         -strand => $vf->{strand},
-         -allele_string => $new_allele_string
-        );
-      my $convert_to_vcf = $vf_2->to_VCF_record;
-      $ref_allele = ${$convert_to_vcf}[3];
-      $alt_allele = ${$convert_to_vcf}[4];
-    }
-    else {
-      $ref_allele = $vf->ref_allele_string;
-      $alt_allele = $tva->variation_feature_seq;
+    # SpliceAI data is represented in VCF format
+    # Convert VF ins/del to VCF to be able to compare alleles
+    if($vf->allele_string =~ /-/) {
+        my $convert_to_vcf = $vf->to_VCF_record;
+        $ref_allele = ${$convert_to_vcf}[3];
+        my $alt_allele_string = ${$convert_to_vcf}[4];
+        my @aux_alt = split /,/, $alt_allele_string;
+        $alt_allele = $aux_alt[$allele_number - 1];
     }
 
-    my $matches = get_matched_variant_alleles(
-      {
-        ref    => $ref_allele,
-        alts   => [$alt_allele],
-        pos    => $start,
-        strand => $vf->strand
-      },
-      {
-       ref  => $data_value->{ref},
-       alts => [$data_value->{alt}],
-       pos  => $data_value->{start},
-      }
-    );
-    if (@$matches) {
-
+    if ($ref_allele eq $data_value->{ref} && $alt_allele eq $data_value->{alt}) {
       my %hash;
 
       if($output_vcf || $self->{config}->{output_format} eq "json" || $self->{config}->{rest})  {
