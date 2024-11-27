@@ -206,7 +206,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature','Intergenic'];
+  return ['Feature'];
 }
 
 sub variant_feature_types {
