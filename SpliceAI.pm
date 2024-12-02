@@ -208,13 +208,14 @@ sub run {
     # Convert VF ins/del to VCF to be able to compare alleles
     if($vf->allele_string =~ /-/) {
         my $convert_to_vcf = $vf->to_VCF_record;
+        $start = ${$convert_to_vcf}[1];
         $ref_allele = ${$convert_to_vcf}[3];
         my $alt_allele_string = ${$convert_to_vcf}[4];
         my @aux_alt = split /,/, $alt_allele_string;
         $alt_allele = $aux_alt[$allele_number - 1];
     }
 
-    if ($ref_allele eq $data_value->{ref} && $alt_allele eq $data_value->{alt}) {
+    if ($start == $data_value->{start} && $ref_allele eq $data_value->{ref} && $alt_allele eq $data_value->{alt}) {
       my %hash;
 
       if($output_vcf || $self->{config}->{output_format} eq "json" || $self->{config}->{rest})  {
