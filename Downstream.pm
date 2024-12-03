@@ -137,12 +137,12 @@ sub run {
     }
 
     my $new_pep = $codon_seq->translate(undef, undef, undef, $codon_table)->seq();
+    $new_pep =~ s/\*.*//;
     my $pep_with_var = $codon_seq_full->translate(undef, undef, undef, $codon_table)->seq();
-
+    $pep_with_var =~ s/\*.*//;
     my $translation = defined($tr->{_variation_effect_feature_cache}->{peptide})
                     ? $tr->{_variation_effect_feature_cache}->{peptide}
                     : $tr->translation->seq;
-
     return {
         DownstreamProtein   => $new_pep,
         ProteinLengthChange => length($pep_with_var) - length($translation),
