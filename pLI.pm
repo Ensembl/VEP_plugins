@@ -68,6 +68,9 @@ pLI - Add pLI score to the VEP output
     ./vep -i variants.vcf --plugin pLI,values_file.txt
     ./vep -i variants.vcf --plugin pLI,values_file.txt,transcript # to check for the transcript score.
 
+  gnomAD v4 release expanded the scale of pLI score calculation. The file can be downloaded from -
+    https://gnomad.broadinstitute.org/downloads#v4-constraint (Constraint metrics TSV)
+  To use the data you can follow the same procedure as above but needs to change the column number to accordingly.
 
 =cut
 
