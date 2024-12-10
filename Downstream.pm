@@ -121,6 +121,12 @@ sub run {
       -alphabet => 'dna'
     );
 
+    my $codon_seq_full = Bio::Seq->new(
+      -seq      => substr($cds_seq,0,$last_complete_codon).$codon_seq->seq,
+      -moltype  => 'dna',
+      -alphabet => 'dna'
+    );
+
     my $codon_table;
     if(defined($tr->{_variation_effect_feature_cache})) {
         $codon_table = $tr->{_variation_effect_feature_cache}->{codon_table} || 1;
@@ -132,18 +138,14 @@ sub run {
 
     my $new_pep = $codon_seq->translate(undef, undef, undef, $codon_table)->seq();
     $new_pep =~ s/\*.*//;
-
+    my $pep_with_var = $codon_seq_full->translate(undef, undef, undef, $codon_table)->seq();
+    $pep_with_var =~ s/\*.*//;
     my $translation = defined($tr->{_variation_effect_feature_cache}->{peptide})
                     ? $tr->{_variation_effect_feature_cache}->{peptide}
                     : $tr->translation->seq;
-
-    my ($pep_start, $pep_end) = ($tv->translation_start, $tv->translation_end);
-
-    my $new_length = ($pep_start < $pep_end ? $pep_start : $pep_end) + length($new_pep);
-
     return {
         DownstreamProtein   => $new_pep,
-        ProteinLengthChange => $new_length - length($translation),
+        ProteinLengthChange => length($pep_with_var) - length($translation),
     };
 }
 
