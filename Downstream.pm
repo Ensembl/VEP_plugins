@@ -122,7 +122,7 @@ sub run {
     );
 
     my $codon_seq_full = Bio::Seq->new(
-      -seq      => $cds_seq,
+      -seq      => substr($cds_seq,0,$last_complete_codon).$codon_seq->seq,
       -moltype  => 'dna',
       -alphabet => 'dna'
     );
