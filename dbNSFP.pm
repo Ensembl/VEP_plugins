@@ -58,7 +58,7 @@ limitations under the License.
 
  For release 4.9c:
  > version=4.9c
- > wget ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbNSFP${version}.zip
+ > wget https://dbnsfp.s3.amazonaws.com/dbNSFP${version}.zip
  > unzip dbNSFP${version}.zip
  > zcat dbNSFP${version}_variant.chr1.gz | head -n1 > h
 
