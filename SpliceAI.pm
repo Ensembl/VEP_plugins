@@ -165,33 +165,32 @@ sub get_header_info {
   # Get the SpliceAI tool version from one of the files
   my $spliceai_version;
   my $spliceai_file = $self->{_files}[0];
-  open(my $fh, "gzip -dc $spliceai_file |") or die "Could not open '$spliceai_file': $!";
+  open(my $fh, "tabix -H $spliceai_file |") or die "Could not open '$spliceai_file': $!";
     while (my $line = <$fh>) {
       last if $line !~ /^#/;
       if ($line =~ /^##INFO/) {
           if ($line =~ /(SpliceAIv[\d.]+)/) {
-          $spliceai_version = $1;
+            $spliceai_version = $1;
+            $spliceai_version =~ s/SpliceAI//;
         }
       }
     }
   close($fh);
 
-  $header{"SpliceAI_tool_version"} = $spliceai_version;
-
   if($output_vcf || $self->{split_output}) {
-    $header{"SpliceAI_pred_SYMBOL"} = "SpliceAI gene symbol";
-    $header{"SpliceAI_pred_DS_AG"} = "SpliceAI predicted effect on splicing. Delta score for acceptor gain";
-    $header{"SpliceAI_pred_DS_AL"} = "SpliceAI predicted effect on splicing. Delta score for acceptor loss";
-    $header{"SpliceAI_pred_DS_DG"} = "SpliceAI predicted effect on splicing. Delta score for donor gain";
-    $header{"SpliceAI_pred_DS_DL"} = "SpliceAI predicted effect on splicing. Delta score for donor loss";
-    $header{"SpliceAI_pred_DP_AG"} = "SpliceAI predicted effect on splicing. Delta position for acceptor gain";
-    $header{"SpliceAI_pred_DP_AL"} = "SpliceAI predicted effect on splicing. Delta position for acceptor loss";
-    $header{"SpliceAI_pred_DP_DG"} = "SpliceAI predicted effect on splicing. Delta position for donor gain";
-    $header{"SpliceAI_pred_DP_DL"} = "SpliceAI predicted effect on splicing. Delta position for donor loss";
+    $header{"SpliceAI_pred_SYMBOL"} = "SpliceAI ($spliceai_version) gene symbol";
+    $header{"SpliceAI_pred_DS_AG"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta score for acceptor gain";
+    $header{"SpliceAI_pred_DS_AL"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta score for acceptor loss";
+    $header{"SpliceAI_pred_DS_DG"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta score for donor gain";
+    $header{"SpliceAI_pred_DS_DL"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta score for donor loss";
+    $header{"SpliceAI_pred_DP_AG"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta position for acceptor gain";
+    $header{"SpliceAI_pred_DP_AL"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta position for acceptor loss";
+    $header{"SpliceAI_pred_DP_DG"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta position for donor gain";
+    $header{"SpliceAI_pred_DP_DL"} = "SpliceAI ($spliceai_version) predicted effect on splicing. Delta position for donor loss";
   }
 
   else {
-    $header{"SpliceAI_pred"} = "SpliceAI predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL";
+    $header{"SpliceAI_pred"} = "SpliceAI ($spliceai_version) predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL";
   }
 
   if($self->{cutoff}) {
