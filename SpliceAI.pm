@@ -245,7 +245,7 @@ sub run {
       if($output_vcf || $self->{config}->{output_format} eq "json" || $self->{config}->{rest} || $self->{split_output})  {
         my @data_values = split /\|/, $data_value->{result};
         my $prefix = "";
-        $prefix = "SpliceAI_pred_" if($output_vcf || $self->{split_output});
+        $prefix = "SpliceAI_pred_" if($output_vcf || ($self->{split_output} && $self->{config}->{output_format} ne "json"));
         $hash{$prefix. "SYMBOL"} = $data_values[0];
         $hash{$prefix. "DS_AG"} = $data_values[1];
         $hash{$prefix. "DS_AL"} = $data_values[2];
