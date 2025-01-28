@@ -37,7 +37,7 @@ limitations under the License.
 
  A VEP plugin that calculates the distance from the transcription
  start site for upstream variants. Or variants in both directions
- if parameter downstream is set to 1.
+ if parameter `both_direction=1` is provided.
 
 =cut
 
