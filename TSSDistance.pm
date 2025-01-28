@@ -30,10 +30,14 @@ limitations under the License.
  mv TSSDistance.pm ~/.vep/Plugins
  ./vep -i variations.vcf --plugin TSSDistance
 
+# Get both up and downstream distances:
+ ./vep -i variations.vcf --plugin TSSDistance,both_direction=1
+
 =head1 DESCRIPTION
 
  A VEP plugin that calculates the distance from the transcription
- start site for upstream variants.
+ start site for upstream variants. Or variants in both directions
+ if parameter downstream is set to 1.
 
 =cut
 
@@ -42,6 +46,20 @@ package TSSDistance;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
+
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new(@_);
+
+    # Get directionality flag:
+    my $param_hash = $self->params_to_hash();
+
+    # If both_direction is set to 1, we will calculate the distance from the TSS in both directions, otherwise only upstream distance will be calculated:
+    $self->{both_direction} = (defined($param_hash->{both_direction}) && $param_hash->{both_direction} == 1 ? 1 : 0);
+
+    return $self;
+}
 
 sub get_header_info {
     return {
@@ -72,13 +90,23 @@ sub run {
         $dist = $vf->start - $t->end;
     }
 
+    # Return upstream distance:
     if ($dist > 0) {
         return {
             TSSDistance => $dist,
         }
     }
-    else {
+    # Downstream distance only returned if both_direction flag is set to 1:
+    elsif ($self->{both_direction} == 1){
+        return {
+            TSSDistance => $dist,
+        }
+    }
+    # Otherwise return empty hash:
+    else{
+
         return {};
+
     }
 }
 
