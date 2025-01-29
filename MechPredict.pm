@@ -3,7 +3,7 @@ package MechPredict;
 # Enable variable checking
 use strict;
 use warnings;
-use Data::Dumper; # For de-bugging
+# use Data::Dumper; # For de-bugging
 
 # Import the Base VEP plugin class and tell Perl that the plugin inherits from the Base VEP plugin class
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin; # Gives access to core VEP plugin methods
@@ -66,5 +66,26 @@ sub read_tsv {
     
     return \%data;
 }
+
+# Define the feature type that this data will map to - MechPredict provides gene-level annotation
+# This ensures that MechPredict plugin is called once per gene
+sub feature_types {
+  return ['Gene'];
+}
+
+# Define the VEP output fields - these are the new fields that the plugin will add to the VEP output
+sub get_header_info {
+  return { 
+    MechPredict_pDN => 'Probability that the gene is likely to be associated with a dominant-negative (DN) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
+    MechPredict_pGOF => 'Probability that the gene is likely to be associated with a gain-of-function (GOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
+    MechPredict_pLOF => 'Probability that the gene is likely to be associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).'
+  };
+}
+
+# Main logic
+
+
+
+
 
 1;
