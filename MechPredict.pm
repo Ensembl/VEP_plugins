@@ -3,7 +3,7 @@ package MechPredict;
 # Enable variable checking
 use strict;
 use warnings;
-# use Data::Dumper; # For de-bugging
+use Data::Dumper; # For de-bugging
 
 # Import the Base VEP plugin class and tell Perl that the plugin inherits from the Base VEP plugin class
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin; # Gives access to core VEP plugin methods
@@ -63,26 +63,74 @@ sub read_tsv {
         push @{$data{$gene}}, { uniprot_id => $uniprot_id, mechanism => $mechanism, probability => $probability };
     }
     close $fh;
-    
+
     return \%data;
 }
 
-# Define the feature type that this data will map to - MechPredict provides gene-level annotation
-# This ensures that MechPredict plugin is called once per gene
+# Define the feature type that this data will map to
+# This ensures that MechPredict plugin is called once per tx-gene pair
+# This is because MechPredict should check if a variant is missense before applying gene-level annotation
 sub feature_types {
-  return ['Gene'];
+  return ['Transcript'];
 }
 
 # Define the VEP output fields - these are the new fields that the plugin will add to the VEP output
 sub get_header_info {
   return { 
-    MechPredict_pDN => 'Probability that the gene is likely to be associated with a dominant-negative (DN) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
-    MechPredict_pGOF => 'Probability that the gene is likely to be associated with a gain-of-function (GOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
-    MechPredict_pLOF => 'Probability that the gene is likely to be associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).'
+    MechPredict_pDN => 'Probability that the gene is associated with a dominant-negative (DN) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
+    MechPredict_pGOF => 'Probability that the gene is associated with a gain-of-function (GOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
+    MechPredict_pLOF => 'Probability that the gene to be associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).'
   };
 }
 
-# Main logic
+# Run function - main logic
+# This subroutine processes each variant and returns annotation results 
+sub run {
+  my ($self, $tva) = @_; # pull TranscriptVariationAllele obj from vep
+
+  print STDERR "DEBUG: TranscriptVariationAllele object:\n";
+  print STDERR Dumper($tva), "\n";  # Dumps the entire structure of $tva
+
+  # Check if the variant is missense - scores only relevant to missense variants
+  # Get all consequences associated with this tx-variant pair
+  my @consequences = @{$tva->get_all_OverlapConsequences()};
+
+  # Loop through consequences and check whether any are missense_variant
+  my $is_missense = 0;
+  for my $consequence (@consequences) {
+
+    # As soon as there is a missense_variant, set is_missense to 1 and break loop using last
+    if ($consequence->SO_term eq 'missense_variant') {
+      $is_missense = 1; 
+      last;
+    }
+  } 
+
+  # Skip annotation if no missense_variant found
+  return {} unless $is_missense;
+
+  # Get the gene associated with the tx-variant pair - external_name is the HGNC symbol
+  my $gene_name = $tva->transcript->gene->external_name;
+  
+  # Skip annotation if no gene_name associated
+  return {} unless $gene_name;
+
+  # Check whether the gene_name from the user's vcf can be found in the MechPredict prediction data
+  # The first col of my data was stored as the key in the read_tsv sub: @{$data{$gene}}
+  # As such, can look up the gene_name in the keys of the data slot of self
+  # Skip annotation if the user's gene isn't in the MechPredict prediction data
+  if (!exists $self->{data}{$gene_name}) {
+    return {}
+  }
+
+  
+
+
+
+
+
+}
+
 
 
 
