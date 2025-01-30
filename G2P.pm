@@ -149,7 +149,7 @@ my %DEFAULTS = (
                  gnomADg gnomADg_AFR gnomADg_AMR gnomADg_ASJ gnomADg_EAS gnomADg_FIN gnomADg_NFE gnomADg_OTH gnomADg_SAS
                  gnomADe gnomADe_AFR gnomADe_AMR gnomADe_ASJ gnomADe_EAS gnomADe_FIN gnomADe_NFE gnomADe_OTH gnomADe_SAS)],
 
-  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2 gnomADe_v4.1 gnomADg_v4.1)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -223,7 +223,9 @@ my $afvcf_keys = {
     "gnomADe_GRCh37" => 1, 
     "gnomADe_r2.1.1_GRCh38" => 1,
     "gnomADg_GRCh37" => 1, 
-    "gnomADg_v3.1.2_GRCh38" => 1
+    "gnomADg_v3.1.2_GRCh38" => 1,
+    "gnomADg_v4.1_GRCh38" => 1,
+    "gnomADe_v4.1_GRCh38" => 1
 };
 
 my $a_keys = {
@@ -232,7 +234,9 @@ my $a_keys = {
   "gnomADe" => 1,
   "gnomADe_r2.1.1" => 1,
   "gnomADg" => 1,
-  "gnomADg_v3.1.2" => 1
+  "gnomADg_v3.1.2" => 1,
+  "gnomADg_v4.1" => 1,
+  "gnomADe_v4.1" => 1
 };
 
 sub new {
@@ -907,9 +911,9 @@ sub frequency_filtering {
   my $pass_frequency_filter = $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
   return $pass_frequency_filter if (defined $pass_frequency_filter);
   # Check frequencies from cache files first
-  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva);
+  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva) if (!defined($self->{config}->{use_vcf}));
   # Check frequencies from VCF files if user is providing use_vcf flag
-  if ($pass_frequency_filter && $self->{config}->{use_vcf}) {
+  if ($self->{config}->{use_vcf}) {
     $pass_frequency_filter = $self->_vcf_frequency_filtering($tva);
   } 
 
@@ -1073,7 +1077,7 @@ sub _vcf_frequency_filtering {
   my $self = shift;
   my $tva = shift;
   my $allele = $tva->base_variation_feature->alt_alleles;  
-  my $vf = $tva->base_variation_feature;
+  my $vf = $tva->variation_feature;
   # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $vf_cache_name =  $self->{vf_cache_name};
