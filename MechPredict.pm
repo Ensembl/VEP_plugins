@@ -88,9 +88,6 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_; # pull TranscriptVariationAllele obj from vep
 
-  print STDERR "DEBUG: TranscriptVariationAllele object:\n";
-  print STDERR Dumper($tva), "\n";  # Dumps the entire structure of $tva
-
   # Check if the variant is missense - scores only relevant to missense variants
   # Get all consequences associated with this tx-variant pair
   my @consequences = @{$tva->get_all_OverlapConsequences()};
@@ -125,12 +122,39 @@ sub run {
 
   # Pull out MechPredict prediction data for gene_name
   my $data = $self->{data}{$gene_name};
+  
+  # Pull out probability values for each mechanism
+  my $pdn = $data->{pDN}; 
+  my $pgof = $data->{pGOF};
+  my $plof = $data->{pLOF};
 
-  # Add 3 fields to the VEP output 
+  # Define hash containing probability thresholds for each mechanism
+  my %thresholds = (
+    pdn  => 0.61,  # Probability of dominant-negative mechanism
+    pgof => 0.63,  # Probability of gain-of-function mechanism
+    plof => 0.64   # Probability of loss-of-function mechanism
+  );
+
+  # Create interpretation field
+  my $interpretation = "";
+
+  # Compare values to thresholds and populate interpretation
+  if ($pdn >= $thresholds{pdn} && $pgof < $thresholds{pgof} && $plof < $thresholds{plof}) { 
+      $interpretation = "Gene likely associated with a dominant-negative mechanism"; 
+  } elsif ($pgof >= $thresholds{pgof} && $pdn < $thresholds{pdn} && $plof < $thresholds{plof}) { 
+      $interpretation = "Gene likely associated with a gain-of-function mechanism"; 
+  } elsif ($plof >= $thresholds{plof} && $pgof < $thresholds{pgof} && $pdn < $thresholds{pdn}) { 
+      $interpretation = "Gene likely associated with a loss-of-function mechanism"; 
+  } else { 
+      $interpretation = "Gene may be associated with more than one mechanism. Prediction inconclusive.";
+  }
+
+  # Add 4 fields to the VEP output 
   return {
     MechPredict_pDN  => $data->{pDN}, # Probability of dominant-negative mechanism 
     MechPredict_pGOF => $data->{pGOF}, # Probability of gain-of-function mechanism
-    MechPredict_pLOF => $data->{pLOF} # Probability of loss-of-function mechanism
+    MechPredict_pLOF => $data->{pLOF}, # Probability of loss-of-function mechanism
+    MechPredict_interpretation => $interpretation
   };
 
 }
