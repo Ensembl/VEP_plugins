@@ -146,7 +146,7 @@ sub run {
   } elsif ($plof >= $thresholds{plof} && $pgof < $thresholds{pgof} && $pdn < $thresholds{pdn}) { 
       $interpretation = "Gene likely associated with a loss-of-function mechanism"; 
   } else { 
-      $interpretation = "Gene may be associated with more than one mechanism. Prediction inconclusive.";
+      $interpretation = "No conclusive dominant mechanism detected";
   }
 
   # Add 4 fields to the VEP output 
