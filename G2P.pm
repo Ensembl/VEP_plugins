@@ -103,6 +103,8 @@ limitations under the License.
   only_mane            : set to 1 to ignore transcripts that are not MANE
                          N/B - Information may be lost if this option is used.
 
+  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.                  
+
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  
  Example:
@@ -334,6 +336,8 @@ sub new {
       $params->{confidence_levels} = \@confidence_levels;
     }
   }
+  
+  die "only_vcf_freq option can only be used with af_from_vcf"  if ($params->{only_vcf_freq} && !$params->{af_from_vcf});
   if ($params->{af_from_vcf}) {
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
@@ -392,6 +396,7 @@ sub new {
       warn "Couldn't find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
+      $self->{config}->{use_only_vcf} = 1 if $params->{only_vcf_freq};
     } else {
       warn "Cannot get data from VCF without Bio::DB::HTS::Tabix";
     } 
@@ -913,7 +918,7 @@ sub frequency_filtering {
   my $pass_frequency_filter = $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
   return $pass_frequency_filter if (defined $pass_frequency_filter);
   # Check frequencies from cache files first
-  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva) if (!defined($self->{config}->{use_vcf}));
+  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva) if (!defined($self->{config}->{use_only_vcf}));
   # Check frequencies from VCF files if user is providing use_vcf flag
   if ($self->{config}->{use_vcf}) {
     $pass_frequency_filter = $self->_vcf_frequency_filtering($tva);
