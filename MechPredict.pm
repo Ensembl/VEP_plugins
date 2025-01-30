@@ -3,7 +3,7 @@ package MechPredict;
 # Enable variable checking
 use strict;
 use warnings;
-use Data::Dumper; # For de-bugging
+# use Data::Dumper; # For de-bugging
 
 # Import the Base VEP plugin class and tell Perl that the plugin inherits from the Base VEP plugin class
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin; # Gives access to core VEP plugin methods
@@ -23,16 +23,12 @@ sub new {
     # Calls the constructor of BaseVepPlugin, inheriting the structure
     my $self = $class->SUPER::new(@_); 
 
-    # # Check what is actually stored in $self
-    # print "DEBUG: Object contents after SUPER::new(): ", Dumper($self), "\n";
-
     # Retrieve user-specified parameters
-    # In this case, $params->{file} will be the .tsv file that the use must supply
-    # Manually extract parameters as params_to_hash() failed
-    my %params = @_;
-    # print "DEBUG: Manually extracted params = ", join(", ", map { "$_ => $params{$_}" } keys %params), "\n";
+    my $params_ref = shift; # Extract first arg, $params_ref is now a reference to the hash of parameters
+    my %params = %{$params_ref}; # This now contains: file => "MechPredict_input.tsv" 
+    print "DEBUG: Manually extracted params = ", join(", ", map { "$_ => $params{$_}" } keys %params), "\n";
 
-    # Exit plugin if the user doesn't supply the data file
+    # # Exit plugin if the user doesn't supply the data file
     my $file = $params{file} || die "Error: No data file supplied for the plugin.\n";
 
     # Read and store the TSV data
