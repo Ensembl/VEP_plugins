@@ -121,19 +121,18 @@ sub run {
   # Skip annotation if the user's gene isn't in the MechPredict prediction data
   if (!exists $self->{data}{$gene_name}) {
     return {}
-  }
+  };
 
-  
+  # Pull out MechPredict prediction data for gene_name
+  my $data = $self->{data}{$gene_name};
 
-
-
-
+  # Add 3 fields to the VEP output 
+  return {
+    MechPredict_pDN  => $data->{pDN}, # Probability of dominant-negative mechanism 
+    MechPredict_pGOF => $data->{pGOF}, # Probability of gain-of-function mechanism
+    MechPredict_pLOF => $data->{pLOF} # Probability of loss-of-function mechanism
+  };
 
 }
-
-
-
-
-
 
 1;
