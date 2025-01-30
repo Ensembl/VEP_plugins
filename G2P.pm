@@ -75,8 +75,8 @@ limitations under the License.
                          VCF collections contain the following populations: 
                          * 'topmed' - TOPMed (available for GRCh37 and GRCh38).
                          * 'uk10k' - ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
-                         * 'gnomADe' & 'gnomADe_r2.1.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
-                         * 'gnomADg' & 'gnomADg_v3.1.2' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADe' & 'gnomADe_r2.1.1 & 'gnomADev4.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADg' & 'gnomADg_v3.1.2' & 'gnomADgv4.1' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
                          Need to use 'af_from_vcf' parameter to use this option. 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
@@ -224,6 +224,8 @@ my $afvcf_keys = {
     "gnomADe_r2.1.1_GRCh38" => 1,
     "gnomADg_GRCh37" => 1, 
     "gnomADg_v3.1.2_GRCh38" => 1,
+    "gnomADg_v4.1_GRCh37" => 1,
+    "gnomADe_v4.1_GRCh37" => 1
     "gnomADg_v4.1_GRCh38" => 1,
     "gnomADe_v4.1_GRCh38" => 1
 };
