@@ -43,6 +43,7 @@ limitations under the License.
  Various key=value parameters can be altered by passing them to the plugin command:
 
    max_range : maximum search range in bp (default: 10000)
+   intronic  : set to 1 to check nearest exon for intronic variants (default: 0)
 
  Parameters are passed e.g.:
 
@@ -63,6 +64,7 @@ my $char_sep = "|";
 
 my %CONFIG = (
   max_range => 10000,
+  intronic => 0
 );
 
 sub new {
@@ -109,6 +111,11 @@ sub run {
     my $exons = $trv->_overlapped_exons;
     my %dists;
     my $min = $CONFIG{max_range};
+
+    if(scalar @{$exons} == 0 && $CONFIG{intronic} == 1) {
+      $exons = $trv->_sorted_exons;
+    }
+
     foreach my $exon (@$exons) {
       my $startD = abs ($vf->start - $exon->seq_region_start);
       my $endD = abs ($vf->end - $exon->seq_region_end);
