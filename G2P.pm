@@ -70,7 +70,7 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with '--af_from_vcf_keys'
                          all available VCF collections are included. 
-                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2'.
+                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2', 'gnomADev4.1', 'gnomADgv4.1'.
                          Separate multiple values with '&'.
                          VCF collections contain the following populations: 
                          * 'topmed' - TOPMed (available for GRCh37 and GRCh38).
@@ -225,9 +225,9 @@ my $afvcf_keys = {
     "gnomADg_GRCh37" => 1, 
     "gnomADg_v3.1.2_GRCh38" => 1,
     "gnomADg_v4.1_GRCh37" => 1,
-    "gnomADe_v4.1_GRCh37" => 1
+    "gnomADe_v4.1_GRCh37" => 1,
     "gnomADg_v4.1_GRCh38" => 1,
-    "gnomADe_v4.1_GRCh38" => 1
+    "gnomADe_v4.1_GRCh38" => 1,
 };
 
 my $a_keys = {
