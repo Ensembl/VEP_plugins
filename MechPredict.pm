@@ -212,7 +212,7 @@ sub run {
     my ( $self, $tva ) = @_;
 
     # Debugging
-    # print "\n🔍 DEBUG: Processing variant...\n";
+    # print "DEBUG: Processing variant...\n";
     # print "DEBUG: TranscriptVariationAllele = ", Dumper($tva), "\n";
 
     # Check if the variant is missense - scores only relevant to missense variants
