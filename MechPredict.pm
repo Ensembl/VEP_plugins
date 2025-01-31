@@ -59,20 +59,21 @@ Badonyi et al. (2024) "Predicting gene regulatory mechanisms with machine learni
 
 2. The TSV input data can then be prepared from this raw data using:  
    ```bash
-
    ```
 
 3. Run VEP with the MechPredict plugin:  
    ```bash
-   vep --offline --cache --plugin MechPredict,file=/path/to/mechpredict_data.tsv --vcf --output_file output.vcf
+   ./vep -i variations.vcf --plugin MechPredict,file=/path/to/mechpredict_data.tsv
     ```
 
-4.	The output VCF file will include MechPredict annotations in the INFO column.
+4. The output VCF file will include MechPredict annotations in the INFO column.
 
 =head1 REQUIREMENTS
    - The TSV file must be formatted correctly and should match gene symbols found in the Ensembl database.
 
+
 =cut
+
 
 package MechPredict; 
 
