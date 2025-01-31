@@ -34,7 +34,8 @@ limitations under the License.
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  finds the nearest exon junction boundary to a coding sequence variant. More than 
- one boundary may be reported if the boundaries are equidistant.
+ one boundary may be reported if the boundaries are equidistant or if run option
+ --intronic.
 
  The plugin will report the Ensembl identifier of the exon, the distance to the
  exon boundary, the boundary type (start or end of exon) and the total
@@ -43,11 +44,16 @@ limitations under the License.
  Various key=value parameters can be altered by passing them to the plugin command:
 
    max_range : maximum search range in bp (default: 10000)
-   intronic  : set to 1 to check nearest exon for intronic variants (default: 0)
+
+   intronic  : set to 1 to check nearest exons for intronic variants (default: 0)
+               returns the nearest exon upstream and downstream
+
 
  Parameters are passed e.g.:
 
    --plugin NearestExonJB,max_range=50000
+   --plugin NearestExonJB,max_range=50000,intronic=1
+   --plugin NearestExonJB,intronic=1
 
 =cut
 
