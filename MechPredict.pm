@@ -57,7 +57,7 @@ sub new {
     return $self;
 }
 
-# -- Define subroutines --------------------------------------------------------
+# -- Define key subroutines ----------------------------------------------------
 
 # Define subroutine for reading in the .tsv file
 sub read_tsv {
@@ -118,7 +118,9 @@ sub get_header_info {
         MechPredict_pGOF =>
 'Probability that the gene is associated with a gain-of-function (GOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
         MechPredict_pLOF =>
-'Probability that the gene to be associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).'
+'Probability that the gene to be associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).', 
+        MechPredict_interpretation => 
+'Interpretation of the probabilities based on thresholds reccomended by Badonyi et al., 2024: "Gene likely associated with a dominant-negative mechanism", "Gene likely associated with a gain-of-function mechanism", "Gene likely associated with a loss-of-function mechanism", or "No conclusive dominant mechanism detected".'
     };
 }
 
