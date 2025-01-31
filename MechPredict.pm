@@ -1,3 +1,79 @@
+=head1 LICENSE
+
+Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute  
+Copyright [2016-2024] EMBL-European Bioinformatics Institute  
+
+Licensed under the Apache License, Version 2.0 (the "License");  
+you may not use this file except in compliance with the License.  
+You may obtain a copy of the License at  
+
+     http://www.apache.org/licenses/LICENSE-2.0  
+
+Unless required by applicable law or agreed to in writing, software  
+distributed under the License is distributed on an "AS IS" BASIS,  
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
+See the License for the specific language governing permissions and  
+limitations under the License.  
+
+=head1 CONTACT  
+
+Ensembl <http://www.ensembl.org/info/about/contact/index.html>  
+
+=cut  
+
+=head1 NAME  
+
+MechPredict  
+
+=head1 SYNOPSIS  
+
+ mv MechPredict.pm ~/.vep/Plugins  
+ ./vep -i input.vcf --assembly GRCh38 --plugin MechPredict,file=/path/to/mechpredict_data.tsv  
+
+=head1 DESCRIPTION  
+
+This is a plugin for the Ensembl Variant Effect Predictor (VEP) that annotates missense variants with predicted 
+**dominant-negative (DN), gain-of-function (GOF), or loss-of-function (LOF) mechanisms** based on a machine learning model (Badonyi et al., 2024).  
+
+**Usage:**  
+- The plugin requires a **precomputed prediction dataset** in TSV format.  
+- The file should contain gene-based mechanism probabilities derived from a Support Vector Classification (SVC) model.  
+- The plugin adds the following fields to the VEP output:  
+  - `MechPredict_pDN`: Probability of a **dominant-negative (DN) mechanism**  
+  - `MechPredict_pGOF`: Probability of a **gain-of-function (GOF) mechanism**  
+  - `MechPredict_pLOF`: Probability of a **loss-of-function (LOF) mechanism**  
+  - `MechPredict_interpretation`: **Categorical summary** of the most likely mechanism  
+
+=head1 CITATION  
+
+If you use MechPredict, please cite:  
+
+Badonyi et al. (2024) "Predicting gene regulatory mechanisms with machine learning", *Bioinformatics Journal*. [DOI/URL]  
+
+=head1 RUNNING OPTIONS  
+
+1. Data can be downloaded from:
+   - GOF: https://osf.io/h45ns
+   - DN: https://osf.io/xfy38
+   - LOF https://osf.io/dj4qg
+
+2. The TSV input data can then be prepared from this raw data using:  
+   ```bash
+
+   ```
+
+3. Run VEP with the MechPredict plugin:  
+   ```bash
+   vep --offline --cache --plugin MechPredict,file=/path/to/mechpredict_data.tsv --vcf --output_file output.vcf
+    ```
+
+4.	The output VCF file will include MechPredict annotations in the INFO column.
+
+=head1 REQUIREMENTS
+   - The TSV file must be formatted correctly and should match gene symbols found in the Ensembl database.
+
+=cut
+
 package MechPredict; 
 
 # -- Setup ---------------------------------------------------------------------
