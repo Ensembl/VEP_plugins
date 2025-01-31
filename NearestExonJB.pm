@@ -117,10 +117,13 @@ sub run {
     my $min = $CONFIG{max_range};
 
     if(scalar @{$exons} == 0 && $CONFIG{intronic} == 1) {
-      $exons = $trv->_sorted_exons;
       my $intron_numbers = $trv->intron_number();
+      my $consequences = join(",", map { $_->SO_term } @{$tva->get_all_OverlapConsequences});
 
-      if(defined $intron_numbers) {
+      # print "Consequences: $consequences\n";
+
+      if(defined $intron_numbers && $consequences =~ /intron/) {
+        $exons = $trv->_sorted_exons;
         my ($intron_number, $total_number) = split(/\//, $intron_numbers);
         # print "Intron number: $intron_number\n";
 
@@ -143,7 +146,6 @@ sub run {
         $exons = \@exons_tmp;
         # print "-> ", scalar(@{$exons}), "\n";
       }
-
     }
 
     foreach my $exon (@$exons) {
