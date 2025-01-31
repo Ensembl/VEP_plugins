@@ -1,63 +1,90 @@
-package MechPredict;
+package MechPredict; 
+
+# -- Setup ---------------------------------------------------------------------
 
 # Enable variable checking
 use strict;
 use warnings;
 
-# Import the Base VEP plugin class and tell Perl that the plugin inherits from the Base VEP plugin class
-use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin; # Gives access to core VEP plugin methods
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin); # Allows the plugin to reuse (inherit) existing methods
-use Data::Dumper; # For debugging
+# Gives access to core VEP plugin methods - provides a set of methods that can be reused by the plugin
+use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin; 
+
+# Allows the plugin to reuse (inherit) existing methods - sets up object-oriented inheritance
+use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin); 
+
+# Permits debugging - built-in module for printing complex data structures
+use Data::Dumper; 
+
+# -- Initialise plugin ---------------------------------------------------------
 
 # Define constructor called new
 # This is called when VEP loads the plugin
 # It serves to initialise core plugin config: sets up the plugin, reads user params, returns a reusable object
-sub new {
-    my $class = shift; # Get class name - in this case, it's MechPredict, the name of the plugin
-    my $self = $class->SUPER::new(@_); # Calls the constructor of BaseVepPlugin, inheriting the structure
+sub new { 
 
-    # Extract plugin parameters
-    my @params = @{ $self->params }; # VEP stores parameters as an array
+    # Retrieves the class name from the first argument passed to the subroutine - VEP passes the module name (MechPredict)
+    my $class = shift; 
 
-    # Create a hash to store extracted key-value pairs
+    # Calls the parent class (BaseVepPlugin), assigning its properties to new
+    my $self = $class->SUPER::new(@_); 
+
+    # Parse the parameters passed to the plugin
+    # params is a method from BaseVepPlugin that returns the parameters passed to the plugin
+    # Extract plugin parameters and store the values in an array
+    # @(...) is a way to dereference an array reference like unlisting in R
+    my @params = @{ $self->params };
+
+    # Declare a hash to store extracted key-value pairs from the args
     my %params;
     foreach my $param (@params) {
         my ($key, $value) = split('=', $param, 2);  # Split "file=/path/to/file"
         $params{$key} = $value if defined $key and defined $value;
     }
 
-    # print "DEBUG: Extracted params = ", Dumper(\%params), "\n";  # Debugging
+    # Debugging
+    # print "DEBUG: Extracted params = ", Dumper(\%params), "\n";
 
     # Ensure the file parameter was provided
     my $file = $params{file} || die "Error: No data file supplied for the plugin.\n";
 
-    # Store file path 
+    # Store file path in the object for later use
     $self->{file} = $file;
 
-    # Supply path to read_tsv sub
+    # Supply path to read_tsv sub and store the result in the data slot of self
     $self->{data} = $self->read_tsv($file);
 
+    # Returns the initialised plugin object - new is now populated and can be utilised by the plugin
     return $self;
 }
 
+# -- Define subroutines --------------------------------------------------------
+
 # Define subroutine for reading in the .tsv file
 sub read_tsv {
-    my ( $self, $file ) = @_
-      ; # $self is the plugin object, $file is the file path and @_ contains all arguments passed to the function
-    my %data;    # Define empty hash to store data from the .tsv
+
+    # Retreive the plugin object 
+    # $self is the plugin object, $file is the file path
+    # @_ is a special array in perl - it contains the arguments passed to the subroutine
+    # In this case, two are passed - the plugin object and the file path
+    # So, these need to be retrieved from the array and assigned to $self and $file
+    my ( $self, $file ) = @_; 
+
+    # Declare empty hash to store data from the .tsv
+    my %data;    
 
     # Open file for reading, assing fh as the file handle for file
     # If the file cannot be opened, then exit
     open my $fh, "<", $file or die "Could not open file '$file': $!";
 
-    # Loop over each line of the file
+    # Loop over each line of the file - more mem efficient than reading the entire file into memory with a foreach
     while (<$fh>) {
 
         # Remove trailing \n chars
         chomp;
 
-        # Trim any leading/trailing spaces
-        my ($gene, $uniprot_id, $mechanism, $probability) = split("\t");
+        # There are 4 cols in the .tsv file, so assign result of split to 4 usefully named variables
+        # $_ means the current line of the file
+        my ($gene, $uniprot_id, $mechanism, $probability) = split("\t", $_);
 
         # Store line in the data hash, grouping the data by gene - gene will be the array reference (key, in other words)
         push @{ $data{$gene} },
@@ -69,19 +96,21 @@ sub read_tsv {
     }
     close $fh;
 
-    print "DEBUG: Read ", scalar(keys %data), " genes from the file.\n";
+    # Debugging
+    # print "DEBUG: Read ", scalar(keys %data), " genes from the file.\n";
 
+    # Return the data hash
     return \%data;
 }
 
-# Define the feature type that this data will map to
-# This ensures that MechPredict plugin is called once per tx-gene pair
-# This is because MechPredict should check if a variant is missense before applying gene-level annotation
+# Defines the feature types that the plugin will run on
+# In this case, Transcript, because the plugin will need to check if the variant is missense
+# Transcript: MechPredict plugin is called once per transcript-variant pair
 sub feature_types {
     return ['Transcript'];
 }
 
-# Define the VEP output fields - these are the new fields that the plugin will add to the VEP output
+# Define the VEP header annotation fields
 sub get_header_info {
     return {
         MechPredict_pDN =>
@@ -93,22 +122,26 @@ sub get_header_info {
     };
 }
 
-# Run function - main logic
-# This subroutine processes each variant and returns annotation results
-sub run {
-    my ( $self, $tva ) = @_; # pull TranscriptVariationAllele obj from vep
+# -- Main logic ----------------------------------------------------------------
 
-    print "\n🔍 DEBUG: Processing variant...\n";
-    
-    # # Print the entire tva object
+# This subroutine will be executed once per transcript that a variant overlaps
+sub run {
+
+    # VEP creates a TranscriptVariationAllele (tva) object for each transcript-variant pair
+    # This object contains all the information needed to annotate the variant
+    # Pull the tva object from the plugin object
+    my ( $self, $tva ) = @_;
+
+    # Debugging
+    # print "\n🔍 DEBUG: Processing variant...\n";
     # print "DEBUG: TranscriptVariationAllele = ", Dumper($tva), "\n";
 
     # Check if the variant is missense - scores only relevant to missense variants
     # Get all consequences associated with this tx-variant pair
     my @consequences = @{ $tva->get_all_OverlapConsequences() };
 
-    # Print consequences for debugging
-    print "DEBUG: Consequences = ", join(", ", map { $_->SO_term } @consequences), "\n";
+    # Debugging
+    # print "DEBUG: Consequences = ", join(", ", map { $_->SO_term } @consequences), "\n";
 
     # Loop through consequences and check whether any are missense_variant
     my $is_missense = 0;
@@ -128,47 +161,43 @@ sub run {
     my $transcript = $tva->transcript;
     return {} unless $transcript;
 
-    # Debugging output
-    print "DEBUG: Transcript ID = ", $transcript->stable_id, "\n";
+    # Debugging
+    # print "DEBUG: Transcript ID = ", $transcript->stable_id, "\n";
 
     # Extract gene object from transcript
-    my $gene = eval { $transcript->{_gene} };
+    # Usually, ->get_Gene->external_name would be used, but this doesn't work in offline mode, so pull from cached value
+    # eval is used to catch any errors that may occur if the gene object doesn't exist
+    # Maybe add an if statement here based on whether this is offline/cached or not? Then would work both ways
+    # _gene_symbol is a cached value in offline mode
+    my $gene_name = eval { $transcript->{_gene_symbol} }; 
 
-    # If no gene object exists, try using _gene_symbol instead
-    my $gene_name = eval { $transcript->{_gene_symbol} };
-
-    # Debug output
-    if (!$gene && !$gene_name) {
-        print "DEBUG: No gene information found for transcript ", $transcript->stable_id, "\n";
-        return {};
-    }
-
-    # Extract gene stable ID safely
-    my $gene_id = eval { $gene->{stable_id} } if defined $gene;
-    $gene_id = "UNKNOWN" unless defined $gene_id;
-
-    # Debugging output
-    print "DEBUG: Extracted gene ID: $gene_id, gene name: ", ($gene_name // "UNKNOWN"), "\n";
+    # Debugging
+    # if (!$gene_name) {
+    #     print "DEBUG: No gene name found for transcript ", $transcript->stable_id, "\n";
+    #     return {};
+    # }
 
     # Check whether the gene_name from the user's vcf can be found in the MechPredict prediction data
-    # The first col of my data was stored as the key in the read_tsv sub: @{$data{$gene}}
+    # The first col of the input data was stored as the key in the read_tsv sub: @{$data{$gene}}
     # As such, can look up the gene_name in the keys of the data slot of self
     # Skip annotation if the user's gene isn't in the MechPredict prediction data
 
-    print "DEBUG: Searching for gene '$gene_name' in dataset...\n";
+    # Debugging
+    # print "DEBUG: Searching for gene '$gene_name' in dataset...\n";
 
     if ( !exists $self->{data}{$gene_name} ) {
-        print "DEBUG: Gene $gene_name not found in MechPredict dataset.\n";
+        # Debugging
+        # print "DEBUG: Gene $gene_name not found in MechPredict dataset.\n";
         return {};
     }
 
     # Pull out MechPredict prediction data for gene_name
     my $data = $self->{data}{$gene_name};
 
-    # Print prediction data for debugging
-    print "DEBUG: Prediction data = ", Dumper($data), "\n";
+    # Debugging
+    # print "DEBUG: Prediction data = ", Dumper($data), "\n";
 
-    # Initialize variables
+    # Initialise empty variables to hold the values
     my ($pdn, $pgof, $plof) = (undef, undef, undef);
 
     # Iterate through the array of hashes
@@ -184,10 +213,10 @@ sub run {
         }
     }
 
-    # Debugging output
-    print "DEBUG: Extracted probabilities - pDN: ", ($pdn // 'NA'), 
-        ", pGOF: ", ($pgof // 'NA'), 
-        ", pLOF: ", ($plof // 'NA'), "\n";
+    # Debugging
+    # print "DEBUG: Extracted probabilities - pDN: ", ($pdn // 'NA'), 
+    #     ", pGOF: ", ($pgof // 'NA'), 
+    #     ", pLOF: ", ($plof // 'NA'), "\n";
 
     # Define hash containing probability thresholds for each mechanism
     my %thresholds = (
@@ -200,6 +229,11 @@ sub run {
     my $interpretation = "";
 
     # Compare values to thresholds and populate interpretation
+    # I do not capture the cases where: 
+    #   Two probabilities are high at the same time
+    #   All probabilities are below their respective thresholds
+    #   All probabilities are above their respective thresholds
+    # Instead, these end up categoried as "No conclusive dominant mechanism detected"
     if (   $pdn >= $thresholds{pdn}
         && $pgof < $thresholds{pgof}
         && $plof < $thresholds{plof} )
@@ -222,7 +256,8 @@ sub run {
         $interpretation = "No conclusive dominant mechanism detected";
     }
 
-    print "DEBUG: Interpretation = $interpretation\n";
+    # Debugging
+    # print "DEBUG: Interpretation = $interpretation\n";
 
     # Add 4 fields to the VEP output
     return {
