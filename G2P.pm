@@ -350,8 +350,8 @@ sub new {
           if (!$afvcf_keys->{$key_assembly}){
             # to die if key is not supported, checking with the key and the assembly 
             die "$key is not a supported key. Supported keys and assembly are: ", join(',', keys %$a_keys), ".\n
-                 gnomADe and gnomADg is supported for assembly GRCh37 \n
-                 gnomADe_r2.1.1 and gnomADg_v3.1.2 is supported for assembly GRCh38 \n" ;
+                 gnomADe, gnomADg, gnomADg_v4.1 and gnomADe_v4.1 is supported for assembly GRCh37 \n
+                 gnomADe_r2.1.1, gnomADg_v3.1.2 and gnomADg_v4.1 and gnomADe_v4.1 is supported for assembly GRCh38 \n" ;
           }
           else {
             push @vcf_collection_ids, $key;
