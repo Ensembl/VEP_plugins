@@ -28,52 +28,50 @@ MechPredict
 =head1 SYNOPSIS  
 
  mv MechPredict.pm ~/.vep/Plugins  
- ./vep -i input.vcf --assembly GRCh38 --plugin MechPredict,file=/path/to/mechpredict_data.tsv  
+ ./vep -i input.vcf --plugin MechPredict,file=mechpredict_data.tsv  
 
 =head1 DESCRIPTION  
 
 This is a plugin for the Ensembl Variant Effect Predictor (VEP) that annotates missense variants with predicted 
-**dominant-negative (DN), gain-of-function (GOF), or loss-of-function (LOF) mechanisms** based on a machine learning model (Badonyi et al., 2024).  
+dominant-negative (DN), gain-of-function (GOF), or loss-of-function (LOF) mechanisms derived from a
+Support Vector Classification (SVC) model (Badonyi et al., 2024).
 
-**Usage:**  
-- The plugin requires a **precomputed prediction dataset** in TSV format.  
-- The file should contain gene-based mechanism probabilities derived from a Support Vector Classification (SVC) model.  
+Note:
+- The plugin requires MechPredict_input.tsv, a pre-processed prediction dataset in TSV format. 
+- The wrangled file should contain gene-level probabilities for the three mechanism categories.  
 - The plugin adds the following fields to the VEP output:  
   - `MechPredict_pDN`: Probability of a **dominant-negative (DN) mechanism**  
   - `MechPredict_pGOF`: Probability of a **gain-of-function (GOF) mechanism**  
   - `MechPredict_pLOF`: Probability of a **loss-of-function (LOF) mechanism**  
-  - `MechPredict_interpretation`: **Categorical summary** of the most likely mechanism  
+  - `MechPredict_interpretation`: Statement of the most likely mechanism based on empirically-derived cutoffs from Badonyi et al., 2024. 
 
-=head1 CITATION  
+Usage:
+1. The raw data from the Badonyi et al., 2024 manuscript can be pre-processed using the folllwoing command: 
+  - GOF: https://osf.io/h45ns
+  - DN: https://osf.io/xfy38
+  - LOF https://osf.io/dj4qg
 
-If you use MechPredict, please cite:  
-
-Badonyi et al. (2024) "Predicting gene regulatory mechanisms with machine learning", *Bioinformatics Journal*. [DOI/URL]  
-
-=head1 RUNNING OPTIONS  
-
-1. Data can be downloaded from:
-   - GOF: https://osf.io/h45ns
-   - DN: https://osf.io/xfy38
-   - LOF https://osf.io/dj4qg
-
-2. The TSV input data can then be prepared from this raw data using:  
+2. The plugin input data can then be prepared from the raw data using:  
    ```bash
+    cut --complement -f4 pdn_svm_poly_2023-07-25.tsv | awk '{print $1 " " $2 "\t" $0}' | sort > pdn_mod.tsv && \
+    cut --complement -f4 pgof_svm_poly_2023-07-25.tsv | awk '{print $1 " " $2 "\t" $0}' | sort > pgof_mod.tsv && \
+    cut --complement -f4 plof_svm_poly_2023-07-28.tsv | awk '{print $1 " " $2 "\t" $0}' | sort > plof_mod.tsv && \
+    join -t $'\t' -1 1 -2 1 pdn_mod.tsv pgof_mod.tsv | join -t $'\t' -1 1 -2 1 - plof_mod.tsv | cut --complement -f1,5,6,8,9 | sed '1i gene uniprot_id pDN pGOF pLOF' > MechPredict_input.tsv && \
+    rm pdn_mod.tsv pgof_mod.tsv plof_mod.tsv && \
+    awk 'BEGIN {print "gene\tuniprot_id\tmechanism\tprobability"} NR>1 {print $1, $2, "DN", $3; print $1, $2, "GOF", $4; print $1, $2, "LOF", $5;}' OFS='\t' MechPredict_input.tsv > MechPredict_input_pivot.tsv && \
+    mv MechPredict_input_pivot.tsv MechPredict_input.tsv
    ```
 
-3. Run VEP with the MechPredict plugin:  
+3. VEP can be run with the MechPredict plugin as follows:  
    ```bash
    ./vep -i variations.vcf --plugin MechPredict,file=/path/to/mechpredict_data.tsv
     ```
 
-4. The output VCF file will include MechPredict annotations in the INFO column.
-
-=head1 REQUIREMENTS
-   - The TSV file must be formatted correctly and should match gene symbols found in the Ensembl database.
-
+Citation:
+Badonyi M, Marsh JA (2024) Proteome-scale prediction of molecular mechanisms underlying dominant genetic diseases. 
+PLoS ONE 19(8): e0307312. https://doi.org/10.1371/journal.pone.0307312
 
 =cut
-
 
 package MechPredict; 
 
