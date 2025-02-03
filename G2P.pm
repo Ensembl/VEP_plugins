@@ -1723,7 +1723,7 @@ SHTML
               if ($class) {
                 push @tds, "<td class=\"$class\">$value</td>";
               } else {
-                push @tds, "<td>$value</td>";
+                push @tds, defined $value ? "<td>$value</td>" : "<td>NA</td>";
               }
             }
             print $fh_out "<tr>", join('', @tds), "</tr>\n";
@@ -1793,7 +1793,7 @@ sub html_and_txt_data {
                 print STDERR "No vf_data for: $vf_name\n"; 
               } 
               my $hash = {};
-              foreach my $pair (split/;/, "$tva_data;$vf_data") {
+              foreach my $pair (split /;/, defined $vf_data ? "$tva_data;$vf_data" : $tva_data) {
                 my ($key, $value) = split('=', $pair, 2);
                 $value ||= '';
                 $hash->{$key} = $value;
@@ -1807,7 +1807,7 @@ sub html_and_txt_data {
               else {
                 $ensembl_url = "https://ensembl.org";
               }
-              if ($existing_name ne 'NA') {
+              if (defined($existing_name) && $existing_name ne 'NA' ) {
                 $existing_name = "<a href=\"$ensembl_url/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
               }
               my $is_on_variant_include_list = $hash->{is_on_variant_include_list};
