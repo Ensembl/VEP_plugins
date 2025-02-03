@@ -193,9 +193,9 @@ sub get_header_info {
         MechPredict_pGOF =>
 'Probability that the gene is associated with a gain-of-function (GOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
         MechPredict_pLOF =>
-'Probability that the gene to be associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).', 
+'Probability that the gene is associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).', 
         MechPredict_interpretation => 
-'Interpretation of the probabilities based on thresholds reccomended by Badonyi et al., 2024: "Gene likely associated with a dominant-negative mechanism", "Gene likely associated with a gain-of-function mechanism", "Gene likely associated with a loss-of-function mechanism", or "No conclusive dominant mechanism detected".'
+'Interpretation of the probabilities based on thresholds reccomended by Badonyi et al., 2024.'
     };
 }
 
@@ -213,46 +213,41 @@ sub run {
     # print "DEBUG: Processing variant...\n";
     # print "DEBUG: TranscriptVariationAllele = ", Dumper($tva), "\n";
 
-    # Check if the variant is missense - scores only relevant to missense variants
-    # Get all consequences associated with this tx-variant pair
-    my @consequences = @{ $tva->get_all_OverlapConsequences() };
-
     # Debugging
-    # print "DEBUG: Consequences = ", join(", ", map { $_->SO_term } @consequences), "\n";
+    # print("--------------------\n");
 
-    # Loop through consequences and check whether any are missense_variant
-    my $is_missense = 0;
-    for my $consequence (@consequences) {
-
-        # As soon as there is a missense_variant, set is_missense to 1 and break loop using last
-        if ( $consequence->SO_term eq 'missense_variant' ) {
-            $is_missense = 1;
-            last;
-        }
-    }
-
-    # Skip annotation if no missense_variant found
-    return {} unless $is_missense;
-
-    # Get transcript
+    # Get transcript ID
     my $transcript = $tva->transcript;
     return {} unless $transcript;
 
-    # Debugging
-    # print "DEBUG: Transcript ID = ", $transcript->stable_id, "\n";
-
-    # Extract gene object from transcript
+    # Get gene name
     # Usually, ->get_Gene->external_name would be used, but this doesn't work in offline mode, so pull from cached value
     # eval is used to catch any errors that may occur if the gene object doesn't exist
     # Maybe add an if statement here based on whether this is offline/cached or not? Then would work both ways
     # _gene_symbol is a cached value in offline mode
-    my $gene_name = eval { $transcript->{_gene_symbol} }; 
+    my $gene_name = eval { $transcript->{_gene_symbol} };
+        return {} unless $gene_name;
 
     # Debugging
-    # if (!$gene_name) {
-    #     print "DEBUG: No gene name found for transcript ", $transcript->stable_id, "\n";
-    #     return {};
-    # }
+    # print "DEBUG: Processing transcript ", $transcript->stable_id, "\n";
+    # print "DEBUG: Processing gene ", $gene_name, "\n";
+
+    # Check if the variant has a missense consequence
+    # Get all consequences
+    my @consequences = @{ $tva->get_all_OverlapConsequences() };
+
+    # Check if any consequence is missense_variant
+    my $is_missense = grep { $_->SO_term eq 'missense_variant' } @consequences;
+
+    if (!$is_missense) {
+        # Debugging
+        # print "DEBUG: No missense variant for transcript ", $transcript->stable_id, "\n";
+        # print "DEBUG: Consequences for ", $transcript->stable_id, " = ", join(", ", map { $_->SO_term } @consequences), "\n";
+        return {};
+    }
+
+    # Debugging
+    # print "DEBUG: Missense variant found for transcript ", $transcript->stable_id, "\n";
 
     # Check whether the gene_name from the user's vcf can be found in the MechPredict prediction data
     # The first col of the input data was stored as the key in the read_tsv sub: @{$data{$gene}}
@@ -260,7 +255,7 @@ sub run {
     # Skip annotation if the user's gene isn't in the MechPredict prediction data
 
     # Debugging
-    # print "DEBUG: Searching for gene '$gene_name' in dataset...\n";
+    print "DEBUG: Searching for gene '$gene_name' in dataset...\n";
 
     if ( !exists $self->{data}{$gene_name} ) {
         # Debugging
