@@ -315,22 +315,22 @@ sub run {
         && $pgof < $thresholds{pgof}
         && $plof < $thresholds{plof} )
     {
-        $interpretation = "Gene likely associated with a dominant-negative mechanism";
+        $interpretation = "gene_predicted_as_associated_with_dominant_negative_mechanism";
     }
     elsif ($pgof >= $thresholds{pgof}
         && $pdn < $thresholds{pdn}
         && $plof < $thresholds{plof} )
     {
-        $interpretation = "Gene likely associated with a gain-of-function mechanism";
+        $interpretation = "gene_predicted_as_associated_with_gain_of_function_mechanism";
     }
     elsif ($plof >= $thresholds{plof}
         && $pgof < $thresholds{pgof}
         && $pdn < $thresholds{pdn} )
     {
-        $interpretation = "Gene likely associated with a loss-of-function mechanism";
+        $interpretation = "gene_predicted_as_associated_with_loss_of_function mechanism";
     }
     else {
-        $interpretation = "No conclusive dominant mechanism detected";
+        $interpretation = "no_conclusive_mechanism_detected";
     }
 
     # Debugging
