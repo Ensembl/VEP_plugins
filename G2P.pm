@@ -103,7 +103,8 @@ limitations under the License.
   only_mane            : set to 1 to ignore transcripts that are not MANE
                          N/B - Information may be lost if this option is used.
 
-  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.                  
+  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
+                         N/B - frequency information may be lost if this option is used                
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  
