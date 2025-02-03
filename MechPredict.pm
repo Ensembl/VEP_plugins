@@ -125,7 +125,7 @@ sub new {
     # Store file path in the object for later use
     $self->{file} = $file;
 
-    # Supply path to read_tsv sub and store the result in the data slot of self
+    # Supply path to read_tsv sub and store the result in the data slot of self 
     $self->{data} = $self->read_tsv($file);
 
     # Returns the initialised plugin object - new is now populated and can be utilised by the plugin
