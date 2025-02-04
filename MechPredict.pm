@@ -77,58 +77,35 @@ package MechPredict;
 
 # -- Setup ---------------------------------------------------------------------
 
-# Enable variable checking
 use strict;
 use warnings;
-
-# Gives access to core VEP plugin methods - provides a set of methods that can be reused by the plugin
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin; 
-
-# Allows the plugin to reuse (inherit) existing methods - sets up object-oriented inheritance
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin); 
-
-# Permits debugging - built-in module for printing complex data structures
 use Data::Dumper; 
 
 # -- Initialise plugin ---------------------------------------------------------
 
-# Define constructor called new
-# This is called when VEP loads the plugin
-# It serves to initialise core plugin config: sets up the plugin, reads user params, returns a reusable object
 sub new { 
 
-    # Retrieves the class name from the first argument passed to the subroutine - VEP passes the module name (MechPredict)
     my $class = shift; 
 
-    # Calls the parent class (BaseVepPlugin), assigning its properties to new
     my $self = $class->SUPER::new(@_); 
 
-    # Parse the parameters passed to the plugin
-    # params is a method from BaseVepPlugin that returns the parameters passed to the plugin
-    # Extract plugin parameters and store the values in an array
-    # @(...) is a way to dereference an array reference like unlisting in R
     my @params = @{ $self->params };
 
-    # Declare a hash to store extracted key-value pairs from the args
     my %params;
     foreach my $param (@params) {
         my ($key, $value) = split('=', $param, 2);  # Split "file=/path/to/file"
         $params{$key} = $value if defined $key and defined $value;
     }
 
-    # Debugging
-    # print "DEBUG: Extracted params = ", Dumper(\%params), "\n";
-
-    # Ensure the file parameter was provided
     my $file = $params{file} || die "Error: No data file supplied for the plugin.\n";
 
-    # Store file path in the object for later use
     $self->{file} = $file;
 
-    # Supply path to read_tsv sub and store the result in the data slot of self 
+    # Read in data file
     $self->{data} = $self->read_tsv($file);
 
-    # Returns the initialised plugin object - new is now populated and can be utilised by the plugin
     return $self;
 }
 
@@ -178,9 +155,7 @@ sub read_tsv {
     return \%data;
 }
 
-# Defines the feature types that the plugin will run on
-# In this case, Transcript, because the plugin will need to check if the variant is missense
-# Transcript: MechPredict plugin is called once per transcript-variant pair
+# Defines the feature type the plugin will run on
 sub feature_types {
     return ['Transcript'];
 }
@@ -189,32 +164,28 @@ sub feature_types {
 sub get_header_info {
     return {
         MechPredict_pDN =>
-'Probability that the gene is associated with a dominant-negative (DN) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
+'Probability that the gene is associated with a dominant-negative (DN) mechanism',
         MechPredict_pGOF =>
-'Probability that the gene is associated with a gain-of-function (GOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).',
+'Probability that the gene is associated with a gain-of-function (GOF) mechanism.',
         MechPredict_pLOF =>
-'Probability that the gene is associated with a loss-of-function (LOF) mechanism, as predicted by an SVC binary classifier model (Badonyi et al., 2024).', 
+'Probability that the gene is associated with a loss-of-function (LOF) mechanism.', 
         MechPredict_interpretation => 
-'Interpretation of the probabilities based on thresholds reccomended by Badonyi et al., 2024.'
+'Interpretation of the probabilities based on empirically derived thresholds.'
     };
 }
 
 # -- Main logic ----------------------------------------------------------------
 
-# This subroutine will be executed once per transcript that a variant overlaps
+# Define hash containing probability thresholds for each mechanism
+my %thresholds = (
+    pdn  => 0.61,    # Probability of dominant-negative mechanism
+    pgof => 0.63,    # Probability of gain-of-function mechanism
+    plof => 0.64     # Probability of loss-of-function mechanism
+);
+
 sub run {
 
-    # VEP creates a TranscriptVariationAllele (tva) object for each transcript-variant pair
-    # This object contains all the information needed to annotate the variant
-    # Pull the tva object from the plugin object
     my ( $self, $tva ) = @_;
-
-    # Debugging
-    # print "DEBUG: Processing variant...\n";
-    # print "DEBUG: TranscriptVariationAllele = ", Dumper($tva), "\n";
-
-    # Debugging
-    # print("--------------------\n");
 
     # Get transcript ID
     my $transcript = $tva->transcript;
@@ -228,10 +199,6 @@ sub run {
     my $gene_name = eval { $transcript->{_gene_symbol} };
         return {} unless $gene_name;
 
-    # Debugging
-    # print "DEBUG: Processing transcript ", $transcript->stable_id, "\n";
-    # print "DEBUG: Processing gene ", $gene_name, "\n";
-
     # Check if the variant has a missense consequence
     # Get all consequences
     my @consequences = @{ $tva->get_all_OverlapConsequences() };
@@ -240,39 +207,18 @@ sub run {
     my $is_missense = grep { $_->SO_term eq 'missense_variant' } @consequences;
 
     if (!$is_missense) {
-        # Debugging
-        # print "DEBUG: No missense variant for transcript ", $transcript->stable_id, "\n";
-        # print "DEBUG: Consequences for ", $transcript->stable_id, " = ", join(", ", map { $_->SO_term } @consequences), "\n";
         return {};
     }
 
-    # Debugging
-    # print "DEBUG: Missense variant found for transcript ", $transcript->stable_id, "\n";
-
     # Check whether the gene_name from the user's vcf can be found in the MechPredict prediction data
-    # The first col of the input data was stored as the key in the read_tsv sub: @{$data{$gene}}
-    # As such, can look up the gene_name in the keys of the data slot of self
-    # Skip annotation if the user's gene isn't in the MechPredict prediction data
-
-    # Debugging
-    print "DEBUG: Searching for gene '$gene_name' in dataset...\n";
-
     if ( !exists $self->{data}{$gene_name} ) {
-        # Debugging
-        # print "DEBUG: Gene $gene_name not found in MechPredict dataset.\n";
         return {};
     }
 
     # Pull out MechPredict prediction data for gene_name
     my $data = $self->{data}{$gene_name};
 
-    # Debugging
-    # print "DEBUG: Prediction data = ", Dumper($data), "\n";
-
-    # Initialise empty variables to hold the values
     my ($pdn, $pgof, $plof) = (undef, undef, undef);
-
-    # Iterate through the array of hashes
     foreach my $entry (@$data) {
         if ($entry->{mechanism} eq 'DN') {
             $pdn = $entry->{probability};
@@ -285,27 +231,15 @@ sub run {
         }
     }
 
-    # Debugging
-    # print "DEBUG: Extracted probabilities - pDN: ", ($pdn // 'NA'), 
-    #     ", pGOF: ", ($pgof // 'NA'), 
-    #     ", pLOF: ", ($plof // 'NA'), "\n";
-
-    # Define hash containing probability thresholds for each mechanism
-    my %thresholds = (
-        pdn  => 0.61,    # Probability of dominant-negative mechanism
-        pgof => 0.63,    # Probability of gain-of-function mechanism
-        plof => 0.64     # Probability of loss-of-function mechanism
-    );
-
     # Create interpretation field
     my $interpretation = "";
 
     # Compare values to thresholds and populate interpretation
-    # I do not capture the cases where: 
-    #   Two probabilities are high at the same time
-    #   All probabilities are below their respective thresholds
-    #   All probabilities are above their respective thresholds
-    # Instead, these end up categoried as "No conclusive dominant mechanism detected"
+    # This does not provide interpretation for the following cases: 
+    #   - Two probabilities are high at the same time
+    #   - All probabilities are below their respective thresholds
+    #   - All probabilities are above their respective thresholds
+    # Instead, these end up categoried as "no_conclusive_mechanism_detected"
     if (   $pdn >= $thresholds{pdn}
         && $pgof < $thresholds{pgof}
         && $plof < $thresholds{plof} )
@@ -328,10 +262,7 @@ sub run {
         $interpretation = "no_conclusive_mechanism_detected";
     }
 
-    # Debugging
-    # print "DEBUG: Interpretation = $interpretation\n";
-
-    # Add 4 fields to the VEP output
+    # Add the data to the VEP output
     return {
         MechPredict_pDN => $pdn, # Probability of dominant-negative mechanism
         MechPredict_pGOF => $pgof, # Probability of gain-of-function mechanism
