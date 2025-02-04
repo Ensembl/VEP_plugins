@@ -192,23 +192,37 @@ sub run {
     return {} unless $transcript;
 
     # Get gene name
-    # Usually, ->get_Gene->external_name would be used, but this doesn't work in offline mode, so pull from cached value
-    # eval is used to catch any errors that may occur if the gene object doesn't exist
-    # Maybe add an if statement here based on whether this is offline/cached or not? Then would work both ways
+    # Usually, ->get_Gene->external_name would be used, but this doesn't work in offline mode, so pull from cached value if --offline
     # _gene_symbol is a cached value in offline mode
-    my $gene_name = eval { $transcript->{_gene_symbol} };
-        return {} unless $gene_name;
+    # Determine if VEP is running in offline mode
+    my $gene_name;
+    if ( $self->{config}->{offline} ) {
+        # Use cached _gene_symbol in offline mode
+        $gene_name = eval { $transcript->{_gene_symbol} };
+    } else {
+        # Use Ensembl API to retrieve the gene name in online mode
+        $gene_name = eval { $transcript->get_Gene->external_name };
+    }
+
+    # Return empty hash if gene name is undefined
+    return {} unless $gene_name;
 
     # Check if the variant has a missense consequence
     # Get all consequences
     my @consequences = @{ $tva->get_all_OverlapConsequences() };
 
     # Check if any consequence is missense_variant
-    my $is_missense = grep { $_->SO_term eq 'missense_variant' } @consequences;
-
-    if (!$is_missense) {
-        return {};
+    my $is_missense;
+    if ( $self->{config}->{offline} ) {
+        # Offline mode: Use cached consequences
+        $is_missense = grep { $_->{SO_term} eq 'missense_variant' } @consequences;
+    } else {
+        # Online mode: Use API method
+        $is_missense = grep { $_->SO_term eq 'missense_variant' } @consequences;
     }
+
+    # Return if no missense consequence is found
+    return {} unless $is_missense;
 
     # Check whether the gene_name from the user's vcf can be found in the MechPredict prediction data
     if ( !exists $self->{data}{$gene_name} ) {
