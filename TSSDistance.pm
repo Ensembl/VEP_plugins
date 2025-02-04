@@ -55,8 +55,8 @@ sub new {
     # Get directionality flag:
     my $param_hash = $self->params_to_hash();
 
-    # If both_direction parameter is set, we will calculate the distance from the TSS in both directions, otherwise only upstream distance will be calculated:
-    $self->{both_direction} = defined($param_hash->{both_direction}) ? 1 : 0;
+    # If both_direction parameter is set, distance is reported for both upstream and downstream variants, otherwise distance for only upstream variants will be reported:
+    $self->{both_direction} = $param_hash->{both_direction} ? 1 : 0;
     return $self;
 }
 
