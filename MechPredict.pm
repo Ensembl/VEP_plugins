@@ -128,7 +128,7 @@ sub read_tsv {
     # If the file cannot be opened, then exit
     open my $fh, "<", $file or die "Could not open file '$file': $!";
 
-    # Loop over each line of the file - more mem efficient than reading the entire file into memory with a foreach
+    # Loop over each line of the file
     while (<$fh>) {
 
         # Remove trailing \n chars
@@ -270,10 +270,10 @@ sub run {
         && $pgof < $thresholds{pgof}
         && $pdn < $thresholds{pdn} )
     {
-        $interpretation = "gene_predicted_as_associated_with_loss_of_function mechanism";
+        $interpretation = "gene_predicted_as_associated_with_loss_of_function_mechanism";
     }
     else {
-        $interpretation = "no_conclusive_mechanism_detected";
+        $interpretation = "no_conclusive_mechanism_predicted";
     }
 
     # Add the data to the VEP output
