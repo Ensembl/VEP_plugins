@@ -88,12 +88,19 @@ limitations under the License.
  The following steps are necessary before running this plugin:
 
  The files with the annotations for all possible substitutions (snv), 1 base insertions 
- and 1-4 base deletions (indel) within genes are available here:
- https://basespace.illumina.com/s/otSPW8hnhaZR
-
+ and 1-4 base deletions (indel) within genes are available here https://basespace.illumina.com/s/otSPW8hnhaZR, 
+ and can be accessed as follows:
+1. Log-in to your Illumina account or sign-up if you don't have one. 
+2. Once you're in, a "Share Project" pop-up will appear - click "accept". 
+3. A smaller pop-up in the bottom right will read "Share Accepted". Click "Predicting splicing from primary sequence".
+4. You will get a list of files. Select "genome_scores_v1.3".
+5. You will get an info/landing page. Under "Analysis: genome_scores_v1.3", select "FILES". 
+6. Click the file icon next to "genome_scores_v1.3" and you will get a list of available files. 
+7. Click filenames to download the relevant files - note that raw/masked, hg19/hg38 and snv/indel files are available. 
+ 
  GRCh37:
- tabix -p vcf spliceai_scores.raw.snv.hg37.vcf.gz
- tabix -p vcf spliceai_scores.raw.indel.hg37.vcf.gz
+ tabix -p vcf spliceai_scores.raw.snv.hg19.vcf.gz
+ tabix -p vcf spliceai_scores.raw.indel.hg19.vcf.gz
 
  GRCh38:
  tabix -p vcf spliceai_scores.raw.snv.hg38.vcf.gz
