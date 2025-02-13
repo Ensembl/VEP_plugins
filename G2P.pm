@@ -149,8 +149,8 @@ my %DEFAULTS = (
   af_biallelic => 0.005, 
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS
-                 gnomADg gnomADg_AFR gnomADg_AMR gnomADg_ASJ gnomADg_EAS gnomADg_FIN gnomADg_NFE gnomADg_OTH gnomADg_SAS
-                 gnomADe gnomADe_AFR gnomADe_AMR gnomADe_ASJ gnomADe_EAS gnomADe_FIN gnomADe_NFE gnomADe_OTH gnomADe_SAS)],
+                 gnomADg gnomADg_AFR gnomADg_AMR gnomADg_ASJ gnomADg_EAS gnomADg_FIN gnomADg_NFE gnomADg_OTH gnomADg_SAS gnomADg_EAS gnomADg_REMAINING gnomADg_MID
+                 gnomADe gnomADe_AFR gnomADe_AMR gnomADe_ASJ gnomADe_EAS gnomADe_FIN gnomADe_NFE gnomADe_OTH gnomADe_SAS gnomADe_EAS gnomADe_REMAINING gnomADe_MID)],
 
   af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2 gnomADe_v4.1 gnomADg_v4.1)],
 
@@ -185,6 +185,10 @@ my $af_key_2_population_name = {
   gnomAD_NFE => 'Genome Aggregation Database exomes v2.1:Non-Finnish European',
   gnomAD_OTH => 'Genome Aggregation Database exomes v2.1:Other (population not assigned)',
   gnomAD_SAS => 'Genome Aggregation Database exomes v2.1:South Asian',
+  gnomADe_MID => "Genome Aggregation Database exomes Mid Eastern",
+  gnomADg_MID => "Genome Aggregation Database genomes Mid Eastern",
+  gnomADe_REMAINING => "Genome Aggregation Database exomes Remaining",
+  gnomADg_REMAINING => "Genome Aggregation Database genomes Remaining",
 };
 
 my $allelic_requirements = {
