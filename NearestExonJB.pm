@@ -168,7 +168,6 @@ sub run {
 
     my @finalRes;
     # For option --intronic, return the closest exons (upstream/dowsntream) from the intron
-    # Format example: ENSE00003511683|len:143|8899:start,ENSE00003541627|1764:end|len:69
     if(scalar @{$exons} == 2 && $CONFIG{intronic} == 1) {
       foreach my $exon (keys %dists) {
         my $inner_hash = $dists{$exon};
