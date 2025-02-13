@@ -78,6 +78,8 @@ limitations under the License.
                          * 'gnomADe' & 'gnomADe_r2.1.1 & 'gnomADev4.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
                          * 'gnomADg' & 'gnomADg_v3.1.2' & 'gnomADgv4.1' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
                          Need to use 'af_from_vcf' parameter to use this option. 
+  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
+                         N/B - frequency information may be lost if this option is used 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
@@ -102,9 +104,7 @@ limitations under the License.
 
   only_mane            : set to 1 to ignore transcripts that are not MANE
                          N/B - Information may be lost if this option is used.
-
-  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
-                         N/B - frequency information may be lost if this option is used                
+               
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  
@@ -1089,7 +1089,7 @@ sub _vcf_frequency_filtering {
   my $self = shift;
   my $tva = shift;
   my $allele = $tva->base_variation_feature->alt_alleles;  
-  my $vf = $tva->variation_feature;
+  my $vf = $tva->base_variation_feature;
   # get the lowest frequency threshold. Threshold can be different for monoallelic and biallelic genes.
   my $frequency_threshold = $self->{config}->{frequency_threshold}; 
   my $vf_cache_name =  $self->{vf_cache_name};
