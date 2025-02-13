@@ -211,6 +211,9 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   
+  # return if no tool is selected
+  return {} if $self->{sift} eq 'o' && $self->{polyphen} eq 'o' && $self->{humdiv} eq 'o';
+
   # only for missense variants
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
