@@ -64,8 +64,6 @@ use warnings;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
-# use Data::Dumper;
-
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my $char_sep = "|";
@@ -115,28 +113,24 @@ sub run {
 
   my $loc_string = sprintf("%s:%s-%i-%i", $trv->transcript_stable_id, $vf->{chr} || $vf->seq_region_name, $vf->{start}, $vf->{end});
 
-  # print "\nlocation: $loc_string\n";
-
   if(!exists($self->{_cache}) || !exists($self->{_cache}->{$loc_string})) {
-    my $exons = $trv->_overlapped_exons;
+    my $exons = $trv->_overlapped_exons; # intronic variants do not overlap any exon
     my %dists;
     my $min = $CONFIG{max_range};
 
+    # For option --intronic, fetch the list of exons with different method
+    # Do not take into account the max_range
     if(scalar @{$exons} == 0 && $CONFIG{intronic} == 1) {
       my $intron_numbers = $trv->intron_number();
       my $consequences = join(",", map { $_->SO_term } @{$tva->get_all_OverlapConsequences});
 
-      # print "Consequences: $consequences\n";
-
       if(defined $intron_numbers && $consequences =~ /intron/) {
         $exons = $trv->_sorted_exons;
         my ($intron_number, $total_number) = split(/\//, $intron_numbers);
-        # print "Intron number: $intron_number\n";
-
+ 
         # Get the number of exons before and after the intron
         my $exon_before = $intron_number;
         my $exon_after = $intron_number + 1;
-        # print "Exon before: $exon_before, exon after: $exon_after\n";
 
         my @exons_tmp;
         # Reverse strand we get the exons from the end of the list
@@ -150,12 +144,10 @@ sub run {
         }
 
         $exons = \@exons_tmp;
-        # print "-> ", scalar(@{$exons}), "\n";
       }
     }
 
     foreach my $exon (@$exons) {
-      # print "Exon: ", $exon->stable_id, " ", $exon->start, "-", $exon->end, "\n";
       my $startD = abs ($vf->start - $exon->seq_region_start);
       my $endD = abs ($vf->end - $exon->seq_region_end);
       if ($startD < $endD){
@@ -173,19 +165,32 @@ sub run {
       }
     }
 
-    # print "--- ", Dumper(\%dists);
-
     my @finalRes;
+    # For option --intronic, return the closest exons (upstream/dowsntream) from the intron
+    # Format example: ENSE00003511683|len:143|8899:start,ENSE00003541627|1764:end|len:69
     if(scalar @{$exons} == 2 && $CONFIG{intronic} == 1) {
-      # ENSE00003492822|2056|end|75
       foreach my $exon (keys %dists) {
         my $inner_hash = $dists{$exon};
-        my $inner_string = join($char_sep, map { "$_:$inner_hash->{$_}" } keys %$inner_hash);
-        my $string = $exon . $char_sep . $inner_string;
+        my $length_value;
+        my $type;
+        my $distance_value;
+
+        for my $internal_key (keys %{$inner_hash}) {
+          if($internal_key eq "len") {
+            $length_value = $inner_hash->{$internal_key};
+          }
+          else {
+            $type = $inner_hash->{$internal_key};
+            $distance_value = $internal_key;
+          }
+        }
+
+        my $string = $exon . $char_sep . $distance_value . $char_sep . $type . $char_sep . $length_value;
         push(@finalRes, $string);
       }
     }
     else {
+        # This is the default behaviour of the plugin
         foreach my $exon (keys %dists){
         if (exists $dists{$exon}{$min}) {
           push(@finalRes, $exon.$char_sep.$min.$char_sep.$dists{$exon}{$min}.$char_sep.$dists{$exon}{len})
