@@ -98,7 +98,15 @@ sub feature_types {
 }
 
 sub get_header_info {
-  my $header = 'Nearest Exon Junction Boundary (coding sequence variants only). Format:';
+  my $header;
+
+  if($CONFIG{intronic} == 1) {
+    $header = 'Nearest Exon Junction Boundary. Format:';
+  }
+  else {
+    $header = 'Nearest Exon Junction Boundary (coding sequence variants only). Format:';
+  }
+
   $header .= join($char_sep, qw(ExonID distance start/end length) );
 
   return {
@@ -134,7 +142,7 @@ sub run {
         my $exon_after = $intron_number + 1;
 
         my @exons_tmp;
-        # Reverse strand we get the exons from the end of the list
+        # In the reverse strand we get the last two exons from the list
         if($tva->transcript->strand < 0) {
           push(@exons_tmp, $exons->[-$exon_before]);
           push(@exons_tmp, $exons->[-$exon_after]);
