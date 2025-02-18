@@ -134,15 +134,15 @@ sub read_tsv {
         chomp;
 
         # There are 4 cols in the .tsv file, so assign result of split to 4 usefully named variables
-        my ( $gene, $uniprot_id, $mechanism, $probability ) = split( "\t", $_ );
+        my ( $gene, $uniprot_id, $pDN, $pGOF, $pLOF ) = split( "\t", $_ );
 
-        # Store line in the data hash, grouping the data by gene - gene will be the array reference (key, in other words)
-        push @{ $data{$gene} },
-          {
-            uniprot_id  => $uniprot_id,
-            mechanism   => $mechanism,
-            probability => $probability
-          };
+        # Store data in single hash ref per gene
+        $data{$gene} = {
+            uniprot_id => $uniprot_id,
+            pDN        => $pDN,
+            pGOF       => $pGOF,
+            pLOF       => $pLOF
+        };
     }
     close $fh;
 
@@ -179,8 +179,8 @@ my %thresholds = (
 );
 
 sub run {
-    
-    # my ( $self, $tva ) = @_;
+
+    my ( $self, $tva ) = @_;
 
     # Get transcript ID
     my $transcript = $tva->transcript;
@@ -200,13 +200,12 @@ sub run {
       unless grep { $_->SO_term eq 'missense_variant' }
       @{ $tva->get_all_OverlapConsequences };
 
-   # Check whether the gene_name can be found in the MechPredict prediction data
-    if ( !exists $self->{data}{$gene_name} ) {
-        return {};
-    }
+    # Check whether the gene_name can be found in the MechPredict prediction data
+    my $gene_data = $self->{data}{$gene_name};
+    return {} unless $gene_data;
 
     # Pull out MechPredict prediction data for gene_name
-    my ($pdn, $pgof, $plof) = @{$self->{data}{$gene_name}}{qw(pDN pGOF pLOF)};
+    my ( $pdn, $pgof, $plof ) = @{$gene_data}{qw(pDN pGOF pLOF)};
 
     # Create prediction field
     my $prediction = "";
