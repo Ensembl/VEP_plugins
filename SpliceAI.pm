@@ -102,9 +102,10 @@ limitations under the License.
       7. Click filenames to download the relevant files - note that raw/masked, hg19/hg38 and snv/indel files are available. 
   
   - The Ensembl-generated files with the annotations for all possible substitutions (snv), 1 base insertions, within genes are available through Ensembl 
- (https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_plugins/). 
+ (https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_plugins/). Ensembl does not provide indel annotations, however, 
+ Ensembl-generated files include annotations for Ensembl MANE select transcripts for v107 and v110 releases. 
 
- 2. Tabix the files 
+ 2. Tabix the files (if derived from Illumina). .tbi files are provided for Ensembl-derived VCFs. 
 
   - GRCh37:
   tabix -p vcf spliceai_scores.raw.snv.hg19.vcf.gz
@@ -114,10 +115,15 @@ limitations under the License.
   tabix -p vcf spliceai_scores.raw.snv.hg38.vcf.gz
   tabix -p vcf spliceai_scores.raw.indel.hg38.vcf.gz
 
- 3. The plugin can then be run:
+ 3. The plugin can then be run: 
+
+ - With Illumina files: 
   ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
   ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,cutoff=0.5
   ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,split_output=1
+
+  - Or with Ensembl files: 
+  ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.masked.snv.ensembl_mane.grch38.110.vcf.gz,indel=/path/to/spliceai_scores.masked.indel.hg38.vcf.gz
 
 =cut
 
