@@ -87,22 +87,29 @@ limitations under the License.
 
  The following steps are necessary before running this plugin:
 
- The files with the annotations for all possible substitutions (snv), 1 base insertions 
+1. Download the SpliceAI files from the Illumina website, or from the Ensembl ftp site:
+
+- The Illumina files with the annotations for all possible substitutions (snv), 1 base insertions 
  and 1-4 base deletions (indel) within genes are available here:
- https://basespace.illumina.com/s/otSPW8hnhaZR
+ https://basespace.illumina.com/s/otSPW8hnhaZR. 
+- The Ensembl files with the annotations for all possible substitutions (snv) and for Ensembl version 110 and 107 MANE select
+transcripts are available here: https://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_plugins/. For information 
+on how they were generated, see the README file in the same location. 
 
- GRCh37:
- tabix -p vcf spliceai_scores.raw.snv.hg37.vcf.gz
- tabix -p vcf spliceai_scores.raw.indel.hg37.vcf.gz
+2. If using the Illumina data, tabix the files, for example: 
 
- GRCh38:
- tabix -p vcf spliceai_scores.raw.snv.hg38.vcf.gz
- tabix -p vcf spliceai_scores.raw.indel.hg38.vcf.gz
+tabix -p vcf spliceai_scores.raw.snv.hg38.vcf.gz
+tabix -p vcf spliceai_scores.raw.indel.hg38.vcf.gz
 
- The plugin can then be run:
- ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
- ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,cutoff=0.5
-  ./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,split_output=1
+3. Run VEP with the SpliceAI plugin
+
+- Examples with Illumina files: 
+./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
+./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,cutoff=0.5
+./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz,split_output=1
+
+- Example with Ensembl SNV file: 
+./vep -i variations.vcf --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.ensembl_mane.grch38.110.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
 
 =cut
 
