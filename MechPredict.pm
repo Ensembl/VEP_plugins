@@ -184,7 +184,6 @@ sub run {
 
     # Get transcript ID
     my $transcript = $tva->transcript;
-    return {} unless $transcript;
 
     # Get gene name
     # Usually, ->get_Gene->external_name would be used, but this doesn't work in offline mode, so pull from cached value if --offline
