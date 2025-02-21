@@ -205,40 +205,21 @@ sub run {
 
     # Pull out MechPredict prediction data for gene_name
     my ( $pdn, $pgof, $plof ) = @{$gene_data}{qw(pDN pGOF pLOF)};
-
+    
+    # Compare values to thresholds and populate prediction
     # Create prediction field
     my $prediction = "";
 
-    # Compare values to thresholds and populate prediction
-    # This does not provide prediction for the following cases:
-    #   - Two probabilities are high at the same time
-    #   - All probabilities are below their respective thresholds
-    #   - All probabilities are above their respective thresholds
-    # Instead, these end up categoried as "no_conclusive_mechanism_detected"
-    if (   $pdn >= $thresholds{pdn}
-        && $pgof < $thresholds{pgof}
-        && $plof < $thresholds{plof} )
-    {
-        $prediction =
-          "gene_predicted_as_associated_with_dominant_negative_mechanism";
-    }
-    elsif ($pgof >= $thresholds{pgof}
-        && $pdn < $thresholds{pdn}
-        && $plof < $thresholds{plof} )
-    {
-        $prediction =
-          "gene_predicted_as_associated_with_gain_of_function_mechanism";
-    }
-    elsif ($plof >= $thresholds{plof}
-        && $pgof < $thresholds{pgof}
-        && $pdn < $thresholds{pdn} )
-    {
-        $prediction =
-          "gene_predicted_as_associated_with_loss_of_function_mechanism";
-    }
-    else {
-        $prediction = "no_conclusive_mechanism_predicted";
-    }
+    # Check each value against its threshold and append to prediction
+    $prediction .= "gene_predicted_as_associated_with_dominant_negative_mechanism, " if $pdn  >= $thresholds{pdn};
+    $prediction .= "gene_predicted_as_associated_with_gain_of_function_mechanism, " if $pgof >= $thresholds{pgof};
+    $prediction .= "gene_predicted_as_associated_with_loss_of_function_mechanism, " if $plof >= $thresholds{plof};
+
+    # Remove trailing comma and space if
+    $prediction =~ s/, $//;
+
+    # If no predictions met the threshold, assign a default message
+    $prediction = "no_conclusive_mechanism_predicted" if $prediction eq "";
 
     # Add the data to the VEP output
     return {
