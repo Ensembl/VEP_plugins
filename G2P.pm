@@ -70,14 +70,16 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with '--af_from_vcf_keys'
                          all available VCF collections are included. 
-                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2'.
+                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2', 'gnomADev4.1', 'gnomADgv4.1'.
                          Separate multiple values with '&'.
                          VCF collections contain the following populations: 
                          * 'topmed' - TOPMed (available for GRCh37 and GRCh38).
                          * 'uk10k' - ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
-                         * 'gnomADe' & 'gnomADe_r2.1.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
-                         * 'gnomADg' & 'gnomADg_v3.1.2' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADe' & 'gnomADe_r2.1.1 & 'gnomADev4.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADg' & 'gnomADg_v3.1.2' & 'gnomADgv4.1' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
                          Need to use 'af_from_vcf' parameter to use this option. 
+  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
+                         N/B - frequency information may be lost if this option is used 
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
@@ -102,6 +104,7 @@ limitations under the License.
 
   only_mane            : set to 1 to ignore transcripts that are not MANE
                          N/B - Information may be lost if this option is used.
+               
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
  
@@ -146,10 +149,10 @@ my %DEFAULTS = (
   af_biallelic => 0.005, 
 
   af_keys => [qw(AA AFR AMR EA EAS EUR SAS gnomAD gnomAD_AFR gnomAD_AMR gnomAD_ASJ gnomAD_EAS gnomAD_FIN gnomAD_NFE gnomAD_OTH gnomAD_SAS
-                 gnomADg gnomADg_AFR gnomADg_AMR gnomADg_ASJ gnomADg_EAS gnomADg_FIN gnomADg_NFE gnomADg_OTH gnomADg_SAS
-                 gnomADe gnomADe_AFR gnomADe_AMR gnomADe_ASJ gnomADe_EAS gnomADe_FIN gnomADe_NFE gnomADe_OTH gnomADe_SAS)],
+                 gnomADg gnomADg_AFR gnomADg_AMR gnomADg_ASJ gnomADg_EAS gnomADg_FIN gnomADg_NFE gnomADg_OTH gnomADg_SAS gnomADg_EAS gnomADg_REMAINING gnomADg_MID
+                 gnomADe gnomADe_AFR gnomADe_AMR gnomADe_ASJ gnomADe_EAS gnomADe_FIN gnomADe_NFE gnomADe_OTH gnomADe_SAS gnomADe_EAS gnomADe_REMAINING gnomADe_MID)],
 
-  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2)],
+  af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2 gnomADe_v4.1 gnomADg_v4.1)],
 
   # if no MAF data is found, default to 0
   # this means absence of MAF data is considered equivalent to MAF=0
@@ -182,6 +185,10 @@ my $af_key_2_population_name = {
   gnomAD_NFE => 'Genome Aggregation Database exomes v2.1:Non-Finnish European',
   gnomAD_OTH => 'Genome Aggregation Database exomes v2.1:Other (population not assigned)',
   gnomAD_SAS => 'Genome Aggregation Database exomes v2.1:South Asian',
+  gnomADe_MID => "Genome Aggregation Database exomes Mid Eastern",
+  gnomADg_MID => "Genome Aggregation Database genomes Mid Eastern",
+  gnomADe_REMAINING => "Genome Aggregation Database exomes Remaining",
+  gnomADg_REMAINING => "Genome Aggregation Database genomes Remaining",
 };
 
 my $allelic_requirements = {
@@ -223,7 +230,11 @@ my $afvcf_keys = {
     "gnomADe_GRCh37" => 1, 
     "gnomADe_r2.1.1_GRCh38" => 1,
     "gnomADg_GRCh37" => 1, 
-    "gnomADg_v3.1.2_GRCh38" => 1
+    "gnomADg_v3.1.2_GRCh38" => 1,
+    "gnomADg_v4.1_GRCh37" => 1,
+    "gnomADe_v4.1_GRCh37" => 1,
+    "gnomADg_v4.1_GRCh38" => 1,
+    "gnomADe_v4.1_GRCh38" => 1,
 };
 
 my $a_keys = {
@@ -232,7 +243,9 @@ my $a_keys = {
   "gnomADe" => 1,
   "gnomADe_r2.1.1" => 1,
   "gnomADg" => 1,
-  "gnomADg_v3.1.2" => 1
+  "gnomADg_v3.1.2" => 1,
+  "gnomADg_v4.1" => 1,
+  "gnomADe_v4.1" => 1
 };
 
 sub new {
@@ -328,6 +341,8 @@ sub new {
       $params->{confidence_levels} = \@confidence_levels;
     }
   }
+  
+  die "only_vcf_freq option can only be used with af_from_vcf"  if ($params->{only_vcf_freq} && !$params->{af_from_vcf});
   if ($params->{af_from_vcf}) {
     if ($CAN_USE_HTS_PM) {
       my @vcf_collection_ids = ();
@@ -340,8 +355,8 @@ sub new {
           if (!$afvcf_keys->{$key_assembly}){
             # to die if key is not supported, checking with the key and the assembly 
             die "$key is not a supported key. Supported keys and assembly are: ", join(',', keys %$a_keys), ".\n
-                 gnomADe and gnomADg is supported for assembly GRCh37 \n
-                 gnomADe_r2.1.1 and gnomADg_v3.1.2 is supported for assembly GRCh38 \n" ;
+                 gnomADe, gnomADg, gnomADg_v4.1 and gnomADe_v4.1 is supported for assembly GRCh37 \n
+                 gnomADe_r2.1.1, gnomADg_v3.1.2 and gnomADg_v4.1 and gnomADe_v4.1 is supported for assembly GRCh38 \n" ;
           }
           else {
             push @vcf_collection_ids, $key;
@@ -386,6 +401,7 @@ sub new {
       warn "Couldn't find VCF collection ids for assembly " . $assembly if (!@collections);
       $self->{config}->{vcf_collections} = \@collections;
       $self->{config}->{use_vcf} = 1;
+      $self->{config}->{use_only_vcf} = 1 if $params->{only_vcf_freq};
     } else {
       warn "Cannot get data from VCF without Bio::DB::HTS::Tabix";
     } 
@@ -907,9 +923,9 @@ sub frequency_filtering {
   my $pass_frequency_filter = $self->{g2p_vf_cache}->{$vf_cache_name}->{pass_frequency_filter};
   return $pass_frequency_filter if (defined $pass_frequency_filter);
   # Check frequencies from cache files first
-  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva);
+  $pass_frequency_filter = $self->_vep_cache_frequency_filtering($tva) if (!defined($self->{config}->{use_only_vcf}));
   # Check frequencies from VCF files if user is providing use_vcf flag
-  if ($pass_frequency_filter && $self->{config}->{use_vcf}) {
+  if ($self->{config}->{use_vcf}) {
     $pass_frequency_filter = $self->_vcf_frequency_filtering($tva);
   } 
 
@@ -1712,7 +1728,7 @@ SHTML
               if ($class) {
                 push @tds, "<td class=\"$class\">$value</td>";
               } else {
-                push @tds, "<td>$value</td>";
+                push @tds, defined $value ? "<td>$value</td>" : "<td>NA</td>";
               }
             }
             print $fh_out "<tr>", join('', @tds), "</tr>\n";
@@ -1782,7 +1798,7 @@ sub html_and_txt_data {
                 print STDERR "No vf_data for: $vf_name\n"; 
               } 
               my $hash = {};
-              foreach my $pair (split/;/, "$tva_data;$vf_data") {
+              foreach my $pair (split /;/, defined $vf_data ? "$tva_data;$vf_data" : $tva_data) {
                 my ($key, $value) = split('=', $pair, 2);
                 $value ||= '';
                 $hash->{$key} = $value;
@@ -1796,7 +1812,7 @@ sub html_and_txt_data {
               else {
                 $ensembl_url = "https://ensembl.org";
               }
-              if ($existing_name ne 'NA') {
+              if (defined($existing_name) && $existing_name ne 'NA' ) {
                 $existing_name = "<a href=\"$ensembl_url/Homo_sapiens/Variation/Explore?v=$existing_name\">$existing_name</a>";
               }
               my $is_on_variant_include_list = $hash->{is_on_variant_include_list};

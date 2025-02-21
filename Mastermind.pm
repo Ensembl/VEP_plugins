@@ -265,7 +265,6 @@ sub run {
           my $is_splice = grep {$_->SO_term =~ 'splice'} @{$tva->get_all_OverlapConsequences};
 
           foreach my $aa_alteration (@$aa_alterations) {
-
             # checks if citation refers to an UTR variant (5UTR, 3UTR)
             if($data_value->{is_only_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) {
               $result_data = $data_value->{result};
@@ -275,11 +274,11 @@ sub run {
               $result_data = $data_value->{result};
             }
             # checks if it is a frameshift
-            elsif($data_value->{is_fs} == 1 && $aa_string =~ /X/) {
+            elsif($data_value->{is_fs} == 1 && defined($aa_string) && $aa_string =~ /X/) {
               $result_data = $data_value->{result};
             }
             # checks if it is nonsense
-            elsif($data_value->{is_nonsense} == 1 && $peptide_start && $aa_string =~ /\*/) {
+            elsif($data_value->{is_nonsense} == 1 && defined($peptide_start) && defined($aa_string) && $aa_string =~ /\*/ && $aa_alteration =~ /^-?\d+$/) {
               $result_data = $data_value->{result} if ($peptide_start == $aa_alteration);
             }
             elsif($data_value->{is_other} == 1 && defined($is_intron)) {
