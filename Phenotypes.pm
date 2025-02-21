@@ -206,7 +206,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature'];
+  return ['Feature','Intergenic'];
 }
 
 sub variant_feature_types {
@@ -325,7 +325,7 @@ sub run {
   my $vf = $bvfo->base_variation_feature;
   $self->{is_sv} = $vf->isa('Bio::EnsEMBL::Variation::StructuralVariationFeature');
 
-  my $tr = $bvfo->transcript;
+  my $tr = !$bvfo->isa('Bio::EnsEMBL::Variation::IntergenicVariationAllele') ? $bvfo->transcript : undef;
   my $gene_stable_id = defined $tr ? $tr->{_gene_stable_id} : "";
 
   # adjust coords for tabix
