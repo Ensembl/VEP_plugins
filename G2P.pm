@@ -1339,7 +1339,7 @@ sub read_gene_data_from_file {
         my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
-        my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"}; # deprecate use of DDD category
+        my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"} || $tmp{"confidence"}; # deprecate use of DDD category
         next if (!grep{$_ eq $confidence_category} @confidence_levels);
         my $gene_symbol = $tmp{"gene symbol"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"}) if defined($tmp{"prev symbols"});
