@@ -133,7 +133,7 @@ sub read_tsv {
         # Remove trailing \n chars
         chomp;
 
-        # There are 4 cols in the .tsv file, so assign result of split to 4 usefully named variables
+# There are 4 cols in the .tsv file, so assign result of split to 4 usefully named variables
         my ( $gene, $uniprot_id, $pDN, $pGOF, $pLOF ) = split( "\t", $_ );
 
         # Store data in single hash ref per gene
@@ -186,11 +186,7 @@ sub run {
     my $transcript = $tva->transcript;
 
     # Get gene name
-    # Usually, ->get_Gene->external_name would be used, but this doesn't work in offline mode, so pull from cached value if --offline
-    # _gene_symbol is a cached value in offline mode
     my $gene_name = $transcript->{_gene_symbol};
-
-    # Return empty hash if gene name is undefined
     return {} unless $gene_name;
 
     # Check if the variant has a missense consequence
@@ -199,23 +195,29 @@ sub run {
       unless grep { $_->SO_term eq 'missense_variant' }
       @{ $tva->get_all_OverlapConsequences };
 
-    # Check whether the gene_name can be found in the MechPredict prediction data
+   # Check whether the gene_name can be found in the MechPredict prediction data
     my $gene_data = $self->{data}{$gene_name};
     return {} unless $gene_data;
 
     # Pull out MechPredict prediction data for gene_name
     my ( $pdn, $pgof, $plof ) = @{$gene_data}{qw(pDN pGOF pLOF)};
-    
+
     # Compare values to thresholds and populate prediction
     # Create prediction field
     my $prediction = "";
 
     # Check each value against its threshold and append to prediction
-    $prediction .= "gene_predicted_as_associated_with_dominant_negative_mechanism, " if $pdn  >= $thresholds{pdn};
-    $prediction .= "gene_predicted_as_associated_with_gain_of_function_mechanism, " if $pgof >= $thresholds{pgof};
-    $prediction .= "gene_predicted_as_associated_with_loss_of_function_mechanism, " if $plof >= $thresholds{plof};
+    $prediction .=
+      "gene_predicted_as_associated_with_dominant_negative_mechanism, "
+      if $pdn >= $thresholds{pdn};
+    $prediction .=
+      "gene_predicted_as_associated_with_gain_of_function_mechanism, "
+      if $pgof >= $thresholds{pgof};
+    $prediction .=
+      "gene_predicted_as_associated_with_loss_of_function_mechanism, "
+      if $plof >= $thresholds{plof};
 
-    # Remove trailing comma and space if
+    # Remove trailing comma and space
     $prediction =~ s/, $//;
 
     # If no predictions met the threshold, assign a default message
