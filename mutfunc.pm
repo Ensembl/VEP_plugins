@@ -33,9 +33,10 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, interaction interface, and motif.
+ An Ensembl VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, 
+ interaction interface, and motif.
 
- Please cite the mutfunc publication alongside the VEP if you use this resource:
+ Please cite the mutfunc publication alongside Ensembl VEP if you use this resource:
  http://msb.embopress.org/content/14/12/e8430
 
  Pre-requisites:

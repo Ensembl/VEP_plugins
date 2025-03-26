@@ -33,8 +33,8 @@ limitations under the License.
 
 =head1 DESCRIPTION
  
-    A VEP plugin that annotates the effect of 5' UTR variant especially for variant creating/disrupting upstream ORFs.
-    Available for both GRCh37 and GRCh38.
+    An Ensembl VEP plugin that annotates the effect of 5' UTR variant especially for variant creating/disrupting 
+    upstream ORFs. Available for both GRCh37 and GRCh38.
 
     Options are passed to the plugin as key=value pairs:
 
@@ -57,7 +57,7 @@ limitations under the License.
     You can find the original plugin here -
     https://github.com/ImperialCardioGenetics/UTRannotator 
 
-    Please cite the UTRannotator publication alongside the Ensembl VEP if you use this resource -
+    Please cite the UTRannotator publication alongside Ensembl VEP if you use this resource -
     Annotating high-impact 5'untranslated region variants with the UTRannotator Zhang, X., Wakeling, M.N., Ware, J.S, Whiffin, N. Bioinformatics; doi: https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btaa783/5905476
 
 =cut

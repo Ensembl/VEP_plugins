@@ -94,7 +94,7 @@ limitations under the License.
  Example:
    --plugin GeneSplicer,binary=$GS/bin/linux/genesplicer,training=$GS/human,context=200,tmpdir=/mytmp
 
- When using VEP Docker/Singularity, the `binary` argument can be ommitted, as
+ When using Ensembl VEP Docker/Singularity, the `binary` argument can be ommitted, as
  the `genesplicer` command is exported in the $PATH variable and is thus
  automatically detected by the plugin:
    --plugin GeneSplicer,training=$GS/human,context=200,tmpdir=/mytmp

@@ -31,7 +31,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- This is a VEP plugin that uses a standardized catalog of human Ribo-seq ORFs to
+ An Ensembl VEP plugin that uses a standardized catalog of human Ribo-seq ORFs to
  re-calculate consequences for variants located in these translated regions.
 
  This plugin reports new consequences based on the evidence from the Ribo-seq
@@ -42,10 +42,10 @@ limitations under the License.
    bgzip Ribo-seq_ORFs.bed
    tabix Ribo-seq_ORFs.bed.gz
 
- For optimal performance when running this plugin in VEP, please use a FASTA
+ For optimal performance when running this plugin, please use a FASTA
  file (`--fasta`). A FASTA file is always required in offline mode.
 
- Please cite the publication for the Ribo-seq ORF annotation alongside the VEP
+ Please cite the publication for the Ribo-seq ORF annotation alongside Ensembl VEP
  if you use this resource: https://doi.org/10.1038/s41587-022-01369-0
 
  The tabix utility must be installed in your path to use this plugin.

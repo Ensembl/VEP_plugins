@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
- PostGAP - Ensembl Post-GWAS analysis pipeline (PostGAP) - Add PostGAP data fields to the VEP output
+ PostGAP - Ensembl Post-GWAS analysis pipeline (PostGAP) - Add PostGAP data fields to the output
 
 =head1 SYNOPSIS
 

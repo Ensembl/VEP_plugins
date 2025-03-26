@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves information from overlapping structural variants.
+ An Ensembl VEP plugin that retrieves information from overlapping structural variants.
 
  Parameters can be set using a key=value system:
 

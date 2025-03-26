@@ -34,9 +34,9 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- adds the REVEL score for missense variants to VEP output.
+ adds the REVEL score for missense variants to the output.
 
- Please cite the REVEL publication alongside the VEP if you use this resource:
+ Please cite the REVEL publication alongside Ensembl VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/27666373
 
  Running options:

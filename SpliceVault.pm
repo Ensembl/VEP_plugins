@@ -36,7 +36,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves SpliceVault data to predict exon-skipping events
+ An Ensembl VEP plugin that retrieves SpliceVault data to predict exon-skipping events
  and activated cryptic splice sites based on the most common mis-splicing events
  around a splice site.
 
@@ -67,7 +67,7 @@ limitations under the License.
    based on a minimum number of samples or minimum depth in GTEx.
  - SpliceAI delta score (provided by SpliceVault)
 
- Please cite the SpliceVault publication alongside the VEP if you use this
+ Please cite the SpliceVault publication alongside Ensembl VEP if you use this
  resource: https://pubmed.ncbi.nlm.nih.gov/36747048
 
  The tabix utility must be installed in your path to use this plugin. The

@@ -33,13 +33,13 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves relevant NHGRI-EBI GWAS Catalog data given the file. 
+ An Ensembl VEP plugin that retrieves relevant NHGRI-EBI GWAS Catalog data given the file. 
  
  This plugin supports both the curated data that is found in the download section of the NHGRI-EBI GWAS Catalog website and the 
  summary statistics file. By default the plugin assumes the file provided is the curated file but you can pass "type=sstate" 
  to say you want to annotate with a summary statistics file.
 
- Please cite the following publication alongside the VEP if you use this resource:
+ Please cite the following publication alongside Ensembl VEP if you use this resource:
  https://pubmed.ncbi.nlm.nih.gov/30445434/
 
  Pre-requisites:

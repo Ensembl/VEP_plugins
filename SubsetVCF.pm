@@ -26,7 +26,7 @@
 
 =head1 DESCRIPTION
 
- A VEP plugin to retrieve overlapping records from a given VCF file.
+ An Ensembl VEP plugin to retrieve overlapping records from a given VCF file.
  Values for POS, ID, and ALT, are retrieved as well as values for any requested
  INFO field. Additionally, the allele number of the matching ALT is returned.
 

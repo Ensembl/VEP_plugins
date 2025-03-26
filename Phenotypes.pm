@@ -46,7 +46,7 @@ Phenotypes
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves overlapping phenotype information.
+ An Ensembl VEP plugin that retrieves overlapping phenotype information.
 
  On the first run for each new version/species/assembly will
  download a GFF-format dump to ~/.vep/Plugins/

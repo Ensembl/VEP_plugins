@@ -45,9 +45,9 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves PolyPhen and SIFT predictions from a
+ An Ensembl VEP plugin that retrieves PolyPhen and SIFT predictions from a
  locally constructed SQLite database. It can be used when your main
- source of VEP transcript annotation (e.g. a GFF file or GFF-based cache)
+ source of transcript annotation (e.g. a GFF file or GFF-based cache)
  does not contain these predictions.
 
  You must create a SQLite database of the predictions or point to the SQLite

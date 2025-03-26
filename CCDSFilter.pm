@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A simple VEP filter plugin that limits output to variants that
+ A simple example Ensembl VEP filter plugin that limits output to variants that
  fall in transcripts which have CCDS coding sequences.
 
 =cut

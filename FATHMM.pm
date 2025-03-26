@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that gets FATHMM scores and predictions for missense variants.
+ An Ensembl VEP plugin that gets FATHMM scores and predictions for missense variants.
  
  You will need the fathmm.py script and its dependencies (Python, Python
  MySQLdb). You should create a "config.ini" file in the same directory as the

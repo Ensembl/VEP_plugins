@@ -40,7 +40,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves data from MaveDB (https://www.mavedb.org), a
+ An Ensembl VEP plugin that retrieves data from MaveDB (https://www.mavedb.org), a
  database that contains multiplex assays of variant effect, including deep
  mutational scans and massively parallel report assays.
 
@@ -60,7 +60,7 @@ limitations under the License.
    transcript_match         : Return results only if (Ensembl or RefSeq)
                               transcript identifiers match (default: 1)
  
- Please cite the MaveDB publication alongside the VEP if you use this resource:
+ Please cite the MaveDB publication alongside Ensembl VEP if you use this resource:
  https://doi.org/10.1186/s13059-019-1845-6
  
  The tabix utility must be installed in your path to use this plugin.

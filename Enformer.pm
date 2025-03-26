@@ -30,7 +30,7 @@ limitations under the License.
 
  This plugin is available for GRCh37 and GRCh38
  
- Please cite the Enformer publication alongside the VEP if you use this resource:
+ Please cite the Enformer publication alongside Ensembl VEP if you use this resource:
  https://www.nature.com/articles/s41592-021-01252-x
  
  GRCh38 scores were lifted over using CrossMap from the Enformer scores available here - https://console.cloud.google.com/storage/browser/dm-enformer/variant-scores/1000-genomes/enformer

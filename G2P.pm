@@ -31,7 +31,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that uses G2P allelic requirements to assess variants in genes
+ An Ensembl VEP plugin that uses G2P allelic requirements to assess variants in genes
  for potential phenotype involvement.
 
  The plugin has multiple configuration options, though minimally requires only
@@ -450,7 +450,7 @@ sub new {
   $self->{config}->{sift} = 'b';
   $self->{config}->{polyphen} = 'b';
 
-  # tell VEP we have a cache so stuff gets shared/merged between forks
+  # we have a cache; needs those data to get shared/merged between forks
   $self->{has_cache} = 1;
   $self->{cache}->{g2p_in_vcf} = {};
 
@@ -503,7 +503,7 @@ sub get_header_info {
                 - variant include list
                 - allele frequency
                Based on the filtering results check if the allelic requirement is fulfilled and write results to hash.
-               Dump annnotations to a log file for generating TXT and HTML output files after VEP has finished.
+               Dump annnotations to a log file for generating TXT and HTML output files after run has finished.
   Returntype : Hashref $results
   Exceptions : None
   Caller     : General

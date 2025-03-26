@@ -40,7 +40,7 @@ limitations under the License.
  and does not merge input lines to report on adjacent variants.
  It is only available for GRCh38.
 
- Please cite EVE publication alongside the VEP if you use this resource:
+ Please cite EVE publication alongside Ensembl VEP if you use this resource:
  https://www.nature.com/articles/s41586-021-04043-8
 
 ###################################################

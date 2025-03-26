@@ -39,7 +39,7 @@ limitations under the License.
  through protein-related data for example, variant information, localization 
  and interactions  (https://www.nextprot.org/).
 
- Please cite the neXtProt publication alongside the VEP if you use this resource:
+ Please cite the neXtProt publication alongside Ensembl VEP if you use this resource:
  https://doi.org/10.1093/nar/gkz995
 
  This plugin is only suitable for small sets of variants as an additional 

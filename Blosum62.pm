@@ -35,7 +35,7 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  looks up the BLOSUM 62 substitution matrix score for the reference
  and alternative amino acids predicted for a missense mutation. It adds
- one new entry to the VEP's Extra column, BLOSUM62 which is the 
+ one new entry to the output, BLOSUM62, which is the 
  associated score. 
 
 =cut

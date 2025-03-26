@@ -34,10 +34,10 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves data for missense variants from a tabix-indexed
+ An Ensembl VEP plugin that retrieves data for missense variants from a tabix-indexed
  dbNSFP file.
  
- Please cite the dbNSFP publications alongside the VEP if you use this resource:
+ Please cite the dbNSFP publications alongside Ensembl VEP if you use this resource:
  - dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
  - dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
  - dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
@@ -100,7 +100,7 @@ limitations under the License.
  scores retrieved from other sources.
 
  If the dbNSFP README file is found in the same directory as the data file,
- column descriptions will be read from this and incorporated into the VEP output
+ column descriptions will be read from this and incorporated into the output
  file header.
 
  The plugin matches rows in the tabix-indexed dbNSFP file on:
@@ -122,7 +122,7 @@ limitations under the License.
    --plugin dbNSFP,/path/to/dbNSFP.gz,transcript_match=1,col1,col2
 
  NB 1: Using this flag may cause no value to return if the version of the Ensembl
- transcript set differs between VEP and dbNSFP.
+ transcript set differs between Ensembl VEP and dbNSFP.
 
  NB 2: MutationTaster entries are keyed on a different set of transcript IDs. Using
  the 'transcript_match' flag with any MutationTaster field selected will have no effect

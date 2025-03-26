@@ -33,7 +33,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves pre-calculated annotations from SpliceAI.
+ An Ensembl VEP plugin that retrieves pre-calculated annotations from SpliceAI.
  SpliceAI is a deep neural network, developed by Illumina, Inc 
  that predicts splice junctions from an arbitrary pre-mRNA transcript sequence.
  By default, this plugin appends all scores from SpliceAI files.
@@ -50,7 +50,7 @@ limitations under the License.
  More information can be found at:
  https://pypi.org/project/spliceai/
 
- Please cite the SpliceAI publication alongside VEP if you use this resource:
+ Please cite the SpliceAI publication alongside Ensembl VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/30661751
 
  Running options:
@@ -79,7 +79,7 @@ limitations under the License.
 
   Gene matching:
   SpliceAI can contain scores for multiple genes that overlap a variant,
-  and VEP can also predict consequences on multiple genes for a given variant.
+  and Ensembl VEP can also predict consequences on multiple genes for a given variant.
   The plugin only returns SpliceAI scores for the gene symbols that match (if any).
 
  If plugin is run with option 2, the output also contains a flag: "PASS" if delta score

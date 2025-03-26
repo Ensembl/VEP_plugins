@@ -47,14 +47,14 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves Gene Ontology (GO) terms associated with
+ An Ensembl VEP plugin that retrieves Gene Ontology (GO) terms associated with
  transcripts (e.g. GRCh38) or their translations (e.g. GRCh37) using custom
  GFF annotation containing GO terms.
 
  The custom GFF files are automatically created if the input file do not exist
  by querying the Ensembl core database, according to database version, species
- and assembly used in VEP. Note that automatic retrieval fails if using the
- --offline option.
+ and assembly used in Ensembl VEP. Note that automatic retrieval fails if using 
+ the --offline option.
 
  The GFF files containing the GO terms are saved to and loaded from the working
  directory by default. To change this, provide a directory path as an argument:

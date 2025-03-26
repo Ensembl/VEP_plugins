@@ -34,15 +34,15 @@ limitations under the License.
  Parameters Required:
  
  [0] : FunMotifs BED file
- [1]+ : List of columns to include within VEP output (e.g. fscore, skin, contactingdomain)
+ [1]+ : List of columns to include within the output (e.g. fscore, skin, contactingdomain)
  
 
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- adds tissue-specific transcription factor motifs from FunMotifs to VEP output.
+ adds tissue-specific transcription factor motifs from FunMotifs to the output.
 
- Please cite the FunMotifs publication alongside the VEP if you use this resource. 
+ Please cite the FunMotifs publication alongside Ensembl VEP if you use this resource. 
  The preprint can be found at: https://www.biorxiv.org/content/10.1101/683722v1
  
  FunMotifs files can be downloaded from: http://bioinf.icm.uu.se:3838/funmotifs/

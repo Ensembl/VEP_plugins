@@ -31,7 +31,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin for the Ensembl Variant Effect Predictor (VEP) that returns
+ An Ensembl VEP plugin for the Ensembl Variant Effect Predictor (VEP) that returns
  HGVS intron start and end offsets. To be used with --hgvs option.
 
 =cut

@@ -70,7 +70,7 @@ limitations under the License.
  https://creativecommons.org/licenses/by/4.0/legalcode.
  Use of the AlphaMissense Database is subject to Google Cloud Platform Terms of Service  
 
- Please cite the AlphaMissense publication alongside the VEP
+ Please cite the AlphaMissense publication alongside Ensembl VEP
  if you use this resource: https://doi.org/10.1126/science.adg7492
 
  Disclaimer: The AlphaMissense Database and other information provided on or linked to this site is 

@@ -1,6 +1,6 @@
 =head1 NAME
 
- RefSeqHGVS -- provide RefSeq-based HGVS tags for VEP output
+ RefSeqHGVS -- provide RefSeq-based HGVS tags for the output
 
 =head1 SYNOPSIS
 
@@ -15,8 +15,8 @@
 
  RefSeqHGVS is a plugin for Ensembl's Variant Effect Predictor that
  provides variant annotatoins in HGVS format [1] using RefSeq accessions
- (typically NM and NP).  It provides the analog to VEP's HGVSc and HGVSp
- annotations, which use Ensembl ENST and ENSP accessions.  This module
+ (typically NM and NP).  It provides the analog to Ensembl VEP's HGVSc and 
+ HGVSp annotations, which use Ensembl ENST and ENSP accessions. This module
  relies RefSeq data in the OtherFeatures database.
 
  Converting ENST HGVS tags to RefSeq tags is confounded subtle differences

@@ -32,7 +32,7 @@ satMutMPRA
 
 =head1 DESCRIPTION
 
-A VEP plugin that retrieves data for variants from a tabix-indexed satMutMPRA file (1-based file).
+An Ensembl VEP plugin that retrieves data for variants from a tabix-indexed satMutMPRA file (1-based file).
 The saturation mutagenesis-based massively parallel reporter assays (satMutMPRA) measures variant
 effects on gene RNA expression for 21 regulatory elements (11 enhancers, 10 promoters).
 

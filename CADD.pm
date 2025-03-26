@@ -34,10 +34,10 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves CADD scores for variants from one or more
+ An Ensembl VEP plugin that retrieves CADD scores for variants from one or more
  tabix-indexed CADD data files.
  
- Please cite the CADD publication alongside the VEP if you use this resource:
+ Please cite the CADD publication alongside Ensembl VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pubmed/24487276
  
  The tabix utility must be installed in your path to use this plugin. 

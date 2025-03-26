@@ -23,7 +23,7 @@ limitations under the License.
 
 =head1 NAME
 
-pLI - Add pLI score to the VEP output 
+pLI - Add pLI score to the output 
 
 =head1 SYNOPSIS
 
@@ -34,8 +34,8 @@ pLI - Add pLI score to the VEP output
 =head1 DESCRIPTION
 
 
-  A VEP plugin that adds the probabililty of a gene being 
-  loss-of-function intolerant (pLI) to the VEP output.
+  An Ensembl VEP plugin that adds the probabililty of a gene being 
+  loss-of-function intolerant (pLI) to the output.
   
   Lek et al. (2016) estimated pLI using the expectation-maximization 
   (EM) algorithm and data from 60,706 individuals from 

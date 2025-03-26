@@ -35,7 +35,7 @@ Automatic VAriant evidence DAtabase is a novel machine learning tool that uses n
 to automatically identify pathogenic genetic variant evidence in full-text primary literature about 
 monogenic disease and convert it to genomic coordinates.
 
-Please cite the AVADA publication alongside the VEP if you use this resource:
+Please cite the AVADA publication alongside Ensembl VEP if you use this resource:
 https://pubmed.ncbi.nlm.nih.gov/31467448/
 
 NB: The plugin currently does not annotate for downstream_gene_variant and upstream_gene_variant.

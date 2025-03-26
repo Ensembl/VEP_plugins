@@ -33,9 +33,9 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves molecular interaction data for variants as reprted by IntAct database.
+ An Ensembl VEP plugin that retrieves molecular interaction data for variants as reprted by IntAct database.
  
- Please cite the IntAct publication alongside the VEP if you use this resource:
+ Please cite the IntAct publication alongside Ensembl VEP if you use this resource:
  https://pubmed.ncbi.nlm.nih.gov/24234451/
  
  Pre-requisites:
@@ -75,7 +75,7 @@ limitations under the License.
  See what these options mean - https://www.ebi.ac.uk/intact/download/datasets#mutations
  
  Note that, interaction accession can be used to link to full details on the interaction website. For example, 
- where the VEP output reports an interaction_ac of EBI-12501485, the URL would be : 
+ where the output reports an interaction_ac of EBI-12501485, the URL would be : 
 
    https://www.ebi.ac.uk/intact/details/interaction/EBI-12501485
 

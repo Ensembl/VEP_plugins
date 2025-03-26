@@ -32,11 +32,11 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that calculates the Combined Annotation scoRing toOL (CAROL)
+ An Ensembl VEP plugin that calculates the Combined Annotation scoRing toOL (CAROL)
  score (1) for a missense mutation based on the pre-calculated SIFT (2) and
  PolyPhen-2 (3) scores from the Ensembl API (4).
 
- It adds one new entry class to the VEP's Extra column, CAROL which is
+ It adds one new entry to the output, CAROL, which is
  the calculated CAROL score. Note that this module is a perl reimplementation of 
  the original R script, available at: https://sanger.ac.uk/tool/carol/
 

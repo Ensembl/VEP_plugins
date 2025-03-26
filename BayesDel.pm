@@ -33,7 +33,7 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- adds the BayesDel scores to VEP output.
+ adds the BayesDel scores to Ensembl VEP output.
 
  BayesDel is a deleteriousness meta-score combining multiple deleteriousness predictors to create an overall score. It works for coding and non-coding variants,
  single nucleotide variants and small insertion/deletions.
@@ -41,7 +41,7 @@ limitations under the License.
  The higher the score, the more likely the variant is pathogenic.
  For more information please visit: https://fenglab.chpc.utah.edu/BayesDel/BayesDel.html
 
- Please cite the BayesDel publication alongside the Ensembl VEP if you use this resource:
+ Please cite the BayesDel publication alongside Ensembl VEP if you use this resource:
  https://onlinelibrary.wiley.com/doi/full/10.1002/humu.23158
 
 

@@ -38,7 +38,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that adds information from Geno2MP, a web-accessible database of
+ An Ensembl VEP plugin that adds information from Geno2MP, a web-accessible database of
  rare variant genotypes linked to phenotypic information.
 
  Parameters can be set using a key=value system:
@@ -48,7 +48,7 @@ limitations under the License.
    url  : build and return URL to Geno2MP variant page (boolean; 0 by default);
           the variant location in Geno2MP website is based on GRCh37 coordinates
 
- Please cite Geno2MP alongside the VEP if you use this resource:
+ Please cite Geno2MP alongside Ensembl VEP if you use this resource:
  Geno2MP, NHGRI/NHLBI University of Washington-Center for Mendelian Genomics (UW-CMG), Seattle, WA
  (URL: http://geno2mp.gs.washington.edu [date (month, yr) accessed]).
 

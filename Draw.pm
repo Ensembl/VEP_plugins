@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that draws pictures of the transcript model showing the
+ An Ensembl VEP plugin that draws pictures of the transcript model showing the
  variant location.
 
  Takes five optional paramters:

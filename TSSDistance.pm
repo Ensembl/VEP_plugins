@@ -35,7 +35,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that calculates the distance from the transcription
+ An Ensembl VEP plugin that calculates the distance from the transcription
  start site for upstream variants. Or variants in both directions
  if parameter `both_direction=1` is provided.
 
