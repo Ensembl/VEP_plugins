@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves LOVD variation data from http://www.lovd.nl/.
+ An Ensembl VEP plugin that retrieves LOVD variation data from http://www.lovd.nl/.
  
  Please be aware that LOVD is a public resource of curated variants, therefore
  please respect this resource and avoid intensive querying of their databases

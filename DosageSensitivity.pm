@@ -33,11 +33,11 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves haploinsufficiency and triplosensitivity probability scores
+ An Ensembl VEP plugin that retrieves haploinsufficiency and triplosensitivity probability scores
  for affected genes from a dosage sensitivity catalogue published in paper -
  https://www.sciencedirect.com/science/article/pii/S0092867422007887
  
- Please cite the above publication alongside the VEP if you use this resource.
+ Please cite the above publication alongside Ensembl VEP if you use this resource.
 
  This plugin returns two scores:
  - pHaplo score gives the probability of a gene being haploinsufficient (deletion intolerant)

@@ -33,7 +33,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that identifies de novo variants in a VCF file.
+ An Ensembl VEP plugin that identifies de novo variants in a VCF file.
  The plugin is not compatible with JSON output format.
  
  Options are passed to the plugin as key=value pairs:

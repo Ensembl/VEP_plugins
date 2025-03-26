@@ -32,10 +32,10 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
-  A VEP plugin that retrieves data for splicing variants from a tabix-indexed
+  An Ensembl VEP plugin that retrieves data for splicing variants from a tabix-indexed
   dbscSNV file.
 
-  Please cite the dbscSNV publication alongside the VEP if you use this resource:
+  Please cite the dbscSNV publication alongside Ensembl VEP if you use this resource:
   http://nar.oxfordjournals.org/content/42/22/13534
 
   The Bio::DB::HTS perl library or tabix utility must be installed in your path

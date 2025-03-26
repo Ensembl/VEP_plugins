@@ -27,7 +27,7 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that adds pre-calculated scores from ClinPred.
  ClinPred is a prediction tool to identify disease-relevant nonsynonymous variants.
  
- Please cite the ClinPred publication alongside the VEP if you use this resource:
+ Please cite the ClinPred publication alongside Ensembl VEP if you use this resource:
  https://www.sciencedirect.com/science/article/pii/S0002929718302714
 
  ClinPred scores can be downloaded from 

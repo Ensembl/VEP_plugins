@@ -33,7 +33,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
-  Add LoFtool scores to the VEP output.
+  Add LoFtool scores to Ensembl VEP output.
 
   LoFtool provides a rank of genic intolerance and consequent
   susceptibility to disease based on the ratio of Loss-of-function (LoF)

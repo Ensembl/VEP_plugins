@@ -31,10 +31,10 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A user-contributed VEP plugin that retrieves automatic ACMG variant classification data from
+ A user-contributed Ensembl VEP plugin that retrieves automatic ACMG variant classification data from
  https://genebe.net/
 
- Please cite the GeneBe publication alongside the VEP if you use this resource:
+ Please cite the GeneBe publication alongside Ensembl VEP if you use this resource:
  https://onlinelibrary.wiley.com/doi/10.1111/cge.14516 .
 
  Please be advised that the GeneBe API is freely accessible for academic purposes only, with a limited

@@ -32,11 +32,11 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that calculates the Consensus Deleteriousness (Condel) score (1)
+ An Ensembl VEP plugin that calculates the Consensus Deleteriousness (Condel) score (1)
  for a missense mutation based on the pre-calculated SIFT (2) and PolyPhen-2 (3)
  scores from the Ensembl API (4).
 
- It adds one new entry class to the VEP's Extra column, Condel which is the
+ It adds one new entry to the output, Condel, which is the
  calculated Condel score. This version of Condel was developed by the Biomedical
  Genomics Group  of the Universitat Pompeu Fabra, at the Barcelona Biomedical
  Research Park and available at https://bg.upf.edu/condel. The code in this

@@ -32,7 +32,7 @@ PhenotypeOrthologous
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves phenotype information associated with orthologous genes from model organisms.
+ An Ensembl VEP plugin that retrieves phenotype information associated with orthologous genes from model organisms.
 
  The plugin annotates human variants and reports orthologous information from rat and mouse. 
  The plugin is only available for GRCh38.

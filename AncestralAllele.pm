@@ -32,15 +32,15 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves ancestral allele sequences from a FASTA file.
+ An Ensembl VEP plugin that retrieves ancestral allele sequences from a FASTA file.
 
  Ensembl produces FASTA file dumps of the ancestral sequences of key species.
  - Data files for GRCh37: https://ftp.ensembl.org/pub/release-75/fasta/ancestral_alleles/
  - Data files for GRCh38: https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/
 
  For optimal retrieval speed, you should pre-process the FASTA files into a single
- bgzipped file that can be accessed via 'Bio::DB::HTS::Faidx' (installed by VEP's
- INSTALL.pl):
+ bgzipped file that can be accessed via 'Bio::DB::HTS::Faidx' (installed by
+ INSTALL.pl - see Ensembl/ensembl-vep repository):
 
  wget https://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
  tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
@@ -96,7 +96,7 @@ sub new {
   die("ERROR: Bio::DB::HTS required to access compressed FASTA file $fasta_file\n") if $type eq 'Bio::DB::HTS::Faidx' && !$CAN_USE_FAIDX;
   $self->index_type($type);
 
-  # init DB here so indexing doesn't happen at some point in the middle of VEP run
+  # init DB here so indexing doesn't happen at some point in the middle of a run
   $self->fasta_db;
 
   return $self;

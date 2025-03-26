@@ -40,7 +40,7 @@ limitations under the License.
  to report variants that have clinical evidence cited in the medical literature. 
  It is available for both GRCh37 and GRCh38.
 
- Please cite the Mastermind publication alongside the VEP if you use this resource:
+ Please cite the Mastermind publication alongside Ensembl VEP if you use this resource:
  https://www.frontiersin.org/article/10.3389/fgene.2020.577152
 
  Running options:
@@ -98,7 +98,7 @@ limitations under the License.
  or with an option to also return the Mastermind URL (third flag):
 ./vep -i variations.vcf --plugin Mastermind,file=/path/to/mastermind_cited_variants_reference-XXXX.XX.XX.GRChXX-vcf.gz,mutations=0,var_iden=0,url=1
 
- Note: when running VEP in offline mode Mastermind requires a fasta file (--fasta)
+ Note: when running in offline mode Mastermind requires a fasta file (--fasta)
 
 =cut
 

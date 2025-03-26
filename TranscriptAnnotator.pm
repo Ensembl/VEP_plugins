@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that annotates variant-transcript pairs based on a given file:
+ An Ensembl VEP plugin that annotates variant-transcript pairs based on a given file:
 
    --plugin TranscriptAnnotator,file=${HOME}/file.tsv.gz
 

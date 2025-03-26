@@ -31,7 +31,7 @@ limitations under the License.
 
  # Find paralogue regions of all input variants using Ensembl paralogue annotation
  # (automatically created if not in current directory) and fetch variants within
- # those regions from VEP cache and whose clinical significance partially
+ # those regions from Ensembl VEP cache and whose clinical significance partially
  # matches 'pathogenic'
  ./vep -i variations.vcf --cache --plugin Paralogues
 
@@ -59,7 +59,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that fetches variants overlapping the genomic coordinates of amino
+ An Ensembl VEP plugin that fetches variants overlapping the genomic coordinates of amino
  acids aligned between paralogue proteins. This is useful to predict the
  pathogenicity of variants in paralogue positions.
 
@@ -75,12 +75,12 @@ limitations under the License.
  After retrieving the paralogue regions, this plugin fetches variants
  overlapping those regions from one of the following sources (by this order):
    1. Custom VCF via the 'vcf' parameter
-   2. VEP cache (in cache/offline mode)
+   2. Ensembl VEP cache (in cache/offline mode)
    3. Ensembl API (in database mode)
 
- To create a 'matches' file based on a custom set of variants, run VEP using
+ To create a 'matches' file based on a custom set of variants, run using
  `--plugin Paralogues,regions=1,min_perc_cov=0,min_perc_pos=0,clnsig=ignore`
- and the `--vcf` option. Afterwards, process the output of the VEP command:
+ and the `--vcf` option. Afterwards, process the output of the command:
  `perl -e "use Paralogues; Paralogues::prepare_matches_file('variant_effect_output.txt')"`
 
  Options are passed to the plugin as key=value pairs:
@@ -94,7 +94,7 @@ limitations under the License.
                   does not exist, the annotation is automatically created); if
                   set to 'remote', the annotation is fetched but not stored
    vcf          : Tabix-indexed VCF file to fetch variant information (if not
-                  used, variants are fetched from VEP cache in cache/offline
+                  used, variants are fetched from Ensembl VEP cache in cache/offline
                   mode or Ensembl API in database mode)
 
    fields       : Colon-separated list of information from paralogue variants to
@@ -104,7 +104,7 @@ limitations under the License.
                   'perc_cov', 'perc_pos', and 'clinical_significance' (if
                   `clnsig_col` is defined for custom VCF); additional fields
                   are available depending on variant source:
-                    - VEP cache: 'end' and 'strand'
+                    - Ensembl VEP cache: 'end' and 'strand'
                     - Ensembl API: 'end', 'strand', 'source', 'consequence' and
                       'gene_symbol'
                     - Custom VCF: 'quality', 'filter' and name of INFO fields

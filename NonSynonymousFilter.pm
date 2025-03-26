@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A simple example VEP filter plugin that limits output to non-synonymous variants
+ A simple example Ensembl VEP filter plugin that limits output to non-synonymous variants
 
 =cut
 

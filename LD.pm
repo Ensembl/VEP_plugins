@@ -34,11 +34,11 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that finds variants in linkage disequilibrium with any overlapping
+ An Ensembl VEP plugin that finds variants in linkage disequilibrium with any overlapping
  existing variants from the Ensembl variation databases.
 
  You can configure the population used to calculate the r2 value, and the
- r2 cutoff used by passing arguments to the plugin via the VEP command line
+ r2 cutoff used by passing arguments to the plugin via the command line
  (separated by commas). This plugin adds a single new entry to the Extra column
  with a comma-separated list of linked variant IDs and the associated r2 values:
    LinkedVariants=rs123:0.879,rs234:0.943
@@ -48,7 +48,7 @@ limitations under the License.
  cutoff used is 0.8.
 
  WARNING: Calculating LD is a relatively slow procedure, so this will 
- slow VEP down considerably when running on large numbers of
+ increase runtime considerably when running on large numbers of
  variants. Consider running vep followed by filter_vep to get a smaller
  input set:
 
@@ -62,7 +62,7 @@ limitations under the License.
 
  LD calculation requires additional installation steps.
 
- The JSON perl library is required; see VEP's installation instructions
+ The JSON perl library is required; see Ensembl VEP's installation instructions
  for guidance: http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html#additional
 
  A binary from the ensembl-variation git repository must be compiled and either
