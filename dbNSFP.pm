@@ -47,7 +47,8 @@ limitations under the License.
 
 
  The information below pertains to releases prior to v5.0 - ONLY REQUIRED FOR LEGACY DATA / VERSIONS
- ----------------------------------------------------------------------------------------------------------------------------------------------
+ ---------------------------------------------------------------------------------------------------
+
  About dbNSFP data files:
    - Downoad dbNSFP files from https://sites.google.com/site/jpopgen/dbNSFP.
    - There are two distinct branches of the files provided for academic and
