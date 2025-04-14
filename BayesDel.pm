@@ -125,7 +125,6 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-  my $transcript = $tva->transcript;
 
   my $end = $vf->{end};
   my $start = $vf->{start};
@@ -156,7 +155,7 @@ sub parse_data {
     ref => $ref,
     alt => $alt,
     result => {
-      BayesDel => $score
+       $score
     }
   };
 }
