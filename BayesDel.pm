@@ -155,7 +155,7 @@ sub parse_data {
     ref => $ref,
     alt => $alt,
     result => {
-       $score
+      BayesDel => $score
     }
   };
 }
