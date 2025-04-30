@@ -150,7 +150,7 @@ sub new {
   $self->add_file($file);
 
   # Parse column names
-  my $cols = $param_hash->{cols} || "urn:score:nt:hgvs";
+  my $cols = $param_hash->{cols} || "urn:score:nt:pro";
   $self->_parse_colnames($cols);
 
   return $self;
@@ -171,7 +171,7 @@ sub get_header_info {
   # Custom headers
   $header{"MaveDB_score"}    = "MaveDB score - see MaveDB for interpretation of scores; " . $header{"MaveDB_urn"};
   $header{"MaveDB_nt"}  = "MaveDB HGVS (nucleotide); " . $header{"MaveDB_urn"};
-  $header{"MaveDB_hgvs"} = "MaveDB HGVS (protein); " . $header{"MaveDB_urn"};
+  $header{"MaveDB_pro"} = "MaveDB HGVS (protein); " . $header{"MaveDB_urn"};
   $header{"MaveDB_urn"} = "MaveDB database identifier; " . $header{"MaveDB_urn"};
 
   # Filter by user-selected columns
@@ -279,14 +279,15 @@ sub run {
       }
     );
 
+    if($matches){
     # Check if scores are associated with single aminoacid changes
     my $hgvsp = $_->{result}->{MaveDB_hgvs};
     if ($self->{single_aa_changes}) {
-      next if defined $hgvsp && !_is_single_aa_change($hgvsp);
+      next if defined $hgvsp && $hgvsp =~ /:p\./ && !_is_single_aa_change($hgvsp);
     }
 
     # Check if aminoacid changes match (if single aminoacid changes only)
-    my $protein_var = $hgvsp if defined $hgvsp && _is_single_aa_change($hgvsp);
+    my $protein_var = $hgvsp if defined $hgvsp && $hgvsp =~ /:p\./ && _is_single_aa_change($hgvsp);
     if ($protein_var && $self->{single_aa_changes}) {
       next unless $self->_aminoacid_changes_match($tva, $protein_var);
     }
@@ -296,7 +297,7 @@ sub run {
       my $transcript = $_->{result}->{MaveDB_refseq};
       next unless $transcript eq '' or $self->_transcripts_match($tva, $transcript);
     }
-
+    }
     $all_results = $self->_join_results($all_results, $_->{result}) if @$matches;
   }
   return $all_results;
