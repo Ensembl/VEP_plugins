@@ -41,7 +41,7 @@ limitations under the License.
 
    limit           : limit the number of genes returned (default: 1)
    range           : initial search range in bp (default: 1000)
-   max_range       : maximum search range in bp (default: 10000)
+   max_range       : maximum search range in bp (default: 50000)
    both_directions : return the nearest genes upstream and downstream of the variant
                      this option overwrites the limit to 1
                      note that the max_range affects the search range in both directions
