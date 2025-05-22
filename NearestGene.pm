@@ -35,17 +35,21 @@ limitations under the License.
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  finds the nearest gene(s) to a non-genic variant. More than one gene
  may be reported if the genes overlap the variant or if genes are
- equidistant.
+ equidistant or if option 'both_directions' is used.
 
  Various key=value parameters can be altered by passing them to the plugin command:
 
-   limit     : limit the number of genes returned (default: 1)
-   range     : initial search range in bp (default: 1000)
-   max_range : maximum search range in bp (default: 10000)
+   limit           : limit the number of genes returned (default: 1)
+   range           : initial search range in bp (default: 1000)
+   max_range       : maximum search range in bp (default: 50000)
+   both_directions : return the nearest genes upstream and downstream of the variant
+                     this option overwrites the limit to 1
+                     note that the max_range affects the search range in both directions
 
  Parameters are passed e.g.:
 
  --plugin NearestGene,limit=3,max_range=50000
+ --plugin NearestGene,max_range=50000,both_directions=1
 
  This plugin requires a database connection. It cannot be run with VEP
  in offline mode i.e. using the --offline flag.
@@ -61,10 +65,12 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
+my $char_sep = "|";
+
 my %CONFIG = (
   limit => 1,
   range => 1000,
-  max_range => 10000,
+  max_range => 50000,
 );
 
 sub new {
@@ -74,12 +80,21 @@ sub new {
   
   my $params = $self->params;
 
+  # get output format
+  $char_sep = ":" if ($self->{config}->{output_format} eq 'vcf');
+
   foreach my $param(@$params) {
     my ($key, $val) = split('=', $param);
+
     die("ERROR: Failed to parse parameter $param\n") unless defined($key) && defined($val);
-    $CONFIG{$key} = $val;
+    if($key eq "both_directions") {
+      $self->{both_directions} = 1;
+    }
+    else {
+      $CONFIG{$key} = $val;
+    }
   }
-  
+
   return $self;
 }
 
@@ -114,14 +129,46 @@ sub run {
 
     my %opts = map {'-'.$_ => $CONFIG{$_}} keys %CONFIG;
     $opts{-feature} = $vf;
-    
-    my @result = map {$_->[0]->stable_id} @{
-      $self->{ga}->fetch_all_by_outward_search(%opts)
-    };
-    
+
+    my @result;
+
+    if($self->{both_directions}) {
+      # Overwrite the limit - we want to return only one gene on each direction
+      $opts{-limit} = 1;
+
+      # Get upstream genes
+      $opts{-upstream} = "upstream";
+
+      my $list_of_genes = $self->{ga}->fetch_all_by_outward_search(%opts);
+
+      for my $gene_result (@{$list_of_genes}){
+        my $gene_id = @{$gene_result}[0]->stable_id;
+        my $distance = @{$gene_result}[1];
+        push(@result, $gene_id.$char_sep.$distance)
+      }
+
+      # Get downstream genes
+      delete $opts{-upstream};
+      $opts{-downstream} = "downstream";
+
+      my $list_of_genes_2 = $self->{ga}->fetch_all_by_outward_search(%opts);
+
+      for my $gene_result (@{$list_of_genes_2}){
+        my $gene_id = @{$gene_result}[0]->stable_id;
+        my $distance = @{$gene_result}[1];
+        push(@result, $gene_id.$char_sep.$distance)
+      }
+    }
+    else {
+      # Default behaviour
+      @result = map {$_->[0]->stable_id} @{
+        $self->{ga}->fetch_all_by_outward_search(%opts)
+      };
+    }
+
     $self->{_cache}->{$loc_string} = scalar @result ? join(",", @result) : undef;
   }
-  
+
   return $self->{_cache}->{$loc_string} ? { NearestGene => $self->{_cache}->{$loc_string} } : {};
 }
 
