@@ -86,11 +86,11 @@ sub new {
   foreach my $param(@$params) {
     my ($key, $val) = split('=', $param);
 
+    die("ERROR: Failed to parse parameter $param\n") unless defined($key) && defined($val);
     if($key eq "both_directions") {
       $self->{both_directions} = 1;
     }
     else {
-      die("ERROR: Failed to parse parameter $param\n") unless defined($key) && defined($val);
       $CONFIG{$key} = $val;
     }
   }
