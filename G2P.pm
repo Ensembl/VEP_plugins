@@ -1352,7 +1352,7 @@ sub read_gene_data_from_file {
         }
       }
       else {
-        my %tmp = map {$headers[$_] => $split[$_]} (0..$#split);
+        my %tmp = map { $headers[$_] => (defined $split[$_] ? $split[$_] : '') } (0..$#headers);
         die("ERROR: Gene symbol column not found\n$_\n") unless $tmp{"gene symbol"};
         $self->write_report('G2P_list', $tmp{"gene symbol"}, $tmp{"hgnc id"}, $tmp{"DDD category"});
         my $confidence_category = $tmp{"DDD category"} || $tmp{"confidence category"} || $tmp{"confidence"}; # deprecate use of DDD category
