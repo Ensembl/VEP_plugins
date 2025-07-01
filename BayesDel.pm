@@ -125,7 +125,6 @@ sub run {
   my ($self, $tva) = @_;
 
   my $vf = $tva->variation_feature;
-  my $transcript = $tva->transcript;
 
   my $end = $vf->{end};
   my $start = $vf->{start};

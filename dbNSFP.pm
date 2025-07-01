@@ -37,15 +37,18 @@ limitations under the License.
  An Ensembl VEP plugin that retrieves data for missense variants from a tabix-indexed
  dbNSFP file.
  
- Please cite the dbNSFP publications alongside Ensembl VEP if you use this resource:
- - dbNSFP      https://www.ncbi.nlm.nih.gov/pubmed/21520341
- - dbNSFP v2.0 https://www.ncbi.nlm.nih.gov/pubmed/23843252
- - dbNSFP v3.0 https://www.ncbi.nlm.nih.gov/pubmed/26555599
- - dbNSFP v4   https://www.ncbi.nlm.nih.gov/pubmed/33261662
+ Please cite the dbNSFP publications alongside the VEP if you use this resource:
+ A guide for version specific citations is available on their website here: https://www.dbnsfp.org/publications
  
  You must have the 'Bio::DB::HTS' module or the tabix utility must be installed
  in your path to use this plugin.
  
+ From v5.0 onwards, dbNSFP are kindly hosting Ensembl VEP ready files, which are available for download from https://www.dbnsfp.org/download 
+
+
+ The information below pertains to releases prior to v5.0 - ONLY REQUIRED FOR LEGACY DATA / VERSIONS
+ ---------------------------------------------------------------------------------------------------
+
  About dbNSFP data files:
    - Downoad dbNSFP files from https://sites.google.com/site/jpopgen/dbNSFP.
    - There are two distinct branches of the files provided for academic and
