@@ -55,10 +55,10 @@ limitations under the License.
  Requires sqlite3.
  
  A local sqlite3 database is used to look up variant IDs; this is generated either from Ensembl's
- public database (very slow, but includes synonyms), or from a VEP cache file (faster, excludes
+ public database (very slow, but includes synonyms), or from Ensembl VEP cache file (faster, excludes
  synonyms).
 
- NB this plugin is NOT compatible with the ensembl-tools variant_effect_predictor.pl version of VEP.
+ NB: this plugin is NOT compatible with the ensembl-tools variant_effect_predictor.pl version of Ensembl VEP.
 
 =cut
 

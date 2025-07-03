@@ -32,12 +32,12 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin filter that limits output of predictions to those ranked
+ An Ensembl VEP plugin filter that limits output of predictions to those ranked
  (by Ensembl) to be more severe (or at least as severe) as a user specified
  cutoff.
 
  The user can specify either a numerical rank (lower ranks are assumed to be
- more severe) or an SO term to use as the (inclusive) cutoff on the VEP command
+ more severe) or an SO term to use as the (inclusive) cutoff on the command
  line. If a term is not specified the default cutoff term used is
  'splice_region_variant' (rank = 8). 
  

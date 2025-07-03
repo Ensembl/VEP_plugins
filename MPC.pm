@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves MPC scores for variants from a tabix-indexed MPC data file.
+ An Ensembl VEP plugin that retrieves MPC scores for variants from a tabix-indexed MPC data file.
 
  MPC is a missense deleteriousness metric based on the analysis of genic regions
  depleted of missense mutations in the Exome Agggregation Consortium (ExAC) data.

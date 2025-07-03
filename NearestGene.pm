@@ -51,8 +51,8 @@ limitations under the License.
  --plugin NearestGene,limit=3,max_range=50000
  --plugin NearestGene,max_range=50000,both_directions=1
 
- This plugin requires a database connection. It cannot be run with VEP
- in offline mode i.e. using the --offline flag.
+ This plugin requires a database connection. It cannot be run in offline mode i.e. using 
+ the --offline flag.
 
 =cut
 

@@ -25,7 +25,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin gnomADc,/path/to/gnomad.tsv.gz 
 
 =head1 DESCRIPTION
- A VEP plugin that retrieves gnomAD annotation from either the genome
+ An Ensembl VEP plugin that retrieves gnomAD annotation from either the genome
  or exome coverage files, available here:
    https://gnomad.broadinstitute.org/downloads
 

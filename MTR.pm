@@ -16,7 +16,7 @@
 
 =head1 DESCRIPTION
 
-A VEP plugin that retrieves Missense Tolerance Ratio (MTR) scores for
+An Ensembl VEP plugin that retrieves Missense Tolerance Ratio (MTR) scores for
 variants from a tabix-indexed flat file.
 
 MTR scores quantify the amount of purifying selection acting
@@ -26,7 +26,7 @@ observed standing variation data from the WES component of the Exome
 Aggregation Consortium Database (ExAC), version 2.0
 (http://gnomad.broadinstitute.org).
 
-Please cite the MTR publication alongside the VEP if you use this resource:
+Please cite the MTR publication alongside Ensembl VEP if you use this resource:
 http://genome.cshlp.org/content/27/10/1715
 
 The Bio::DB::HTS perl library or tabix utility must be installed in your path to use this plugin. 

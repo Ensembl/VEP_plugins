@@ -34,9 +34,9 @@ limitations under the License.
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
  adds the pre-computed VARITY scores to predict pathogenicity of 
- rare missense variants to VEP output.
+ rare missense variants to the output.
 
- Please cite the VARITY publication alongside the VEP if you use this resource:
+ Please cite the VARITY publication alongside Ensembl VEP if you use this resource:
  https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8715197/
 
  Running options :

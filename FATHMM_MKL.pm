@@ -32,7 +32,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves FATHMM-MKL scores for variants from a tabix-indexed
+ An Ensembl VEP plugin that retrieves FATHMM-MKL scores for variants from a tabix-indexed
  FATHMM-MKL data file.
  
  See https://github.com/HAShihab/fathmm-MKL for details.

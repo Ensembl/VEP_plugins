@@ -34,7 +34,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
-  The PrimateAI VEP plugin is designed to retrieve clinical impact scores of
+  The PrimateAI plugin is designed to retrieve clinical impact scores of
   variants, as described in https://www.nature.com/articles/s41588-018-0167-z.
   Please consider citing the paper if using this plugin.
   

@@ -25,7 +25,7 @@
 
 =head1 DESCRIPTION
 
- A simple VEP plugin that checks for DAS features overlapping variants. Currently assumes that
+ An Ensembl VEP plugin that checks for DAS features overlapping variants. Currently assumes that
  the assemblies match, and doesn't do any smart fetching of chunks of features (i.e. the plugin
  will query the DAS server once for every variant in the input file).
 

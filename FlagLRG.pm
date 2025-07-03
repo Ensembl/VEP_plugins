@@ -31,7 +31,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves the LRG ID matching either the RefSeq or Ensembl
+ An Ensembl VEP plugin that retrieves the LRG ID matching either the RefSeq or Ensembl
  transcript IDs.
 
  You can obtain the 'list_LRGs_transcripts_xrefs.txt' using:

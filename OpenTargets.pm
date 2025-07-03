@@ -37,7 +37,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that integrates data from Open Targets Genetics
+ An Ensembl VEP plugin that integrates data from Open Targets Genetics
  (https://genetics.opentargets.org), a tool that highlights variant-centric
  statistical evidence to allow both prioritisation of candidate causal variants
  at trait-associated loci and identification of potential drug targets.
@@ -54,8 +54,8 @@ limitations under the License.
    cols : (optional) Colon-separated list of columns to return from the plugin
           file (default: "l2g:geneId"); use 'all' to print all data
 
- Please cite the Open Targets Genetics publication alongside the VEP if you use
- this resource: https://doi.org/10.1093/nar/gkaa84
+ Please cite the Open Targets Genetics publication alongside Ensembl VEP if 
+ you use this resource: https://doi.org/10.1093/nar/gkaa84
 
 =cut
 

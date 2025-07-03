@@ -38,10 +38,10 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- A VEP plugin that retrieves CAPICE scores for variants from one or more
+ An Ensembl VEP plugin that retrieves CAPICE scores for variants from one or more
  tabix-indexed CAPICE data files, in order to predict their pathogenicity.
  
- Please cite the CAPICE publication alongside the VEP if you use this resource:
+ Please cite the CAPICE publication alongside Ensembl VEP if you use this resource:
  https://pubmed.ncbi.nlm.nih.gov/32831124/
  
  The tabix utility must be installed in your path to use this plugin. The CAPICE
