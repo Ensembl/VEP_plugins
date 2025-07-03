@@ -53,7 +53,7 @@ limitations under the License.
    file                     : (mandatory) Tabix-indexed MaveDB file
    cols                     : Colon-separated columns to print from MaveDB
                               files; if set to 'all', all columns are
-                              printed (default: 'urn:score:nt:pro')
+                              printed (default: 'urn:score:nt:pro:doi')
    single_aminoacid_changes : Return matches for single aminoacid changes only;
                               if disabled, return all matches associated with a
                               genetic variant (default: 1)
@@ -150,7 +150,7 @@ sub new {
   $self->add_file($file);
 
   # Parse column names
-  my $cols = $param_hash->{cols} || "urn:score:nt:pro";
+  my $cols = $param_hash->{cols} || "urn:score:nt:pro:doi";
   $self->_parse_colnames($cols);
 
   return $self;
@@ -173,6 +173,7 @@ sub get_header_info {
   $header{"MaveDB_nt"}  = "MaveDB HGVS (nucleotide); " . $header{"MaveDB_urn"};
   $header{"MaveDB_pro"} = "MaveDB HGVS (protein); " . $header{"MaveDB_urn"};
   $header{"MaveDB_urn"} = "MaveDB database identifier; " . $header{"MaveDB_urn"};
+  $header{"MaveDB_doi"} = "MaveDB experiment DOI; " . $header{"MaveDB_urn"};
 
   # Filter by user-selected columns
   %header = map { $_ => $header{$_} } @{ $self->{cols} };
