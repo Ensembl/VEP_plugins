@@ -1714,6 +1714,17 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+
+    # MechPredict
+    {
+      "key" => "MechPredict",
+      "label" => "MechPredict", 
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Gene tolerance to change",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/MechPredict.pm",
+    },
+
     # pLI
     # Requires pLI_values.txt file as first param (available in VEP_plugins GitHub repo)
     {
