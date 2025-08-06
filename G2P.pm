@@ -113,14 +113,18 @@ limitations under the License.
                          Do not set if filtering by HGNC_id.
                          This option is set to 1 when using PanelApp files. 
 
- filter_consequence_match : to only report variants where the VEP predicted consequence matches the G2P variant (GenCC) consequence.
+ filter_consequence_match : to only report variants where the VEP predicted consequence matches the G2P variant consequence (GenCC term).
                             Accepted values are:
                               - broad: includes 'almost always', 'probable' and 'possible' matches
                               - strict: includes 'almost always' and 'probable' matches
                             More details in https://europepmc.org/article/MED/37982373
                             See here for the list of supported variant consequences in G2P: https://www.ebi.ac.uk/gene2phenotype/about/terminology#variant-consequence-section
 
- flag_consequence_match   : flag if predicted variant consequence matches the GenCC variant consequence.
+ flag_consequence_match   : flag if the VEP predicted consequence matches the G2P variant consequence (GenCC term).
+                            Accepted values are:
+                              - broad: includes 'almost always', 'probable' and 'possible' matches
+                              - strict: includes 'almost always' and 'probable' matches
+                            More details in https://europepmc.org/article/MED/37982373
 
  only_mane                : set to 1 to ignore transcripts that are not MANE
                             N/B - Information may be lost if this option is used.
@@ -466,9 +470,18 @@ sub new {
     die "The option --only_mane only works with GRCh38 assembly \n";
   }
 
+  if (defined($params->{filter_consequence_match}) && defined($params->{flag_consequence_match})) {
+    die "The options --filter_consequence_match and --flag_consequence_match are incompatible\n";
+  }
+
   if (defined($params->{filter_consequence_match}) &&
   $params->{filter_consequence_match} ne "strict" && $params->{filter_consequence_match} ne "broad") {
     die "The option --filter_consequence_match only supports values 'strict' or 'broad'\n";
+  }
+
+  if (defined($params->{flag_consequence_match}) &&
+  $params->{flag_consequence_match} ne "strict" && $params->{flag_consequence_match} ne "broad") {
+    die "The option --flag_consequence_match only supports values 'strict' or 'broad'\n";
   }
 
   # copy in default params
@@ -528,11 +541,17 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  return {
+  my $header = {
     G2P_flag => 'Flags zygosity of valid variants for a G2P gene',
     G2P_complete => 'Indicates this variant completes the allelic requirements for a G2P gene',
     G2P_gene_req => 'MONO or BI depending on the context in which this gene has been explored',
   };
+
+  if ($self->{user_params}->{flag_consequence_match}) {
+    $header->{G2P_variant_consequence_match} = 'Indicates this variant matches G2P gene-disease variant consequence (GenCC term)'
+  }
+
+  return $header
 }
 
 =head2 run
@@ -571,7 +590,7 @@ sub run {
   # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
 
-  # filter by variant (GenCC) consequence
+  # filter by variant consequence (GenCC)
   return {} if ($self->{user_params}->{filter_consequence_match} && !$self->gencc_consequence_filtering($tva, $self->{user_params}->{filter_consequence_match}));
 
   # dump annotations for txt and html report files
@@ -584,6 +603,13 @@ sub run {
   my $results = {};
   $results->{G2P_complete} = $G2P_complete if ($G2P_complete); 
   $results->{G2P_flag} = $G2P_flag if ($G2P_flag);
+
+  # flag if the VEP consequence matches the G2P variant consequence (GenCC)
+  if ($self->{user_params}->{flag_consequence_match}) {
+    my $variant_consequence_match = $self->gencc_consequence_filtering($tva, $self->{user_params}->{flag_consequence_match});
+    $results->{G2P_variant_consequence_match} = "yes" if $variant_consequence_match;
+  }
+
   return $results;
 }
 
@@ -892,9 +918,8 @@ sub consequence_filtering {
 
 =head2 gencc_consequence_filtering
   Arg [1]    : TranscriptVariationAllele $tva
+  Arg [2]    : String $type - type of filtering to apply
   Description: returns 1 or 0 depending on if the variant passes GenCC consequence filtering.
-               If the variant is on the variant include list we return 1, regardless
-               if the variant consequence is defined in types.
   Returntype : Boolean
   Exceptions : None
   Caller     : General
