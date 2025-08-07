@@ -590,25 +590,37 @@ sub run {
   # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
 
+  # set the match to the default value to write to the report
+  my $variant_consequence_match = "NA";
   # filter by variant consequence (GenCC)
-  return {} if ($self->{user_params}->{filter_consequence_match} && !$self->gencc_consequence_filtering($tva, $self->{user_params}->{filter_consequence_match}));
+  if ($self->{user_params}->{filter_consequence_match}) {
+    if (!$self->gencc_consequence_filtering($tva, $self->{user_params}->{filter_consequence_match})) {
+      return {};
+    }
+    else {
+      # to write in the report
+      $variant_consequence_match = "yes";
+    }
+  }
+
+  my $results = {};
+  # flag if the VEP consequence matches the G2P variant consequence (GenCC)
+  if ($self->{user_params}->{flag_consequence_match}) {
+    $variant_consequence_match = $self->gencc_consequence_filtering($tva, $self->{user_params}->{flag_consequence_match});
+    $results->{G2P_variant_consequence_match} = "yes" if $variant_consequence_match;
+    # prepare the flag to write to the report
+    $variant_consequence_match = $variant_consequence_match ? "yes" : "no";
+  }
 
   # dump annotations for txt and html report files
-  $self->dump_vf_annotations($tva);      
+  $self->dump_vf_annotations($tva, $variant_consequence_match);
   $self->dump_individual_annotations($tva, $zyg);
 
   # check if transcript contains enough variants to fulfill the allelic requirement of the gene
   my $G2P_complete = $self->is_g2p_complete($tva, $zyg);
   my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
-  my $results = {};
   $results->{G2P_complete} = $G2P_complete if ($G2P_complete); 
   $results->{G2P_flag} = $G2P_flag if ($G2P_flag);
-
-  # flag if the VEP consequence matches the G2P variant consequence (GenCC)
-  if ($self->{user_params}->{flag_consequence_match}) {
-    my $variant_consequence_match = $self->gencc_consequence_filtering($tva, $self->{user_params}->{flag_consequence_match});
-    $results->{G2P_variant_consequence_match} = "yes" if $variant_consequence_match;
-  }
 
   return $results;
 }
@@ -1270,6 +1282,7 @@ sub highest_frequency {
 sub dump_vf_annotations {
   my $self = shift;
   my $tva = shift;
+  my $variant_consequence_match = shift;
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   my $vf = $tva->base_variation_feature;
   my $allele = $tva->base_variation_feature->alt_alleles;
@@ -1311,6 +1324,7 @@ sub dump_vf_annotations {
     'sift_prediction' => $sift_pred,
     'polyphen_score' => "$pph_score",
     'polyphen_prediction' => $pph_pred,
+    'variant_consequence_match' => $variant_consequence_match,
   };
   $self->write_report('G2P_tva_annotations', $vf_cache_name, $tr->stable_id, $g2p_data);
   $self->write_report('is_on_variant_include_list', $vf_cache_name) if ($is_on_variant_include_list);
@@ -1553,6 +1567,7 @@ sub hgnc_mappings {
 sub write_report {
   my $self = shift;
   my $flag = shift;
+
   my $log_dir = $self->{user_params}->{log_dir};
   my $log_file = "$log_dir/$$.txt";
   open(my $fh, '>>', $log_file) or die "Could not open file '$flag $log_file' $!\n";
@@ -1717,7 +1732,8 @@ sub write_html_output {
     'Existing name', 
     'Zygosity', 
     'All allelic requirements from G2P DB',
-    'Consequence types', 
+    'Consequence types',
+    'G2P variant consequence match',
     'ClinVar annotation', 
     'SIFT', 
     'PolyPhen', 
@@ -1926,6 +1942,7 @@ sub html_and_txt_data {
               my $hgvs_t = $hash->{hgvs_t};
               my $hgvs_p = $hash->{hgvs_p};
               my $consequence_types = $hash->{consequence_types};
+              my $variant_consequence_match = $hash->{variant_consequence_match};
               my $sift_score = $hash->{sift_score} || '0.0';
               my $sift_prediction = $hash->{sift_prediction};
               my $sift = 'NA';
@@ -1968,7 +1985,8 @@ sub html_and_txt_data {
                 [$existing_name], 
                 [$zygosity], 
                 [$required_allelic_requirement],
-                [$consequence_types], 
+                [$consequence_types],
+                [$variant_consequence_match],
                 [$clin_sign], 
                 [$sift, $sift_class], 
                 [$polyphen, $polyphen_class], 
@@ -1981,6 +1999,9 @@ sub html_and_txt_data {
               ], $is_canonical];
 
               my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
+              if ($variant_consequence_match ne "NA") {
+                $txt_output_variant .= ":G2P_variant_consequence_match=$variant_consequence_match";
+              }
               if (@txt_output_frequencies) {
                 $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
               }
