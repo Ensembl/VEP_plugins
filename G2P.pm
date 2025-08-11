@@ -253,12 +253,23 @@ my $gencc_consequence_mapping_strict = {
   'altered gene product level' => {'splice_donor_variant' => 1, 'start_lost' => 1, 'frameshift_variant' => 1, 'stop_gained' => 1}
 };
 
+my %broad_extra_values = (
+  'absent gene product'              => ['splice_acceptor_variant'],
+  'altered gene product structure'   => ['splice_acceptor_variant'],
+  'increased gene product level'     => ['splice_region_variant'],
+  'decreased gene product level'     => ['splice_region_variant'],
+  'altered gene product level'       => ['splice_region_variant', 'splice_acceptor_variant'],
+);
+
 my $gencc_consequence_mapping_broad = {
-  'absent gene product' => {'splice_acceptor_variant' => 1},
-  'altered gene product structure' => {'splice_acceptor_variant' => 1},
-  'increased gene product level' => {'splice_region_variant' => 1},
-  'decreased gene product level' => {'splice_region_variant' => 1},
-  'altered gene product level' => {'splice_region_variant' => 1, 'splice_acceptor_variant' => 1}
+    map { my $key = $_;
+	(
+            $key => {
+                %{ $gencc_consequence_mapping_strict->{$key} },
+                map { $_ => 1 } @{ $broad_extra_values{$key} || [] }
+            }
+        )
+    } keys %$gencc_consequence_mapping_strict
 };
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
