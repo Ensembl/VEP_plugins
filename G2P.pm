@@ -42,12 +42,16 @@ limitations under the License.
  Thormann A, Halachev M, McLaren W, et al. Flexible and scalable diagnostic filtering of genomic variants using G2P with Ensembl VEP.
  Nature Communications. 2019 May;10(1):2373. doi:10.1038/s41467-019-10016-3. PMID: 31147538; PMCID: PMC6542828.
 
+ G2P data file:
+ To run the plugin it is necessary to provide a data file either downloaded from G2P or PanelApp.
+ The G2P file can be downloaded from:
+   - Website https://www.ebi.ac.uk/gene2phenotype/download
+   - API https://www.ebi.ac.uk/gene2phenotype/api/panel/<name>/download
+     Accepted panel names are: Cancer, Cardiac, DD, Ear, Eye, Skeletal, Skin (or 'All' to download all panels in the same file)
 
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
  file                  : Path to G2P data file. The file needs to be uncompressed.
-                         - Download from https://www.ebi.ac.uk/gene2phenotype/downloads
-                         - Download from PanelApp  
 
  variant_include_list  : A list of variants to include even if variants do not pass allele
                          frequency filtering. The include list needs to be a sorted, bgzipped and
@@ -56,16 +60,20 @@ limitations under the License.
  af_monoallelic        : maximum allele frequency for inclusion for monoallelic genes (0.0001)
 
  af_biallelic          : maximum allele frequency for inclusion for biallelic genes (0.005)
+
  confidence_levels     : Confidence levels include: definitive, strong, moderate, limited
                          Former confidence terms are still supported: confirmed, probable, possible, both RD and IF.
                          Separate multiple values with '&'.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
                          Default levels are confirmed and probable.
+
  all_confidence_levels : Set to 1 to include all confidence levels
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
+
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
                          Specifiy the list of reference populations to include with '--af_from_vcf_keys'
+
  af_from_vcf_keys      : VCF collections used for annotating variant alleles with observed
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with '--af_from_vcf_keys'
@@ -78,13 +86,16 @@ limitations under the License.
                          * 'gnomADe' & 'gnomADe_r2.1.1 & 'gnomADev4.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
                          * 'gnomADg' & 'gnomADg_v3.1.2' & 'gnomADgv4.1' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
                          Need to use 'af_from_vcf' parameter to use this option. 
-  only_vcf_freq        : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
+
+ only_vcf_freq         : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
                          N/B - frequency information may be lost if this option is used 
+
  default_af            : default frequency of the input variant if no frequency data is
                          found (0). This determines whether such variants are included;
                          the value of 0 forces variants with no frequency data to be
                          included as this is considered equivalent to having a frequency
                          of 0. Set to 1 (or any value higher than 'af') to exclude them.
+
  types                 : SO consequence types to include. Separate multiple values with '&'
                          (splice_donor_variant, splice_acceptor_variant, stop_gained,
                          frameshift_variant, stop_lost, initiator_codon_variant,
@@ -92,27 +103,41 @@ limitations under the License.
                          coding_sequence_variant, start_lost,transcript_ablation,
                          transcript_amplification, protein_altering_variant)
   
-  log_dir              : write stats to log files in log_dir 
+ log_dir               : write stats to log files in log_dir 
 
-  txt_report           : write all G2P complete genes and attributes to txt file
+ txt_report            : write all G2P complete genes and attributes to txt file
 
-  html_report          : write all G2P complete genes and attributes to html file
+ html_report           : write all G2P complete genes and attributes to html file
 
-  filter_by_gene_symbol : set to 1 if filter by gene symbol.
-                          Do not set if filtering by HGNC_id.
-                          This option is set to 1 when using PanelApp files. 
+ filter_by_gene_symbol : set to 1 if filter by gene symbol.
+                         Do not set if filtering by HGNC_id.
+                         This option is set to 1 when using PanelApp files. 
 
-  only_mane            : set to 1 to ignore transcripts that are not MANE
-                         N/B - Information may be lost if this option is used.
-               
+ filter_consequence_match : to only report variants where the VEP predicted consequence matches the G2P variant consequence (GenCC term).
+                            Accepted values are:
+                              - broad: includes 'almost always', 'probable' and 'possible' matches
+                              - strict: includes 'almost always' and 'probable' matches
+                            More details in https://europepmc.org/article/MED/37982373
+                            See here for the list of supported variant consequences in G2P: https://www.ebi.ac.uk/gene2phenotype/about/terminology#variant-consequence-section
 
- For more information - https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin
+ flag_consequence_match   : flag if the VEP predicted consequence matches the G2P variant consequence (GenCC term).
+                            Accepted values are:
+                              - broad: includes 'almost always', 'probable' and 'possible' matches
+                              - strict: includes 'almost always' and 'probable' matches
+                            More details in https://europepmc.org/article/MED/37982373
+
+ only_mane                : set to 1 to ignore transcripts that are not MANE
+                            N/B - Information may be lost if this option is used.
+
+
+ For more information - https://www.ebi.ac.uk/gene2phenotype/variant-filtering
  
  Example:
- --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types=stop_gained&frameshift_variant
+ --plugin G2P,file=G2P.csv,af_monoallelic=0.05,types='stop_gained&frameshift_variant'
  --plugin G2P,file=G2P.csv,af_monoallelic=0.05,af_from_vcf=1
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1'
  --plugin G2P,file=G2P.csv,af_from_vcf=1,af_from_vcf_keys='topmed&gnomADe_r2.1.1',confidence_levels='confirmed&probable&both RD and IF' 
+ --plugin G2P,file=G2P.csv,filter_consequence_match='strict'
  --plugin G2P,file=G2P.csv
 
 =cut
@@ -132,6 +157,7 @@ use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 use List::Util qw(any);
+
 
 our $CAN_USE_HTS_PM;
 
@@ -217,6 +243,33 @@ my $supported_confidence_levels = {
   'possible' => 1,
   'limited' => 1,
   'both RD and IF' => 1,
+};
+
+my $gencc_consequence_mapping_strict = {
+  'absent gene product' => {'splice_donor_variant' => 1, 'start_lost' => 1, 'frameshift_variant' => 1, 'stop_gained' => 1},
+  'altered gene product structure' => {'stop_gained' => 1, 'splice_donor_variant' => 1, 'stop_lost' => 1, 'missense_variant' => 1, 'inframe_insertion' => 1, 'inframe_deletion' => 1},
+  'increased gene product level' => {},
+  'decreased gene product level' => {'splice_acceptor_variant' => 1, 'splice_donor_variant' => 1, 'start_lost' => 1, 'frameshift_variant' => 1, 'stop_gained' => 1},
+  'altered gene product level' => {'splice_donor_variant' => 1, 'start_lost' => 1, 'frameshift_variant' => 1, 'stop_gained' => 1}
+};
+
+my %broad_extra_values = (
+  'absent gene product'              => ['splice_acceptor_variant'],
+  'altered gene product structure'   => ['splice_acceptor_variant'],
+  'increased gene product level'     => ['splice_region_variant'],
+  'decreased gene product level'     => ['splice_region_variant'],
+  'altered gene product level'       => ['splice_region_variant', 'splice_acceptor_variant'],
+);
+
+my $gencc_consequence_mapping_broad = {
+    map { my $key = $_;
+	(
+            $key => {
+                %{ $gencc_consequence_mapping_strict->{$key} },
+                map { $_ => 1 } @{ $broad_extra_values{$key} || [] }
+            }
+        )
+    } keys %$gencc_consequence_mapping_strict
 };
 
 my @allelic_requirement_terms = keys %$allelic_requirements;
@@ -414,20 +467,33 @@ sub new {
     $self->{_files} = [$params->{variant_include_list}];
   }
   
-  if (defined($params->{filter_by_gene_symbol}) and $params->{filter_by_gene_symbol} != 1) {
+  if (defined($params->{filter_by_gene_symbol}) && $params->{filter_by_gene_symbol} != 1) {
     $params->{filter_by_gene_symbol} = undef;
     die "The option --filter_by_gene_symbol needs to be set to 1 \n";
   }
   
-  if (defined($params->{only_mane}) and $params->{only_mane} != 1) {
+  if (defined($params->{only_mane}) && $params->{only_mane} != 1) {
      $params->{only_mane} = undef;
-    die "The option only_mane needs to be set to 1 \n";
+    die "The option --only_mane needs to be set to 1 \n";
   }
   
-  if (defined($params->{only_mane}) and $self->{config}->{assembly} ne "GRCh38") {
-    die "The option only_mane only works with GRCh38 assembly \n";
+  if (defined($params->{only_mane}) && $self->{config}->{assembly} ne "GRCh38") {
+    die "The option --only_mane only works with GRCh38 assembly \n";
   }
 
+  if (defined($params->{filter_consequence_match}) && defined($params->{flag_consequence_match})) {
+    die "The options --filter_consequence_match and --flag_consequence_match are incompatible\n";
+  }
+
+  if (defined($params->{filter_consequence_match}) &&
+  $params->{filter_consequence_match} ne "strict" && $params->{filter_consequence_match} ne "broad") {
+    die "The option --filter_consequence_match only supports values 'strict' or 'broad'\n";
+  }
+
+  if (defined($params->{flag_consequence_match}) &&
+  $params->{flag_consequence_match} ne "strict" && $params->{flag_consequence_match} ne "broad") {
+    die "The option --flag_consequence_match only supports values 'strict' or 'broad'\n";
+  }
 
   # copy in default params
   $params->{$_} //= $DEFAULTS{$_} for keys %DEFAULTS;
@@ -486,11 +552,17 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  return {
+  my $header = {
     G2P_flag => 'Flags zygosity of valid variants for a G2P gene',
     G2P_complete => 'Indicates this variant completes the allelic requirements for a G2P gene',
     G2P_gene_req => 'MONO or BI depending on the context in which this gene has been explored',
   };
+
+  if ($self->{user_params}->{flag_consequence_match}) {
+    $header->{G2P_variant_consequence_match} = 'Indicates this variant matches G2P gene-disease variant consequence (GenCC term)'
+  }
+
+  return $header
 }
 
 =head2 run
@@ -525,20 +597,42 @@ sub run {
 
   # filter by variant consequence
   return {} if (!$self->consequence_filtering($tva));
-  
+
   # filter by allele frequency
   return {} if (!$self->frequency_filtering($tva));
 
+  # set the match to the default value to write to the report
+  my $variant_consequence_match = "NA";
+  # filter by variant consequence (GenCC)
+  if ($self->{user_params}->{filter_consequence_match}) {
+    if (!$self->gencc_consequence_filtering($tva, $self->{user_params}->{filter_consequence_match})) {
+      return {};
+    }
+    else {
+      # to write in the report
+      $variant_consequence_match = "yes";
+    }
+  }
+
+  my $results = {};
+  # flag if the VEP consequence matches the G2P variant consequence (GenCC)
+  if ($self->{user_params}->{flag_consequence_match}) {
+    $variant_consequence_match = $self->gencc_consequence_filtering($tva, $self->{user_params}->{flag_consequence_match});
+    $results->{G2P_variant_consequence_match} = "yes" if $variant_consequence_match;
+    # prepare the flag to write to the report
+    $variant_consequence_match = $variant_consequence_match ? "yes" : "no";
+  }
+
   # dump annotations for txt and html report files
-  $self->dump_vf_annotations($tva);      
+  $self->dump_vf_annotations($tva, $variant_consequence_match);
   $self->dump_individual_annotations($tva, $zyg);
 
   # check if transcript contains enough variants to fulfill the allelic requirement of the gene
   my $G2P_complete = $self->is_g2p_complete($tva, $zyg);
   my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
-  my $results = {};
   $results->{G2P_complete} = $G2P_complete if ($G2P_complete); 
   $results->{G2P_flag} = $G2P_flag if ($G2P_flag);
+
   return $results;
 }
 
@@ -781,6 +875,7 @@ sub gene_overlap_filtering {
       foreach my $id (keys %{ $self->{hgnc_mapping} }) {
         if ( $hgnc_id == $id) {
           my $gene_symbol = $self->{hgnc_mapping}{$id};
+	  $self->{_tmp_gene_symbol} = $gene_symbol;
           my $gene_data = $self->gene_data($gene_symbol) if defined ($gene_symbol);
           if (defined $gene_data) {
             if (defined $gene_data->{'allelic requirement'} && scalar @{$gene_data->{'allelic requirement'}}) {
@@ -800,6 +895,7 @@ sub gene_overlap_filtering {
   }
   if (! defined $pass_gene_overlap_filter && defined $self->{user_params}->{filter_by_gene_symbol} == 1) {
     my $gene_symbol = $transcript->{_gene_symbol} || $transcript->{_gene_hgnc};
+    $self->{_tmp_gene_symbol} = $gene_symbol;
     $pass_gene_overlap_filter = 0;
     foreach my $gene_id ($gene_symbol, $gene_stable_id) {
       my $gene_data = $self->gene_data($gene_id) if (defined $gene_id);
@@ -841,6 +937,37 @@ sub consequence_filtering {
   my $vf_cache_name = $self->get_cache_name($vf);
   return ((grep { $self->{user_params}->{types}->{$_->SO_term} } @{$tva->get_all_OverlapConsequences}) ||
           $self->{g2p_vf_cache}->{$vf_cache_name}->{is_on_variant_include_list});
+}
+
+=head2 gencc_consequence_filtering
+  Arg [1]    : TranscriptVariationAllele $tva
+  Arg [2]    : String $type - type of filtering to apply
+  Description: returns 1 or 0 depending on if the variant passes GenCC consequence filtering.
+  Returntype : Boolean
+  Exceptions : None
+  Caller     : General
+  Status     : Stable
+=cut
+
+sub gencc_consequence_filtering {
+  my $self = shift;
+  my $tva = shift;
+  my $type = shift;
+
+  my $vf = $tva->base_variation_feature;
+  my $vf_cache_name = $self->get_cache_name($vf);
+  my $match = 0;
+  my $gencc_consequence_list;
+
+  my $list_to_use = $type eq "strict" ? $gencc_consequence_mapping_strict : $gencc_consequence_mapping_broad;
+
+  for my $gencc_consequence (@{$self->{gene_data}->{$self->{_tmp_gene_symbol}}->{gencc_variant_consequence}}) {
+    $gencc_consequence_list = $list_to_use->{$gencc_consequence};
+    $match = (grep {$gencc_consequence_list->{$_->SO_term}} @{$tva->get_all_OverlapConsequences});
+    return $match if $match;
+  }  
+
+  return $match;
 }
 
 =head2 _dump_transcript_annotations
@@ -1166,6 +1293,7 @@ sub highest_frequency {
 sub dump_vf_annotations {
   my $self = shift;
   my $tva = shift;
+  my $variant_consequence_match = shift;
   my @consequence_types = map { $_->SO_term } @{$tva->get_all_OverlapConsequences};
   my $vf = $tva->base_variation_feature;
   my $allele = $tva->base_variation_feature->alt_alleles;
@@ -1207,6 +1335,7 @@ sub dump_vf_annotations {
     'sift_prediction' => $sift_pred,
     'polyphen_score' => "$pph_score",
     'polyphen_prediction' => $pph_pred,
+    'variant_consequence_match' => $variant_consequence_match,
   };
   $self->write_report('G2P_tva_annotations', $vf_cache_name, $tr->stable_id, $g2p_data);
   $self->write_report('is_on_variant_include_list', $vf_cache_name) if ($is_on_variant_include_list);
@@ -1240,7 +1369,7 @@ sub dump_individual_annotations {
   Arg [1]    : String $file
   Description: Read panel data from file into the internal cache. Extract gene symbol, gene symbol synonyms or previously assigned symbols,
                allelic requirement and gene-disease confidence values.
-               Get G2P CSV dump from https://www.ebi.ac.uk/gene2phenotype/downloads.
+               Get G2P CSV dump from https://www.ebi.ac.uk/gene2phenotype/download
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1355,13 +1484,14 @@ sub read_gene_data_from_file {
 
         my $gene_symbol = $tmp{"gene symbol"};
 
-        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"prev symbols"}) if defined $tmp{"prev symbols"};
-        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(';', $tmp{"previous gene symbols"}) if defined $tmp{"previous gene symbols"};
+        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(/;\s*/, $tmp{"prev symbols"}) if defined $tmp{"prev symbols"};
+        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, split(/;\s*/, $tmp{"previous gene symbols"}) if defined $tmp{"previous gene symbols"};
         push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $gene_symbol;
         push @{$gene_data{$gene_symbol}->{"HGNC"}}, $tmp{"hgnc id"};
         push @{$gene_data{$gene_symbol}->{"confidence_category"}}, $confidence_category;
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if $tmp{"allelic requirement"};
         push @{$gene_data{$gene_symbol}->{"confidence_value"}}, $tmp{"confidence value flag"} if $tmp{"confidence value flag"};
+        push @{$gene_data{$gene_symbol}->{"gencc_variant_consequence"}}, split(/;\s*/, $tmp{"variant consequence"}) if $tmp{"variant consequence"};
     }
 
     $fh->close;
@@ -1448,6 +1578,7 @@ sub hgnc_mappings {
 sub write_report {
   my $self = shift;
   my $flag = shift;
+
   my $log_dir = $self->{user_params}->{log_dir};
   my $log_file = "$log_dir/$$.txt";
   open(my $fh, '>>', $log_file) or die "Could not open file '$flag $log_file' $!\n";
@@ -1612,7 +1743,8 @@ sub write_html_output {
     'Existing name', 
     'Zygosity', 
     'All allelic requirements from G2P DB',
-    'Consequence types', 
+    'Consequence types',
+    'G2P variant consequence match',
     'ClinVar annotation', 
     'SIFT', 
     'PolyPhen', 
@@ -1821,6 +1953,7 @@ sub html_and_txt_data {
               my $hgvs_t = $hash->{hgvs_t};
               my $hgvs_p = $hash->{hgvs_p};
               my $consequence_types = $hash->{consequence_types};
+              my $variant_consequence_match = $hash->{variant_consequence_match};
               my $sift_score = $hash->{sift_score} || '0.0';
               my $sift_prediction = $hash->{sift_prediction};
               my $sift = 'NA';
@@ -1863,7 +1996,8 @@ sub html_and_txt_data {
                 [$existing_name], 
                 [$zygosity], 
                 [$required_allelic_requirement],
-                [$consequence_types], 
+                [$consequence_types],
+                [$variant_consequence_match],
                 [$clin_sign], 
                 [$sift, $sift_class], 
                 [$polyphen, $polyphen_class], 
@@ -1876,6 +2010,9 @@ sub html_and_txt_data {
               ], $is_canonical];
 
               my $txt_output_variant = "$location:$alleles:$zygosity:$consequence_types:SIFT=$sift:PolyPhen=$polyphen";
+              if ($variant_consequence_match ne "NA") {
+                $txt_output_variant .= ":G2P_variant_consequence_match=$variant_consequence_match";
+              }
               if (@txt_output_frequencies) {
                 $txt_output_variant .= ':' . join(',', @txt_output_frequencies);
               }
