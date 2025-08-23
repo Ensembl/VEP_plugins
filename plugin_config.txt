@@ -633,7 +633,8 @@ my $VEP_PLUGIN_CONFIG = {
       "requires_data" => 1,
       "species" => [
         "homo_sapiens",
-        "sus_scrofa"
+        "sus_scrofa",
+        "gallus_gallus_gca000002315v5"
       ],
       "form" => [
         {
@@ -654,6 +655,7 @@ my $VEP_PLUGIN_CONFIG = {
         #"snv=/path/to/CADD_whole_genome_SNVs.tsv.gz",
         #"indels=/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
         #"snv_pig=/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
+        #"snv_chicken=/path/to/chCADD_updated.tsv.gz"
         #"sv=/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
