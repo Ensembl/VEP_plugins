@@ -33,11 +33,18 @@ limitations under the License.
 # Get both up and downstream distances:
  ./vep -i variations.vcf --plugin TSSDistance,both_direction=1
 
+# Get both up and downstream distances:
+ ./vep -i variations.vcf --plugin TSSDistance,both_direction=1,signed_distance=1
+
 =head1 DESCRIPTION
 
  An Ensembl VEP plugin that calculates the distance from the transcription
  start site for upstream variants. Or variants in both directions
  if parameter `both_direction=1` is provided.
+
+ To remain consistent with the behaviour of the distance plugin,
+ by default the absolute value of the distance is returned. Unless 
+ the parameter `signed_distance=1` is provided.
 
 =cut
 
@@ -57,6 +64,10 @@ sub new {
 
     # If both_direction parameter is set, distance is reported for both upstream and downstream variants, otherwise distance for only upstream variants will be reported:
     $self->{both_direction} = $param_hash->{both_direction} ? 1 : 0;
+
+    # If signed_distance parameter is set, the signed distance value is reported (negative for downstream variants)
+    $self->{signed_distance} = $param_hash->{signed_distance} ? 1 : 0;
+
     return $self;
 }
 
@@ -98,8 +109,11 @@ sub run {
 
     # Downstream distance only returned if both_direction flag is set to 1:
     if ($self->{both_direction} == 1){
-        return {
-            TSSDistance => $dist,
+
+        return  $self->{signed_distance} ? {
+            TSSDistance => $dist,  # Returning the negative distance if signed_distance is expected
+        } : {
+            TSSDistance => abs($dist),  # By default returning the absolute value of the distance
         }
     }
 
