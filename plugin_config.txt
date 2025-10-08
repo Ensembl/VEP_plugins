@@ -657,7 +657,7 @@ my $VEP_PLUGIN_CONFIG = {
         #"indels=/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
         #"snv_pig=/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
         #"snv_chicken_rjf=/path/to/chCADD_updated.tsv.gz",
-        #"snv_turkey=/path/to/CADD_ALL.tsv.gz",
+        #"snv_turkey=/path/to/tCADD.tsv.gz",
         #"sv=/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
