@@ -91,7 +91,6 @@ use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub new {
   my $class = shift;
-
   my $self = $class->SUPER::new(@_);
   my $config = $self->{config};
 
@@ -99,20 +98,29 @@ sub new {
   $self->expand_right(0);
 
   my $assembly = $config->{assembly} || $config->{human_assembly};
+  die "\nAssembly is not GRCh38, EVE only works with GRCh38.\n" if ($assembly ne "GRCh38");
 
-  die "\nAssembly is not GRCh38, EVE only works with GRCh38. \n" if ($assembly ne "GRCh38");
+  my $param = $self->params_to_hash();
 
-  my $param_hash = $self->params_to_hash();
+  my $eve_file    = $param->{file} || $param->{eve_file};
+  my $popeve_file = $param->{popeve_file};
 
-  die "\nERROR: No EVE file specified\nTry using 'file=<path-to>/eve_file.vcf.gz'\n" unless defined($param_hash->{file});
+  die "\nERROR: No input specified\nUse 'file=<eve.vcf.gz>' and/or 'popeve_file=<popeve.vcf.gz>'\n"
+    unless ($eve_file || $popeve_file);
 
-  $self->add_file($param_hash->{file});
+  if ($eve_file) {
+    $self->add_file($eve_file);
+    $self->{has_eve} = 1;
+  }
+  if ($popeve_file) {
+    $self->add_file($popeve_file);
+    $self->{has_pop} = 1;
+  }
 
   my @valid_class_numbers = (10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90);
-
-  if (defined($param_hash->{class_number})) {
-    my $class_number = $param_hash->{class_number};
-    die "\nERROR: This class_number: '$class_number' does not exists.\nTry any of these numbers: " . join(', ', @valid_class_numbers)
+  if (defined($param->{class_number})) {
+    my $class_number = $param->{class_number};
+    die "\nERROR: This class_number: '$class_number' does not exist.\nTry any of: " . join(', ', @valid_class_numbers)
       unless grep(/^$class_number$/, @valid_class_numbers);
     $self->{class_number} = $class_number;
   } else {
@@ -128,10 +136,24 @@ sub feature_types {
 
 sub get_header_info {
   my $self = shift;
-  return {
+  my $h = {
     EVE_SCORE => "Score from EVE model",
-    EVE_CLASS   => "Classification (Benign, Uncertain, or Pathogenic) when setting $self->{class_number}% as uncertain"
+    EVE_CLASS => "Classification (Benign, Uncertain, or Pathogenic) when setting $self->{class_number}% as uncertain",
+  };
+
+  if ($self->{has_pop}) {
+    $h->{popEVE_SCORE}              = "Score from popEVE";
+    $h->{popEVE_EVE}                = "Raw EVE score (popEVE file)";
+    $h->{popEVE_ESM1v}              = "Raw ESM1v score (popEVE file)";
+    $h->{popEVE_pop_adjusted_EVE}   = "Population-adjusted EVE";
+    $h->{popEVE_pop_adjusted_ESM1v} = "Population-adjusted ESM1v";
+    $h->{popEVE_gap_frequency}      = "Gap frequency";
+    $h->{popEVE_gene}               = "Gene symbol";
+    $h->{popEVE_protein}            = "Protein accession";
+    $h->{popEVE_mutant}             = "Protein-level change";
   }
+
+  return $h;
 }
 
 sub run {
@@ -140,9 +162,8 @@ sub run {
 
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
-  # get allele
   my $alt_alleles = $tva->base_variation_feature->alt_alleles;
-  my $ref_allele = $vf->ref_allele_string;
+  my $ref_allele  = $vf->ref_allele_string;
 
   my @data = @{
     $self->get_data(
@@ -152,51 +173,78 @@ sub run {
     )
   };
 
-  return {} unless(@data);
+  return {} unless @data;
+
+  my %out;
 
   foreach my $variant (@data) {
-
     my $matches = get_matched_variant_alleles(
-      {
-        ref    => $ref_allele,
-        alts   => $alt_alleles,
-        pos    => $vf->{start},
-        strand => $vf->strand
-      },
-      {
-       ref  => $variant->{ref},
-       alts => [$variant->{alt}],
-       pos  => $variant->{start},
-      }
+      { ref => $ref_allele, alts => $alt_alleles, pos => $vf->{start}, strand => $vf->strand },
+      { ref => $variant->{ref},  alts => [ $variant->{alt} ],          pos => $variant->{start} }
     );
+    next unless @$matches;
 
-    return $variant->{result} if (@$matches);
+    # MERGE instead of returning immediately
+    # merge results from every matching record within the window, instead of returning on the first match
+    # This allows EVE (allele in codon format: XXX) and popEVE (allele in SNV format: X) to both annotate the same input variant
+    @out{ keys %{ $variant->{result} } } = values %{ $variant->{result} };
   }
 
-  return {};
-
+  return %out ? \%out : {};
 }
 
 sub parse_data {
   my ($self, $line) = @_;
+  chomp $line;  # ensure INFO regexes see clean line endings
 
-  # Parsing VCF fields
-  my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line; 
+  my ($chrom, $pos, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line, 8;
 
-  # Parsing INFO field
-  my ($EVE_SCORE) = $info =~ /EVE=(.*?);/;
+  # source detection
+  my $is_pop = ($info =~ /(;\s*)?(popEVE|protein|gene|mutant|gap_frequency|ESM1v|pop-adjusted_EVE|pop-adjusted_ESM1v)=/);
+
+  if ($is_pop) {
+    # -------- popEVE branch: extract popEVE_* fields --------
+    my ($score)     = $info =~ /(?:^|;)popEVE=([^;]+)/;
+    my ($raw_eve)   = $info =~ /(?:^|;)EVE=([^;]+)/;
+    my ($esm1v)     = $info =~ /(?:^|;)ESM1v=([^;]+)/;
+    my ($padj_eve)  = $info =~ /(?:^|;)pop[-_]adjusted_EVE=([^;]+)/;
+    my ($padj_esm)  = $info =~ /(?:^|;)pop[-_]adjusted_ESM1v=([^;]+)/;
+    my ($gap)       = $info =~ /(?:^|;)gap_frequency=([^;]+)/;
+    my ($gene)      = $info =~ /(?:^|;)gene=([^;]+)/;
+    my ($protein)   = $info =~ /(?:^|;)protein=([^;]+)/;
+    my ($mutant)    = $info =~ /(?:^|;)mutant=([^;]+)/;
+
+    my %res;
+    $res{popEVE_SCORE}              = $score     if defined $score;
+    $res{popEVE_EVE}                = $raw_eve   if defined $raw_eve; # avoids collision with the EVE col from the EVE file
+    $res{popEVE_ESM1v}              = $esm1v     if defined $esm1v;
+    $res{popEVE_pop_adjusted_EVE}   = $padj_eve  if defined $padj_eve;
+    $res{popEVE_pop_adjusted_ESM1v} = $padj_esm  if defined $padj_esm;
+    $res{popEVE_gap_frequency}      = $gap       if defined $gap;
+    $res{popEVE_gene}               = $gene      if defined $gene;
+    $res{popEVE_protein}            = $protein   if defined $protein;
+    $res{popEVE_mutant}             = $mutant    if defined $mutant;
+
+    my $end = $pos + (length($ref||'') ? length($ref)-1 : 0);
+    return { ref=>$ref, alt=>$alt, start=>$pos, end=>$end, result=>\%res };
+  }
+
+  # -------- EVE branch --------
+  my ($EVE_SCORE) = $info =~ /EVE=([^;]+)/;
   my $class_number = $self->{class_number};
-  my ($EVE_CLASS) = $info =~ /Class$class_number=(.*?)([;]|$)/;
+  my ($EVE_CLASS) = $info =~ /Class$class_number=([^;]+)/;
 
+  my $end = $pos + (length($ref||'') ? length($ref)-1 : 0);
   return {
     ref => $ref,
     alt => $alt,
     start => $pos,
+    end => $end,
     result => {
-      EVE_SCORE   => $EVE_SCORE,
-      EVE_CLASS   => $EVE_CLASS
+      EVE_SCORE => $EVE_SCORE,
+      EVE_CLASS => $EVE_CLASS
     }
-  }
+  };
 }
 
 sub get_start {
@@ -204,7 +252,9 @@ sub get_start {
 }
 
 sub get_end {
-  return $_[1]->{end};
+  # safe fallback if 'end' wasn't set in parse_data
+  my $v = $_[1];
+  return defined $v->{end} ? $v->{end} : ($v->{start} + (length($v->{ref} // '') ? length($v->{ref}) - 1 : 0));
 }
 
 1;
