@@ -129,6 +129,9 @@ limitations under the License.
  only_mane                : set to 1 to ignore transcripts that are not MANE
                             N/B - Information may be lost if this option is used.
 
+ report_disease           : set to 1 to report the G2P disease name in the VEP output.
+                            The disease name is not included in the G2P report files.
+
 
  For more information - https://www.ebi.ac.uk/gene2phenotype/variant-filtering
  
@@ -559,7 +562,11 @@ sub get_header_info {
   };
 
   if ($self->{user_params}->{flag_consequence_match}) {
-    $header->{G2P_variant_consequence_match} = 'Indicates this variant matches G2P gene-disease variant consequence (GenCC term)'
+    $header->{G2P_variant_consequence_match} = 'Indicates this variant matches G2P gene-disease variant consequence (GenCC term)',
+  }
+
+  if ($self->{user_params}->{include_disease}) {
+    $header->{G2P_disease} = 'G2P disease name(s) associated with the G2P gene',
   }
 
   return $header
@@ -632,6 +639,15 @@ sub run {
   my $G2P_flag = $self->is_valid_g2p_variant($tva, $zyg);
   $results->{G2P_complete} = $G2P_complete if ($G2P_complete); 
   $results->{G2P_flag} = $G2P_flag if ($G2P_flag);
+
+  # return the G2P disease name
+  if ($self->{user_params}->{include_disease} && ($G2P_complete || $G2P_flag)) {
+    my @final_disease = ();
+    for my $tmp_disease (@{$self->{gene_data}->{$self->{_tmp_gene_symbol}}->{disease}}) {
+      push @final_disease, $tmp_disease;
+    }
+    $results->{G2P_disease} = join("|", @final_disease);
+  }
 
   return $results;
 }
@@ -882,7 +898,7 @@ sub gene_overlap_filtering {
               foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
                 $self->{ar}->{$gene_stable_id}->{$ar} = 1;
               }
-              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'} );
+              $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, $gene_data->{'HGNC'}, $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'});
             }
             $self->write_report('G2P_in_vcf', $gene_stable_id);
             $pass_gene_overlap_filter = 1;
@@ -903,7 +919,7 @@ sub gene_overlap_filtering {
         if (defined $gene_data->{'allelic requirement'} && scalar @{$gene_data->{'allelic requirement'}}) {
           foreach my $ar (@{$gene_data->{'allelic requirement'}}) {
             $self->{ar}->{$gene_stable_id}->{$ar} = 1;
-          } 
+          }
           $self->write_report('G2P_gene_data', $gene_stable_id, $gene_data, $gene_data->{'gene_xrefs'}, undef,  $gene_data->{'confidence_category'}, $gene_data->{'confidence_value'});
         } 
         $self->write_report('G2P_in_vcf', $gene_stable_id);
@@ -1447,7 +1463,7 @@ sub read_gene_data_from_file {
           } elsif ($allelic_requirement_panel_app =~ m/MITOCHONDRIAL/) {
             push @ars, 'mitochondrial';
           } else {
-            $self->write_report('log', "no allelelic_requirement for $ensembl_gene_id");
+            $self->write_report('log', "no allelic_requirement for $ensembl_gene_id");
           }
           foreach my $ar (@ars) {
             push @{$gene_data{$ensembl_gene_id}->{"allelic requirement"}}, $ar;
@@ -1492,6 +1508,7 @@ sub read_gene_data_from_file {
         push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $tmp{"allelic requirement"} if $tmp{"allelic requirement"};
         push @{$gene_data{$gene_symbol}->{"confidence_value"}}, $tmp{"confidence value flag"} if $tmp{"confidence value flag"};
         push @{$gene_data{$gene_symbol}->{"gencc_variant_consequence"}}, split(/;\s*/, $tmp{"variant consequence"}) if $tmp{"variant consequence"};
+        push @{$gene_data{$gene_symbol}->{"disease"}}, $tmp{"disease name"} if $tmp{"disease name"};
     }
 
     $fh->close;
