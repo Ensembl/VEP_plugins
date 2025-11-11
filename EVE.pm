@@ -88,6 +88,7 @@ use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
+use Bio::DB::HTS::Tabix;
 
 sub new {
   my $class = shift;
@@ -111,10 +112,12 @@ sub new {
   if ($eve_file) {
     $self->add_file($eve_file);
     $self->{has_eve} = 1;
+    $self->{eve_file} = $eve_file;
   }
   if ($popeve_file) {
     $self->add_file($popeve_file);
     $self->{has_pop} = 1;
+    $self->{pop_file}  = $popeve_file;
   }
 
   my @valid_class_numbers = (10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90);
@@ -134,23 +137,64 @@ sub feature_types {
   return ['Transcript'];
 }
 
+sub _vcf_info_descriptions {
+  my ($file) = @_;
+  my %desc;
+
+  return \%desc unless $file;
+
+  eval {
+    my $tbx    = Bio::DB::HTS::Tabix->new( filename => $file );
+    my $header = $tbx->header;
+
+    foreach my $line (split /\n/, $header) {
+      next unless $line =~ /^##INFO<(.+)>/ || $line =~ /^##INFO=<(.+)>/;
+      my $body = $1;
+      my ($id)   = $body =~ /\bID=([^,>]+)/;
+      my ($d)    = $body =~ /Description="([^"]*)"/;
+
+      $desc{$id} = $d if defined $id && defined $d;
+    }
+  };
+  # if tabix/header parsing fails, return an empty hash and let get_header_info use defaults
+  return \%desc;
+}
+
 sub get_header_info {
   my $self = shift;
+
+  # try to read INFO descriptions from the EVE and popEVE VCF headers
+  my %eve_desc;
+  my %pop_desc;
+
+  if ($self->{has_eve} && $self->{eve_file}) {
+    my $h = _vcf_info_descriptions($self->{eve_file});
+    %eve_desc = %{$h} if $h;
+  }
+
+  if ($self->{has_pop} && $self->{pop_file}) {
+    my $h = _vcf_info_descriptions($self->{pop_file});
+    %pop_desc = %{$h} if $h;
+  }
+
+  my $class_key = "Class" . $self->{class_number};
+
+  # prefer INFO descriptions pulled from VCF but fall back to hard-coded descriptions
   my $h = {
-    EVE_SCORE => "Score from EVE model",
-    EVE_CLASS => "Classification (Benign, Uncertain, or Pathogenic) when setting $self->{class_number}% as uncertain",
+    EVE_SCORE => ($eve_desc{EVE} || "Score from EVE model"),
+    EVE_CLASS => ($eve_desc{$class_key} || "Classification (Benign, Uncertain, or Pathogenic) when setting $self->{class_number}% as uncertain"),
   };
 
   if ($self->{has_pop}) {
-    $h->{popEVE_SCORE}              = "Score from popEVE";
-    $h->{popEVE_EVE}                = "Raw EVE score (popEVE file)";
-    $h->{popEVE_ESM1v}              = "Raw ESM1v score (popEVE file)";
-    $h->{popEVE_pop_adjusted_EVE}   = "Population-adjusted EVE";
-    $h->{popEVE_pop_adjusted_ESM1v} = "Population-adjusted ESM1v";
-    $h->{popEVE_gap_frequency}      = "Gap frequency";
-    $h->{popEVE_gene}               = "Gene symbol";
-    $h->{popEVE_protein}            = "Protein accession";
-    $h->{popEVE_mutant}             = "Protein-level change";
+    $h->{popEVE_SCORE}              = ($pop_desc{popEVE}              || "Score from popEVE");
+    $h->{popEVE_EVE}                = ($pop_desc{EVE}                 || "Raw EVE score (popEVE file)");
+    $h->{popEVE_ESM1v}              = ($pop_desc{ESM1v}               || "Raw ESM1v score (popEVE file)");
+    $h->{popEVE_pop_adjusted_EVE}   = ($pop_desc{'pop-adjusted_EVE'}  || $pop_desc{'pop_adjusted_EVE'} || "Population-adjusted EVE");
+    $h->{popEVE_pop_adjusted_ESM1v} = ($pop_desc{'pop-adjusted_ESM1v'}|| $pop_desc{'pop_adjusted_ESM1v'} || "Population-adjusted ESM1v");
+    $h->{popEVE_gap_frequency}      = ($pop_desc{gap_frequency}       || "Gap frequency");
+    $h->{popEVE_gene}               = ($pop_desc{gene}                || "Gene symbol");
+    $h->{popEVE_protein}            = ($pop_desc{protein}             || "Protein accession");
+    $h->{popEVE_mutant}             = ($pop_desc{mutant}              || "Protein-level change");
   }
 
   return $h;
@@ -186,7 +230,7 @@ sub run {
 
     # MERGE instead of returning immediately
     # merge results from every matching record within the window, instead of returning on the first match
-    # This allows EVE (allele in codon format: XXX) and popEVE (allele in SNV format: X) to both annotate the same input variant
+    # this allows EVE (allele in codon format: XXX) and popEVE (allele in SNV format: X) to both annotate the same input variant
     @out{ keys %{ $variant->{result} } } = values %{ $variant->{result} };
   }
 
