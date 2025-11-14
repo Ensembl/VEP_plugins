@@ -43,11 +43,9 @@ limitations under the License.
  Please cite EVE publication alongside Ensembl VEP if you use this resource:
  https://www.nature.com/articles/s41586-021-04043-8
 
-###################################################
-# Bash script to merge all VCFs from EVE dataset. #
-###################################################
-
-### BEGIN
+########################################################################
+# Get and prepare EVE data: script to merge all VCFs from EVE dataset. #
+########################################################################
 
 # EVE input file can be downloaded from https://evemodel.org/api/proteins/bulk/download/ 
 # Input: VCF files by protein (vcf_files_missense_mutations inside zip folder)
@@ -76,7 +74,16 @@ bgzip ${OUTPUT_FOLDER}/${OUTPUT_NAME};
 # If not installed, use: sudo apt install tabix
 tabix ${OUTPUT_FOLDER}/${OUTPUT_NAME}.gz;
 
-### END
+########################################################################
+# Get and prepare popEVE data                                          #
+########################################################################
+
+# popEVE input file can be downloaded from https://data.evemodel.org/popeve/v1.1/downloads/grch38_popEVE_ukbb_20250715.vcf.gz
+# Input: popEVE scores aligned to GRCh38, one file 
+# Output: Compressed VCF file (vcf.gz) + index file (.tbi)
+
+wget https://data.evemodel.org/popeve/v1.1/downloads/grch38_popEVE_ukbb_20250715.vcf.gz
+tabix grch38_popEVE_ukbb_20250715.vcf.gz
 
 =cut
 package EVE;
