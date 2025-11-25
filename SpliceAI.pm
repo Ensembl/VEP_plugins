@@ -134,6 +134,7 @@ use warnings;
 use List::Util qw(max);
 
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
+use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use Bio::EnsEMBL::Variation::VariationFeature;
@@ -260,6 +261,10 @@ sub run {
         $alt_allele = $aux_alt[$allele_number - 1];
     }
 
+    if ($vf->{strand} < 0) {
+        reverse_comp(\$ref_allele);
+        reverse_comp(\$alt_allele);
+    }
     if ($start == $data_value->{start} && $ref_allele eq $data_value->{ref} && $alt_allele eq $data_value->{alt}) {
       my %hash;
 
