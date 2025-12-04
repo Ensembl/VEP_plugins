@@ -42,6 +42,9 @@ limitations under the License.
  Thormann A, Halachev M, McLaren W, et al. Flexible and scalable diagnostic filtering of genomic variants using G2P with Ensembl VEP.
  Nature Communications. 2019 May;10(1):2373. doi:10.1038/s41467-019-10016-3. PMID: 31147538; PMCID: PMC6542828.
 
+ To improve performance, we recommend running VEP with multiple forks using the --fork <n> option where <n>
+ is the number of parallel processes. For the G2P plugin we recommend using 4 forks (--fork 4).
+
  G2P data file:
  To run the plugin it is necessary to provide a data file either downloaded from G2P or PanelApp.
  The G2P file can be downloaded from:
