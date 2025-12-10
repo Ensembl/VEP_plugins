@@ -132,7 +132,7 @@ limitations under the License.
  only_mane                : set to 1 to ignore transcripts that are not MANE
                             N/B - Information may be lost if this option is used.
 
- report_disease           : set to 1 to report the G2P disease name in the VEP output.
+ include_disease           : set to 1 to report the G2P disease name in the VEP output.
                             The disease name is not included in the G2P report files.
 
 
