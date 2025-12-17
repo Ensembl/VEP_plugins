@@ -28,37 +28,46 @@ limitations under the License.
 
 =head1 SYNOPSIS
 
- mv mutfunc.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin mutfunc,motif=1,extended=1,db=/FULL_PATH_TO/mutfunc_data.db
- ./vep -i variations.vcf --plugin mutfunc,db=/FULL_PATH_TO/mutfunc_data.db
+ mv ProtVar.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin ProtVar,db=/FULL_PATH_TO/ProtVar.db
+ ./vep -i variations.vcf --plugin ProtVar,db=/FULL_PATH_TO/ProtVar_data.db,stability=1
 
 =head1 DESCRIPTION
 
- An Ensembl VEP plugin that retrieves data from mutfunc db predicting destabilization of protein structure, 
- interaction interface, and motif.
+ An Ensembl VEP plugin that retrieves data from ProtVar resource providing contexualised information for
+ missense variation such destabilization of protein structure, overlapping protein pocket, 
+ and protein-protein interaction interface.
 
- Please cite the mutfunc publication alongside Ensembl VEP if you use this resource:
- http://msb.embopress.org/content/14/12/e8430
+ Please cite the ProtVar publication alongside Ensembl VEP if you use this resource:
+ https://academic.oup.com/nar/article/52/W1/W140/7676839
 
  Pre-requisites:
 
- 1) The data file. mutfunc SQLite db can be downloaded from - 
- https://ftp.ensembl.org/pub/current_variation/mutfunc/mutfunc_data.db
+ 1) The data file. ProtVar SQLite db can be downloaded from - 
+ https://ftp.ensembl.org/pub/current_variation/ProtVar/ProtVar_data.db
 
  2) If you are using --offline please provide a FASTA file as this plugin requires the
  translation sequence to function.
 
  Options are passed to the plugin as key=value pairs:
 
- db			  : (mandatory) Path to SQLite database containing data for other analysis.
- motif    : Select this option to have mutfunc motif analysis in the output
- int      : Select this option to have mutfunc protein interection analysis in the output
- mod      : Select this option to have mutfunc protein structure analysis in the output
- exp      : Select this option to have mutfunc protein structure (experimental) analysis in the output
- extended : By default mutfunc outputs the most significant field for any analysis. Select this option to get more verbose output.
+ db         : (mandatory) Path to SQLite database containing the data.
+ stability  : Select this option to have protein stability related output. Output contains -
+                ddG - Free energy change upon mutation
+ pocket     : Select this option to have overlapping protein pocket related output. Output contains -
+                id - Pocket id;
+                score - Combined score measuring confidence in pocket (score > 800 high confidence and score > 900 very high confidence)
+                MpLDDT - Mean pLDDT score of all the residues from AlphaFold2 model used to form the pocket
+                energy - Pocket energy per volume (in kcal/mol unit)
+                burriedness - Pocket burriedness (0.0 means entirely exposed and 1.0 means entierly burried)
+                RoG - Pocket compactness in terms of radius of gyration  (in Angstrom unit)
+                residues - Position of residues that form the pocket according to UniProt canonical (and AlphaFold) numbering.
+ int      : Select this option to have protein-protein interface related output. Output contains -
+                protein - Uniprot id of the protein with which the overlapping protein creates an interface
+                pDockQ - A docking score for the interface, higher scores imply a more stable interface.
 
- By default all of the four type of analysis (motif, int, mod, and exp) data are available in the output. But if you want to have 
- some selected analysis and not all of them just select the relevant options.
+ By default all of the three type of outputs (stability, pocket, int) are provided. But if you want to have some selected type and not 
+ all of them just select the relevant options.
 
 =cut
 
