@@ -148,13 +148,14 @@ sub run {
 
   # Match the relevant alternative allele at the given position
   my $gnomad_freqs = {};
+  my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
   for my $result (@results) {
-    my $alt_allele = $result->{'alt'};
-    if ($vf->{'allele_string'} =~ /(^|\/)$alt_allele(\/|$)/) {
+    my $annotation_alt_allele = $result->{'alt'};
+    if ($vfoa_variation_feature_seq eq $annotation_alt_allele) {
       $gnomad_freqs = { %$result };
       delete($gnomad_freqs->{'alt'});
       last;
-    };
+    }
   }
 
   return $gnomad_freqs;
