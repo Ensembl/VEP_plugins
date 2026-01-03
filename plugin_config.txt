@@ -1948,6 +1948,22 @@ my $VEP_PLUGIN_CONFIG = {
       ],
       "species" => [
         "homo_sapiens"
+      ],
+      "form" => [
+        {
+          "name" => "ProtVar_fields",
+          "label" => "Fields to include",
+          "helptip" => "Select which type of output(s) you want to see (by default all of them is selected)",
+          "value" => "",
+          "type" => "checklist",
+          "multiple" => 1,
+          "style" => "height:150px",
+          "values" => [
+            { "value" => "stability=1", "caption" => "Protein Structure Stability", "helptip" => "Effect on protein structure stability", 'checked' => 1 },
+            { "value" => "pocket=1", "caption" => "Protein Pockets", "helptip" => "Ovelapping protein pocket and relevant attribute", 'checked' => 1 },
+            { "value" => "int=1", "caption" => "Protein-Protein Interaction Interface", "helptip" => "Overlapping interface for protein-protein interaction", 'checked' => 1 }
+          ],
+        }
       ]
     },
 
