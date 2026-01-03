@@ -118,7 +118,10 @@ sub new {
     die "ERROR: please provide the SQLite database using 'db' parameter\n" if ( !( defined $param_hash->{db} ) );
     $self->{db} = $param_hash->{db};
 
-    if ( ( $self->{config}->{output_format} eq "json" ) || $self->{config}->{rest} ) {
+    if ($self->{config}->{output_format} && $self->{config}->{output_format} eq "json") {
+        $self->{output_json} = 1;
+    }
+    if ( $self->{config}->{rest} ) {
         $self->{output_json} = 1;
     }
 
