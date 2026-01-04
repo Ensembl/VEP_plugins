@@ -264,7 +264,8 @@ sub process_from_db {
     return {} unless $translation;
 
     # get the md5 hash of the peptide sequence
-    my $md5 = md5_hex( $translation->seq );
+    my $translation_seq = $translation->seq;
+    my $md5 = md5_hex( $translation_seq);
 
     # forked, reconnect to DB
     if ( $$ != $self->{initial_pid} ) {
@@ -292,6 +293,9 @@ sub process_from_db {
 
         # in matrix position is 0 indexed
         $pos--;
+
+        # for incomplete start the ProtVar file starts from first complete codon
+        $pos-- if $translation_seq =~ /^X/;
 
         # we need position of peptide in the ALL_AAS array
         my $peptide_number = ( first_index { $_ eq $peptide } @ALL_AAS );
