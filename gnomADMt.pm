@@ -172,11 +172,11 @@ sub parse_data {
   @keys = map {
     join('_', $prefix, $_)
   }
-  qw(AC_hom AC_het AF_hom AF_het AN max_observed_heteroplasmy);
+  qw(filters AC_hom AC_het AF_hom AF_het AN max_observed_heteroplasmy);
 
   my %result;
 
-  @result{@keys} = @af;
+  @result{@keys} = ($filters, @af);
   $result{'alt'} = $alt;
 
   return \%result;
