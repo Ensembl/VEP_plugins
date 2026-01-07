@@ -52,6 +52,7 @@ use File::Basename;
 use File::Spec;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
+use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
@@ -142,18 +143,33 @@ sub run {
 
   $vf_end = $vf_start if $vf_start > $vf_end;
 
-  my @results = @{ $self->get_data($vf_chr, $vf_start, $vf_end) };
+  my @data = @{ $self->get_data($vf_chr, $vf_start -2, $vf_end) };
 
-  return {} unless @results;
+  return {} unless @data;
 
   # Match the relevant alternative allele at the given position
   my $gnomad_freqs = {};
   my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
-  for my $result (@results) {
-    my $annotation_alt_allele = $result->{'alt'};
-    if ($vfoa_variation_feature_seq eq $annotation_alt_allele) {
-      $gnomad_freqs = { %$result };
-      delete($gnomad_freqs->{'alt'});
+
+  for my $data_candidate (@data) {
+    my $candidate_alt_allele = $data_candidate->{'alt'};
+
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => [ $vfoa_variation_feature_seq ],
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+        ref  => $data_candidate->{ref},
+        alts => [ $candidate_alt_allele ],
+        pos  => $data_candidate->{start},
+      }
+    );
+
+    if (@$matches){
+      $gnomad_freqs = $data_candidate->{'result'};
       last;
     }
   }
@@ -167,6 +183,18 @@ sub parse_data {
   my $prefix = $self->{prefix};
   my $header = $self->{file_column};
   my ($chr, $pos, $ref, $alt, $filters, @af) = split /\t/, $line;
+
+  # VCF-like adjustment of mismatched substitutions for comparison with VEP
+  if(length($alt) != length($ref)) {
+    my $first_ref = substr($ref, 0, 1);
+    my $first_alt = substr($alt, 0, 1);
+    if ($first_ref eq $first_alt) {
+      $pos++;
+      $ref = substr($ref, 1) || "-";
+      $alt = substr($alt, 1) || "-";
+    }
+  }
+
   my @keys;
 
   @keys = map {
@@ -177,9 +205,13 @@ sub parse_data {
   my %result;
 
   @result{@keys} = ($filters, @af);
-  $result{'alt'} = $alt;
 
-  return \%result;
+  return {
+    ref => $ref,
+    alt => $alt,
+    start => $pos,
+    result => \%result
+  }
 }
 
 sub get_start {
