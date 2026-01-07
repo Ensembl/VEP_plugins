@@ -192,8 +192,17 @@ sub run {
 
   foreach my $variant (@data) {
     my $matches = get_matched_variant_alleles(
-      { ref => $ref_allele, alts => $alt_alleles, pos => $vf->{start}, strand => $vf->strand },
-      { ref => $variant->{ref},  alts => [ $variant->{alt} ],          pos => $variant->{start} }
+      {
+        ref    => $ref_allele,
+        alts   => $alt_alleles,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $variant->{ref},
+       alts => [$variant->{alt}],
+       pos  => $variant->{start},
+      }
     );
     next unless @$matches;
 
