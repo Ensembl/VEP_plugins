@@ -32,6 +32,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz,class_number=60
  ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz,popeve_file=/path/to/popeve/data.vcf.gz
  ./vep -i variations.vcf --plugin EVE,popeve_file=/path/to/popeve/data.vcf.gz
+ ./vep -i variations.vcf --plugin EVE,file=/path/to/eve/data.vcf.gz,class_number=60,popeve_file=/path/to/popeve/data.vcf.gz
 
 =head1 DESCRIPTION
 
