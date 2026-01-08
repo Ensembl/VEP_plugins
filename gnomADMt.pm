@@ -117,10 +117,10 @@ sub get_header_info {
     }
 
     if ( $_ =~ /_hom$/ ) {
-      $attribute_descr .= 'in homozygous carriers';
+      $attribute_descr .= ' in homozygous carriers';
     }
     elsif ( $_ =~ /_het$/ ) {
-      $attribute_descr .= 'in heterozygous carriers';
+      $attribute_descr .= ' in heterozygous carriers';
     }
 
     if ( $_ eq 'AN' ) {
