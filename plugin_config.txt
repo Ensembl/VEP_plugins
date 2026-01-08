@@ -1241,6 +1241,21 @@ my $VEP_PLUGIN_CONFIG = {
       ]
     },
 
+    # gnomADMt
+    {
+      "key" => "gnomADMt",
+      "label" => "gnomADMt",
+      "helptip" => "Reports allele frequency data from gmomAD for Mitochnodrial variants",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Frequency data",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/116/gnomADMt.pm",
+      "requires_data" => 1,
+       "species" => [
+        "homo_sapiens"
+      ]
+    },
+
 
 
     ## PHENOTYPES DATA AND CITATIONS
