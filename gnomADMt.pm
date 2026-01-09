@@ -127,6 +127,10 @@ sub get_header_info {
       $attribute_descr = 'no. of callable samples at this site';
     }
 
+    if ( $_ eq 'max_observed_heteroplasmy' ) {
+      $attribute_descr = 'Maximum level of heteroplasmy observed at this site (>0.95 is considered homozygous)';
+    }
+
     $header_info{ $vcf_attribute } = $attribute_descr;
   }
 
