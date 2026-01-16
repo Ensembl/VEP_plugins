@@ -226,6 +226,7 @@ sub parse_data {
 
   # source detection
   my $is_pop = ($info =~ /(;\s*)?(popEVE|protein|gene|mutant|gap_frequency|ESM1v|pop-adjusted_EVE|pop-adjusted_ESM1v)=/);
+  die "\nERROR: Given file has popEVE values but popEVE not specified in params. (Hint: use 'popeve_file=' instead of 'file=')\n" if ($is_pop && ! $self->{has_pop});
 
   if ($is_pop) {
     # -------- popEVE branch: extract popEVE_* fields --------
