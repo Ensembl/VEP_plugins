@@ -37,22 +37,32 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- An Ensembl VEP plugin that integrates data from Open Targets Genetics
- (https://genetics.opentargets.org), a tool that highlights variant-centric
+ An Ensembl VEP plugin that integrates data from Open Targets Platform
+ (https://platform.opentargets.org), a tool that highlights variant-centric
  statistical evidence to allow both prioritisation of candidate causal variants
  at trait-associated loci and identification of potential drug targets.
 
- Data from Open Targets Genetics includes locus-to-gene (L2G) scores to predict
- causal genes at GWAS loci.
+ Data from Open Targets Genetics includes two types of associations: GWAS based
+ and QTL base. For GWAS studies, the data contains a locus-to-gene (L2G) scores
+ to predict causal genes at GWAS loci.
 
  The tabix utility must be installed in your path to use this plugin. The Open
  Targets Genetics file and respective index (TBI) file can be downloaded from:
- https://ftp.ebi.ac.uk/pub/databases/opentargets/genetics/latest/OTGenetics_VEP
+ https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/latest/etc/export/vep_data/
+
+ Before using the plugin, split the Open Targets file in two:
+   1) a file containing all GWAS associations (and corresponding tabix index file)
+    (zcat open_targets_vep.tsv.bgz | head -n 1 | sed 's/.*/#&/'; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 == "gwas"' ) | cut -d $'\t' -f 1-16,17-19 | bgzip -c > open_targets_vep_gwas.tsv.bgz
+    tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_gwas.tsv.bgz
+   2) a file containing all QTL associations (and corresponding tabix index file)
+    (zcat open_targets_vep.tsv.bgz | head -n 1; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 ~ /qtl$/' ) | cut -d $'\t' -f 1-16,20,21 | bgzip -c > open_targets_vep_qtl.tsv.bgz
+    tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
 
  Options are passed to the plugin as key=value pairs:
-   file : (mandatory) Tabix-indexed file from Open Targets Genetics
+   file : (mandatory) Tabix-indexed file from Open Targets platform.
+   studytype : (optional) Study type corresponding to the file provided. GWAS or QTL (default: GWAS)
    cols : (optional) Colon-separated list of columns to return from the plugin
-          file (default: "l2g:geneId"); use 'all' to print all data
+          file (default: "gwasLocusToGeneScore:gwasGeneId:gwasDiseases"); use 'all' to print all data
 
  Please cite the Open Targets Genetics publication alongside Ensembl VEP if 
  you use this resource: https://doi.org/10.1093/nar/gkaa84
@@ -145,8 +155,13 @@ sub new {
      unless defined($file);
   $self->add_file($file);
 
+  # Study type
+  $self->{studytype} = $param_hash->{studytype} || "GWAS";
+  die "\n  ERROR: Study type '".$self->{studytype}."' is not supported.\n"
+     unless $self->{studytype} eq "GWAS";
+
   # Parse column names
-  my $cols = $param_hash->{cols} || "l2g:geneId";
+  my $cols = $param_hash->{cols} || "gwasLocusToGeneScore:gwasGeneId:gwasDiseases";
   $self->_parse_colnames($cols);
 
   return $self;
@@ -166,7 +181,7 @@ sub get_header_info {
   @header{ @keys } = @vals;
 
   # Custom headers
-  $header{_plugin_name() . '_l2g'}  = "Locus-to-gene (L2G) scores to predict causal genes at GWAS loci; " . $description;
+  $header{_plugin_name() . '_gwasLocusToGeneScore'}  = "Locus-to-gene (L2G) scores to predict causal genes at GWAS loci; " . $description;
 
   # Filter by user-selected columns
   %header = map { $_ => $header{$_} } @{ $self->{cols} };
@@ -213,8 +228,11 @@ sub run {
   my $allele = $tva->base_variation_feature->alt_alleles;
   my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
 
+  # Filter @data to only include lead variants
+  my @lead_var_data = grep { $_->{result}->{'OpenTargets_isLead'} eq 'true' } @data;
+
   my $all_results = {};
-  foreach (@data) {
+  foreach (@lead_var_data) {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
