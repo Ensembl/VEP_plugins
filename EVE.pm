@@ -256,6 +256,8 @@ sub parse_data {
   }
 
   # -------- EVE branch --------
+  die "\nERROR: Given file has EVE values but params indicate popEVE. (Hint: use 'file=' instead of 'popeve_file=')\n" if ! $self->{has_eve};
+
   my ($EVE_SCORE) = $info =~ /EVE=([^;]+)/;
   my $class_number = $self->{class_number};
   my ($EVE_CLASS) = $info =~ /Class$class_number=([^;]+)/;
