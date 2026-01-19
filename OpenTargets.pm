@@ -55,7 +55,7 @@ limitations under the License.
     (zcat open_targets_vep.tsv.bgz | head -n 1 | sed 's/.*/#&/'; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 == "gwas"' ) | cut -d $'\t' -f 1-16,17-19 | bgzip -c > open_targets_vep_gwas.tsv.bgz
     tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_gwas.tsv.bgz
    2) a file containing all QTL associations (and corresponding tabix index file)
-    (zcat open_targets_vep.tsv.bgz | head -n 1; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 ~ /qtl$/' ) | cut -d $'\t' -f 1-16,20,21 | bgzip -c > open_targets_vep_qtl.tsv.bgz
+    (zcat open_targets_vep.tsv.bgz | head -n 1 | sed 's/.*/#&/'; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 ~ /qtl$/' ) | cut -d $'\t' -f 1-16,20,21 | bgzip -c > open_targets_vep_qtl.tsv.bgz
     tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
 
  Options are passed to the plugin as key=value pairs:
