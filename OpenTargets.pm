@@ -59,10 +59,10 @@ limitations under the License.
     tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
 
  Options are passed to the plugin as key=value pairs:
-   file : (mandatory) Tabix-indexed file from Open Targets platform.
-   studytype : (optional) Study type corresponding to the file provided. GWAS or QTL (default: GWAS)
-   cols : (optional) Colon-separated list of columns to return from the plugin
-          file (default: "gwasLocusToGeneScore:gwasGeneId:gwasDiseases"); use 'all' to print all data
+   file : (mandatory) Tabix-indexed file from Open Targets platform. File should contain GWAS- or QTL-annotations, or both.
+   cols : (optional) Colon-separated list of columns to return from the plugin file.
+          (default: "gwasLocusToGeneScore:gwasGeneId:gwasDiseases" on GWAS annotations and
+          "qtlGeneId:qtlBiosampleName" for QTL annotations); use 'all' to print all data
 
  Please cite the Open Targets Genetics publication alongside Ensembl VEP if 
  you use this resource: https://doi.org/10.1093/nar/gkaa84
@@ -111,13 +111,27 @@ sub _get_colnames {
   return \@cols;
 }
 
+sub _get_studytypes {
+  my $self = shift;
+  my $file = shift;
+  my $gwas = my $qtl = 0;
+
+  if( grep(/^gwas/, @{ $self->{colnames} }) ){
+    $gwas = 1;
+  }
+
+  if( grep(/^qtl/, @{ $self->{colnames} }) ){
+    $qtl = 1;
+  }
+
+  return ($gwas, $qtl);
+}
+
 sub _parse_colnames {
   my $self = shift;
   my $cols = shift;
 
-  # Parse file columns
-  $self->{colnames} = $self->_get_colnames();
-  
+  # Parse output columns filter
   if ($cols eq "all") {
     $self->{cols} = $self->{colnames};
   } else {
@@ -133,10 +147,6 @@ sub _parse_colnames {
     die "\n  ERROR: The following columns were not found in file header: ",
       join(", ", @invalid_cols), "\n" if @invalid_cols;
   }
-
-  # Prefix all column names
-  $self->{colnames} = _prefix_cols $self->{colnames};
-  $self->{cols}     = _prefix_cols $self->{cols};
 }
 
 sub new {
@@ -155,14 +165,39 @@ sub new {
      unless defined($file);
   $self->add_file($file);
 
-  # Study type
-  $self->{studytype} = $param_hash->{studytype} || "GWAS";
-  die "\n  ERROR: Study type '".$self->{studytype}."' is not supported.\n"
-     unless $self->{studytype} eq "GWAS";
+  # Get file columns
+  $self->{colnames} = $self->_get_colnames();
 
-  # Parse column names
-  my $cols = $param_hash->{cols} || "gwasLocusToGeneScore:gwasGeneId:gwasDiseases";
+  # Get study types
+  _get_studytypes($self);
+
+  (my $gwas, my $qtl) = _get_studytypes($self);
+
+  $self->{studytypes} = {};
+  $self->{studytypes}{GWAS} = $gwas;
+  $self->{studytypes}{QTL} = $qtl;
+
+  die "\n  ERROR: Input file does not contain GWAS nor QTL data (missing columns).\n"
+     unless $self->{studytypes}->{GWAS} || $self->{studytypes}->{QTL};
+
+  # Parse column names filter
+  my $cols = $param_hash->{cols};
+  if(!$cols){
+    $cols = "";
+    if($self->{studytypes}->{GWAS}){
+      $cols .= ":gwasLocusToGeneScore:gwasGeneId:gwasDiseases";
+    }
+    if($self->{studytypes}->{QTL}){
+      $cols .= ":qtlGeneId:qtlBiosampleName";
+    }
+
+    $cols =~ s/^://;
+  }
   $self->_parse_colnames($cols);
+
+  # Prefix all column names
+  $self->{colnames} = _prefix_cols $self->{colnames};
+  $self->{cols}     = _prefix_cols $self->{cols};
 
   return $self;
 }
