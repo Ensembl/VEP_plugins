@@ -102,8 +102,10 @@ sub _get_colnames {
   # Get last line from header
   my $last;
   $last = $_ while <IN>;
-  $last =~ s/(^#|\n$)//g;
   close IN;
+
+  $last =~ s/(^#|\n$)//g
+    or die "ERROR: no header found in tabix file for " . $self->{_files}[0];
 
   # Parse column names from header
   my @cols = split /\t/, $last;
