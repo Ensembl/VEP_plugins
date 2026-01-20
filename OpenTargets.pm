@@ -53,10 +53,14 @@ limitations under the License.
  Before using the plugin, split the Open Targets file in two:
    1) a file containing all GWAS associations (and corresponding tabix index file)
     (zcat open_targets_vep.tsv.bgz | head -n 1 | sed 's/.*/#&/'; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 == "gwas"' ) | cut -d $'\t' -f 1-16,17-19 | bgzip -c > open_targets_vep_gwas.tsv.bgz
-    tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_gwas.tsv.bgz
+    tabix -s 1 -b 2 -e 2 open_targets_vep_gwas.tsv.bgz
    2) a file containing all QTL associations (and corresponding tabix index file)
     (zcat open_targets_vep.tsv.bgz | head -n 1 | sed 's/.*/#&/'; zcat open_targets_vep.tsv.bgz | awk -F $'\t' '$7 ~ /qtl$/' ) | cut -d $'\t' -f 1-16,20,21 | bgzip -c > open_targets_vep_qtl.tsv.bgz
-    tabix -S 1 -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
+    tabix -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
+
+  To use the original file (with all associations), comment out the header line and regenerate the tabix-index to include the header.
+    zcat open_targets_vep.tsv.bgz | sed '1 s/.*/#&/' | bgzip -c > open_targets_vep.tsv.bgz.tmp; mv open_targets_vep.tsv.bgz.tmp open_targets_vep.tsv.bgz
+    tabix -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed file from Open Targets platform. File should contain GWAS- or QTL-annotations, or both.
