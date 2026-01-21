@@ -64,6 +64,7 @@ limitations under the License.
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed file from Open Targets platform. File should contain GWAS- or QTL-annotations, or both.
+   lead_variants_only : (optional) boolean to filter out non-lead variant associations, 1 (filtered) or 0 (unfiltered). (default: 1)
    cols : (optional) Colon-separated list of columns to return from the plugin file.
           (default: "gwasLocusToGeneScore:gwasGeneId:gwasDiseases" on GWAS annotations and
           "qtlGeneId:qtlBiosampleName" for QTL annotations); use 'all' to print all data
@@ -186,6 +187,14 @@ sub new {
   die "\n  ERROR: Input file does not contain GWAS nor QTL data (missing columns).\n"
      unless $self->{studytypes}->{GWAS} || $self->{studytypes}->{QTL};
 
+  # parse lead-variant param
+  if (exists($param_hash->{lead_variants_only})) {
+    $self->{lead_variants_only} = $param_hash->{lead_variants_only};
+  }
+  else{
+    $self->{lead_variants_only} = 1;
+  }
+
   # Parse column names filter
   my $cols = $param_hash->{cols};
   if(!$cols){
@@ -269,11 +278,17 @@ sub run {
   my $allele = $tva->base_variation_feature->alt_alleles;
   my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end})};
 
-  # Filter @data to only include lead variants
-  my @lead_var_data = grep { $_->{result}->{'OpenTargets_isLead'} eq 'true' } @data;
+  my @filtered_data;
+  if($self->{lead_variants_only}) {
+    # Filter @data to only include lead variants
+    @filtered_data = grep { $_->{result}->{'OpenTargets_isLead'} eq 'true' } @data;
+  }
+  else{
+    @filtered_data = @data;
+  }
 
   my $all_results = {};
-  foreach (@lead_var_data) {
+  foreach (@filtered_data) {
     my $matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
