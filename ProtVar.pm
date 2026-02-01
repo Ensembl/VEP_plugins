@@ -34,8 +34,8 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- An Ensembl VEP plugin that retrieves data from ProtVar resource providing contexualised information for
- missense variation such destabilization of protein structure, overlapping protein pocket, 
+ An Ensembl VEP plugin that retrieves data from ProtVar resource providing contextualised information for
+ missense variation such as destabilization of protein structure, overlapping protein pocket, 
  and protein-protein interaction interface.
 
  Please cite the ProtVar publication alongside Ensembl VEP if you use this resource:
