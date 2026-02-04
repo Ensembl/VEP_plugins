@@ -122,14 +122,16 @@ sub run {
 
   return {} unless @data;
 
-  # Match the relevant alternative allele at the given position
+  # Filter the data to match the VariantFeatureOverlapAllele's...
   my $promotorAI_result = {};
   my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
+  my $vfoa_transcript_id = $vfoa->transcript->stable_id;
 
   for my $data_candidate (@data) {
+    # * Alternative allele sequence
     my $candidate_alt_allele = $data_candidate->{'alt'};
 
-    my $matches = get_matched_variant_alleles(
+    my $seq_filtered_matches = get_matched_variant_alleles(
       {
         ref    => $vf->ref_allele_string,
         alts   => [ $vfoa_variation_feature_seq ],
@@ -143,11 +145,20 @@ sub run {
         strand => $data_candidate->{strand}
       }
     );
-
-    if (@$matches){
-      $promotorAI_result = $data_candidate->{'result'};
-      last;
+    if(!@$seq_filtered_matches){
+      next;
     }
+
+    # * transcript ID
+    my $candidate_transcript_id = $data_candidate->{'transcript_id'};
+    $candidate_transcript_id =~ s/\.[0-9]+//; # remove transcript version
+
+    if($vfoa_transcript_id ne $candidate_transcript_id){
+      next;
+    }
+
+    $promotorAI_result = $data_candidate->{'result'};
+    last;
   }
 
   return $promotorAI_result;
