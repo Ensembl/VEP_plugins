@@ -17,37 +17,37 @@ limitations under the License.
 =cut
 
 =head1 NAME
- promotorAI
+ promoterAI
 
 =head1 SYNOPSIS
- mv promotorAI.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin promotorAI,/path/to/promotorAI.tsv.gz
+ mv promoterAI.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin promoterAI,/path/to/promoterAI.tsv.gz
 
 =head1 DESCRIPTION
- An Ensembl VEP plugin that adds promotorAI scores to promotor variants, predicting their impact on gene expression.
+ An Ensembl VEP plugin that adds promoterAI scores to promoter variants, predicting their impact on gene expression.
 
  Options are passed to the plugin as key=value pairs:
-   file : (mandatory) Tabix-indexed file from Illumina PromotorAI (see below)
+   file : (mandatory) Tabix-indexed file from Illumina PromoterAI (see below)
    cols : (optional) Colon-separated list of columns to return from the plugin
           file (default: "tss_pos:promoterAI"); use 'all' to print all data
 
- To download the promotorAI scores file to use with VEP (GRCh38 based),
-   Please follow the instructions found in the README at https://github.com/Illumina/PromoterAI.
-   You need a valid license agreement as described in the README to obtain and use the promotorAI scores.
+ To download the promoterAI scores file to use with VEP (GRCh38 based),
+   please follow the instructions found in the README at https://github.com/Illumina/PromoterAI.
+   You need a valid license agreement as described in the README to obtain and use the promoterAI scores.
 
- Please cite the promotorAI publication alongside Ensembl VEP if you use this resource:
+ Please cite the promoterAI publication alongside Ensembl VEP if you use this resource:
  https://www.science.org/doi/10.1126/science.ads7373
 
  Necessary before using the plugin:
    Do the following steps to index the annotations file before using the plugin:
-    zcat promotorAI.tsv.gz | sed '1s/.*/#&/' | bgzip > promotorAI.tsv.bgz
-    tabix -s 1 -b 2 -e 2 promotorAI.tsv.bgz
+    zcat promoterAI.tsv.gz | sed '1s/.*/#&/' | bgzip > promoterAI.tsv.bgz
+    tabix -s 1 -b 2 -e 2 promoterAI.tsv.bgz
 
  You must have the Bio::DB::HTS module or the tabix utility must be installed
  in your path to use this plugin.
 =cut
 
-package promotorAI;
+package promoterAI;
 
 use strict;
 use warnings;
@@ -61,7 +61,7 @@ use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 sub _plugin_name {
-  return 'PromotorAI';
+  return 'PromoterAI';
 }
 
 sub _prefix_cols {
@@ -134,7 +134,7 @@ sub new {
   my $param_hash = $self->params_to_hash();
 
   my $file = $param_hash->{file};
-  die "\n  ERROR: No promotorAI file specified\nTry using 'file=path/to/data.tsv.bgz'\n"
+  die "\n  ERROR: No promoterAI file specified\nTry using 'file=path/to/data.tsv.bgz'\n"
      unless defined($file);
   $self->add_file($file);
 
@@ -189,7 +189,7 @@ sub run {
   return {} unless @data;
 
   # Filter the data to match the VariantFeatureOverlapAllele's...
-  my $promotorAI_result = {};
+  my $promoterAI_result = {};
   my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
   my $vfoa_transcript_id = $vfoa->transcript->stable_id;
 
@@ -223,16 +223,16 @@ sub run {
       next;
     }
 
-    $promotorAI_result = $data_candidate->{'result'};
+    $promoterAI_result = $data_candidate->{'result'};
     last;
   }
 
-  if( $promotorAI_result && scalar(%{$promotorAI_result}) > 0 ){
+  if( $promoterAI_result && scalar(%{$promoterAI_result}) > 0 ){
     # Filter user-selected columns
-    $promotorAI_result = _filter_selected_cols($promotorAI_result, $self->{cols});
+    $promoterAI_result = _filter_selected_cols($promoterAI_result, $self->{cols});
   }
 
-  return $promotorAI_result;
+  return $promoterAI_result;
 }
 
 sub parse_data {
