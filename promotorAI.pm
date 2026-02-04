@@ -92,7 +92,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Feature', 'Intergenic'];
+  return ['Transcript'];
 }
 
 sub get_header_info {
