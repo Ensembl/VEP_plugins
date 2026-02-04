@@ -296,7 +296,7 @@ sub process_from_db {
         my $pos     = $tva->transcript_variation->translation_start;
         my $peptide = $tva->peptide;
 
-        next if ( $item eq "stability" && !defined $peptide );
+        next if ( $item eq "stability" && !(defined $peptide && $peptide ne 'X') );
 
         # in matrix position is 0 indexed
         $pos--;
