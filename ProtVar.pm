@@ -53,18 +53,25 @@ limitations under the License.
 
  db         : (mandatory) Path to SQLite database containing the data.
  stability  : Select this option to have protein stability related output. Output contains -
-                ddG - Free energy change upon mutation
+                ddG - Free energy change upon mutation (in kcal/mol units).
+                        ddG > 2: likely to be destabilising.
  pocket     : Select this option to have overlapping protein pocket related output. Output contains -
                 id - Pocket id;
-                score - Combined score measuring confidence in pocket (score > 800 high confidence and score > 900 very high confidence)
+                score - Combined score measuring confidence in pocket.
+                        score < 800: low confidence
+                        score 800-900: high confidence
+                        score > 900: very high confidence
                 MpLDDT - Mean pLDDT score of all the residues from AlphaFold2 model used to form the pocket
-                energy - Pocket energy per volume (in kcal/mol unit)
-                burriedness - Pocket burriedness (0.0 means entirely exposed and 1.0 means entierly burried)
-                RoG - Pocket compactness in terms of radius of gyration  (in Angstrom unit)
+                energy - Pocket energy per volume (in kcal/mol units)
+                buriedness - Pocket buriedness (0.0 means entirely exposed and 1.0 means entirely burried)
+                RoG - Pocket compactness in terms of radius of gyration  (in Angstrom units)
                 residues - Position of residues that form the pocket according to UniProt canonical (and AlphaFold) numbering.
  int      : Select this option to have protein-protein interface related output. Output contains -
                 protein - Uniprot id of the protein with which the overlapping protein creates an interface
-                pDockQ - A docking score for the interface, higher scores imply a more stable interface.
+                pDockQ - A docking score for the interface.
+                        score < 0.23: low confidence
+                        score 0.23-0.5: high confidence
+                        score > 0.5: very high confidence
 
  By default all of the three type of outputs (stability, pocket, int) are provided. But if you want to have some selected type and not 
  all of them just select the relevant options.
@@ -143,7 +150,7 @@ sub get_header_info {
     my %header;
 
     if ( defined $self->{stability} ) {
-        $header{ProtVar_stability} = "Impact on protein stability in ddG enegry difference.";
+        $header{ProtVar_stability} = "ddG - Impact on protein stability (in kcal/mol units; ddG > 2: likely to be unstabilising).";
     }
 
     if ( defined $self->{pocket} ) {
@@ -153,11 +160,11 @@ sub get_header_info {
           ? "(fields are separated by '&') "
           : "(fields are separated by ',') ";
         $header{ProtVar_pocket} .= "id - Pocket id, ";
-        $header{ProtVar_pocket} .= "score - Combined score measuring confidence in pocket (score > 800 high confidence and score > 900 very high confidence), ";
+        $header{ProtVar_pocket} .= "score - Combined score measuring confidence in pocket (score < 800: low confidence; score 800-900: high confidence; score > 900: very high confidence), ";
         $header{ProtVar_pocket} .= "MpLDDT - Mean pLDDT score of all the residues from AlphaFold2 model used to form the pocket, ";
-        $header{ProtVar_pocket} .= "energy - Pocket energy per volume (in kcal/mol unit), ";
-        $header{ProtVar_pocket} .= "burriedness - Pocket burriedness (0.0 means entirely exposed and 1.0 means entierly burried), ";
-        $header{ProtVar_pocket} .= "RoG - Pocket compactness in terms of radius of gyration  (in Angstrom unit), ";
+        $header{ProtVar_pocket} .= "energy - Pocket energy per volume (in kcal/mol units), ";
+        $header{ProtVar_pocket} .= "buriedness - Pocket buriedness (0.0 means entirely exposed and 1.0 means entirely burried), ";
+        $header{ProtVar_pocket} .= "RoG - Pocket compactness in terms of radius of gyration  (in Angstrom units), ";
         $header{ProtVar_pocket} .= "residues - Position of residues that form the pocket according to UniProt canonical (and AlphaFold) numbering.";
     }
 
@@ -168,7 +175,7 @@ sub get_header_info {
           ? "(fields are separated by '&') "
           : "(fields are separated by ',') ";
         $header{ProtVar_int} .= "protein_id - ID of the protein that overlapping protien interface with, ";
-        $header{ProtVar_int} .= "pDockQ - A docking score for the interface, higher scores imply a more stable interface.";
+        $header{ProtVar_int} .= "pDockQ - A docking score for the interface (score < 0.23: low confidence; score 0.23-0.5: high confidence; score > 0.5: very high confidence).";
     }
 
     return \%header;

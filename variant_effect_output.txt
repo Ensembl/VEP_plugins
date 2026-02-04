@@ -1,0 +1,35 @@
+## ENSEMBL VARIANT EFFECT PREDICTOR v115.2
+## Output produced at 2026-01-04 23:23:11
+## Connected to homo_sapiens_core_116_38 on mysql-ens-sta-1
+## Using API version 115, DB version 116
+## assembly version GRCh38.p14
+## gencode version GENCODE 50
+## genebuild version GENCODE50
+## Column descriptions:
+## Uploaded_variation : Identifier of uploaded variant
+## Location : Location of variant in standard coordinate format (chr:start or chr:start-end)
+## Allele : The variant allele used to calculate the consequence
+## Gene : Stable ID of affected gene
+## Feature : Stable ID of feature
+## Feature_type : Type of feature - Transcript, RegulatoryFeature or MotifFeature
+## Consequence : Consequence type
+## cDNA_position : Relative position of base pair in cDNA sequence
+## CDS_position : Relative position of base pair in coding sequence
+## Protein_position : Relative position of amino acid in protein
+## Amino_acids : Reference and variant amino acids
+## Codons : Reference and variant codon sequence
+## Existing_variation : Identifier(s) of co-located known variants
+## Extra column keys:
+## IMPACT : Subjective impact classification of consequence type
+## DISTANCE : Shortest distance from variant to transcript
+## STRAND : Strand of the feature (1/-1)
+## FLAGS : Transcript quality flags
+## ProtVar_int : Information about overlapping protein-protein interface . Output field(s) include: (fields are separated by ',') protein_id - ID of the protein that overlapping protien interface with, pDockQ - A docking score for the interface, higher scores imply a more stable interface.
+## ProtVar_pocket : Information about overlapping protein pocket. Output field(s) include: (fields are separated by ',') id - Pocket id, score - Combined score measuring confidence in pocket (score > 800 high confidence and score > 900 very high confidence), MpLDDT - Mean pLDDT score of all the residues from AlphaFold2 model used to form the pocket, energy - Pocket energy per volume (in kcal/mol unit), burriedness - Pocket burriedness (0.0 means entirely exposed and 1.0 means entierly burried), RoG - Pocket compactness in terms of radius of gyration  (in Angstrom unit), residues - Position of residues that form the pocket according to UniProt canonical (and AlphaFold) numbering.
+## ProtVar_stability : Impact on protein stability in ddG enegry difference.
+## VEP command-line: vep --cache_version 115 --db_version 116 --force_overwrite --plugin ProtVar,db=[PATH]/ProtVar_data.db
+#Uploaded_variation	Location	Allele	Gene	Feature	Feature_type	Consequence	cDNA_position	CDS_position	Protein_position	Amino_acids	Codons	Existing_variation	Extra
+7_38269535_T/C	7:38269535	C	ENSG00000211690	ENST00000390337	Transcript	missense_variant	6	8	3	Y/C	tAt/tGt	-	IMPACT=MODERATE;STRAND=-1;FLAGS=cds_start_NF,cds_end_NF;ProtVar_stability=0.188989
+7_38269535_T/C	7:38269535	C	ENSG00000211691	ENST00000390338	Transcript	downstream_gene_variant	-	-	-	-	-	-	IMPACT=MODIFIER;DISTANCE=4052;STRAND=-1;FLAGS=cds_start_NF,cds_end_NF
+7_38269535_T/C	7:38269535	C	ENSG00000211689	ENST00000443402	Transcript	upstream_gene_variant	-	-	-	-	-	-	IMPACT=MODIFIER;DISTANCE=3857;STRAND=-1;FLAGS=cds_start_NF
+7_38269535_T/C	7:38269535	C	ENSG00000289746	ENST00000698248	Transcript	intron_variant	-	-	-	-	-	-	IMPACT=MODIFIER;STRAND=-1
