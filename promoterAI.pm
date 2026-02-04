@@ -160,16 +160,21 @@ sub new {
      unless defined($file);
   $self->add_file($file);
 
-  # Parse column names
-  my $cols = $param_hash->{cols} || "tss_pos:promoterAI";
-  $self->_parse_colnames($cols);
-
   # Store the feature matching level
   my $match_to = $param_hash->{match_to} || "transcript";
   if($match_to ne 'transcript' && $match_to ne 'gene') {
     die "\n  ERROR: match_to must be 'transcript' or 'gene'\n";
   }
   $self->{match_to} = $match_to;
+
+  # Parse column names
+  my $default_cols = "tss_pos:promoterAI";
+  if( $self->{match_to} eq 'gene' ){
+    $default_cols .= ":transcript_id";
+  }
+
+  my $cols = $param_hash->{cols} || $default_cols;
+  $self->_parse_colnames($cols);
 
   return $self;
 }
