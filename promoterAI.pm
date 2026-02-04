@@ -124,6 +124,26 @@ sub _parse_colnames {
   $self->{cols}     = _prefix_cols $self->{cols};
 }
 
+sub _join_results {
+  my $self = shift;
+  my $all_results = shift;
+  my $res = shift;
+
+  if ($self->{config}->{output_format} eq 'json' || $self->{config}->{rest}) {
+    # Group results for JSON and REST
+    my $name = _plugin_name();
+    $all_results->{$name} = [] unless defined $all_results->{$name};
+    push(@{ $all_results->{$name} }, $res);
+  } else {
+    # Create array of results per key
+    for (keys %$res) {
+      $all_results->{$_} = [] if !$all_results->{$_};
+      push(@{ $all_results->{$_} }, $res->{$_} || "NA");
+    }
+  }
+  return $all_results;
+}
+
 sub new {
   my $class = shift;
 
@@ -198,7 +218,7 @@ sub run {
   return {} unless @data;
 
   # Filter the data to match the VariantFeatureOverlapAllele's...
-  my $promoterAI_result = {};
+  my $joined_results = {};
   my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
   my $vfoa_transcript_id = $vfoa->transcript->stable_id;
   my $vfoa_gene_id = $vfoa->transcript->{_gene_stable_id};
@@ -243,16 +263,14 @@ sub run {
       }
     }
 
-    $promoterAI_result = $data_candidate->{'result'};
-    last;
-  }
-
-  if( $promoterAI_result && scalar(%{$promoterAI_result}) > 0 ){
+    my $promoterAI_result = $data_candidate->{'result'};
     # Filter user-selected columns
     $promoterAI_result = _filter_selected_cols($promoterAI_result, $self->{cols});
+
+    $joined_results = $self->_join_results($joined_results, $promoterAI_result);
   }
 
-  return $promoterAI_result;
+  return $joined_results;
 }
 
 sub parse_data {
