@@ -30,6 +30,8 @@ limitations under the License.
    file : (mandatory) Tabix-indexed file from Illumina PromoterAI (see below)
    cols : (optional) Colon-separated list of columns to return from the plugin
           file (default: "tss_pos:promoterAI"); use 'all' to print all data
+   match_to : (optional) Feature type to match promoterAI scores to.
+          One of ["transcript", "gene"] (default: "transcript");
 
  To download the promoterAI scores file to use with VEP (GRCh38 based),
    please follow the instructions found in the README at https://github.com/Illumina/PromoterAI.
@@ -142,6 +144,13 @@ sub new {
   my $cols = $param_hash->{cols} || "tss_pos:promoterAI";
   $self->_parse_colnames($cols);
 
+  # Store the feature matching level
+  my $match_to = $param_hash->{match_to} || "transcript";
+  if($match_to ne 'transcript' && $match_to ne 'gene') {
+    die "\n  ERROR: match_to must be 'transcript' or 'gene'\n";
+  }
+  $self->{match_to} = $match_to;
+
   return $self;
 }
 
@@ -192,6 +201,7 @@ sub run {
   my $promoterAI_result = {};
   my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
   my $vfoa_transcript_id = $vfoa->transcript->stable_id;
+  my $vfoa_gene_id = $vfoa->transcript->{_gene_stable_id};
 
   for my $data_candidate (@data) {
     # * Alternative allele sequence
@@ -215,12 +225,22 @@ sub run {
       next;
     }
 
-    # * transcript ID
-    my $candidate_transcript_id = $data_candidate->{'transcript_id'};
-    $candidate_transcript_id =~ s/\.[0-9]+//; # remove transcript version
+    # * feature ID
+    if( $self->{match_to} eq "transcript" ){
+      my $candidate_transcript_id = $data_candidate->{'transcript_id'};
+      $candidate_transcript_id =~ s/\.[0-9]+//; # remove transcript version
 
-    if($vfoa_transcript_id ne $candidate_transcript_id){
-      next;
+      if($vfoa_transcript_id ne $candidate_transcript_id){
+        next;
+      }
+    }
+    elsif( $self->{match_to} eq "gene" ){
+      my $candidate_gene_id = $data_candidate->{'gene_id'};
+      $candidate_gene_id =~ s/\.[0-9]+//; # remove gene version
+
+      if($vfoa_gene_id ne $candidate_gene_id){
+        next;
+      }
     }
 
     $promoterAI_result = $data_candidate->{'result'};
