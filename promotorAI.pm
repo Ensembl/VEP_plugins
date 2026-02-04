@@ -26,6 +26,11 @@ limitations under the License.
 =head1 DESCRIPTION
  An Ensembl VEP plugin that adds promotorAI scores to promotor variants, predicting their impact on gene expression.
 
+ Options are passed to the plugin as key=value pairs:
+   file : (mandatory) Tabix-indexed file from Illumina PromotorAI (see below)
+   cols : (optional) Colon-separated list of columns to return from the plugin
+          file (default: "tss_pos:promoterAI"); use 'all' to print all data
+
  To download the promotorAI scores file to use with VEP (GRCh38 based),
    Please follow the instructions found in the README at https://github.com/Illumina/PromoterAI.
    You need a valid license agreement as described in the README to obtain and use the promotorAI scores.
@@ -55,6 +60,68 @@ use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+sub _plugin_name {
+  return 'PromotorAI';
+}
+
+sub _prefix_cols {
+  my $cols = shift;
+  my $prefix = _plugin_name() . '_';
+  my @prefixed_cols = map { $_ =~ /^$prefix/ ? $_ : $prefix . $_ } @$cols;
+  return \@prefixed_cols;
+}
+
+sub _get_colnames {
+  my $self = shift;
+
+  # Open file header
+  open IN, "tabix -H " . $self->{_files}[0] . " |"
+    or die "ERROR: cannot open tabix file for " . $self->{_files}[0];
+
+  # Get last line from header
+  my $last;
+  $last = $_ while <IN>;
+  $last =~ s/(^#|\n$)//g;
+  close IN;
+
+  # Parse column names from header
+  my @cols = split /\t/, $last;
+  @cols = splice @cols, 4; # first columns only identify the variant
+  return \@cols;
+}
+
+sub _parse_colnames {
+  my $self = shift;
+  my $cols = shift;
+
+  # Parse file columns
+  $self->{colnames} = $self->_get_colnames();
+
+  if ($cols eq "all") {
+    $self->{cols} = $self->{colnames};
+  } else {
+    my @cols = split(/:/, $cols);
+    $self->{cols} = \@cols;
+
+    # Check validity of all columns
+    my @invalid_cols;
+    for my $col (@{ $self->{cols} }) {
+      push(@invalid_cols, $col) unless grep(/^$col$/, @{ $self->{colnames} });
+    }
+
+    die "\n  ERROR: The following columns were not found in file header: ",
+      join(", ", @invalid_cols), "\n" if @invalid_cols;
+  }
+
+  # Rename the "promoterAI" column to "score"
+  $self->{colnames} = [ map { $_ eq "promoterAI" ? "score" : $_ } @{ $self->{colnames} } ];
+  $self->{cols}     = [ map { $_ eq "promoterAI" ? "score" : $_ } @{ $self->{cols} } ];
+
+  # Prefix all column names
+  $self->{colnames} = _prefix_cols $self->{colnames};
+  $self->{cols}     = _prefix_cols $self->{cols};
+}
+
 sub new {
   my $class = shift;
 
@@ -62,31 +129,18 @@ sub new {
 
   $self->expand_left(0);
   $self->expand_right(0);
-
   $self->get_user_params();
 
-  my $file = $self->params->[0];
+  my $param_hash = $self->params_to_hash();
 
-
-  my $headers;
+  my $file = $param_hash->{file};
+  die "\n  ERROR: No promotorAI file specified\nTry using 'file=path/to/data.tsv.bgz'\n"
+     unless defined($file);
   $self->add_file($file);
 
-  open FH, "tabix -fh $file 1:1-1 2>&1 | ";
-  while(<FH>){
-      next unless /^\#/;
-      chomp;
-      $_ =~ s/^\#//;
-      $self->{headers} = [split];
-  }
-
-  close(FH);
-  $headers = scalar @{$self->{headers}};
-
-  die("ERROR: Could not find promotorAI scores file\n") unless $file;
-
-
-  $self->{file_column} = $headers;
-
+  # Parse column names
+  my $cols = $param_hash->{cols} || "tss_pos:promoterAI";
+  $self->_parse_colnames($cols);
 
   return $self;
 }
@@ -98,14 +152,26 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  my %header_info;
+  my %header;
+  my @keys = @{ $self->{colnames} };
 
-  my $vcf_attribute = 'promotorAI_score';
-  my $attribute_descr = 'promotorAI score';
+  my $description = "column from " . basename $self->{_files}[0];
+  my @vals = map { $description } @keys;
+  @header{ @keys } = @vals;
 
-  $header_info{ $vcf_attribute } = $attribute_descr;
+  # Filter by user-selected columns
+  %header = map { $_ => $header{$_} } @{ $self->{cols} };
 
-  return \%header_info;
+  return \%header;
+}
+
+sub _filter_selected_cols {
+  my $res = shift;
+  my $cols = shift;
+
+  my %tmp = %$res;
+  %tmp = map { $_ => $res->{$_} } @$cols;
+  return \%tmp;
 }
 
 sub run {
@@ -161,6 +227,11 @@ sub run {
     last;
   }
 
+  if( $promotorAI_result && scalar(%{$promotorAI_result}) > 0 ){
+    # Filter user-selected columns
+    $promotorAI_result = _filter_selected_cols($promotorAI_result, $self->{cols});
+  }
+
   return $promotorAI_result;
 }
 
@@ -181,11 +252,9 @@ sub parse_data {
     }
   }
 
-  my @keys = qw(promotorAI_score);
-
   my %result;
 
-  @result{@keys} = ($score);
+  @result{ @{ $self->{colnames} } } = ($gene, $gene_id, $transcript_id, $strand, $tss_position, $score);
 
   return {
     ref => $ref,
