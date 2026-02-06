@@ -17,27 +17,27 @@ limitations under the License.
 =cut
 
 =head1 NAME
- promoterAI
+ PromoterAI
 
 =head1 SYNOPSIS
- mv promoterAI.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin promoterAI,/path/to/promoterAI.tsv.gz
+ mv PromoterAI.pm ~/.vep/Plugins
+ ./vep -i variations.vcf --plugin PromoterAI,/path/to/PromoterAI.tsv.gz
 
 =head1 DESCRIPTION
- An Ensembl VEP plugin that adds promoterAI scores to promoter variants, predicting their impact on gene expression.
+ An Ensembl VEP plugin that adds PromoterAI scores to promoter variants, predicting their impact on gene expression.
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed file from Illumina PromoterAI (see below)
    cols : (optional) Colon-separated list of columns to return from the plugin
           file (default: "tss_pos:promoterAI"); use 'all' to print all data
-   match_to : (optional) Feature type to match promoterAI scores to.
+   match_to : (optional) Feature type to match PromoterAI scores to.
           One of ["transcript", "gene"] (default: "transcript");
 
- To download the promoterAI scores file to use with VEP (GRCh38 based),
+ To download the PromoterAI scores file to use with VEP (GRCh38 based),
    please follow the instructions found in the README at https://github.com/Illumina/PromoterAI.
-   You need a valid license agreement as described in the README to obtain and use the promoterAI scores.
+   You need a valid license agreement as described in the README to obtain and use the PromoterAI scores.
 
- Please cite the promoterAI publication alongside Ensembl VEP if you use this resource:
+ Please cite the PromoterAI publication alongside Ensembl VEP if you use this resource:
  https://www.science.org/doi/10.1126/science.ads7373
 
  Necessary before using the plugin:
@@ -49,7 +49,7 @@ limitations under the License.
  in your path to use this plugin.
 =cut
 
-package promoterAI;
+package PromoterAI;
 
 use strict;
 use warnings;
@@ -156,7 +156,7 @@ sub new {
   my $param_hash = $self->params_to_hash();
 
   my $file = $param_hash->{file};
-  die "\n  ERROR: No promoterAI file specified\nTry using 'file=path/to/data.tsv.bgz'\n"
+  die "\n  ERROR: No PromoterAI file specified\nTry using 'file=path/to/data.tsv.bgz'\n"
      unless defined($file);
   $self->add_file($file);
 
