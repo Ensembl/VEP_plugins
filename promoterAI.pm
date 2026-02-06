@@ -21,7 +21,7 @@ limitations under the License.
 
 =head1 SYNOPSIS
  mv promoterAI.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin promoterAI,/path/to/promoterAI.tsv.gz
+ ./vep -i variations.vcf --plugin promoterAI,file=/path/to/promoterAI.tsv.gz
 
 =head1 DESCRIPTION
  An Ensembl VEP plugin that adds promoterAI scores to promoter variants, predicting their impact on gene expression.
