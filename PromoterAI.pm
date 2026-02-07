@@ -31,7 +31,11 @@ limitations under the License.
    cols : (optional) Colon-separated list of columns to return from the plugin
           file (default: "tss_pos:promoterAI"); use 'all' to print all data
    match_to : (optional) Feature type to match PromoterAI scores to.
-          One of ["transcript", "gene"] (default: "transcript");
+              One of ["transcript", "gene", "any"] (default: "transcript").
+              When "any", matching is done only on the genomic location and the alternative allele sequence.
+              Choosing "any" can be useful to annotate promotor variants that are further away from affected gene region,
+              ("intergenic" variant in VEP, whithout link to the nearest gene region),
+              but this can lead to more noisy output for variants in regions with multiple overlapping genes/transcripts.
 
  To download the PromoterAI scores file to use with VEP (GRCh38 based),
    please follow the instructions found in the README at https://github.com/Illumina/PromoterAI.
@@ -56,6 +60,8 @@ use warnings;
 
 use File::Basename;
 use File::Spec;
+
+use Try::Tiny;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
@@ -162,14 +168,17 @@ sub new {
 
   # Store the feature matching level
   my $match_to = $param_hash->{match_to} || "transcript";
-  if($match_to ne 'transcript' && $match_to ne 'gene') {
+  if($match_to ne 'transcript' && $match_to ne 'gene' && $match_to ne 'any') {
     die "\n  ERROR: match_to must be 'transcript' or 'gene'\n";
   }
   $self->{match_to} = $match_to;
 
   # Parse column names
   my $default_cols = "tss_pos:promoterAI";
-  if( $self->{match_to} eq 'gene' ){
+  if( $self->{match_to} eq 'any' ){
+    $default_cols .= ":gene_id";
+  }
+  if( $self->{match_to} ne 'transcript' ){
     $default_cols .= ":transcript_id";
   }
 
@@ -180,7 +189,7 @@ sub new {
 }
 
 sub feature_types {
-  return ['Transcript'];
+  return ['Feature', 'Intergenic'];
 }
 
 sub get_header_info {
@@ -225,8 +234,21 @@ sub run {
   # Filter the data to match the VariantFeatureOverlapAllele's...
   my $joined_results = {};
   my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
-  my $vfoa_transcript_id = $vfoa->transcript->stable_id;
-  my $vfoa_gene_id = $vfoa->transcript->{_gene_stable_id};
+  my $vfoa_transcript_id;
+  my $vfoa_gene_id;
+  try {
+    $vfoa_transcript_id = $vfoa->transcript->stable_id;
+  }
+  catch {
+    $vfoa_transcript_id = undef;
+  };
+
+  try {
+    $vfoa_gene_id = $vfoa->transcript->{_gene_stable_id};
+  }
+  catch {
+    $vfoa_gene_id = undef;
+  };
 
   for my $data_candidate (@data) {
     # * Alternative allele sequence
@@ -255,7 +277,7 @@ sub run {
       my $candidate_transcript_id = $data_candidate->{'transcript_id'};
       $candidate_transcript_id =~ s/\.[0-9]+//; # remove transcript version
 
-      if($vfoa_transcript_id ne $candidate_transcript_id){
+      if(!defined($vfoa_transcript_id) || $vfoa_transcript_id ne $candidate_transcript_id){
         next;
       }
     }
@@ -263,7 +285,7 @@ sub run {
       my $candidate_gene_id = $data_candidate->{'gene_id'};
       $candidate_gene_id =~ s/\.[0-9]+//; # remove gene version
 
-      if($vfoa_gene_id ne $candidate_gene_id){
+      if(!defined($vfoa_gene_id) || $vfoa_gene_id ne $candidate_gene_id){
         next;
       }
     }
