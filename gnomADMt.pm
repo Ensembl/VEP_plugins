@@ -21,20 +21,23 @@ limitations under the License.
 
 =head1 SYNOPSIS
  mv gnomADMt.pm ~/.vep/Plugins
- ./vep -i variations.vcf --plugin gnomADMt,/path/to/gnomad-chrM-reduced-annotations.tsv.gz
+ ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad-chrM.vcf.gz
 
 =head1 DESCRIPTION
  An Ensembl VEP plugin that retrieves allele frequencies for Mitochnodrial variants
- from the gnomAD genomes mitochnodrial (reduced) annotations files, available here:
-   https://gnomad.broadinstitute.org/downloads
+ from the gnomAD genomes mitochnodrial annotations files, available here:
+   https://gnomad.broadinstitute.org/downloads#v3-mitochondrial-dna
 
- To download the gnomad Mitochondrial allele annotations file in TSV format (GRCh38 based):
-    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1/vcf/genomes/gnomad.genomes.v3.1.sites.chrM.reduced_annotations.tsv --no-check-certificate
+ Options are passed to the plugin as key=value pairs:
+   file : (mandatory) Tabix-indexed VCF file from gnomAD
+   fields : Colon-separated list of information from mitochnodrial variants to
+            output (default: 'AC_hom:AC_het:AF_hom:AF_het:AN:max_hl');
+            keyword 'all' can be used to print all fields;
+            Available fields are the names of INFO fields.
 
- Necessary before using the plugin
-   The following steps are necessary to tabix the gnomad annotations file :
-    sed '1s/.*/#&/' gnomad.genomes.v3.1.sites.chrM.reduced_annotations.tsv | bgzip > gnomad.genomes.v3.1.sites.chrM.reduced_annotations.tsv.bgz
-    tabix -s 1 -b 2 -e 2 gnomad.genomes.v3.1.sites.chrM.reduced_annotations.tsv.bgz
+ To download the gnomad Mitochondrial allele annotations file in VCF format (GRCh38 based) and the corresponding index file:
+    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1/vcf/genomes/gnomad.genomes.v3.1.sites.chrM.vcf.bgz --no-check-certificate
+    wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1/vcf/genomes/gnomad.genomes.v3.1.sites.chrM.vcf.bgz.tbi --no-check-certificate
 
  If you use this plugin, please see the terms and data information:
    https://gnomad.broadinstitute.org/terms
@@ -56,6 +59,33 @@ use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
+sub _get_valid_fields {
+  my $selected  = shift;
+  my $available = shift;
+
+  # return all available fields when using 'all'
+  return $available if $selected eq 'all';
+  my @fields = split(/:/, $selected);
+
+  # check if the selected fields exist
+  my @valid;
+  my @invalid;
+  for my $field (@fields) {
+    if ( grep { $_ eq $field } @$available ) {
+      push(@valid, $field);
+    } else {
+      push(@invalid, $field);
+    }
+  }
+
+  die "ERROR: all fields given are invalid. Available fields are:\n" .
+    join(", ", @$available)."\n" unless @valid;
+  warn "gnomADMt plugin: WARNING: the following fields are not valid and were ignored: ",
+    join(", ", @invalid), "\n" if @invalid;
+
+  return \@valid;
+}
+
 sub new {
   my $class = shift;
 
@@ -65,31 +95,32 @@ sub new {
   $self->expand_right(0);
 
   $self->get_user_params();
+  my $params = $self->params_to_hash();
 
-  my $file = $self->params->[0];
+  my $file = $params->{file};
 
+  # get INFO fields names from VCF
+  my $vcf_file = Bio::EnsEMBL::IO::Parser::VCF4Tabix->open($file);
+  my $info = $vcf_file->get_metadata_by_pragma('INFO');
+  my $info_ids = [ map { $_->{ID} } @$info ];
+  my $info_descriptions = { map { $_->{ID} => $_->{Description} } @$info };
 
-  my $prefix = 'gnomAD';
-  my $headers;
-  $self->add_file($file);
-
-  open FH, "tabix -fh $file 1:1-1 2>&1 | ";
-  while(<FH>){
-      next unless /^\#/;
-      chomp;
-      $_ =~ s/^\#//;
-      $self->{headers} = [split];
+  # check if AF_hom and AF_het fields exists
+  if (!defined $info_descriptions->{AF_hom} || !defined $info_descriptions->{AF_het}) {
+    die "ERROR: Provided file does not contain AF_hom or AF_het fields. Please provide the file as downloaded from GnomAD.\n"
   }
 
-  close(FH);
-  $headers = scalar @{$self->{headers}};
+  $self->add_file($file);
 
-  die("ERROR: Could not find any $prefix coverage files\n") unless $file;
+  # Process the requested fields
+  my $requested_fields_str = defined $params->{fields} ? $params->{fields} : 'AC_hom:AC_het:AF_hom:AF_het:AN:max_hl';
+  my $fields = _get_valid_fields($requested_fields_str, $info_ids);
 
+  $self->{fields} = $fields;
+  $self->{fields_descriptions} = { map { $_ => $info_descriptions->{$_} } @$fields };
 
+  my $prefix = 'gnomAD';
   $self->{prefix} = $prefix;
-  $self->{file_column} = $headers;
-
 
   return $self;
 }
@@ -101,38 +132,10 @@ sub feature_types {
 sub get_header_info {
   my $self = shift;
 
-  my $prefix = $self->{prefix};
-  my %header_info;
-
-
-  for (qw(AC_hom AC_het AF_hom AF_het AN max_observed_heteroplasmy)) {
-    my $vcf_attribute = join('_', $prefix, $_);
-    my $attribute_descr = '';
-
-    if ( $_ =~ /^AF_/ ) {
-      $attribute_descr .= 'allele frequency';
-    }
-    elsif ( $_ =~ /^AC_/ ) {
-      $attribute_descr .= 'allele count';
-    }
-
-    if ( $_ =~ /_hom$/ ) {
-      $attribute_descr .= ' in homozygous carriers';
-    }
-    elsif ( $_ =~ /_het$/ ) {
-      $attribute_descr .= ' in heterozygous carriers';
-    }
-
-    if ( $_ eq 'AN' ) {
-      $attribute_descr = 'no. of callable samples at this site';
-    }
-
-    if ( $_ eq 'max_observed_heteroplasmy' ) {
-      $attribute_descr = 'Maximum level of heteroplasmy observed at this site (>0.95 is considered homozygous)';
-    }
-
-    $header_info{ $vcf_attribute } = $attribute_descr;
-  }
+  my $prefix = $self->{prefix} . '_';
+  my %header_info = map {
+    ''.$prefix.$_ => $self->{fields_descriptions}->{$_}
+  } @{$self->{fields}};
 
   return \%header_info;
 }
@@ -181,40 +184,59 @@ sub run {
   return $gnomad_freqs;
 }
 
-sub parse_data {
+sub _parse_vcf {
   my ($self, $line) = @_;
 
-  my $prefix = $self->{prefix};
-  my $header = $self->{file_column};
-  my ($chr, $pos, $ref, $alt, $filters, @af) = split /\t/, $line;
-
+  my ($chrom, $start, $id, $ref, $alt, $qual, $filter, $info) = split /\t/, $line;
   # VCF-like adjustment of mismatched substitutions for comparison with VEP
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
     my $first_alt = substr($alt, 0, 1);
     if ($first_ref eq $first_alt) {
-      $pos++;
+      $start++;
       $ref = substr($ref, 1) || "-";
       $alt = substr($alt, 1) || "-";
     }
   }
 
-  my @keys;
-
-  @keys = map {
-    join('_', $prefix, $_)
+  my %data = (
+    'chromosome' => $chrom,
+    'start'      => $start,
+    'identifier' => $id,
+    'alleles'    => $ref.'/'.$alt,
+    'ref'        => $ref,
+    'alt'        => $alt,
+    'quality'    => $qual,
+    'filter'     => $filter,
+  );
+  # fetch data from all INFO fields
+  for my $field ( split /;/, $info ) {
+    my ($key, $value) = split /=/, $field;
+    $data{$key} = $value;
   }
-  qw(filters AC_hom AC_het AF_hom AF_het AN max_observed_heteroplasmy);
 
-  my %result;
+  return \%data;
+}
 
-  @result{@keys} = ($filters, @af);
+sub parse_data {
+  my ($self, $line) = @_;
+
+  my $vcf_data = $self->_parse_vcf($line);
+
+  my %keys = map {
+    $_ => join('_', $self->{prefix}, $_)
+  }
+  @{$self->{fields}};
+
+  # Filter VCF data down to selected fields
+  # and prefix the field names
+  my $result = {map { $keys{$_} => $vcf_data->{$_} } @{$self->{fields}}};
 
   return {
-    ref => $ref,
-    alt => $alt,
-    start => $pos,
-    result => \%result
+    ref => $vcf_data->{ref},
+    alt => $vcf_data->{alt},
+    start => $vcf_data->{start},
+    result => $result
   }
 }
 
