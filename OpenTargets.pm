@@ -1,7 +1,7 @@
 =head1 LICENSE
 
 Copyright [1999-2015] Wellcome Trust Sanger Institute and the EMBL-European Bioinformatics Institute
-Copyright [2016-2025] EMBL-European Bioinformatics Institute
+Copyright [2016-2026] EMBL-European Bioinformatics Institute
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ limitations under the License.
 
   To use the original file (with all associations), comment out the header line and regenerate the tabix-index to include the header.
     zcat open_targets_vep.tsv.bgz | sed '1 s/.*/#&/' | bgzip -c > open_targets_vep.tsv.bgz.tmp; mv open_targets_vep.tsv.bgz.tmp open_targets_vep.tsv.bgz
-    tabix -s 1 -b 2 -e 2 open_targets_vep_qtl.tsv.bgz
+    tabix -s 1 -b 2 -e 2 open_targets_vep.tsv.bgz
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed file from Open Targets platform. File should contain GWAS- or QTL-annotations, or both.

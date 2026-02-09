@@ -634,7 +634,8 @@ my $VEP_PLUGIN_CONFIG = {
       "species" => [
         "homo_sapiens",
         "sus_scrofa",
-        "gallus_gallus_GCA_000002315.5"
+        "gallus_gallus_GCA_000002315.5",
+        "meleagris_gallopavo"
       ],
       "form" => [
         {
@@ -655,7 +656,8 @@ my $VEP_PLUGIN_CONFIG = {
         #"snv=/path/to/CADD_whole_genome_SNVs.tsv.gz",
         #"indels=/path/to/CADD_GRCh38_1.6_InDels.tsv.gz",
         #"snv_pig=/path/to/ALL_pCADD-PHRED-scores.tsv.gz",
-        #"snv_chicken_rjf=/path/to/chCADD_updated.tsv.gz"
+        #"snv_chicken_rjf=/path/to/chCADD_updated.tsv.gz",
+        #"snv_turkey=/path/to/tCADD.tsv.gz",
         #"sv=/path/to/CADD_prescored_variants.tsv.gz"
       ]
     },
@@ -1928,6 +1930,40 @@ my $VEP_PLUGIN_CONFIG = {
             { "value" => "int=1", "caption" => "Protein Interactions", "helptip" => "Effect on protein interactions", 'checked' => 1 },
             { "value" => "mod=1", "caption" => "Protein Structure", "helptip" => "Effect on protein structure", 'checked' => 1 },
             { "value" => "exp=1", "caption" => "Protein Structure (exp.)", "helptip" => "Effect on protein structure (experimental)", 'checked' => 1 }
+          ],
+        }
+      ]
+    },
+
+    # ProtVar
+    {
+      "key" => "ProtVar",
+      "label" => "ProtVar",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Protein annotation",
+      "helptip" => "ProtVar provides contextualised information for missense variation, including destabilisation of protein structures, overlapping protein pockets, and protein-protein interaction interfaces",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/ProtVar.pm",
+      "requires_data" => 1,
+      "params"  => [
+        "#db=/path/to/ProtVar_data.db"
+      ],
+      "species" => [
+        "homo_sapiens"
+      ],
+      "form" => [
+        {
+          "name" => "ProtVar_fields",
+          "label" => "Fields to include",
+          "helptip" => "Select which type of output(s) you want to see (by default all of them is selected)",
+          "value" => "",
+          "type" => "checklist",
+          "multiple" => 1,
+          "style" => "height:150px",
+          "values" => [
+            { "value" => "stability=1", "caption" => "Protein Structure Stability", "helptip" => "Effect on protein structure stability", 'checked' => 1 },
+            { "value" => "pocket=1", "caption" => "Protein Pockets", "helptip" => "Ovelapping protein pocket and relevant attribute", 'checked' => 1 },
+            { "value" => "int=1", "caption" => "Protein-Protein Interaction Interface", "helptip" => "Overlapping interface for protein-protein interaction", 'checked' => 1 }
           ],
         }
       ]
