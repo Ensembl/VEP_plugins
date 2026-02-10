@@ -37,6 +37,9 @@ limitations under the License.
    hap_filter : (optional) Colon-separated list of haplogroups to limit returned haplogroup field data to.
                 The order of the list is preserved in the output. Example: 'HV:A:B'.
                 By default, data for all haplogroups is returned for all haplogroup fields (/hap_.+/).
+   pop_filter : (optional) Colon-separated list of pupulations to limit returned population field data to.
+                The order of the list is preserved in the output. Example: 'eas:fin:afr'.
+                By default, data for all populations is returned for all population fields (/pop_.+/).
 
  To download the gnomad Mitochondrial allele annotations file in VCF format (GRCh38 based) and the corresponding index file:
     wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1/vcf/genomes/gnomad.genomes.v3.1.sites.chrM.vcf.bgz --no-check-certificate
@@ -177,6 +180,27 @@ sub new {
     }
   }
 
+  if( defined $params->{pop_filter} ){
+    # Check any population fields are requested.
+    # Otherwise, show a warning that population filtering can only be applied to population fields.
+    if(!grep /pop_.+/, @{$self->{fields}}){
+      warn "gnomADMt plugin: WARNING: Population filtering can only be applied to population fields.\n";
+    }
+    else{
+      # Parse population output order
+      my $available_populations = _parse_vcf_description_groups($self->{fields_descriptions}->{'pop_AN'}, 'population');
+      my $populations = _validate_list_selection($params->{pop_filter}, $available_populations, ':', 'population');
+
+      my @available_population_idxs = (0..scalar(@$available_populations)-1);
+      my @population_idxs = ();
+      for my $population (@$populations){
+        push(@population_idxs, grep { $available_populations->[$_] eq $population } @available_population_idxs);
+      }
+      $self->{report_populations} = $populations;
+      $self->{report_population_idxs} = \@population_idxs;
+    }
+  }
+
   my $prefix = 'gnomAD';
   $self->{prefix} = $prefix;
 
@@ -192,15 +216,24 @@ sub get_header_info {
 
   my $prefix = $self->{prefix} . '_';
 
-  # Report new haplogroup output order based on haplogroup filtering option
   my %field_descriptions = map {
     $_ => $self->{fields_descriptions}->{$_}
   } @{$self->{fields}};
 
+  # Report new haplogroup output order based on haplogroup filtering option
   if( defined($self->{report_haplogroups}) ){
     foreach my $field (keys %field_descriptions) {
       if($field =~ /hap_.+/){
         $field_descriptions{$field} = _rewrite_vcf_description_groups($field_descriptions{$field}, 'haplogroup', $self->{report_haplogroups});
+      }
+    }
+  }
+
+  # Report new population output order based on population filtering option
+  if( defined($self->{report_populations}) ){
+    foreach my $field (keys %field_descriptions) {
+      if($field =~ /pop_.+/){
+        $field_descriptions{$field} = _rewrite_vcf_description_groups($field_descriptions{$field}, 'population', $self->{report_populations});
       }
     }
   }
@@ -303,6 +336,19 @@ sub parse_data {
         my $split_pattern = quotemeta($separator);
         my @values = split(/$split_pattern/, $vcf_data->{$info_field});
         my @filtered_values = @values[@{$self->{report_haplogroup_idxs}}];
+        $vcf_data->{$info_field} = join($separator, @filtered_values);
+      }
+    }
+  }
+
+  # Process population output values (and order) to match population filtering
+  if(defined($self->{report_populations})){
+    foreach my $info_field (keys %{$vcf_data}){
+      if ($info_field =~ m/^pop_/ && defined($vcf_data->{$info_field})){
+        my $separator = ($info_field eq 'pop_hl_hist')?',':'|';
+        my $split_pattern = quotemeta($separator);
+        my @values = split(/$split_pattern/, $vcf_data->{$info_field});
+        my @filtered_values = @values[@{$self->{report_population_idxs}}];
         $vcf_data->{$info_field} = join($separator, @filtered_values);
       }
     }
