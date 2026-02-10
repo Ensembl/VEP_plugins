@@ -31,7 +31,7 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed VCF file from gnomAD
    fields : (optional) Colon-separated list of information from mitochondrial variants to
-            output (default: 'AC_hom:AC_het:AF_hom:AF_het:AN:max_hl');
+            output (default: 'hap_AC_hom:hap_AC_het:hap_AF_hom:hap_AF_het:hap_AN');
             keyword 'all' can be used to print all fields;
             Available fields are the names of INFO fields.
    hap_filter : (optional) Colon-separated list of haplogroups to limit returned haplogroup field data to.
@@ -151,7 +151,7 @@ sub new {
   $self->add_file($file);
 
   # Process the requested fields
-  my $requested_fields_str = defined $params->{fields} ? $params->{fields} : 'AC_hom:AC_het:AF_hom:AF_het:AN:max_hl';
+  my $requested_fields_str = defined $params->{fields} ? $params->{fields} : 'hap_AC_hom:hap_AC_het:hap_AF_hom:hap_AF_het:hap_AN';
   my $fields = _validate_list_selection($requested_fields_str, $info_ids);
 
   $self->{fields} = $fields;
