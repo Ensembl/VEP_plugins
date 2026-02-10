@@ -25,15 +25,18 @@ limitations under the License.
 
 =head1 DESCRIPTION
  An Ensembl VEP plugin that retrieves allele frequencies for Mitochnodrial variants
- from the gnomAD genomes mitochnodrial annotations files, available here:
+ from the gnomAD genomes mitochondrial annotations files, available here:
    https://gnomad.broadinstitute.org/downloads#v3-mitochondrial-dna
 
  Options are passed to the plugin as key=value pairs:
    file : (mandatory) Tabix-indexed VCF file from gnomAD
-   fields : Colon-separated list of information from mitochnodrial variants to
+   fields : (optional) Colon-separated list of information from mitochondrial variants to
             output (default: 'AC_hom:AC_het:AF_hom:AF_het:AN:max_hl');
             keyword 'all' can be used to print all fields;
             Available fields are the names of INFO fields.
+   hap_filter : (optional) Colon-separated list of haplogroups to limit returned haplogroup field data to.
+                The order of the list is preserved in the output. Example: 'HV:A:B'.
+                By default, data for all haplogroups is returned for all haplogroup fields (/hap_.+/).
 
  To download the gnomad Mitochondrial allele annotations file in VCF format (GRCh38 based) and the corresponding index file:
     wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1/vcf/genomes/gnomad.genomes.v3.1.sites.chrM.vcf.bgz --no-check-certificate
@@ -59,31 +62,65 @@ use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
-sub _get_valid_fields {
+sub _validate_list_selection {
+  # Validate string $selected can be split into a list of valid items,
+  # each of which must be found in arrayref $available
   my $selected  = shift;
   my $available = shift;
+  my $separator = shift || ':';
+  my $selection_type = shift || 'field';
 
-  # return all available fields when using 'all'
+  # return all available selection options when using 'all'
   return $available if $selected eq 'all';
-  my @fields = split(/:/, $selected);
+  my @selected_items = split(/$separator/, $selected);
 
-  # check if the selected fields exist
+  # check if the selected items exist
   my @valid;
   my @invalid;
-  for my $field (@fields) {
-    if ( grep { $_ eq $field } @$available ) {
-      push(@valid, $field);
+  for my $item (@selected_items) {
+    if ( grep { $_ eq $item } @$available ) {
+      push(@valid, $item);
     } else {
-      push(@invalid, $field);
+      push(@invalid, $item);
     }
   }
 
-  die "ERROR: all fields given are invalid. Available fields are:\n" .
+  die "ERROR: all ".$selection_type."s given are invalid. Available ".$selection_type."s are:\n" .
     join(", ", @$available)."\n" unless @valid;
-  warn "gnomADMt plugin: WARNING: the following fields are not valid and were ignored: ",
+  warn "gnomADMt plugin: WARNING: the following ".$selection_type." are not valid and were ignored: ",
     join(", ", @invalid), "\n" if @invalid;
 
   return \@valid;
+}
+
+sub _parse_vcf_description_groups {
+  my $description = shift;
+  my $groupname = shift;
+
+  my @groups = ();
+  if( $description =~ /$groupname order: \[(.+?)\]/ ){
+    my $group_string = $1;
+    @groups = $group_string =~ /'(\w+)'/g;
+  }
+  else{
+    warn "gnomADMt plugin: WARNING: $groupname order not found in VCF description.\n";
+  }
+
+  return \@groups;
+}
+
+sub _rewrite_vcf_description_groups {
+  my $description = shift;
+  my $groupname = shift;
+  my $new_groups = shift;
+
+  my $match_pattern = qr/($groupname order: )\[.+?\]/;
+  my $subsitute_pattern = '['.join(',', map { "'$_'" } @$new_groups).']';
+  print "subtitute pattern: ".$subsitute_pattern."\n";
+  print "match pattern: ".$match_pattern."\n";
+  $description =~ s/$match_pattern/$1$subsitute_pattern/;
+
+  return $description;
 }
 
 sub new {
@@ -114,10 +151,31 @@ sub new {
 
   # Process the requested fields
   my $requested_fields_str = defined $params->{fields} ? $params->{fields} : 'AC_hom:AC_het:AF_hom:AF_het:AN:max_hl';
-  my $fields = _get_valid_fields($requested_fields_str, $info_ids);
+  my $fields = _validate_list_selection($requested_fields_str, $info_ids);
 
   $self->{fields} = $fields;
   $self->{fields_descriptions} = { map { $_ => $info_descriptions->{$_} } @$fields };
+
+  if( defined $params->{hap_filter} ){
+    # Check any haplogroup fields are requested.
+    # Otherwise, show a warning that haplogroup filtering can only be applied to haplogroup fields.
+    if(!grep /hap_.+/, @{$self->{fields}}){
+      warn "gnomADMt plugin: WARNING: Haplogroup filtering can only be applied to haplogroup fields.\n";
+    }
+    else{
+      # Parse haplogroup output order
+      my $available_haplogroups = _parse_vcf_description_groups($self->{fields_descriptions}->{'hap_AN'}, 'haplogroup');
+      my $haplogroups = _validate_list_selection($params->{hap_filter}, $available_haplogroups, ':', 'haplogroup');
+
+      my @available_haplogroup_idxs = (0..scalar(@$available_haplogroups)-1);
+      my @haplogroup_idxs = ();
+      for my $haplogroup (@$haplogroups){
+        push(@haplogroup_idxs, grep { $available_haplogroups->[$_] eq $haplogroup } @available_haplogroup_idxs);
+      }
+      $self->{report_haplogroups} = $haplogroups;
+      $self->{report_haplogroup_idxs} = \@haplogroup_idxs;
+    }
+  }
 
   my $prefix = 'gnomAD';
   $self->{prefix} = $prefix;
@@ -133,8 +191,22 @@ sub get_header_info {
   my $self = shift;
 
   my $prefix = $self->{prefix} . '_';
+
+  # Report new haplogroup output order based on haplogroup filtering option
+  my %field_descriptions = map {
+    $_ => $self->{fields_descriptions}->{$_}
+  } @{$self->{fields}};
+
+  if( defined($self->{report_haplogroups}) ){
+    foreach my $field (keys %field_descriptions) {
+      if($field =~ /hap_.+/){
+        $field_descriptions{$field} = _rewrite_vcf_description_groups($field_descriptions{$field}, 'haplogroup', $self->{report_haplogroups});
+      }
+    }
+  }
+
   my %header_info = map {
-    ''.$prefix.$_ => $self->{fields_descriptions}->{$_}
+    ''.$prefix.$_ => $field_descriptions{$_};
   } @{$self->{fields}};
 
   return \%header_info;
@@ -223,13 +295,26 @@ sub parse_data {
 
   my $vcf_data = $self->_parse_vcf($line);
 
+  # Process haplogroup output values (and order) to match haplogroup filtering
+  if(defined($self->{report_haplogroups})){
+    foreach my $info_field (keys %{$vcf_data}){
+      if ($info_field =~ m/^hap_/ && defined($vcf_data->{$info_field})){
+        my $separator = ($info_field eq 'hap_hl_hist')?',':'|';
+        my $split_pattern = quotemeta($separator);
+        my @values = split(/$split_pattern/, $vcf_data->{$info_field});
+        my @filtered_values = @values[@{$self->{report_haplogroup_idxs}}];
+        $vcf_data->{$info_field} = join($separator, @filtered_values);
+      }
+    }
+  }
+
+  # Filter VCF data down to selected fields
+  # and prefix the field names
   my %keys = map {
     $_ => join('_', $self->{prefix}, $_)
   }
   @{$self->{fields}};
 
-  # Filter VCF data down to selected fields
-  # and prefix the field names
   my $result = {map { $keys{$_} => $vcf_data->{$_} } @{$self->{fields}}};
 
   return {
