@@ -1664,19 +1664,6 @@ my $VEP_PLUGIN_CONFIG = {
 
 
 
-    ## STRUCTURAL VARIANT DATA
-    ##########################
-
-    # StructuralVariantOverlap
-    {
-      "key" => "StructuralVariantOverlap",
-      "label" => "StructuralVariantOverlap",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Structural variant data",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/StructuralVariantOverlap.pm"
-    },
-
     ## GENE TOLERANCE TO CHANGE
     ###########################
 
