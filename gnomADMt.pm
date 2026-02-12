@@ -162,7 +162,7 @@ sub new {
     }
     else{
       # Parse haplogroup output order
-      my $available_haplogroups = _parse_vcf_description_groups($self->{fields_descriptions}->{'hap_AN'}, 'haplogroup');
+      my $available_haplogroups = _parse_vcf_description_groups($info_descriptions->{'hap_AN'}, 'haplogroup');
       my $haplogroups = _validate_list_selection($params->{hap_filter}, $available_haplogroups, ':', 'haplogroup');
 
       my @available_haplogroup_idxs = (0..scalar(@$available_haplogroups)-1);
@@ -183,7 +183,7 @@ sub new {
     }
     else{
       # Parse population output order
-      my $available_populations = _parse_vcf_description_groups($self->{fields_descriptions}->{'pop_AN'}, 'population');
+      my $available_populations = _parse_vcf_description_groups($info_descriptions->{'pop_AN'}, 'population');
       my $populations = _validate_list_selection($params->{pop_filter}, $available_populations, ':', 'population');
 
       my @available_population_idxs = (0..scalar(@$available_populations)-1);
