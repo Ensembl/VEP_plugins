@@ -38,9 +38,9 @@ limitations under the License.
 =head1 DESCRIPTION
 
  An Ensembl VEP plugin that integrates data from Open Targets Platform
- (https://platform.opentargets.org), a tool that highlights variant-centric
- statistical evidence to allow both prioritisation of candidate causal variants
- at trait-associated loci and identification of potential drug targets.
+ (https://platform.opentargets.org), a target identification tool that includes
+ comprehensive variant annotation and the results of state-of-the-art large-scale statistical analyses,
+ including fine-mapping, colocalisation, and locus-to-gene assignment across all complex and molecular traits.
 
  Data from Open Targets Genetics includes two types of associations: GWAS based
  and QTL base. For GWAS studies, the data contains a locus-to-gene (L2G) scores
