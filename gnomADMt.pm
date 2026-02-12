@@ -57,9 +57,6 @@ package gnomADMt;
 use strict;
 use warnings;
 
-use File::Basename;
-use File::Spec;
-
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
