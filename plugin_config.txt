@@ -1245,7 +1245,7 @@ my $VEP_PLUGIN_CONFIG = {
     {
       "key" => "gnomADMt",
       "label" => "gnomADMt",
-      "helptip" => "Reports allele frequency data from gmomAD for Mitochnodrial variants",
+      "helptip" => "Reports allele frequency data from gmomAD for mitochondrial variants",
       "available" => 0,
       "enabled" => 0,
       "section" => "Frequency data",

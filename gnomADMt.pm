@@ -24,7 +24,7 @@ limitations under the License.
  ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad-chrM.vcf.gz
 
 =head1 DESCRIPTION
- An Ensembl VEP plugin that retrieves allele frequencies for Mitochnodrial variants
+ An Ensembl VEP plugin that retrieves allele frequencies for mitochondrial variants
  from the gnomAD genomes mitochondrial annotations files, available here:
    https://gnomad.broadinstitute.org/downloads#v3-mitochondrial-dna
 
@@ -37,7 +37,7 @@ limitations under the License.
    hap_filter : (optional) Colon-separated list of haplogroups to limit returned haplogroup field data to.
                 The order of the list is preserved in the output. Example: 'HV:A:B'.
                 By default, data for all haplogroups is returned for all haplogroup fields (/hap_.+/).
-   pop_filter : (optional) Colon-separated list of pupulations to limit returned population field data to.
+   pop_filter : (optional) Colon-separated list of populations to limit returned population field data to.
                 The order of the list is preserved in the output. Example: 'eas:fin:afr'.
                 By default, data for all populations is returned for all population fields (/pop_.+/).
 
