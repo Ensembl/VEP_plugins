@@ -123,8 +123,8 @@ sub _rewrite_vcf_description_groups {
   my $new_groups = shift;
 
   my $match_pattern = qr/($groupname order: )\[.+?\]/;
-  my $subsitute_pattern = '['.join(',', map { "'$_'" } @$new_groups).']';
-  $description =~ s/$match_pattern/$1$subsitute_pattern/;
+  my $substitute_pattern = '['.join(',', map { "'$_'" } @$new_groups).']';
+  $description =~ s/$match_pattern/$1$substitute_pattern/;
 
   return $description;
 }
