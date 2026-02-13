@@ -202,9 +202,9 @@ sub get_header_info {
   if($output_vcf || $self->{split_output}) {
     $header{"SpliceAI_pred_SYMBOL"} = "SpliceAI ($spliceai_version) gene symbol";
     $header{"SpliceAI_pred_DS_AG"} = "SpliceAI ($spliceai_version) delta score (0–1) for acceptor gain: max inc. in predicted acceptor probability within ±50 bp. Guide cutoffs: <0.01 none; ≥0.2 high-recall; ≥0.5 recommended; ≥0.8 high-precision.";
-    $header{"SpliceAI_pred_DS_AL"} = "SpliceAI ($spliceai_version) delta score (0–1) for acceptor loss: max dec in predicted acceptor probability within ±50 bp. Guide cutoffs: <0.01 none; ≥0.2 high-recall; ≥0.5 recommended; ≥0.8 high-precision.";
+    $header{"SpliceAI_pred_DS_AL"} = "SpliceAI ($spliceai_version) delta score (0–1) for acceptor loss: max dec. in predicted acceptor probability within ±50 bp. Guide cutoffs: <0.01 none; ≥0.2 high-recall; ≥0.5 recommended; ≥0.8 high-precision.";
     $header{"SpliceAI_pred_DS_DG"} = "SpliceAI ($spliceai_version) delta score (0–1) for donor gain: max inc. in predicted donor probability within ±50 bp. Guide cutoffs: <0.01 none; ≥0.2 high-recall; ≥0.5 recommended; ≥0.8 high-precision.";
-    $header{"SpliceAI_pred_DS_DL"} = "SpliceAI ($spliceai_version) delta score (0–1) for donor loss: max inc. in predicted donor probability within ±50 bp. Guide cutoffs: <0.01 none; ≥0.2 high-recall; ≥0.5 recommended; ≥0.8 high-precision.";
+    $header{"SpliceAI_pred_DS_DL"} = "SpliceAI ($spliceai_version) delta score (0–1) for donor loss: max dec. in predicted donor probability within ±50 bp. Guide cutoffs: <0.01 none; ≥0.2 high-recall; ≥0.5 recommended; ≥0.8 high-precision.";
     $header{"SpliceAI_pred_DP_AG"} = "SpliceAI ($spliceai_version) delta position (bp) for acceptor gain: position (relative to variant) of max AG change (+ downstream, − upstream).";
     $header{"SpliceAI_pred_DP_AL"} = "SpliceAI ($spliceai_version) delta position (bp) for acceptor loss: position (relative to variant) of max AL change (+ downstream, − upstream).";
     $header{"SpliceAI_pred_DP_DG"} = "SpliceAI ($spliceai_version) delta position (bp) for donor gain: position (relative to variant) of max DG change (+ downstream, − upstream).";
