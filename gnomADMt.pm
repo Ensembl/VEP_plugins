@@ -23,11 +23,11 @@ limitations under the License.
  mv gnomADMt.pm ~/.vep/Plugins
 
  # Default usage
- ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad-chrM.vcf.gz
+ ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad.genomes.v3.1.sites.chrM.vcf.bgz
  # Only return (haplotype-)grouped data for the specified haplogroups
- ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad-chrM.vcf.gz,hap_filter=HV:A:B
+ ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad.genomes.v3.1.sites.chrM.vcf.bgz,hap_filter=HV:A:B
  # Only return population-grouped data for the specified populations
- ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad-chrM.vcf.gz,fields=pop_AC_hom:pop_AC_het:pop_AF_hom:pop_AF_het:pop_AN,pop_filter=eas:fin:afr
+ ./vep -i variations.vcf --plugin gnomADMt,file=/path/to/gnomad.genomes.v3.1.sites.chrM.vcf.bgz,fields=pop_AC_hom:pop_AC_het:pop_AF_hom:pop_AF_het:pop_AN,pop_filter=eas:fin:afr
 
 =head1 DESCRIPTION
  An Ensembl VEP plugin that retrieves allele frequencies for mitochondrial variants
