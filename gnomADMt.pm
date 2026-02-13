@@ -252,6 +252,12 @@ sub run {
   my $vf = $vfoa->variation_feature;
 
   (my $vf_chr = $vf->{chr}) =~ s/^chr//;
+
+  #Normalize alternative chromosome names
+  if( $vf_chr eq 'MT' ){
+    $vf_chr = 'M';
+  }
+
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
 
   $vf_end = $vf_start if $vf_start > $vf_end;
