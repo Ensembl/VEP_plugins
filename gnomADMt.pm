@@ -63,6 +63,8 @@ package gnomADMt;
 use strict;
 use warnings;
 
+use List::Util qw(max);
+
 use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use Bio::EnsEMBL::Variation::Utils::Sequence qw(get_matched_variant_alleles);
 
@@ -262,7 +264,7 @@ sub run {
 
   $vf_end = $vf_start if $vf_start > $vf_end;
 
-  my @data = @{ $self->get_data($vf_chr, $vf_start -2, $vf_end) };
+  my @data = @{ $self->get_data($vf_chr, max(1, $vf_start -2), $vf_end) };
 
   return {} unless @data;
 
