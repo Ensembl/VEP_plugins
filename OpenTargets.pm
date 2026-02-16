@@ -35,6 +35,9 @@ limitations under the License.
  # print all information for Open Targets Platform associations found
  ./vep -i variations.vcf --plugin OpenTargets,file=path/to/data.tsv.bz,cols=all
 
+ # Only return Open Targets Platform associations found in the GWAS catalog
+ ./vep -i variations.vcf --plugin OpenTargets,study_types=gwas,file=path/to/data.tsv.bz
+
 =head1 DESCRIPTION
 
  An Ensembl VEP plugin that integrates data from Open Targets Platform
