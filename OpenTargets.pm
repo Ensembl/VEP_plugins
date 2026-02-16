@@ -29,10 +29,10 @@ limitations under the License.
 
  mv OpenTargets.pm ~/.vep/Plugins
 
- # print Open Targets Genetics scores and respective gene identifiers (default)
+ # print Open Targets Platform associations (both GWAS and QTL) and their respective identifiers (default)
  ./vep -i variations.vcf --plugin OpenTargets,file=path/to/data.tsv.bz
  
- # print all information from Open Targets Genetics
+ # print all information for Open Targets Platform associations found
  ./vep -i variations.vcf --plugin OpenTargets,file=path/to/data.tsv.bz,cols=all
 
 =head1 DESCRIPTION
@@ -42,7 +42,7 @@ limitations under the License.
  comprehensive variant annotation and the results of state-of-the-art large-scale statistical analyses,
  including fine-mapping, colocalisation, and locus-to-gene assignment across all complex and molecular traits.
 
- Data from Open Targets Genetics includes two types of associations: GWAS based
+ Data from Open Targets Platform includes two types of associations: GWAS based
  and QTL base. For GWAS studies, the data contains a locus-to-gene (L2G) scores
  to predict causal genes at GWAS loci.
 
@@ -71,8 +71,8 @@ limitations under the License.
           (default: "gwasLocusToGeneScore:gwasGeneId:gwasDiseases" on GWAS annotations and
           "qtlGeneId:qtlBiosampleName" for QTL annotations); use 'all' to print all data
 
- Please cite the Open Targets Genetics publication alongside Ensembl VEP if 
- you use this resource: https://doi.org/10.1093/nar/gkaa84
+ Please cite the Open Targets Platform publication alongside Ensembl VEP if 
+ you use this resource: https://doi.org/10.1093/nar/gkae1128
 
 =cut
 
