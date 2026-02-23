@@ -1119,11 +1119,12 @@ my $VEP_PLUGIN_CONFIG = {
       "form" => [
         {
           "name" => "file_type",
-          "label" => "Select analysis mode",
+          "label" => "Select input files",
           "type" => "dropdown",
+          "helptip" => "Select the type of scores for annotation. SpliceAI's authors recommend using raw files for alternative splicing analysis and masked files for variant interpretation.",
           "values" => [
-            { "value" => "snv", "caption" => "Masked scores (Ensembl/GENCODE v24 canonical transcripts)" },
-            { "value" => "snv_ensembl", "caption" => "Raw scores (Ensembl/GENCODE v37 MANE transcripts, SNV only)" }
+            { "value" => "snv", "caption" => "Masked scores for SNVs and INDELs from Illumina's pre-calculated scores" },
+            { "value" => "snv_ensembl", "caption" => "Raw scores for SNVs overlapping MANE Select transcripts; INDELs from Illumina's pre-calculated scores" }
           ],
           "value" => "snv",
         },
