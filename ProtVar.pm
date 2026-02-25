@@ -305,11 +305,12 @@ sub process_from_db {
         $pos-- if $translation_seq =~ /^X/;
 
         # we need position of peptide in the ALL_AAS array
-        my $peptide_number = ( first_index { $_ eq $peptide } @ALL_AAS );
+        my $peptide_number;
 
         # get matrix for each item value and parse them
         # stability
         if ( $item eq "stability" && $self->{stability} ) {
+	    $peptide_number = ( first_index { $_ eq $peptide } @ALL_AAS );
 
             # get the item value for specific pos and amino acid from matrix
             my $tot_packed_len = 8;
