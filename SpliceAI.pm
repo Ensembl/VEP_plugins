@@ -208,7 +208,8 @@ sub get_header_info {
     $header{"SpliceAI_pred_DP_AG"} = "SpliceAI ($spliceai_version) delta position (bp) for acceptor gain: position (relative to variant) of max AG change (+ downstream, − upstream).";
     $header{"SpliceAI_pred_DP_AL"} = "SpliceAI ($spliceai_version) delta position (bp) for acceptor loss: position (relative to variant) of max AL change (+ downstream, − upstream).";
     $header{"SpliceAI_pred_DP_DG"} = "SpliceAI ($spliceai_version) delta position (bp) for donor gain: position (relative to variant) of max DG change (+ downstream, − upstream).";
-    $header{"SpliceAI_pred_DP_DL"} = "SpliceAI ($spliceai_version) delta position (bp) for donor loss: position (relative to variant) of max DL change (+ downstream, − upstream).";  else {
+    $header{"SpliceAI_pred_DP_DL"} = "SpliceAI ($spliceai_version) delta position (bp) for donor loss: position (relative to variant) of max DL change (+ downstream, − upstream).";
+  } else {
     $header{"SpliceAI_pred"} = "SpliceAI ($spliceai_version) predicted effect on splicing. These include delta scores (DS) and delta positions (DP) for acceptor gain (AG), acceptor loss (AL), donor gain (DG), and donor loss (DL). Format: SYMBOL|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|DP_AL|DP_DG|DP_DL";
   }
 
