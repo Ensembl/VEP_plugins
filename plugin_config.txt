@@ -1401,11 +1401,11 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/DeNovo.pm",
     },
 
-    # Open Targets Genetics
+    # Open Targets Platform
     {
       "key" => "OpenTargets",
-      "label" => "Open Targets Genetics",
-      "helptip" => "Returns locus-to-gene (L2G) scores to predict causal genes at GWAS loci from Open Targets Genetics",
+      "label" => "Open Targets Platform",
+      "helptip" => "Report trait associations from Open Targets Platform through GWAS- or QTL-gene associations, including locus-to-gene (L2G) scores for GWAS loci.",
       "enabled" => 0,
       "available" => 0,
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/OpenTargets.pm",
