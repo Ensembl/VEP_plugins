@@ -950,8 +950,7 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "helptip" => "EVE (evolutionary model of variant effect) is a computational method for the classification of human genetic variants trained solely on evolutionary sequences.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/EVE.pm",
+      "helptip" => "EVE (evolutionary model of variant effect) is a computational method for classifying human genetic variants from evolutionary sequence data; the popEVE extension combines these cross‑species scores with human population variation to place missense variants on a human‑specific pathogenicity spectrum",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
