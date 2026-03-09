@@ -939,8 +939,8 @@ my $VEP_PLUGIN_CONFIG = {
 
     # EVE
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/EVE.pm
-    # Requires tabix-indexed data file as params
-    # No other parameters so no form required
+    # Requires tabix-indexed data files as params
+    # Supports named params file=, popeve_file= and optional class_number=
     # data file currently only available for GRCh38
     # We only report EVE scores for input variants and
     # don't consider adjacent variants.
@@ -957,7 +957,9 @@ my $VEP_PLUGIN_CONFIG = {
         "homo_sapiens"
       ],
       "params" => [
-        #"/path/to/eve_merged.vcf.gz"
+        #"file=/path/to/eve_merged.vcf.gz",
+        #"popeve_file=/path/to/grch38_popEVE_ukbb.vcf.gz",
+        #"class_number=75"
       ]
     },
 
