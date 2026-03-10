@@ -951,8 +951,8 @@ my $VEP_PLUGIN_CONFIG = {
 
     # EVE
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/EVE.pm
-    # Requires tabix-indexed data file as params
-    # No other parameters so no form required
+    # Requires tabix-indexed data files as params
+    # Supports named params file=, popeve_file= and optional class_number=
     # data file currently only available for GRCh38
     # We only report EVE scores for input variants and
     # don't consider adjacent variants.
@@ -962,14 +962,15 @@ my $VEP_PLUGIN_CONFIG = {
       "available" => 0,
       "enabled" => 0,
       "section" => "Pathogenicity predictions",
-      "helptip" => "EVE (evolutionary model of variant effect) is a computational method for the classification of human genetic variants trained solely on evolutionary sequences.",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/115/EVE.pm",
+      "helptip" => "EVE (evolutionary model of variant effect) is a computational method for classifying human genetic variants from evolutionary sequence data; the popEVE extension combines these cross‑species scores with human population variation to place missense variants on a human‑specific pathogenicity spectrum",
       "requires_data" => 1,
       "species" => [
         "homo_sapiens"
       ],
       "params" => [
-        #"/path/to/eve_merged.vcf.gz"
+        #"file=/path/to/eve_merged.vcf.gz",
+        #"popeve_file=/path/to/grch38_popEVE_ukbb.vcf.gz",
+        #"class_number=75"
       ]
     },
 
