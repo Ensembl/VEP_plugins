@@ -819,7 +819,7 @@ sub _get_paralogue_vars_from_annotation {
     }
 
     my ($chr, $start, $end, $transcript_id) = $self->_get_paralogue_coords($tva, $aln);
-    next unless defined $chr and defined $start and defined $end;
+    next unless defined $chr and (defined $start and $start > 0) and (defined $end and $end > 0);
 
     my $variants;
     if (defined $self->{vcf}) {
