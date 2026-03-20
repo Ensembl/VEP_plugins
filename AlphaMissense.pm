@@ -219,16 +219,15 @@ sub _aminoacid_changes_match {
 
   my $am_aa_ref = substr($am_protein_var, 0, 1);
   my $am_aa_alt = substr($am_protein_var, -1);
-  my $am_aa_pos = substr($am_protein_var, 1, -1);
-  return 0 unless defined $am_aa_ref && defined $am_aa_alt && defined $am_aa_pos;
+  return 0 unless defined $am_aa_ref && defined $am_aa_alt;
 
   my $vf_aa_ref = $tva->base_variation_feature_overlap->get_reference_TranscriptVariationAllele->peptide;
   my $vf_aa_alt = $tva->peptide;
-  my $vf_aa_pos = $tva->base_variation_feature_overlap->translation_start;
-  return 0 unless defined $vf_aa_ref && defined $vf_aa_alt && defined $vf_aa_pos;
+  return 0 unless defined $vf_aa_ref && defined $vf_aa_alt;
 
-  return $vf_aa_pos eq $am_aa_pos &&
-         $vf_aa_ref eq $am_aa_ref &&
+  # We do not check on pos because different transcripts can obviously have different amino acid positions for the same variant.
+  # The match on same transcript is turned on with transcript_match=1.
+  return $vf_aa_ref eq $am_aa_ref &&
          $vf_aa_alt eq $am_aa_alt;
 }
 
