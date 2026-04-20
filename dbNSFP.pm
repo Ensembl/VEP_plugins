@@ -353,21 +353,20 @@ sub run {
       my @refine_fields = grep {defined($data->{$_}) && defined($self->{cols}->{$_})} @{$self->{transcript_specific_fields}};
 
       foreach my $key(@refine_fields) {
-	next if $data->{$key} eq '.';
-
+	      next if $data->{$key} eq '.';
         my @split = split(';', $data->{$key});
 
-	if($tr_index > $#split) {
+        if($tr_index > $#split) {
           warn("ERROR: Transcript index out of range for field $key\n");
-	  next;
+          next;
         }
 
-	if(scalar @split != scalar @tr_ids) {
-	  warn("ERROR: Number of transcript IDs does not match number of data entries for field $key\n");
-	  next;
+        if(scalar @split != scalar @tr_ids) {
+          warn("ERROR: Number of transcript IDs does not match number of data entries for field $key\n");
+          next;
         }
-	
-	$data->{$key} = $split[$tr_index];
+        
+        $data->{$key} = $split[$tr_index];
       }
     }
     last;
@@ -450,6 +449,7 @@ sub get_dbNSFP_file_header {
       # also check README descriptions for 'separated by' or 'Ensembl gene id' mention
       my %readme_descs = $self->get_readme_descriptions($file);
       for my $col (keys %readme_descs) {
+        next if $NON_TRANSCRIPT_SPECIFIC_FIELDS{$col};
         if ($readme_descs{$col} =~ /separated by/i || $readme_descs{$col} =~ /Ensembl gene id/i) {
           $transcript_specific_fields{$col} = 1;
         }
