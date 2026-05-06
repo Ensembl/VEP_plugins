@@ -59,13 +59,11 @@ limitations under the License.
  tabix -f -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
 
  For GRCh38:
- The GRCh38 file does not have gene co-ordinates information. First you need to add the gene co-ordiates information.
- You can use the Ensembl Perl API to create a script and perform that - https://www.ensembl.org/info/docs/api/core/index.html.
- After adding the start and end position of the genes at the last 2 columns you can process the file as follows:
- cat gnomad.v4.1.constraint_metrics_with_coordinates.tsv | (head -n 1 && tail -n +2  | sort -t$'\t' -k 53,53 -k 56,56n ) > loeuf_grch38_temp.tsv
- sed '1s/.*/#&/' loeuf_grch38_temp.tsv > loeuf_dataset_grch38.tsv
- bgzip loeuf_dataset_grch38.tsv
- tabix -f -s 53 -b 56 -e 57 loeuf_dataset_grch38.tsv.gz
+ These files can be tabix-processed by:
+ zcat gnomad.v4.1.1.constraint_metrics.tsv.bgz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 9,9 -k 10,10n ) > loeuf_temp.tsv
+ sed '1s/.*/#&/' loeuf_temp.tsv > loeuf_dataset.tsv
+ bgzip loeuf_dataset.tsv
+ tabix -f -s 9 -b 10 -e 11 loeuf_dataset.tsv.gz
 
 
  The tabix utility must be installed in your path to use this plugin.
@@ -90,7 +88,7 @@ my $valid_headers = {
     "header" => ["transcript", "oe_lof_upper", "gene_id"]
   },
   "v4" => {
-    "index" => [2, 22, 1],
+    "index" => [2, 93, 1],
     "header" => ["transcript", "lof.oe_ci.upper", "gene_id"]
   }
 };
