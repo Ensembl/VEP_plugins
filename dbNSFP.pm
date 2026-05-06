@@ -250,59 +250,12 @@ sub get_header_info {
 
   if(!exists($self->{_header_info})) {
 
-    # look for readme
-    my $file_dir = $self->files->[0];
+    # get readme descriptions
+    my %rm_descs = $self->get_readme_descriptions($self->files->[0]);
 
-    my %rm_descs;
-
-    # won't work for remote
-    if($file_dir !~ /tp\:\/\//) {
-
-      # get just dir
-      $file_dir =~ s/\/[^\/]+$/\//;
-
-      if(opendir DIR, $file_dir) {
-        my ($readme_file) = grep {/dbnsfp.*readme\.txt/i} readdir DIR;
-        closedir DIR;
-
-        if(open RM, $file_dir.$readme_file) {
-          my ($col, $reading);
-
-          # parse dbNSFP readme
-          # relevant lines look like:
-          #
-          # 1   column1_name: description blah blah
-          #     blah blah blah
-          # 2   column2_name: description blah blah
-          #     blah blah blah
-
-          while(<RM>) {
-            chomp;
-            s/\r$//g;
-
-            if(/^\d+\s/) {
-              $reading = 1;
-
-              m/^\d+\s+(.+?)\:\s+(.+)/;
-              $col = $1;
-
-              $rm_descs{$col} = "(from $self->{basename}) ".$2 if $col && $2;
-            }
-            elsif($reading && /\w/) {
-              s/^\s+//;
-              $rm_descs{$col} .= ' '.$_;
-            }
-            else {
-              $reading = 0;
-            }
-          }
-
-          close RM;
-
-          # remove multiple spaces
-          $rm_descs{$_} =~ s/\s+/ /g for keys %rm_descs;
-        }
-      }
+    # add basename prefix if descriptions were found
+    for my $col (keys %rm_descs) {
+      $rm_descs{$col} = "(from $self->{basename}) " . $rm_descs{$col};
     }
 
     $self->{_header_info} = {map {$_ => $rm_descs{$_} || ($_.' from dbNSFP file')} keys %{$self->{cols}}};
@@ -400,21 +353,20 @@ sub run {
       my @refine_fields = grep {defined($data->{$_}) && defined($self->{cols}->{$_})} @{$self->{transcript_specific_fields}};
 
       foreach my $key(@refine_fields) {
-	next if $data->{$key} eq '.';
-
+	      next if $data->{$key} eq '.';
         my @split = split(';', $data->{$key});
 
-	if($tr_index > $#split) {
+        if($tr_index > $#split) {
           warn("ERROR: Transcript index out of range for field $key\n");
-	  next;
+          next;
         }
 
-	if(scalar @split != scalar @tr_ids) {
-	  warn("ERROR: Number of transcript IDs does not match number of data entries for field $key\n");
-	  next;
+        if(scalar @split != scalar @tr_ids) {
+          warn("ERROR: Number of transcript IDs does not match number of data entries for field $key\n");
+          next;
         }
-	
-	$data->{$key} = $split[$tr_index];
+        
+        $data->{$key} = $split[$tr_index];
       }
     }
     last;
@@ -489,15 +441,85 @@ sub get_dbNSFP_file_header {
       next unless /\;/;
       die "ERROR: No headers found before data\n" unless defined($self->{headers});
       my $row_data = $self->parse_data($_);
-      my @transcript_specific_fields;
+      my %transcript_specific_fields;
       for my $key(keys %$row_data) {
-        push @transcript_specific_fields, $key if $row_data->{$key} =~ /\;/ && !$NON_TRANSCRIPT_SPECIFIC_FIELDS{$key};
+        $transcript_specific_fields{$key} = 1 if $row_data->{$key} =~ /\;/ && !$NON_TRANSCRIPT_SPECIFIC_FIELDS{$key};
       }
-      $self->{transcript_specific_fields} = \@transcript_specific_fields;
+
+      # also check README descriptions for 'separated by' or 'Ensembl gene id' mention
+      my %readme_descs = $self->get_readme_descriptions($file);
+      for my $col (keys %readme_descs) {
+        next if $NON_TRANSCRIPT_SPECIFIC_FIELDS{$col};
+        if ($readme_descs{$col} =~ /separated by/i || $readme_descs{$col} =~ /Ensembl gene id/i) {
+          $transcript_specific_fields{$col} = 1;
+        }
+      }
+
+      $self->{transcript_specific_fields} = [keys %transcript_specific_fields];
       last;
     }
   }
   close HEAD;
+}
+
+sub get_readme_descriptions {
+  my $self = shift;
+  my $file = shift;
+
+  my %descs;
+  my $file_dir = $file;
+
+  # won't work for remote
+  if($file_dir !~ /tp\:\/\//) {
+
+    # get just dir
+    $file_dir =~ s/\/[^\/]+$/\//;
+
+    if(opendir DIR, $file_dir) {
+      my ($readme_file) = grep {/dbnsfp.*readme\.txt/i} readdir DIR;
+      closedir DIR;
+
+      if($readme_file && open RM, $file_dir.$readme_file) {
+        my ($col, $reading);
+
+        # parse dbNSFP readme
+        # relevant lines look like:
+        #
+        # 1   column1_name: description blah blah
+        #     blah blah blah
+        # 2   column2_name: description blah blah
+        #     blah blah blah
+
+        while(<RM>) {
+          chomp;
+          s/\r$//g;
+
+          if(/^\d+\s/) {
+            $reading = 1;
+
+            m/^\d+\s+(.+?)\:\s+(.+)/;
+            $col = $1;
+
+            $descs{$col} = $2 if $col && $2;
+          }
+          elsif($reading && /\w/) {
+            s/^\s+//;
+            $descs{$col} .= ' '.$_;
+          }
+          else {
+            $reading = 0;
+          }
+        }
+
+        close RM;
+
+        # remove multiple spaces
+        $descs{$_} =~ s/\s+/ /g for keys %descs;
+      }
+    }
+  }
+
+  return %descs;
 }
 
 sub add_replacement_logic {
