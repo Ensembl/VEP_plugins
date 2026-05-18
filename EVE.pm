@@ -239,14 +239,15 @@ sub parse_data {
     my ($gene)      = $info =~ /(?:^|;)gene=([^;]+)/;
     my ($protein)   = $info =~ /(?:^|;)protein=([^;]+)/;
     my ($mutant)    = $info =~ /(?:^|;)mutant=([^;]+)/;
+    my $valid_number = sub { defined $_[0] && $_[0] !~ /^nan$/i };
 
     my %res;
-    $res{popEVE_SCORE}              = $score     if defined $score;
-    $res{popEVE_EVE}                = $raw_eve   if defined $raw_eve; # avoids collision with the EVE col from the EVE file
-    $res{popEVE_ESM1v}              = $esm1v     if defined $esm1v;
-    $res{popEVE_pop_adjusted_EVE}   = $padj_eve  if defined $padj_eve;
-    $res{popEVE_pop_adjusted_ESM1v} = $padj_esm  if defined $padj_esm;
-    $res{popEVE_gap_frequency}      = $gap       if defined $gap;
+    $res{popEVE_SCORE}              = $score     if $valid_number->($score);
+    $res{popEVE_EVE}                = $raw_eve   if $valid_number->($raw_eve); # avoids collision with the EVE col from the EVE file
+    $res{popEVE_ESM1v}              = $esm1v     if $valid_number->($esm1v);
+    $res{popEVE_pop_adjusted_EVE}   = $padj_eve  if $valid_number->($padj_eve);
+    $res{popEVE_pop_adjusted_ESM1v} = $padj_esm  if $valid_number->($padj_esm);
+    $res{popEVE_gap_frequency}      = $gap       if $valid_number->($gap);
     $res{popEVE_gene}               = $gene      if defined $gene;
     $res{popEVE_protein}            = $protein   if defined $protein;
     $res{popEVE_mutant}             = $mutant    if defined $mutant;
