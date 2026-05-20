@@ -59,12 +59,11 @@ limitations under the License.
  tabix -f -s 76 -b 77 -e 78 loeuf_dataset.tsv.gz
 
  For GRCh38:
- These files can be tabix-processed by:
- zcat gnomad.v4.1.1.constraint_metrics.tsv.bgz | (head -n 1 && tail -n +2  | sort -t$'\t' -k 9,9 -k 10,10n ) > loeuf_temp.tsv
- sed '1s/.*/#&/' loeuf_temp.tsv > loeuf_dataset.tsv
- bgzip loeuf_dataset.tsv
- tabix -f -s 9 -b 10 -e 11 loeuf_dataset.tsv.gz
-
+ The GRCh38 file does not have gene co-ordinates information. First you need to add the gene co-ordiates information.
+ You can use the Ensembl Perl API to create a script and perform that - https://www.ensembl.org/info/docs/api/core/index.html.
+ After adding the start and end position of the genes at the last 2 columns you can process the file as follows:
+ cat gnomad.v4.1.1.constraint_metrics.tsv | (sed -u 1q; sort -k 114,114 -k 115,115n) | sed '1s/.*/#&/' | bgzip -c > loeuf_dataset_grch38.tsv.gz
+ tabix -f -s 114 -b 115 -e 116 loeuf_dataset_grch38.tsv.gz
 
  The tabix utility must be installed in your path to use this plugin.
 
