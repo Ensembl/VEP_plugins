@@ -239,18 +239,24 @@ sub parse_data {
     my ($gene)      = $info =~ /(?:^|;)gene=([^;]+)/;
     my ($protein)   = $info =~ /(?:^|;)protein=([^;]+)/;
     my ($mutant)    = $info =~ /(?:^|;)mutant=([^;]+)/;
-    my $valid_number = sub { defined $_[0] && $_[0] !~ /^nan$/i };
+    my %numeric_values = (
+      popEVE_SCORE              => $score,
+      popEVE_EVE                => $raw_eve, # avoids collision with the EVE col from the EVE file
+      popEVE_ESM1v              => $esm1v,
+      popEVE_pop_adjusted_EVE   => $padj_eve,
+      popEVE_pop_adjusted_ESM1v => $padj_esm,
+      popEVE_gap_frequency      => $gap,
+    );
 
-    my %res;
-    $res{popEVE_SCORE}              = $score     if $valid_number->($score);
-    $res{popEVE_EVE}                = $raw_eve   if $valid_number->($raw_eve); # avoids collision with the EVE col from the EVE file
-    $res{popEVE_ESM1v}              = $esm1v     if $valid_number->($esm1v);
-    $res{popEVE_pop_adjusted_EVE}   = $padj_eve  if $valid_number->($padj_eve);
-    $res{popEVE_pop_adjusted_ESM1v} = $padj_esm  if $valid_number->($padj_esm);
-    $res{popEVE_gap_frequency}      = $gap       if $valid_number->($gap);
-    $res{popEVE_gene}               = $gene      if defined $gene;
-    $res{popEVE_protein}            = $protein   if defined $protein;
-    $res{popEVE_mutant}             = $mutant    if defined $mutant;
+    my $missing_value = sub { !defined $_[0] || $_[0] eq '' || $_[0] eq '.' || $_[0] =~ /^nan$/i };
+
+    my %res = map { $_ => $numeric_values{$_} }
+      grep { !$missing_value->($numeric_values{$_}) }
+      keys %numeric_values;
+
+    $res{popEVE_gene}               = $gene      if !$missing_value->($gene);
+    $res{popEVE_protein}            = $protein   if !$missing_value->($protein);
+    $res{popEVE_mutant}             = $mutant    if !$missing_value->($mutant);
 
     my $end = $pos + (length($ref||'') ? length($ref)-1 : 0);
     return { ref=>$ref, alt=>$alt, start=>$pos, end=>$end, result=>\%res };
