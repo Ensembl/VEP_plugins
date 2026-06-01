@@ -64,7 +64,7 @@ limitations under the License.
  After adding the start and end position of the genes at the last 2 columns you can process the file as follows:
  cat gnomad.v4.1.1.constraint_metrics.tsv | (sed -u 1q; sort -k 114,114 -k 115,115n) | sed '1s/.*/#&/' | bgzip -c > loeuf_dataset_grch38.tsv.gz
  tabix -f -s 114 -b 115 -e 116 loeuf_dataset_grch38.tsv.gz
-
+ The processed file can be downloaded from:  https://ftp.ensembl.org/pub/current/variation/gnomADc/loeuf_dataset_grch38.tsv.gz
  The tabix utility must be installed in your path to use this plugin.
 
 =cut
