@@ -263,6 +263,9 @@ sub format_output {
 sub process_from_db {
     my ( $self, $tva ) = @_;
 
+    # Only process missense variants
+    return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
+
     # get the trascript related to the variant
     my $tr = $tva->transcript;
 
