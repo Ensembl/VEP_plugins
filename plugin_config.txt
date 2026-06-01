@@ -1336,16 +1336,6 @@ my $VEP_PLUGIN_CONFIG = {
       ],
     },
 
-    # PostGAP
-    {
-      "key" => "PostGAP",
-      "label" => "PostGAP",
-      "available" => 0,
-      "enabled" => 0,
-      "section" => "Phenotype data and citations",
-      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/116/PostGAP.pm"
-    },
-
     # satMutMPRA
     {
       "key" => "satMutMPRA",
