@@ -68,11 +68,12 @@ limitations under the License.
                          Former confidence terms are still supported: confirmed, probable, possible, both RD and IF.
                          Separate multiple values with '&'.
                          https://www.ebi.ac.uk/gene2phenotype/terminology
-                         Default levels are confirmed and probable.
+                         Default levels are definitive, strong and moderate (and former terms: confirmed, probable).
 
- all_confidence_levels : Set to 1 to include all confidence levels
+ all_confidence_levels : Set to 1 to include all confidence levels.
                          Setting the value to 1 will overwrite any confidence levels provided with the
                          confidence_levels option.
+                         Not recommended for diagnostic reporting.
 
  af_from_vcf           : set value to 1 to include allele frequencies from VCF file. 
                          Specifiy the list of reference populations to include with '--af_from_vcf_keys'
@@ -81,13 +82,13 @@ limitations under the License.
                          allele frequencies. Allele frequencies are retrieved from VCF files. If
                          af_from_vcf is set to 1 but no VCF collections are specified with '--af_from_vcf_keys'
                          all available VCF collections are included. 
-                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2', 'gnomADev4.1', 'gnomADgv4.1'.
+                         Available VCF collections: 'topmed', 'uk10k', 'gnomADe', 'gnomADe_r2.1.1', 'gnomADg', 'gnomADg_v3.1.2', 'gnomADe_v4.1', 'gnomADg_v4.1'.
                          Separate multiple values with '&'.
                          VCF collections contain the following populations: 
                          * 'topmed' - TOPMed (available for GRCh37 and GRCh38).
                          * 'uk10k' - ALSPAC, TWINSUK (available for GRCh37 and GRCh38).
-                         * 'gnomADe' & 'gnomADe_r2.1.1 & 'gnomADev4.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
-                         * 'gnomADg' & 'gnomADg_v3.1.2' & 'gnomADgv4.1' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADe' & 'gnomADe_r2.1.1' & 'gnomADe_v4.1' - gnomADe:AFR, gnomADe:ALL, gnomADe:AMR, gnomADe:ASJ, gnomADe:EAS, gnomADe:FIN, gnomADe:NFE, gnomADe:OTH, gnomADe:SAS (for GRCh37 and GRCh38 respectively).
+                         * 'gnomADg' & 'gnomADg_v3.1.2' & 'gnomADg_v4.1' - gnomADg:AFR, gnomADg:ALL, gnomADg:AMR, gnomADg:ASJ, gnomADg:EAS, gnomADg:FIN, gnomADg:NFE, gnomADg:OTH (for GRCh37 and GRCh38 respectively).
                          Need to use 'af_from_vcf' parameter to use this option. 
 
  only_vcf_freq         : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
@@ -228,7 +229,7 @@ my $allelic_requirements = {
   'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'biallelic_PAR' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
-  'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_autosomal' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous_biallelic' => { af => 0.0001, rules => {HET => 2, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
@@ -325,13 +326,13 @@ sub new {
   }
   else {
     $file = $params->{file};
-    open IN, "<",  $file;
+    open my $fh, "<",  $file;
     # supporting panelapp by always filtering by gene symbol if PanelApp file 
-    while (<IN>){
+    while (<$fh>){
       $params->{filter_by_gene_symbol} = 1 if (/Model_Of_Inheritance/);
       last;
     }
-    close $file;
+    close $fh;
 
     # process types
     if ($params->{types}) {
@@ -1630,7 +1631,7 @@ sub write_report {
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category, $conf), "\n"  if (defined $hgnc_id && defined $conf && defined $category);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category, $conf), "\n" if (!defined $hgnc_id && defined $conf && defined $category);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $conf), "\n" if (defined $hgnc_id && defined $conf);
-    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf & defined $category);
+    print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $hgnc_id, $category), "\n"  if (defined $hgnc_id && !defined $conf && defined $category);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs, $category), "\n"  if (!defined $hgnc_id && !defined $conf && defined $category);
     print $fh join("\t", $flag, $gene_id, $ar, $xrefs), "\n"  if (!defined $hgnc_id && !defined $conf && !defined $category);
   } elsif ($flag eq 'G2P_frequencies') {
