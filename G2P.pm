@@ -228,7 +228,7 @@ my $allelic_requirements = {
   'biallelic_autosomal' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'biallelic_PAR' => { af => 0.005, rules => {HET => 2, HOM => 1} },
   'monoallelic' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
-  'monoallelic_autosomal' =>  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_autosomal' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous_biallelic' => { af => 0.0001, rules => {HET => 2, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
@@ -325,13 +325,13 @@ sub new {
   }
   else {
     $file = $params->{file};
-    open IN, "<",  $file;
+    open my $fh, "<",  $file;
     # supporting panelapp by always filtering by gene symbol if PanelApp file 
-    while (<IN>){
+    while (<$fh>){
       $params->{filter_by_gene_symbol} = 1 if (/Model_Of_Inheritance/);
       last;
     }
-    close $file;
+    close $fh;
 
     # process types
     if ($params->{types}) {
