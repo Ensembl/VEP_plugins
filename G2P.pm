@@ -46,15 +46,16 @@ limitations under the License.
  is the number of parallel processes. For the G2P plugin we recommend using 4 forks (--fork 4).
 
  G2P data file:
- To run the plugin it is necessary to provide a data file either downloaded from G2P or PanelApp.
- The G2P file can be downloaded from:
+ To run the plugin it is necessary to provide an uncompressed data file downloaded from G2P, PanelApp or GenCC.
+ G2P files can be downloaded from:
    - Website https://www.ebi.ac.uk/gene2phenotype/download
    - API https://www.ebi.ac.uk/gene2phenotype/api/panel/<name>/download
      Accepted panel names are: Cancer, Cardiac, DD, Ear, Eye, Skeletal, Skin (or 'All' to download all panels in the same file)
 
  Options are passed to the plugin as key=value pairs, (defaults in parentheses):
 
- file                  : Path to G2P data file. The file needs to be uncompressed.
+ file                  : Path to the input data file. Supported formats are csv (G2P, GenCC) and tsv (PanelApp).
+                         The file needs to be uncompressed.
 
  variant_include_list  : A list of variants to include even if variants do not pass allele
                          frequency filtering. The include list needs to be a sorted, bgzipped and
@@ -113,27 +114,38 @@ limitations under the License.
 
  html_report           : write all G2P complete genes and attributes to html file
 
- filter_by_gene_symbol : set to 1 if filter by gene symbol.
+ filter_by_gene_symbol : set to 1 if filtering by gene symbol.
                          Do not set if filtering by HGNC_id.
-                         This option is set to 1 when using PanelApp files. 
+                         This option is set to 1 automatically when using PanelApp files.
 
- filter_consequence_match : to only report variants where the VEP predicted consequence matches the G2P variant consequence (GenCC term).
+ gencc_submitter       : Required when using a GenCC input file.
+                         Filters the GenCC file to rows whose submitted_as_submitter_name
+                         matches this value.
+                         Matching is case-insensitive.
+                         Empty submitter names are not supported.
+
+ filter_consequence_match : to only report variants where the VEP predicted consequence matches the
+                            G2P variant consequence term (GenCC term).
                             Accepted values are:
                               - broad: includes 'almost always', 'probable' and 'possible' matches
                               - strict: includes 'almost always' and 'probable' matches
+                            This option is only supported with G2P input files.
                             More details in https://europepmc.org/article/MED/37982373
-                            See here for the list of supported variant consequences in G2P: https://www.ebi.ac.uk/gene2phenotype/about/terminology#variant-consequence-section
+                            See here for the list of supported variant consequences in G2P:
+                            https://www.ebi.ac.uk/gene2phenotype/about/terminology#variant-consequence-section
 
- flag_consequence_match   : flag if the VEP predicted consequence matches the G2P variant consequence (GenCC term).
+ flag_consequence_match   : flag if the VEP predicted consequence matches the G2P variant consequence
+                            term (GenCC term).
                             Accepted values are:
                               - broad: includes 'almost always', 'probable' and 'possible' matches
                               - strict: includes 'almost always' and 'probable' matches
+                            This option is only supported with G2P input files.
                             More details in https://europepmc.org/article/MED/37982373
 
  only_mane                : set to 1 to ignore transcripts that are not MANE
                             N/B - Information may be lost if this option is used.
 
- include_disease           : set to 1 to report the G2P disease name in the VEP output.
+ include_disease           : set to 1 to report the disease name from the input file in the VEP output.
                             The disease name is not included in the G2P report files.
 
 
@@ -232,10 +244,14 @@ my $allelic_requirements = {
   'monoallelic_autosomal' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'hemizygous_biallelic' => { af => 0.0001, rules => {HET => 2, HOM => 1} },
+  'monoallelic_X' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_X_hemizygous'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_Y_hem'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_Y_hemizygous'  => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked dominant' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_X_het' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
+  'monoallelic_X_heterozygous' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'x-linked over-dominance' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'mitochondrial' =>  { af => 0.0001, rules => {HET => 1, HOM => 1} },
   'monoallelic_PAR' => { af => 0.0001, rules => {HET => 1, HOM => 1} },
@@ -308,6 +324,36 @@ my $a_keys = {
   "gnomADe_v4.1" => 1
 };
 
+sub get_input_file_type {
+  my $file = shift;
+  my $file_type = 'unknown';
+  my $fh = FileHandle->new($file, 'r');
+  return $file_type unless $fh;
+
+  while (<$fh>) {
+    chomp;
+    if (/Model_Of_Inheritance/) {
+      $file_type = 'panelapp';
+    } elsif (/allelic requirement/) {
+      $file_type = 'g2p';
+    } elsif (/moi_title/ && /gene_symbol/ && /disease_title/) {
+      $file_type = 'gencc';
+    }
+    last;
+  }
+
+  $fh->close();
+  return $file_type;
+}
+
+sub normalize_submitter_name {
+  my $submitter_name = shift;
+  return undef unless defined $submitter_name;
+  $submitter_name =~ s/^\s+|\s+$//g;
+  return undef if $submitter_name eq '';
+  return lc $submitter_name;
+}
+
 sub new {
   my $class = shift;
 
@@ -326,13 +372,6 @@ sub new {
   }
   else {
     $file = $params->{file};
-    open my $fh, "<",  $file;
-    # supporting panelapp by always filtering by gene symbol if PanelApp file 
-    while (<$fh>){
-      $params->{filter_by_gene_symbol} = 1 if (/Model_Of_Inheritance/);
-      last;
-    }
-    close $fh;
 
     # process types
     if ($params->{types}) {
@@ -351,6 +390,18 @@ sub new {
     }
 
     $params->{af_keys} = \@{$DEFAULTS{af_keys}};
+  }
+
+  my $input_file_type = get_input_file_type($file);
+  $params->{input_file_type} = $input_file_type;
+  # supporting panelapp by always filtering by gene symbol if PanelApp file
+  $params->{filter_by_gene_symbol} = 1 if ($input_file_type eq 'panelapp');
+  if ($input_file_type eq 'gencc') {
+    my $normalized_submitter = normalize_submitter_name($params->{gencc_submitter});
+    die "The option --gencc_submitter is required when using a GenCC input file\n"
+      unless defined $normalized_submitter;
+  } elsif (defined $params->{gencc_submitter}) {
+    die "The option --gencc_submitter is only supported with GenCC input files\n";
   }
 
   my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
@@ -500,6 +551,11 @@ sub new {
   if (defined($params->{flag_consequence_match}) &&
   $params->{flag_consequence_match} ne "strict" && $params->{flag_consequence_match} ne "broad") {
     die "The option --flag_consequence_match only supports values 'strict' or 'broad'\n";
+  }
+
+  if (($params->{filter_consequence_match} || $params->{flag_consequence_match}) &&
+      ($input_file_type eq 'panelapp' || $input_file_type eq 'gencc')) {
+    die "The options --filter_consequence_match and --flag_consequence_match are only supported with G2P input files\n";
   }
 
   # copy in default params
@@ -1389,7 +1445,7 @@ sub dump_individual_annotations {
   Arg [1]    : String $file
   Description: Read panel data from file into the internal cache. Extract gene symbol, gene symbol synonyms or previously assigned symbols,
                allelic requirement and gene-disease confidence values.
-               Get G2P CSV dump from https://www.ebi.ac.uk/gene2phenotype/download
+               Supports G2P, PanelApp and GenCC input files.
   Exceptions : None
   Caller     : General
   Status     : Stable
@@ -1406,25 +1462,12 @@ sub read_gene_data_from_file {
   my @confidence_levels = @{$self->{user_params}->{confidence_levels}};
 
   # determine file type
-  my $file_type;
-  my $fh = FileHandle->new($file, 'r');
-  while (<$fh>) {
-    chomp;
-      if (/Model_Of_Inheritance/) {
-        $file_type = 'panelapp';
-      } elsif (/allelic requirement/) {
-        $file_type = 'g2p';
-      } else {
-        $file_type = 'unknown';
-      }
-      last;
-  }
-  $fh->close();
+  my $file_type = get_input_file_type($file);
   if ($file_type eq 'unknown') {
     if ($file =~ /gz$/) { 
       die("ERROR: G2P plugin can only read uncompressed data\n");
     } else {
-      die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin\n");
+      die("ERROR: Could not recognize input file format. Format must be one of panelapp, g2p, gencc or custom. Check website for details: https://www.ebi.ac.uk/gene2phenotype/g2p_vep_plugin\n");
     }
   }
 
@@ -1513,6 +1556,105 @@ sub read_gene_data_from_file {
         push @{$gene_data{$gene_symbol}->{"confidence_value"}}, $tmp{"confidence value flag"} if $tmp{"confidence value flag"};
         push @{$gene_data{$gene_symbol}->{"gencc_variant_consequence"}}, split(/;\s*/, $tmp{"variant consequence"}) if $tmp{"variant consequence"};
         push @{$gene_data{$gene_symbol}->{"disease"}}, $tmp{"disease name"} if $tmp{"disease name"};
+    }
+
+    $fh->close;
+  }
+
+  if ($file_type eq 'gencc') {
+    my $csv = Text::CSV->new({ binary => 1, auto_diag => 1 });
+    my $fh = FileHandle->new($file, 'r') or die "Could not open file '$file': $!";
+    my $requested_submitter = normalize_submitter_name($self->{user_params}->{gencc_submitter});
+    my %supported_submitters = ();
+    my $matched_submitter_rows = 0;
+
+    my %unsupported_confidence = map { $_ => 1 } (
+      'Supportive',
+      'Disputed Evidence',
+      'Refuted Evidence',
+      'No Known Disease Relationship',
+    );
+
+    my %confidence_mapping = (
+      'Definitive' => 'definitive',
+      'Strong' => 'strong',
+      'Moderate' => 'moderate',
+      'Limited' => 'limited',
+    );
+
+    my %moi_mapping = (
+      'Autosomal dominant' => 'monoallelic_autosomal',
+      'Autosomal recessive' => 'biallelic_autosomal',
+      'Mitochondrial' => 'mitochondrial',
+      'Y-linked inheritance' => 'monoallelic_Y_hemizygous',
+      'X-linked' => 'monoallelic_X',
+      'X-linked recessive' => 'monoallelic_X_hemizygous',
+    );
+
+    my %unsupported_moi = map { $_ => 1 } ('Semidominant', 'Unknown');
+
+    while (my $row = $csv->getline($fh)) {
+      unless (@headers) {
+        @headers = map { s/\"//g; $_ } @$row;
+        next;
+      }
+
+      my %tmp;
+      @tmp{@headers} = @$row;
+
+      my $submitter_name = $tmp{"submitted_as_submitter_name"};
+      my $normalized_submitter_name = normalize_submitter_name($submitter_name);
+      $supported_submitters{$normalized_submitter_name} = $submitter_name if defined $normalized_submitter_name;
+      next unless defined $normalized_submitter_name && $normalized_submitter_name eq $requested_submitter;
+      $matched_submitter_rows++;
+
+      die("ERROR: Gene symbol column not found\n") unless $tmp{"gene_symbol"};
+
+      my $gene_symbol = $tmp{"gene_symbol"};
+      my $confidence_title = $tmp{"classification_title"};
+      next if !$confidence_title;
+      next if $unsupported_confidence{$confidence_title};
+
+      my $confidence_category = $confidence_mapping{$confidence_title};
+      next unless defined $confidence_category;
+      next unless grep { $_ eq $confidence_category } @confidence_levels;
+
+      my $moi_title = $tmp{"moi_title"};
+      next if !$moi_title;
+      next if $unsupported_moi{$moi_title};
+
+      my $allelic_requirement = $moi_mapping{$moi_title};
+      next unless defined $allelic_requirement;
+
+      my $hgnc_id;
+      if (($tmp{"gene_curie"} || '') =~ /^HGNC:(\d+)$/) {
+        $hgnc_id = $1;
+      } elsif (($tmp{"submitted_as_hgnc_id"} || '') =~ /^HGNC:(\d+)$/) {
+        $hgnc_id = $1;
+      } elsif (($tmp{"submitted_as_hgnc_id"} || '') =~ /^(\d+)$/) {
+        $hgnc_id = $1;
+      }
+
+      $self->write_report('G2P_list', $gene_symbol, $confidence_category);
+
+      push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $gene_symbol;
+      if (defined $tmp{"submitted_as_hgnc_symbol"} &&
+          $tmp{"submitted_as_hgnc_symbol"} ne '' &&
+          $tmp{"submitted_as_hgnc_symbol"} ne $gene_symbol) {
+        push @{$gene_data{$gene_symbol}->{"gene_xrefs"}}, $tmp{"submitted_as_hgnc_symbol"};
+      }
+      push @{$gene_data{$gene_symbol}->{"HGNC"}}, $hgnc_id if defined $hgnc_id;
+      push @{$gene_data{$gene_symbol}->{"confidence_category"}}, $confidence_category;
+      push @{$gene_data{$gene_symbol}->{"allelic requirement"}}, $allelic_requirement;
+      push @{$gene_data{$gene_symbol}->{"disease"}}, $tmp{"disease_title"} if $tmp{"disease_title"};
+    }
+
+    if (!$matched_submitter_rows) {
+      my @supported_submitter_names = sort values %supported_submitters;
+      my $supported_submitters_message = @supported_submitter_names
+        ? join(", ", @supported_submitter_names)
+        : "none";
+      die "ERROR: No GenCC rows found for submitter '$self->{user_params}->{gencc_submitter}'. Supported submitter names in the file are: $supported_submitters_message\n";
     }
 
     $fh->close;
