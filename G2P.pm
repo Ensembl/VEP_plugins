@@ -702,11 +702,19 @@ sub run {
 
   # return the G2P disease name
   if ($self->{user_params}->{include_disease} && ($G2P_complete || $G2P_flag)) {
-    my @final_disease = ();
-    for my $tmp_disease (@{$self->{gene_data}->{$self->{_tmp_gene_symbol}}->{disease}}) {
-      push @final_disease, $tmp_disease;
+    my $gene_data;
+    foreach my $gene_id ($self->{_tmp_gene_symbol}, get_gene_stable_id($tva->transcript)) {
+      next unless defined $gene_id;
+      $gene_data = $self->gene_data($gene_id);
+      last if defined $gene_data;
     }
-    $results->{G2P_disease} = join("|", @final_disease);
+    my @final_disease = ();
+    if ($gene_data && defined $gene_data->{disease}) {
+      for my $tmp_disease (@{$gene_data->{disease}}) {
+        push @final_disease, $tmp_disease;
+      }
+    }
+    $results->{G2P_disease} = join("|", @final_disease) if @final_disease;
   }
 
   return $results;
@@ -1515,6 +1523,7 @@ sub read_gene_data_from_file {
           foreach my $ar (@ars) {
             push @{$gene_data{$ensembl_gene_id}->{"allelic requirement"}}, $ar;
           }
+          push @{$gene_data{$ensembl_gene_id}->{"disease"}}, split(/;\s*/, $tmp{"Phenotypes"}) if $tmp{"Phenotypes"};
         } else {
           $self->write_report('log', "no ensembl gene id");
         }
