@@ -95,12 +95,6 @@ limitations under the License.
  only_vcf_freq         : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
                          N/B - frequency information may be lost if this option is used 
 
- default_af            : default frequency of the input variant if no frequency data is
-                         found (0). This determines whether such variants are included;
-                         the value of 0 forces variants with no frequency data to be
-                         included as this is considered equivalent to having a frequency
-                         of 0. Set to 1 (or any value higher than 'af') to exclude them.
-
  types                 : SO consequence types to include. Separate multiple values with '&'
                          (splice_donor_variant, splice_acceptor_variant, stop_gained,
                          frameshift_variant, stop_lost, initiator_codon_variant,
@@ -199,10 +193,6 @@ my %DEFAULTS = (
 
   af_from_vcf_keys => [qw(uk10k topmed gnomADe gnomADe_r2.1.1 gnomADg gnomADg_v3.1.2 gnomADe_v4.1 gnomADg_v4.1)],
 
-  # if no MAF data is found, default to 0
-  # this means absence of MAF data is considered equivalent to MAF=0
-  # set to 1 to do the "opposite", i.e. exclude variants with no MAF data
-  default_af => 0,
   # adding new confidence levels based on the new terminology 
   confidence_levels => [qw(confirmed probable definitive strong moderate)],
 
@@ -1663,7 +1653,10 @@ sub read_gene_data_from_file {
       my $supported_submitters_message = @supported_submitter_names
         ? join(", ", @supported_submitter_names)
         : "none";
-      die "ERROR: No GenCC rows found for submitter '$self->{user_params}->{gencc_submitter}'. Supported submitter names in the file are: $supported_submitters_message\n";
+      my $requested_submitter = $self->{user_params}->{gencc_submitter};
+      utf8::encode($requested_submitter) if defined $requested_submitter && utf8::is_utf8($requested_submitter);
+      utf8::encode($supported_submitters_message) if utf8::is_utf8($supported_submitters_message);
+      die "ERROR: No GenCC rows found for submitter '$requested_submitter'. Supported submitter names in the file are: $supported_submitters_message\n";
     }
 
     $fh->close;
