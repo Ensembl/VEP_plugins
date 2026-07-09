@@ -31,7 +31,7 @@ limitations under the License.
 
 =head1 DESCRIPTION
 
- An Ensembl VEP plugin that uses G2P allelic requirements to assess variants in genes
+ An Ensembl VEP plugin that uses G2P (www.ebi.ac.uk/gene2phenotype) allelic requirements to assess variants in genes
  for potential phenotype involvement.
 
  The plugin has multiple configuration options, though minimally requires only
@@ -95,13 +95,16 @@ limitations under the License.
  only_vcf_freq         : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
                          N/B - frequency information may be lost if this option is used 
 
- types                 : SO consequence types to include. Separate multiple values with '&'
-                         (splice_donor_variant, splice_acceptor_variant, stop_gained,
+ types                 : SO consequence types to include. Separate multiple values with '&'.
+                         By default, the plugin includes the following consequence types:
+                         splice_donor_variant, splice_acceptor_variant, stop_gained,
+                         splice_donor_region_variant, splice_donor_5th_base_variant,
+                         splice_region_variant, splice_polypyrimidine_tract_variant,
                          frameshift_variant, stop_lost, initiator_codon_variant,
                          inframe_insertion, inframe_deletion,missense_variant,
                          coding_sequence_variant, start_lost,transcript_ablation,
-                         transcript_amplification, protein_altering_variant)
-  
+                         transcript_amplification, protein_altering_variant
+
  log_dir               : write stats to log files in log_dir 
 
  txt_report            : write all G2P complete genes and attributes to txt file
@@ -198,7 +201,7 @@ my %DEFAULTS = (
 
   # only include variants with these consequence types
   # currently not ontology-resolved, exact term matches only
-  types => {map {$_ => 1} qw(splice_donor_variant splice_acceptor_variant stop_gained frameshift_variant stop_lost initiator_codon_variant inframe_insertion inframe_deletion missense_variant coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)},
+  types => {map {$_ => 1} qw(splice_donor_variant splice_acceptor_variant splice_donor_region_variant splice_donor_5th_base_variant splice_region_variant splice_polypyrimidine_tract_variant stop_gained frameshift_variant stop_lost initiator_codon_variant inframe_insertion inframe_deletion missense_variant coding_sequence_variant start_lost transcript_ablation transcript_amplification protein_altering_variant)},
 
 );
 
