@@ -95,8 +95,8 @@ limitations under the License.
  only_vcf_freq         : set to 1 to only use frequency from vcf files, can only be set if af_from_vcf is set.  
                          N/B - frequency information may be lost if this option is used 
 
- types                 : SO consequence types to include. Separate multiple values with '&'.
-                         By default, the plugin includes the following consequence types:
+ types                 : VEP SO consequence terms to include. Separate multiple values with '&'.
+                         This option replaces the default list. By default, the plugin uses:
                          splice_donor_variant, splice_acceptor_variant, stop_gained,
                          splice_donor_region_variant, splice_donor_5th_base_variant,
                          splice_region_variant, splice_polypyrimidine_tract_variant,
@@ -104,6 +104,10 @@ limitations under the License.
                          inframe_insertion, inframe_deletion,missense_variant,
                          coding_sequence_variant, start_lost,transcript_ablation,
                          transcript_amplification, protein_altering_variant
+
+ add_types             : VEP SO consequence terms to append to the default types list.
+                         Separate multiple values with '&'.
+                         This option cannot be used together with 'types'.
 
  log_dir               : write stats to log files in log_dir 
 
@@ -347,6 +351,16 @@ sub normalize_submitter_name {
   return lc $submitter_name;
 }
 
+sub parse_consequence_types {
+  my $types = shift;
+  return {} unless defined $types;
+  return {
+    map { $_ => 1 }
+    grep { $_ ne '' }
+    split(/[\;\&\|]/, $types)
+  };
+}
+
 sub new {
   my $class = shift;
 
@@ -366,9 +380,18 @@ sub new {
   else {
     $file = $params->{file};
 
+    die "The options --types and --add_types are incompatible\n"
+      if $params->{types} && $params->{add_types};
+
     # process types
     if ($params->{types}) {
-      $params->{types} = {map {$_ => 1} split(/[\;\&\|]/, $params->{types})};
+      $params->{types} = parse_consequence_types($params->{types});
+    }
+    elsif ($params->{add_types}) {
+      $params->{types} = {
+        %{$DEFAULTS{types}},
+        %{parse_consequence_types($params->{add_types})},
+      };
     }
 
     # check af
