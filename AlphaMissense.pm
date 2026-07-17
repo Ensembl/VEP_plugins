@@ -185,6 +185,10 @@ sub new {
   my $cols = $param_hash->{cols} || "am_pathogenicity:am_class";
   $self->_parse_colnames($cols);
 
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{transcript_match}) {
+    warn "WARNING: AlphaMissense transcript_match may fail with --refseq/--merged; consider transcript_match=0\n";
+  }
+
   return $self;
 }
 

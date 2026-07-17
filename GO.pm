@@ -149,6 +149,10 @@ sub new {
     print "### GO plugin: Retrieving GO terms from $file\n" unless $config->{quiet};
     $self->add_file($file);
     $self->get_user_params();
+
+    if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{match} eq 'transcript') {
+      warn "WARNING: GO transcript matching may fail with --refseq/--merged; consider using match=gene_symbol. If you had already created the GFF file, it may need to be regenerated (using match=gene_symbol).\n";
+    }
   } else {
     # Revert to old GO.pm functionality -- based on Conservation.pm
     print "### GO plugin: Retrieving GO terms from Ensembl API\n" unless $config->{quiet};

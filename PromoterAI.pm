@@ -185,6 +185,10 @@ sub new {
   my $cols = $param_hash->{cols} || $default_cols;
   $self->_parse_colnames($cols);
 
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{match_to} eq 'transcript') {
+    warn "WARNING: PromoterAI transcript matching may fail with --refseq/--merged; consider match_to=any\n";
+  }
+
   return $self;
 }
 
