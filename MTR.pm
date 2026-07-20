@@ -38,6 +38,11 @@ sed '1s/.*/#&/'  mtrflatfile_2.00.tsv > mtrflatfile_2.0.tsv # to add # to the fi
 bgzip mtrflatfile_2.0.tsv
 tabix -f -s 1 -b 2 -e 2 mtrflatfile_2.0.tsv.gz
 
+Options are passed to the plugin in order as value-only arguments:
+  file             : (mandatory) Tabix-indexed MTR data
+  transcript_match : Only print data if transcript identifiers match those from
+                     MTR data (default: 1)
+
 NB: Data are available for GRCh37 only
 
 =cut
@@ -60,6 +65,9 @@ sub new {
   # get MTR file
   my $file = $self->params->[0];
   $self->add_file($file);
+
+  my $tr_match = $self->params->[1];
+  $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
   
   # to check for assembly 
 
@@ -80,6 +88,10 @@ sub new {
 
   if(! grep(/^Genomic_position$/, @{$self->{headers}})) {
     die "Required header Genomic_position not found.\n";
+  }
+
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{transcript_match}) {
+    warn "WARNING: MTR transcript_match may fail with --refseq/--merged; consider disabling transcript_match\n";
   }
 
   return $self;
@@ -112,15 +124,13 @@ sub run {
 
   return {} unless $allele =~ /^[ACGT]$/;
 
-  my $tr_id = $tva->transcript->stable_id;
-
   # data is written by pos, allele, transcript ID (feature)
   # grep lines read in matched on position so that they also are matched on allele and transcript ID
   my ($res) = grep {
     $_->{Genomic_position} == $vf->{start} &&
     $_->{Genomic_position} == $vf->{end} &&
     $_->{alt}              eq $allele &&
-    $_->{Feature}          eq $tr_id
+    (!$self->{transcript_match} || $_->{Feature} eq $tva->transcript->stable_id)
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   # return only the keys defined by get_header_info()

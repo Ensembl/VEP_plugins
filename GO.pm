@@ -150,7 +150,7 @@ sub new {
     $self->add_file($file);
     $self->get_user_params();
 
-    if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{match} eq 'transcript') {
+    if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && ($self->{match} eq 'transcript' || $self->{match} eq 'translation')) {
       warn "WARNING: GO transcript matching may fail with --refseq/--merged; consider using match=gene_symbol. If you had already created the GFF file, it may need to be regenerated (using match=gene_symbol).\n";
     }
   } else {

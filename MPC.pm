@@ -46,6 +46,11 @@ limitations under the License.
 
  The data are currently mapped to GRCh37 only. Not all transcripts are included; see
  README in the above directory for exclusion criteria.
+
+ Options are passed to the plugin in order as value-only arguments:
+   file             : (mandatory) Tabix-indexed MPC data
+   transcript_match : Only print data if transcript identifiers match those from
+                      MPC data (default: 1)
  
 =cut
 
@@ -71,6 +76,13 @@ sub new {
   $self->expand_right(0);
 
   $self->get_user_params();
+
+  my $tr_match = $self->params->[1];
+  $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
+
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{transcript_match}) {
+    warn "WARNING: MPC transcript_match may fail with --refseq/--merged; consider disabling transcript_match\n";
+  }
 
   return $self;
 }
@@ -98,14 +110,11 @@ sub run {
   reverse_comp(\$allele) if $vf->{strand} < 0;
   
   return {} unless $allele =~ /^[ACGT]$/;
-  
-  # get transcript stable ID
-  my $tr_id = $tva->transcript->stable_id;
 
   my ($res) = grep {
     $_->{pos} == $vf->{start} &&
     $_->{alt} eq $allele &&
-    $_->{tr}  eq $tr_id
+    (!$self->{transcript_match} || $_->{tr} eq $tva->transcript->stable_id)
   } @{$self->get_data($vf->{chr}, $vf->{start}, $vf->{end})};
 
   return $res ? { MPC => $res->{MPC} } : {};
