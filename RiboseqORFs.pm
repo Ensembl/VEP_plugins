@@ -50,6 +50,11 @@ limitations under the License.
 
  The tabix utility must be installed in your path to use this plugin.
 
+ Options are passed to the plugin as key=value pairs:
+   file             : (mandatory) Tabix-indexed Ribo-seq ORFs data
+   transcript_match : Only print data if transcript identifiers match those from
+                      Ribo-seq ORFs data (default: 1)
+
 =cut
 
 package RiboseqORFs;
@@ -83,10 +88,17 @@ sub new {
 
   # Add plugin data file
   my $param_hash = $self->params_to_hash();
+  my $tr_match = $param_hash->{transcript_match};
+  $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
+
   my $file = $param_hash->{file};
   die "\n  ERROR: No file specified\nTry using 'file=path/to/Ribo-seq_ORFs.bed.gz'\n"
      unless defined($file);
   $self->add_file($file);
+
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{transcript_match}) {
+    warn "WARNING: RiboseqORFs transcript_match may fail with --refseq/--merged; consider transcript_match=0\n";
+  }
 
   return $self;
 }
@@ -223,6 +235,7 @@ sub _recreate_TranscriptVariationAllele_with_ORF {
 
 sub run {
   my ($self, $tva) = @_;
+
   my $vf   = $tva->variation_feature;
 
   my ($vf_start, $vf_end) = ($vf->{start}, $vf->{end});
@@ -231,7 +244,9 @@ sub run {
   my @data = @{$self->get_data($vf->{chr}, $vf_start, $vf_end)};
 
   for (@data) {
-    next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
+    if ($self->{transcript_match}) {
+      next unless _transcripts_match($tva, $_->{'all_transcript_ids'});
+    }
 
     my $res = _recreate_TranscriptVariationAllele_with_ORF($tva, $_);
 

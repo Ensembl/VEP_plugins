@@ -79,6 +79,11 @@ limitations under the License.
  - https://ftp.ensembl.org/pub/current_variation/SpliceVault/SpliceVault_data_hg19.tsv.gz
  - https://ftp.ensembl.org/pub/current_variation/SpliceVault/SpliceVault_data_hg19.tsv.gz.tbi
 
+   Options are passed to the plugin as key=value pairs:
+     file             : (mandatory) Tabix-indexed SpliceVault data
+     transcript_match : Only print data if transcript identifiers match those from
+                        SpliceVault data (default: 1)
+
  To filter results, please use filter_vep with the output file or standard
  output. Documentation on filter_vep is available at:
  https://www.ensembl.org/info/docs/tools/vep/script/vep_filter.html
@@ -108,7 +113,11 @@ sub new {
   my @files; 
   my $params = $self->params_to_hash();
 
+  my $tr_match = $params->{transcript_match};
+  $self->{transcript_match} = defined $tr_match ? $tr_match : 1;
+
   for my $key (keys %{$params}) {
+    next if $key eq 'transcript_match';
     push @files, $params->{$key};
   }
 
@@ -116,6 +125,10 @@ sub new {
     "  --plugin SpliceVault,file=/path/to/SpliceVault_data_GRCh38.tsv.gz \n"
     unless @files > 0;
   $self->add_file($_) for @files;
+
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{transcript_match}) {
+    warn "WARNING: SpliceVault transcript_match may fail with --refseq/--merged; consider transcript_match=0\n";
+  }
 
   return $self;
 }
@@ -145,7 +158,9 @@ sub run {
   my @data = @{ $self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end}) };
 
   foreach (@data) {
-    next unless $tva->transcript->stable_id eq $_->{feature};
+    if ($self->{transcript_match}) {
+      next unless $tva->transcript->stable_id eq $_->{feature};
+    }
 
     my $matches = get_matched_variant_alleles(
       {

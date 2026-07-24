@@ -141,6 +141,10 @@ sub new {
           $assembly_to_hdr{$assembly} . " in header.\n";
   }
 
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && !$self->{no_match}) {
+    warn "WARNING: REVEL transcript matching may fail with --refseq/--merged; consider setting no_match=1\n";
+  }
+
   return $self;
 }
 

@@ -175,6 +175,10 @@ sub new {
     }
     close $fh;
   }
+
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && defined($self->params->[1]) && $self->params->[1] eq 'transcript') {
+    warn "WARNING: pLI transcript mode may fail with --refseq/--merged; consider gene mode\n";
+  }
   
   die("ERROR: No scores read from $file\n") unless scalar keys %scores;
 

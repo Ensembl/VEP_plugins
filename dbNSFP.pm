@@ -592,6 +592,10 @@ sub get_named_params {
   if ($self->{transcript_match} && !defined($self->{transcript_specific_fields})) {
     die("ERROR: transcript_match parameter specified but transcript-specific field detection failed\n");
   }
+
+  if ((defined $self->{config}->{refseq} || defined $self->{config}->{merged}) && $self->{transcript_match}) {
+    warn "WARNING: dbNSFP transcript_match may fail with --refseq/--merged; consider transcript_match=0\n";
+  }
 }
 
 1;
