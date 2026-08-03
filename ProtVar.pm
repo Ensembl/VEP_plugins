@@ -184,7 +184,11 @@ sub get_header_info {
     }
 
     if ( defined $self->{pocket} ) {
-        $header{ProtVar_pocket} = "Information about overlapping protein pocket. Output records are separated by '&'; field(s) include: ";
+        $header{ProtVar_pocket} = "Information about overlapping protein pocket. Output records are separated by '|'; ";
+        $header{ProtVar_pocket} .=
+          $self->{config}->{output_format} eq "vcf"
+          ? "fields within each record are separated by '&'. Field(s) include: "
+          : "fields within each record are separated by ','. Field(s) include: ";
         $header{ProtVar_pocket} .= "id - Pocket id, ";
         $header{ProtVar_pocket} .= "score - Combined score measuring confidence in pocket (score < 800: low confidence; score 800-900: high confidence; score > 900: very high confidence), ";
         $header{ProtVar_pocket} .= "MpLDDT - Mean pLDDT score of all the residues from AlphaFold2 model used to form the pocket, ";
@@ -285,6 +289,8 @@ sub format_output {
     else {
         my $key = "ProtVar_" . $item;
         my @formatted_records;
+        my $field_delimiter = $self->{config}->{output_format} eq "vcf" ? "&" : ",";
+        my $record_delimiter = "|";
         
         foreach my $record (@records) {
             my %formatted_data = %$record;
@@ -295,10 +301,10 @@ sub format_output {
                 $formatted_data{residues} = 'p'.$formatted_data{residues};
             }
 
-            push @formatted_records, join(",", map { $formatted_data{$_} } @{ $field_order->{$item} });
+            push @formatted_records, join($field_delimiter, map { $formatted_data{$_} } @{ $field_order->{$item} });
         }
         
-        $result->{$key} = join("&", @formatted_records);
+        $result->{$key} = join($record_delimiter, @formatted_records);
     }
 
     return $result;
@@ -310,8 +316,9 @@ sub get_pocket_ids {
     return ($fallback_id) unless $self->{pocket_residue_sth};
 
     # Matrix positions are 0-based; pocket_residues stores UniProt positions.
+    # Older generated DBs stored pos with SQLite text affinity, so bind as text.
     eval {
-	my $residue_pos = "" . ( $pos + 1 );
+        my $residue_pos = "" . ( $pos + 1 );
         $self->{pocket_residue_sth}->execute( $md5, $residue_pos );
     };
     return ($fallback_id) if $@;
