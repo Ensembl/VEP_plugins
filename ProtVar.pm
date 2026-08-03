@@ -134,10 +134,40 @@ sub new {
 
     $self->{initial_pid} = $$;
 
-    $self->{dbh} = DBI->connect( "dbi:SQLite:dbname=" . $self->{db}, "", "" );
-    $self->{get_sth} = $self->{dbh}->prepare("SELECT md5, item, matrix FROM consequences WHERE md5 = ?");
+    $self->prepare_db_statements();
 
     return $self;
+}
+
+sub prepare_db_statements {
+    my ($self) = @_;
+
+    $self->{dbh} ||= DBI->connect(
+        "dbi:SQLite:dbname=" . $self->{db},
+        "",
+        "",
+        { RaiseError => 1, PrintError => 0, AutoCommit => 1 }
+    );
+    $self->{get_sth} = $self->{dbh}->prepare("SELECT md5, item, matrix FROM consequences WHERE md5 = ?");
+    $self->prepare_pocket_statements() if $self->{pocket};
+}
+
+sub prepare_pocket_statements {
+    my ($self) = @_;
+
+    $self->{pocket_attrib_sth} = $self->{dbh}->prepare(
+        "SELECT score, MpLDDT, energy, burriedness, RoG, residues FROM pocket_attribs WHERE md5 = ? AND pocket_id = ?"
+    );
+
+    my ($has_pocket_residues) = $self->{dbh}->selectrow_array(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'pocket_residues'"
+    );
+
+    $self->{pocket_residue_sth} = $has_pocket_residues
+      ? $self->{dbh}->prepare(
+            "SELECT pocket_id FROM pocket_residues WHERE md5 = ? AND pos = ?"
+        )
+      : undef;
 }
 
 sub feature_types {
@@ -154,11 +184,11 @@ sub get_header_info {
     }
 
     if ( defined $self->{pocket} ) {
-        $header{ProtVar_pocket} = "Information about overlapping protein pocket. Output field(s) include: ";
+        $header{ProtVar_pocket} = "Information about overlapping protein pocket. Output records are separated by '+'; ";
         $header{ProtVar_pocket} .=
           $self->{config}->{output_format} eq "vcf"
-          ? "(fields are separated by '&') "
-          : "(fields are separated by ',') ";
+          ? "fields within each record are separated by '&'. Field(s) include: "
+          : "fields within each record are separated by ','. Field(s) include: ";
         $header{ProtVar_pocket} .= "id - Pocket id, ";
         $header{ProtVar_pocket} .= "score - Combined score measuring confidence in pocket (score < 800: low confidence; score 800-900: high confidence; score > 900: very high confidence), ";
         $header{ProtVar_pocket} .= "MpLDDT - Mean pLDDT score of all the residues from AlphaFold2 model used to form the pocket, ";
@@ -239,25 +269,67 @@ sub format_output {
     my ( $self, $data, $item ) = @_;
 
     my $result = {};
+    my @records = ref($data) eq 'ARRAY' ? @$data : ($data);
 
     if ( $self->{output_json} ) {
-        my %hash;
-        %hash = map { $_ => $data->{$_} } keys %$data;
-        $result->{$item} = \%hash;
+        if ( ref($data) eq 'ARRAY' ) {
+            $result->{$item} = [
+                map {
+                    my $record = $_;
+                    +{ map { $_ => $record->{$_} } keys %$record };
+                } @records
+            ];
+        }
+        else {
+            my %hash;
+            %hash = map { $_ => $data->{$_} } keys %$data;
+            $result->{$item} = \%hash;
+        }
     }
     else {
         my $key = "ProtVar_" . $item;
+        my @formatted_records;
+        my $field_delimiter = $self->{config}->{output_format} eq "vcf" ? "&" : ",";
+        my $record_delimiter = "+";
         
-        # replace comma in pocket residue position to avoid delimiter clash
-        if ($data->{residues}) {
-            $data->{residues} =~ s/,/p/g;
-            $data->{residues} = 'p'.$data->{residues};
+        foreach my $record (@records) {
+            my %formatted_data = %$record;
+
+            # replace comma in pocket residue position to avoid delimiter clash
+            if ($formatted_data{residues}) {
+                $formatted_data{residues} =~ s/,/p/g;
+                $formatted_data{residues} = 'p'.$formatted_data{residues};
+            }
+
+            push @formatted_records, join($field_delimiter, map { $formatted_data{$_} } @{ $field_order->{$item} });
         }
         
-        $result->{$key} = join(",", map { $data->{$_} } @{ $field_order->{$item} });
+        $result->{$key} = join($record_delimiter, @formatted_records);
     }
 
     return $result;
+}
+
+sub get_pocket_ids {
+    my ( $self, $md5, $pos, $fallback_id ) = @_;
+
+    return ($fallback_id) unless $self->{pocket_residue_sth};
+
+    # Matrix positions are 0-based; pocket_residues stores UniProt positions.
+    # Older generated DBs stored pos with SQLite text affinity, so bind as text.
+    eval {
+        my $residue_pos = "" . ( $pos + 1 );
+        $self->{pocket_residue_sth}->execute( $md5, $residue_pos );
+    };
+    return ($fallback_id) if $@;
+
+    my @ids;
+    while ( my $arrayref = $self->{pocket_residue_sth}->fetchrow_arrayref ) {
+        push @ids, $arrayref->[0];
+    }
+
+    @ids = sort { $a <=> $b } @ids;
+    return @ids ? @ids : ($fallback_id);
 }
 
 sub process_from_db {
@@ -279,12 +351,18 @@ sub process_from_db {
 
     # forked, reconnect to DB
     if ( $$ != $self->{initial_pid} ) {
-        $self->{dbh} = DBI->connect( "dbi:SQLite:dbname=" . $self->{db}, "", "" );
-        $self->{get_sth} = $self->{dbh}->prepare("SELECT md5, item, matrix FROM consequences WHERE md5 = ?");
+        $self->{dbh} = DBI->connect(
+            "dbi:SQLite:dbname=" . $self->{db},
+            "",
+            "",
+            { RaiseError => 1, PrintError => 0, AutoCommit => 1 }
+        );
+        $self->prepare_db_statements();
 
         # set this so only do once per fork
         $self->{initial_pid} = $$;
     }
+    $self->prepare_db_statements() unless $self->{get_sth};
     $self->{get_sth}->execute($md5);
 
     my $result_from_db = {};
@@ -350,21 +428,30 @@ sub process_from_db {
 
                 # format the output
                 if ($id) {
-                    my $sth2 = $self->{dbh}->prepare( "SELECT score, MpLDDT, energy, burriedness, RoG, residues FROM pocket_attribs WHERE md5 = ? AND pocket_id = ?" );
-                    $sth2->execute($md5, $id);
-                    my ( $score, $MpLDDT, $energy, $burriedness, $RoG, $residues ) = @{ $sth2->fetchrow_arrayref };
-                    
-                    my $data = {
-                        id => 'P' . $id,
-                        score => $score,
-                        MpLDDT => $MpLDDT,
-                        energy => $energy,
-                        burriedness => $burriedness,
-                        RoG => $RoG,
-                        residues => $residues
-                    };
+                    my @pocket_data;
+                    $self->prepare_pocket_statements() unless $self->{pocket_attrib_sth};
 
-                    my $formatted_output = $self->format_output( $data, $item );
+                    foreach my $pocket_id ( $self->get_pocket_ids( $md5, $pos, $id ) ) {
+                        $self->{pocket_attrib_sth}->execute($md5, $pocket_id);
+                        my $attribs = $self->{pocket_attrib_sth}->fetchrow_arrayref;
+                        next unless $attribs;
+
+                        my ( $score, $MpLDDT, $energy, $burriedness, $RoG, $residues ) = @$attribs;
+
+                        push @pocket_data, {
+                            id => 'P' . $pocket_id,
+                            score => $score,
+                            MpLDDT => $MpLDDT,
+                            energy => $energy,
+                            burriedness => $burriedness,
+                            RoG => $RoG,
+                            residues => $residues
+                        };
+                    }
+
+                    next unless @pocket_data;
+
+                    my $formatted_output = $self->format_output( @pocket_data > 1 ? \@pocket_data : $pocket_data[0], $item );
                     @$result_from_db{ keys %$formatted_output } = values %$formatted_output;
                 }
             }
