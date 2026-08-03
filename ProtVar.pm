@@ -184,7 +184,7 @@ sub get_header_info {
     }
 
     if ( defined $self->{pocket} ) {
-        $header{ProtVar_pocket} = "Information about overlapping protein pocket. Output records are separated by '|'; ";
+        $header{ProtVar_pocket} = "Information about overlapping protein pocket. Output records are separated by '+'; ";
         $header{ProtVar_pocket} .=
           $self->{config}->{output_format} eq "vcf"
           ? "fields within each record are separated by '&'. Field(s) include: "
@@ -290,7 +290,7 @@ sub format_output {
         my $key = "ProtVar_" . $item;
         my @formatted_records;
         my $field_delimiter = $self->{config}->{output_format} eq "vcf" ? "&" : ",";
-        my $record_delimiter = "|";
+        my $record_delimiter = "+";
         
         foreach my $record (@records) {
             my %formatted_data = %$record;
