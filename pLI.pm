@@ -68,6 +68,11 @@ pLI - Add pLI score to the output
     ./vep -i variants.vcf --plugin pLI,values_file.txt
     ./vep -i variants.vcf --plugin pLI,values_file.txt,transcript # to check for the transcript score.
 
+  By default, scores are formatted to two decimal places. To format scores
+  to three significant figures instead, add the sigfig parameter:
+    ./vep -i variants.vcf --plugin pLI,sigfig
+    ./vep -i variants.vcf --plugin pLI,values_file.txt,transcript,sigfig
+
   gnomAD v4 release expanded the scale of pLI score calculation. The file can be downloaded from -
     https://gnomad.broadinstitute.org/downloads#v4-constraint (Constraint metrics TSV)
   To use the data you can follow the same procedure as above but needs to change the column number to accordingly.
@@ -83,7 +88,6 @@ use DBI;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 use List::MoreUtils qw/zip/;
 
-
 my %include_columns = (
   "transcript" => {
     "name" =>  "pLI_transcript_value"
@@ -96,13 +100,17 @@ sub new {
   my $class = shift;
 
   my $self = $class->SUPER::new(@_);
-  
-  my $file = $self->params->[0];
+
+  my @params = @{$self->params};
+  my $sigfig = grep { $_ eq 'sigfig' } @params;
+  @params = grep { $_ ne 'sigfig' } @params;
+
+  my $file = $params[0];
+  my $value = defined($params[1]) ? $params[1] : 'gene';
+  my $score_format = $sigfig ? '%.3g' : '%.2f';
+  $self->{option} = $value;
   
   my %scores;
-
-  
-  my $value = $self->params->[1] if (defined ($self->params->[1]));
   
   if(!$file) {
     my $plugin_dir = $INC{'pLI.pm'};
@@ -134,7 +142,7 @@ sub new {
       chomp;
       my ($gene, $score) = split;
       next if $score eq 'pLI';
-      $scores{lc($gene)} = sprintf("%.2f", $score);
+      $scores{lc($gene)} = sprintf($score_format, $score);
     }
     close $fh;
   }
@@ -145,12 +153,12 @@ sub new {
       chomp;
       my ($transcript, $score) = split;
       next if $score eq "pLI";
-      $scores{lc($transcript)} = sprintf("%.2f", $score) ;
+      $scores{lc($transcript)} = sprintf($score_format, $score);
     }
     close $fh;
   }
 
-  if (!defined ($self->params->[1]) || defined($self->params->[1]) eq 'gene' ){
+  if ($value eq 'gene') {
     die "Error: File does not have a gene column\n" unless grep {$_ eq "gene"} @{$self->{headers}};
     $self->{header}{$include_columns{"gene"}{"name"}}  =  "pLI value by gene";
     open my $fh, "<", $file;
@@ -158,12 +166,12 @@ sub new {
       chomp;
       my ($gene, $score) = split;
       next if $score eq 'pLI';
-      $scores{lc($gene)} = sprintf("%.2f", $score);
+      $scores{lc($gene)} = sprintf($score_format, $score);
     }
     close $fh;
   } 
 
-  if ( defined($self->params->[1]) && $self->params->[1] eq 'transcript') { 
+  if ($value eq 'transcript') {
     die "Error: Could not find transcript in the headers\n"  unless grep {$_ eq "transcript"} @{$self->{headers}};
     $self->{header}{$include_columns{"transcript"}{"name"}} = "pLI value by transcript";
     open my $fh, "<", $file;
@@ -171,7 +179,7 @@ sub new {
       chomp;
       my ($transcript, $score) = split;
       next if $score eq "pLI";
-      $scores{lc($transcript)} = sprintf("%.2f", $score) ;
+      $scores{lc($transcript)} = sprintf($score_format, $score);
     }
     close $fh;
   }
@@ -179,7 +187,6 @@ sub new {
   die("ERROR: No scores read from $file\n") unless scalar keys %scores;
 
   $self->{scores} = \%scores;
- 
  
   return $self;
 
@@ -204,13 +211,13 @@ sub run {
   my $transcript = $tva->transcript;
   return {} unless $transcript;
   
-  if (!defined ($self->params->[1]) || defined($self->{option}) eq "gene") {
+  if ($self->{option} eq "gene") {
     my $symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
     return {} unless $symbol;
     return $self->{scores}->{lc($symbol)} ? { $include_columns{"gene"}{"name"} => $self->{scores}->{lc($symbol)}} : {};
   }
 
-  if (defined($self->{option}) eq "transcript" || defined ($self->params->[1]) ) { 
+  if ($self->{option} eq "transcript") {
     my $transcript = $tva->transcript->stable_id;
     return {} unless $transcript;
     return $self->{scores}->{lc($transcript)} ? { $include_columns{"transcript"}{"name"} => $self->{scores}->{lc($transcript)}} : {};
@@ -221,4 +228,3 @@ sub run {
 
 
 1;
-
