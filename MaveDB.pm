@@ -128,6 +128,24 @@ sub _parse_colnames {
   }
 }
 
+sub _set_parsed_columns {
+  my $self = shift;
+
+  # The columns parse_data keeps per record: the ones we print, plus the two run() reads directly -
+  # and those only when the option that consults them is on. Data files carry a few hundred columns,
+  # so building a hash of all of them per record costs gigabytes at a locus with many records in a
+  # variant's span, whatever the user asked to print.
+  my %keep = map { $_ => 1 } @{ $self->{cols} };
+  $keep{"MaveDB_hgvs"}   = 1 if $self->{single_aa_changes};
+  $keep{"MaveDB_refseq"} = 1 if $self->{transcript_match};
+
+  my $colnames = $self->{colnames};
+  my @indexes = grep { $keep{ $colnames->[$_] } } 0 .. scalar(@$colnames) - 1;
+
+  $self->{parsed_col_indexes} = \@indexes;
+  $self->{parsed_colnames} = [ map { $colnames->[$_] } @indexes ];
+}
+
 sub new {
   my $class = shift;  
   my $self = $class->SUPER::new(@_);
@@ -152,6 +170,7 @@ sub new {
   # Parse column names
   my $cols = $param_hash->{cols} || "urn:score:nt:pro:doi";
   $self->_parse_colnames($cols);
+  $self->_set_parsed_columns();
 
   return $self;
 }
@@ -308,6 +327,11 @@ sub parse_data {
   my ($self, $line) = @_;
   my ($chrom, $start, $end, $ref, $alt, @vals) = split /\t/, $line;
 
+  # Score sets mapped through VRS carry a "ga4gh:VA.<digest>" identifier in place of the reference
+  # sequence. get_matched_variant_alleles compares alleles as strings, so those records can never
+  # match anything - skip them rather than holding them in memory for the length of the buffer.
+  return undef if $ref =~ /^ga4gh:/;
+
   # VCF-like adjustment of mismatched substitutions for comparison with VEP
   if(length($alt) != length($ref)) {
     my $first_ref = substr($ref, 0, 1);
@@ -322,7 +346,7 @@ sub parse_data {
   }
   
   my %res;
-  @res{ @{ $self->{colnames} } } = @vals;
+  @res{ @{ $self->{parsed_colnames} } } = @vals[ @{ $self->{parsed_col_indexes} } ];
 
   return {
     ref => $ref,
