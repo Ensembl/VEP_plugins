@@ -162,6 +162,22 @@ sub _enable_tabix_gff3 {
     unless grep { $_ eq 'Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin' } @NearestGene::ISA;
 }
 
+# BaseVepTabixPlugin only recognises TBI indexes in some VEP releases.
+# Tabix itself also supports CSI indexes, so accept either format here.
+sub check_file {
+  my ($self, $file) = @_;
+
+  die("ERROR: No file specified\n") unless $file;
+
+  if($file !~ /tp\:\/\//) {
+    die "ERROR: Data file $file not found\n" unless -e $file;
+    die "ERROR: Tabix index file $file.tbi or $file.csi not found - perhaps you need to create it first?\n"
+      unless -e $file.'.tbi' || -e $file.'.csi';
+  }
+
+  return 1;
+}
+
 sub run {
   my ($self, $vfoa) = @_;
   
