@@ -632,6 +632,25 @@ my $VEP_PLUGIN_CONFIG = {
       "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/116/AVADA.pm",
     },
 
+    # AVI
+        {
+          "key" => "AVI",
+          "label" => "AVI",
+          "available" => 0,
+          "enabled" => 0,
+          "section" => "Pathogenicity predictions",
+          "helptip" => "AlphaGenome Variant Impact scores developed by Google DeepMind",
+          "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/116/AVI.pm",
+          "requires_data" => 1,
+          "species" => [
+            "homo_sapiens"
+          ],
+          "params" => [
+            #file="/path/to/avi_scores_examples_phred.tsv.gz",
+            #raw=1,
+          ]
+        },
+
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
     {
