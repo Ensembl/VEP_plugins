@@ -395,14 +395,20 @@ sub new {
     }
 
     # check af
-    foreach my $af (qw/af_monoallelic af_biallelic/) {
-      if($params->{$af}) {
-        die("ERROR: Invalid value for af: ".$params->{$af} . "\n") unless
-          looks_like_number($params->{$af}) && ($params->{$af} >= 0 && $params->{$af} <= 1)
+    my %af_option_to_requirement_group = (
+      af_monoallelic => 'monoallelic',
+      af_biallelic   => 'biallelic',
+    );
+    foreach my $af (keys %af_option_to_requirement_group) {
+      next unless defined $params->{$af};
+      die("ERROR: Invalid value for af: ".$params->{$af} . "\n") unless
+        looks_like_number($params->{$af}) && ($params->{$af} >= 0 && $params->{$af} <= 1);
+
+      my $requirement_group = $af_option_to_requirement_group{$af};
+      foreach my $ar (keys %$allelic_requirements) {
+        next unless index($ar, $requirement_group) != -1;
+        $allelic_requirements->{$ar}->{af} = $params->{$af};
       }
-      my $ar = $af;
-      $ar =~ s/af_//;
-      $allelic_requirements->{$ar}->{af} = $params->{$af} if (defined $params->{$af});
     }
 
     $params->{af_keys} = \@{$DEFAULTS{af_keys}};
@@ -850,7 +856,7 @@ sub is_g2p_complete {
       push @g2p_complete, "$ar=" . join(',', @filtered_variants);
     }
   }
-  return join('\|', @g2p_complete);
+  return join('|', @g2p_complete);
 } 
 
 =head2 zyg2var_filtered_by_allelic_requirement_rule
