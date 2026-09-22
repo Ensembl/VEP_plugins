@@ -78,6 +78,14 @@ limitations under the License.
 
    --plugin dbNSFP,/path/to/dbNSFP.gz,LRT_score,GERP++_RS
 
+ To prefix output column names with 'dbNSFP_' and distinguish them from VEP and
+ other plugin annotations, use 'output_prefix=1':
+
+   --plugin dbNSFP,/path/to/dbNSFP.gz,output_prefix=1,LRT_score,GERP++_RS
+
+ This produces the output columns 'dbNSFP_LRT_score' and
+ 'dbNSFP_GERP++_RS'. By default, output column names are unchanged.
+
  You may include all columns with 'ALL'; this fetches a large amount of data per
  variant:
 
@@ -147,7 +155,8 @@ use Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepTabixPlugin);
 
 my %INCLUDE_SO = map {$_ => 1} qw(missense_variant stop_lost stop_gained start_lost);
-my %ALLOWED_PARAMS = map {$_ => 1} qw(consequence pep_match transcript_match);
+my %ALLOWED_PARAMS = map {$_ => 1} qw(consequence output_prefix pep_match transcript_match);
+my $OUTPUT_PREFIX = 'dbNSFP_';
 
 # this region chosen as it should pull out a row in all assemblies
 my $EXAMPLE_REGION = "1:1008170-1082927";
@@ -245,6 +254,12 @@ sub feature_types {
   return ['Transcript'];
 }
 
+sub output_colname {
+  my ($self, $colname) = @_;
+  return $colname unless $self->{output_prefix};
+  return $colname =~ /^\Q$OUTPUT_PREFIX\E/ ? $colname : $OUTPUT_PREFIX . $colname;
+}
+
 sub get_header_info {
   my $self = shift;
 
@@ -258,7 +273,11 @@ sub get_header_info {
       $rm_descs{$col} = "(from $self->{basename}) " . $rm_descs{$col};
     }
 
-    $self->{_header_info} = {map {$_ => $rm_descs{$_} || ($_.' from dbNSFP file')} keys %{$self->{cols}}};
+    $self->{_header_info} = {
+      map {
+        $self->output_colname($_) => $rm_descs{$_} || ($_.' from dbNSFP file')
+      } keys %{$self->{cols}}
+    };
   }
   
   return $self->{_header_info};
@@ -380,8 +399,9 @@ sub run {
 
   my %return;
   foreach my $colname (keys %{$self->{cols}}) {
+    my $output_colname = $self->output_colname($colname);
     if (!$self->{cols}->{$colname}) {
-      $return{$colname} = "invalid_field";
+      $return{$output_colname} = "invalid_field";
       next;
     }
     next if(!defined($data->{$colname}));
@@ -394,7 +414,7 @@ sub run {
     for my $i (0 .. $#from) {
       $data->{$colname} =~ s/\Q$from[$i]\E/$to[$i]/g;
     }
-    $return{$colname} = $data->{$colname};
+    $return{$output_colname} = $data->{$colname};
   }
   
   return \%return;
@@ -559,6 +579,7 @@ sub get_named_params {
   my $self = shift;
 
   $self->{consequence} = 'filter';
+  $self->{output_prefix} = 0;
   $self->{pep_match} = 1;
   $self->{transcript_match} = 0;
 
