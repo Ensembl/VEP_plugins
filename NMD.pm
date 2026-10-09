@@ -87,11 +87,11 @@ sub run {
   # position of the variant in respect to the coding sequence. 
   my $variant_coding_region = $tv->cds_end if (defined $tv->cds_end);
   # checking for if the transcript is an intronless transcript 
-  my @introns = $tr->get_all_Introns; 
-  my $number = scalar @introns;
+  my $introns = $tr->get_all_Introns;
+  my $exons = $tr->get_all_Exons;
+  my $intron_count = scalar @{$introns};
 
-  # to check for if the variant location falls in the last exon
-  my $check = $self->variant_exon_check($tva);
+  my $vf = $tva->variation_feature;
   
   # to check what position the transcript variation coding sequence end is at 
   # former method gave room for a bug 
@@ -106,8 +106,14 @@ sub run {
 
 
   # if statement to check if any of the rules is true
-  if ( ( defined ($position_check) && $position_check == 1) || $check || $number == 0 ) {
-    return {NMD => $TERM{1}};
+  if ( ( defined ($position_check) && $position_check == 1)
+      || in_last_exon($vf, $exons)
+      || in_penultimate_exon_50bp_end($vf, $exons, $tr->strand)
+      || $intron_count == 0
+     ) {
+    return {
+      NMD => $TERM{1},
+    };
   }
   else {
     return {};
@@ -116,66 +122,88 @@ sub run {
   
 }
 
-=head2 variant_exon_check 
-  
-  Args        : $tva (TranscriptionVariationAllele)
-  Description : Checks if the variant location falls :
-                  - in the last exon 
-                  -  50bp towards the end of the second to the last exon(if it exists). 
+=head2 in_last_exon
+
+  Args        : ($vf (VariationFeature), \@exons (array of Exons))
+  Description : Checks if the variant location falls in the last exon
                 If it does, It returns 1 else it returns 0.
   Returntype  : Boolean
   Exceptions  : None
-  Caller      : run 
-  Status      : Stable
+  Caller      : run
+  Status      : Development
 
 =cut
-sub variant_exon_check {
-  my $self = shift;
-  my $tva = shift; 
-  my $vf = $tva->variation_feature;
-  my $tr = $tva->transcript;
+sub in_last_exon {
+  my $vf = shift;
+  my $exons = shift;
+
+  # Get the end of the variant
   my $vf_end = $vf->seq_region_end;
-  my @exons = @{ $tr->get_all_Exons }; 
 
-  # to get the last exon 
-
-  my $last_exon = $exons[-1]; 
-  
-  # to get the second to the last exon (penultimate exon)
-  my $second_last_exon = $exons[-2];
+  # Get the last exon
+  my $last_exon = $exons->[-1];
   my $coding_region_end = $last_exon->end;
   my $coding_region_start = $last_exon->start;
-  if (defined($coding_region_start) && $vf_end >= $coding_region_start && $vf_end <= $coding_region_end){
-    return 1; 
-  }
-  # to check if the second to the last exon exists 
-  if (defined($second_last_exon)){
-    # this method has been changed because of the reverse strand consideration
-    my $coding_region_end;
-    my $diff_end;
-    # need to account for strand as if it is in reverse strand it should be reading from the start 
-    # and adding 51 to find the variant 50 bases upstream in penultimate exon
-    if ($tr->strand == -1){
-      $coding_region_end = $second_last_exon->start;
-      $diff_end = $coding_region_end + 51;
-      if (defined($coding_region_end) && $vf_end >= $coding_region_end && $vf_end <= $diff_end  ) {
-        return 1; 
-      }
-    } else {
-      $coding_region_end = $second_last_exon->end;
-      $diff_end = $coding_region_end - 51;
-      if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ) {
-        return 1; 
-      }
-    }
-  
-  }
-  
-  return 0; 
 
+  # Skip if exon start or end could not be found
+  if (!defined($coding_region_start) || !defined($coding_region_end)) {
+    return 0;
+  }
+
+  # Check if the variant is in the last exon
+  return $coding_region_start <= $vf_end && $vf_end <= $coding_region_end;
 }
 
+=head2 in_penultimate_exon_50bp_end
 
+  Args        : ($vf (VariationFeature), \@exons (array of Exons))
+  Description : Checks if the variant location falls in the 50bp towards the 3' end of the penultimate exon (if it exists).
+                If so, returns 1 else it returns 0.
+  Returntype  : Boolean
+  Exceptions  : None
+  Caller      : run
+  Status      : Development
 
+=cut
+sub in_penultimate_exon_50bp_end {
+  my $vf = shift;
+  my $exons = shift;
+  my $strand = shift;
+
+  my $second_last_exon = $exons->[-2];
+
+  if(!defined($second_last_exon)) {
+    return 0;
+  }
+
+  my $last_50bp_start;
+  my $last_50bp_end;
+  # need to account for strand as if it is in reverse strand it should be reading from the start 
+  # and adding 51 to find the variant 50 bases upstream in penultimate exon
+  if ($strand == -1){
+    my $coding_region_start = $second_last_exon->start;
+    # skip if coding region start could not be found
+    if (!defined($coding_region_start)) {
+      return 0;
+    }
+
+    $last_50bp_start = $coding_region_start;
+    $last_50bp_end = $last_50bp_start + 51;
+  }
+  else {
+    my $coding_region_end = $second_last_exon->end;
+    # skip if coding region end could not be found
+    if (!defined($coding_region_end)) {
+      return 0;
+    }
+
+    $last_50bp_end = $coding_region_end;
+    $last_50bp_start = $last_50bp_end - 51;
+  }
+
+  my $vf_end = $vf->seq_region_end;
+
+  return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
+}
 
 1;
