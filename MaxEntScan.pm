@@ -523,7 +523,7 @@ sub get_max_donor {
   for my $i (0 .. $#kmers) {
     my $kmer = $kmers[$i];
     my $score = $self->score5($kmer);
-    if(!$max || $score > $max) {
+    if(!defined($max) || $score > $max) {
       $seq = $kmer;
       $frame = $i + 1;
       $max = $score;
@@ -541,7 +541,7 @@ sub get_max_acceptor {
   for my $i (0 .. $#kmers) {
     my $kmer = $kmers[$i];
     my $score = $self->score3($kmer);
-    if(!$max || $score > $max) {
+    if(!defined($max) || $score > $max) {
       $seq = $kmer;
       $frame = $i + 1;
       $max = $score;
