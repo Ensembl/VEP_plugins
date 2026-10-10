@@ -107,6 +107,9 @@ use strict;
 use warnings;
 
 use Digest::MD5 qw(md5_hex);
+use File::Temp ();
+use IPC::Open3 qw(open3);
+use Symbol qw(gensym);
 
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 use Bio::EnsEMBL::Variation::Utils::VariationEffect qw(overlap);
@@ -299,31 +302,31 @@ sub results_from_seq {
   my $self = shift;
   my $seq = shift;
 
-  # write seqs to file
-  my $seq_file = $self->{'_param_tmpdir'}."/genesplicer_$$.fa";
-  open SEQ, ">$seq_file" or die("ERROR: Could not write to temporary sequence file $seq_file\n");
-  print SEQ ">SEQ\n$seq\n";
-  close SEQ;
+  # A private directory keeps concurrent calls separate and cleans up files
+  # even when the predictor fails or its output cannot be read.
+  my $tmpdir = File::Temp->newdir('genesplicer_XXXXXXXX', DIR => $self->{'_param_tmpdir'});
+  my $seq_file = "$tmpdir/sequence.fa";
+  open my $seq_fh, '>', $seq_file or die("ERROR: Could not write $seq_file: $!\n");
+  print {$seq_fh} ">SEQ\n$seq\n" or die("ERROR: Could not write $seq_file: $!\n");
+  close $seq_fh or die("ERROR: Could not close $seq_file: $!\n");
 
-  my $result_file = $self->{'_param_tmpdir'}."/genesplicer_$$.results";
-  
-  my $cmd = sprintf(
-    '%s %s %s -f %s',
-    $self->{'_bin'},
-    $seq_file,
-    $self->{'_training_dir'},
-    $result_file
-  );
+  my $result_file = "$tmpdir/results";
+  my $output_fh = gensym;
+  my $pid = open3(undef, $output_fh, $output_fh,
+    $self->{'_bin'}, $seq_file, $self->{'_training_dir'}, '-f', $result_file);
+  my $output = do { local $/; <$output_fh> };
+  close $output_fh;
+  waitpid($pid, 0);
+  my $status = $?;
+  die("ERROR: genesplicer failed (status $status):\n".($output || '')."\n") if $status;
 
-  my $output = `$cmd 2>&1`;
-  unlink($seq_file);
-
+  # A successful predictor may omit the results file when there are no sites.
   return [] unless -e $result_file;
 
-  open RES, $result_file;
+  open my $res_fh, '<', $result_file or die("ERROR: Could not read $result_file: $!\n");
   my @results;
   
-  while(<RES>) {
+  while(<$res_fh>) {
     chomp;
     my ($end5, $end3, $score, $confidence, $type) = split;
 
@@ -335,9 +338,8 @@ sub results_from_seq {
       type => $type
     };
   }
-  close RES;
+  close $res_fh or die("ERROR: Could not close $result_file: $!\n");
 
-  unlink($result_file);
 
   push @{$self->{cache}}, { hex => md5_hex($seq), results => \@results};
   shift @{$self->{cache}} while scalar @{$self->{cache}} > $self->{_param_cache_size};
