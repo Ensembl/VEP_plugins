@@ -84,18 +84,13 @@ sub run {
   
   my $tr = $tva->transcript;
   my $tv = $tva->transcript_variation;
-  # position of the variant in respect to the coding sequence. 
-  my $variant_coding_region = $tv->cds_end if (defined $tv->cds_end);
-  # checking for if the transcript is an intronless transcript 
+
+  # checking for if the transcript is an intronless transcript
   my $introns = $tr->get_all_Introns;
   my $exons = $tr->get_all_Exons;
   my $intron_count = scalar @{$introns};
 
   my $vf = $tva->variation_feature;
-  
-  # to check what position the transcript variation coding sequence end is at 
-  # former method gave room for a bug 
-  my $position_check = 1 if ( defined ($variant_coding_region) && $variant_coding_region <= 101) ;
 
   
  
@@ -106,7 +101,7 @@ sub run {
 
 
   # if statement to check if any of the rules is true
-  if ( ( defined ($position_check) && $position_check == 1)
+  if ( in_100bp_coding_start($tv)
       || in_last_exon($vf, $exons)
       || in_penultimate_exon_50bp_end($vf, $exons, $tr->strand)
       || $intron_count == 0
@@ -204,6 +199,31 @@ sub in_penultimate_exon_50bp_end {
   my $vf_end = $vf->seq_region_end;
 
   return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
+}
+
+=head2 in_100bp_coding_start
+
+  Args        : $tv (TranscriptVariation)
+  Description : Checks if the variant location falls in the first 100bp (5' end)
+                of the transcript's coding sequence.
+                If so, returns 1 else it returns 0.
+  Returntype  : Boolean
+  Exceptions  : None
+  Caller      : run
+  Status      : Development
+
+=cut
+sub in_100bp_coding_start {
+  my $tv = shift;
+
+  # position of the variant in respect to the coding sequence.
+  my $variant_coding_region = $tv->cds_end // undef;
+
+  if(!defined($variant_coding_region)) {
+    return 0;
+  }
+
+  return $variant_coding_region <= 101;
 }
 
 1;
