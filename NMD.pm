@@ -84,14 +84,9 @@ sub run {
   
   my $tr = $tva->transcript;
   my $tv = $tva->transcript_variation;
-
-  # checking for if the transcript is an intronless transcript
-  my $introns = $tr->get_all_Introns;
-  my $exons = $tr->get_all_Exons;
-  my $intron_count = scalar @{$introns};
-
   my $vf = $tva->variation_feature;
 
+  my $exons = $tr->get_all_Exons;
   
  
   # to check if the variant is not on the coding sequence.
@@ -104,7 +99,7 @@ sub run {
   if ( in_100bp_coding_start($tv)
       || in_last_exon($vf, $exons)
       || in_penultimate_exon_50bp_end($vf, $exons, $tr->strand)
-      || $intron_count == 0
+      || intronless_transcript($tr)
      ) {
     return {
       NMD => $TERM{1},
@@ -224,6 +219,27 @@ sub in_100bp_coding_start {
   }
 
   return $variant_coding_region <= 101;
+}
+
+=head2 intronless_transcript
+
+  Args        : $tr (Transcript)
+  Description : Checks if the transcript is a intronless (single-exon) transcript.
+                If so, returns 1 else it returns 0.
+  Returntype  : Boolean
+  Exceptions  : None
+  Caller      : run
+  Status      : Development
+
+=cut
+sub intronless_transcript {
+  my $tr = shift;
+
+  # checking for if the transcript is an intronless transcript
+  my $introns = $tr->get_all_Introns;
+  my $intron_count = scalar @{$introns};
+
+  return $intron_count == 0;
 }
 
 1;
