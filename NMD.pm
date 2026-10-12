@@ -18,42 +18,42 @@ limitations under the License.
  NMD
 
 =head1 SYNOPSIS
- 
+
   mv NMD.pm  ~/.vep/Plugins
  ./vep -i variations.vcf --plugin NMD
 
-=head1 DESCRIPTION 
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) 
- that predicts if a variant allows the 
+=head1 DESCRIPTION
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP)
+ that predicts if a variant allows the
  transcript escape nonsense-mediated mRNA decay based on certain rules.
- 
- The rules are : 
+
+ The rules are :
 
  1. The variant location  falls in the last exon of the transcript.
                                         vvvv
-      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  2. The variant location falls  50 bases upstream of the penultimate (second to the last ) exon.
                                vvv
-      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
-     
+
  3. The variant falls in the first 100 coding bases in the transcript.
          vvv
-      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
-  
- 4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript. 
- 
+
+ 4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript.
+
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
-  
+
  REFERENCES :
  - Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
  - The rules and impact of nonsense-mediated mRNA decay in human cancers (Lindeboom, 2016)
 
 
-=cut 
+=cut
 
 package NMD;
 
@@ -77,18 +77,18 @@ sub get_header_info {
 }
 
 sub run {
-  my $self = shift; 
+  my $self = shift;
   my $tva = shift;
-  # using stop_gained for now as advised. 
+  # using stop_gained for now as advised.
   return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
-  
+
   my $tr = $tva->transcript;
   my $tv = $tva->transcript_variation;
   my $vf = $tva->variation_feature;
 
   my $exons = $tr->get_all_Exons;
-  
- 
+
+
   # to check if the variant is not on the coding sequence.
   if (!defined ($tv->cds_end) || !defined ($tv->cds_start)){
     return {};
@@ -109,7 +109,7 @@ sub run {
     return {};
   }
 
-  
+
 }
 
 =head2 in_last_exon
@@ -168,7 +168,7 @@ sub in_penultimate_exon_50bp_end {
 
   my $last_50bp_start;
   my $last_50bp_end;
-  # need to account for strand as if it is in reverse strand it should be reading from the start 
+  # need to account for strand as if it is in reverse strand it should be reading from the start
   # and adding 51 to find the variant 50 bases upstream in penultimate exon
   if ($strand == -1){
     my $coding_region_start = $second_last_exon->start;
