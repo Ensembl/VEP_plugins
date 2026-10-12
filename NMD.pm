@@ -79,7 +79,8 @@ sub get_header_info {
 sub run {
   my $self = shift;
   my $tva = shift;
-  # using stop_gained for now as advised.
+
+  # Skip NMD annotation if transcript variant consequence is not subject to NMD
   return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
 
   my $tr = $tva->transcript;
@@ -89,13 +90,13 @@ sub run {
   my $exons = $tr->get_all_Exons;
 
 
-  # to check if the variant is not on the coding sequence.
+  # Skip NMD annotation if variant does not fall in the coding sequence
   if (!defined ($tv->cds_end) || !defined ($tv->cds_start)){
     return {};
   }
 
 
-  # if statement to check if any of the rules is true
+  # Return NMD annotation if variant matches any of the rules
   if ( in_100bp_coding_start($tv)
       || in_last_exon($vf, $exons)
       || in_penultimate_exon_50bp_end($vf, $exons, $tr->strand)
