@@ -20,31 +20,43 @@ limitations under the License.
 =head1 SYNOPSIS
 
   mv NMD.pm  ~/.vep/Plugins
- ./vep -i variations.vcf --plugin NMD
+
+  # Default usage
+  ./vep -i variations.vcf --plugin NMD
+  # Enable NMD category reporting (as NMD_category)
+  ./vep -i variations.vcf --plugin NMD,report_category=1
 
 =head1 DESCRIPTION
  This is a plugin for the Ensembl Variant Effect Predictor (VEP)
- that predicts if a variant allows the
- transcript escape nonsense-mediated mRNA decay based on certain rules.
+ that predicts if a variant allows the resulting isoform to escape
+ nonsense-mediated mRNA decay, and categorizes those that do
+ based on certain rules.
 
- The rules are :
+ Options are passed to the plugin as key=value pairs:
+   report_category : (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
 
- 1. The variant location  falls in the last exon of the transcript.
+ The NMD escape categorisation rules are :
+
+ 1. The variant location falls in the last exon of the transcript.
                                         vvvv
       ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `E-1`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  2. The variant location falls  50 bases upstream of the penultimate (second to the last ) exon.
                                vvv
       ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `E-2_end-50`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  3. The variant falls in the first 100 coding bases in the transcript.
          vvv
       ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript.
+    Category: `intronless`
 
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
 
@@ -76,6 +88,25 @@ sub get_header_info {
     NMD => "Nonsense-mediated mRNA decay escaping variants prediction"};
 }
 
+sub new {
+  my $class = shift;
+
+  my $self = $class->SUPER::new(@_);
+
+  my $param_hash = $self->params_to_hash();
+
+  my $report_category = $param_hash->{report_category};
+
+  if ($report_category) {
+    $self->{report_category} = 1;
+  }
+  else {
+    $self->{report_category} = 0;
+  }
+
+  return $self;
+}
+
 sub run {
   my $self = shift;
   my $tva = shift;
@@ -95,16 +126,29 @@ sub run {
     return {};
   }
 
+  # Categorize the variant to NMD-escape classes
+  my $nmd_escape_category;
+  if( intronless_transcript($tr) ){
+    $nmd_escape_category = 'intronless';
+  }
+  elsif( in_last_exon($vf, $exons) ){
+    $nmd_escape_category = 'E-1';
+  }
+  elsif( in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
+    $nmd_escape_category = 'E-2_end-50';
+  }
+  elsif( in_100bp_coding_start($tv) ){
+    $nmd_escape_category = 'cds_start+100';
+  }
+
 
   # Return NMD annotation if variant matches any of the rules
-  if ( in_100bp_coding_start($tv)
-      || in_last_exon($vf, $exons)
-      || in_penultimate_exon_50bp_end($vf, $exons, $tr->strand)
-      || intronless_transcript($tr)
-     ) {
-    return {
-      NMD => $TERM{1},
-    };
+  if ( defined($nmd_escape_category) ) {
+    my $annot = {NMD => $TERM{1}};
+    if( $self->{report_category} ) {
+      $annot->{NMD_category} = $nmd_escape_category;
+    }
+    return $annot;
   }
   else {
     return {};
