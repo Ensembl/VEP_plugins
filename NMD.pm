@@ -84,8 +84,19 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return {
-    NMD => "Nonsense-mediated mRNA decay escaping variants prediction"};
+  my $self = shift;
+
+  my $header_info = {
+    NMD => "Nonsense-mediated mRNA decay escaping variants prediction"
+  };
+
+  if($self->{report_category}) {
+    $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
+      ." 'E-1' (last exon), 'E-2_end-50' (last 50bp in the penultimate exon)"
+      .", 'cds_start+100' (first 100bp of the coding sequence), 'intronless' (intronless transcript).";
+  }
+
+  return $header_info;
 }
 
 sub new {
