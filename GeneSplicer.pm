@@ -349,7 +349,8 @@ sub results_from_cache {
   my $self = shift;
   my $seq = shift;
 
-  my ($results) = map {$_->{results}} grep {$_->{hex} eq md5_hex($seq)} @{$self->{cache} || []};
+  my $hex = md5_hex($seq);
+  my ($results) = map {$_->{results}} grep {$_->{hex} eq $hex} @{$self->{cache} || []};
 
   return $results;
 }
