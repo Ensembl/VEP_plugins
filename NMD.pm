@@ -37,16 +37,17 @@ limitations under the License.
 
  The NMD escape categorisation rules are :
 
- 1. The variant location falls in the last exon of the transcript.
+ 1. The variant location falls in the last exon in the coding sequence of the transcript.
                                         vvvv
       ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
-    Category: `E-1`
+    Category: `cds_E-1`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 2. The variant location falls  50 bases upstream of the penultimate (second to the last ) exon.
+ 2. The variant location falls within the last 50bp (3' end)
+    of the penultimate exon in the coding sequence of the transcript.
                                vvv
       ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
-    Category: `E-2_end-50`
+    Category: `cds_E-2_end-50`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  3. The variant falls in the first 100 coding bases in the transcript.
@@ -55,8 +56,9 @@ limitations under the License.
     Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript.
-    Category: `intronless`
+ 4. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
+    i.e. the coding sequence is completely encapsulated in a single exon of the transcript (introns can exist in the UTRs).
+    Category: `cds_intronless`
 
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
 
@@ -129,7 +131,9 @@ sub run {
   my $tv = $tva->transcript_variation;
   my $vf = $tva->variation_feature;
 
-  my $exons = $tr->get_all_Exons;
+  # Get the exons in the coding sequence region only.
+  # UTR introns are irrelevant to determine NMD escape
+  my $exons = $tr->get_all_translateable_Exons;
 
 
   # Skip NMD annotation if variant does not fall in the coding sequence
@@ -139,14 +143,14 @@ sub run {
 
   # Categorize the variant to NMD-escape classes
   my $nmd_escape_category;
-  if( intronless_transcript($tr) ){
-    $nmd_escape_category = 'intronless';
+  if( intronless_transcript_cds($exons) ){
+    $nmd_escape_category = 'cds_intronless';
   }
   elsif( in_last_exon($vf, $exons) ){
-    $nmd_escape_category = 'E-1';
+    $nmd_escape_category = 'cds_E-1';
   }
   elsif( in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
-    $nmd_escape_category = 'E-2_end-50';
+    $nmd_escape_category = 'cds_E-2_end-50';
   }
   elsif( in_100bp_coding_start($tv) ){
     $nmd_escape_category = 'cds_start+100';
@@ -277,10 +281,10 @@ sub in_100bp_coding_start {
   return $variant_coding_region <= 101;
 }
 
-=head2 intronless_transcript
+=head2 intronless_transcript_cds
 
   Args        : $tr (Transcript)
-  Description : Checks if the transcript is a intronless (single-exon) transcript.
+  Description : Checks if the transcript's coding sequence is intronless (single-exon).
                 If so, returns 1 else it returns 0.
   Returntype  : Boolean
   Exceptions  : None
@@ -288,14 +292,12 @@ sub in_100bp_coding_start {
   Status      : Development
 
 =cut
-sub intronless_transcript {
-  my $tr = shift;
+sub intronless_transcript_cds {
+  my $exons = shift;
 
-  # checking for if the transcript is an intronless transcript
-  my $introns = $tr->get_all_Introns;
-  my $intron_count = scalar @{$introns};
+  my $exon_count = scalar @{$exons};
 
-  return $intron_count == 0;
+  return $exon_count == 1;
 }
 
 1;
