@@ -143,7 +143,7 @@ sub run {
 
   # Categorize the variant to NMD-escape classes
   my $nmd_escape_category;
-  if( intronless_transcript_cds($tr) ){
+  if( intronless_transcript_cds($exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
   elsif( in_last_exon($vf, $exons) ){
@@ -293,14 +293,11 @@ sub in_100bp_coding_start {
 
 =cut
 sub intronless_transcript_cds {
-  my $tr = shift;
+  my $exons = shift;
 
-  # Get the introns in the coding sequence region only.
-  # UTR introns are irrelevant to determine NMD escape
-  my $introns = $tr->get_all_CDS_Introns;
-  my $intron_count = scalar @{$introns};
+  my $exon_count = scalar @{$exons};
 
-  return $intron_count == 0;
+  return $exon_count == 1;
 }
 
 1;
