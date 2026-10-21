@@ -143,15 +143,17 @@ sub run {
     return {};
   }
 
+  my $tr_biotype = $tr->biotype->name;
+
   # Categorize the variant to NMD-escape classes
   my $nmd_escape_category;
-  if( $tr->biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($exons) ){
+  if( $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
-  elsif( $tr->biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $exons) ){
+  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $exons) ){
     $nmd_escape_category = 'cds_E-1';
   }
-  elsif( $tr->biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
+  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-2_end-50';
   }
   elsif( in_100bp_coding_start($tv) ){
