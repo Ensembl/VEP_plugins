@@ -35,7 +35,9 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
    report_category : (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
 
- The NMD escape categorisation rules are :
+ The NMD escape categorisation rules are as listed below. Start-proximal rules (rule 3) apply to all variants.
+ Rules based on the last coding exon-exon junction (rules 1, 2 and 4) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
+ as these transcripts are known to already have a PTC >= 50nt before the last coding exon-exon junction, thus missing the window of escape.
 
  1. The variant location falls in the last exon in the coding sequence of the transcript.
                                         vvvv
@@ -143,13 +145,13 @@ sub run {
 
   # Categorize the variant to NMD-escape classes
   my $nmd_escape_category;
-  if( intronless_transcript_cds($exons) ){
+  if( $tr->biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
-  elsif( in_last_exon($vf, $exons) ){
+  elsif( $tr->biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $exons) ){
     $nmd_escape_category = 'cds_E-1';
   }
-  elsif( in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
+  elsif( $tr->biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-2_end-50';
   }
   elsif( in_100bp_coding_start($tv) ){
