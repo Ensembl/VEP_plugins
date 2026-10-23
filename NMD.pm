@@ -78,7 +78,7 @@ use warnings;
 
 use base  qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
-my %INCLUDE_SO = map{$_ => 1} qw(stop_gained frameshift_variant splice_donor_variant splice_acceptor_variant);
+my %INCLUDE_SO = map{$_ => 1} qw(stop_gained);
 my %TERM = (
   1 => "NMD_escaping_variant"
 );
