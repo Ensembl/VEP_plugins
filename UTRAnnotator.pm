@@ -256,40 +256,41 @@ sub run {
   );
 
 
-  my $output_five_prime_flag;
-  my $output_five_prime_annotation;
-
-  foreach my $flag (keys %five_prime_flag){
-    if($five_prime_flag{$flag}){
-      $output_five_prime_flag = $five_prime_flag{$flag};
-      $output_five_prime_annotation = $five_prime_annotation{$flag};
-    }
-  };
+  # a variant can trigger more than one effect, for example a uAUG gain that also frameshifts an existing uORF:
+  # report every effect, in a fixed order, as the original UTRannotator does
+  my @effects = grep { $five_prime_flag{$_} } qw(uAUG_gained uSTOP_lost uAUG_lost uSTOP_gained uFrameshift);
 
   my %utr_effect;
 
   if ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}){
 
+    my %annotation;
+    foreach my $effect (@effects){
+      my $uORF_effects = $five_prime_annotation{$effect};
+      foreach my $index (sort { $a <=> $b } keys %$uORF_effects){
+        $annotation{scalar(keys %annotation) + 1} = $uORF_effects->{$index};
+      }
+    }
+
     %utr_effect = (
-        "5UTR_consequence" => $output_five_prime_flag,
-        "5UTR_annotation" => $output_five_prime_annotation,
+        "5UTR_consequence" => @effects ? join("&", map { $five_prime_flag{$_} } @effects) : undef,
+        "5UTR_annotation" => @effects ? \%annotation : undef,
     );
 
   } else {
 
     my @consequences;
-
-        foreach my $value (keys %{$output_five_prime_annotation}){
-          push @consequences, join(":", map { "$_=$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
-        };
-
-    my $consequence;
-
-    $consequence = join(",", @consequences);
+    foreach my $effect (@effects){
+      my $uORF_effects = $five_prime_annotation{$effect};
+      push @consequences, join(",", map {
+        my $uORF_effect = $uORF_effects->{$_};
+        join(":", map { "$_=$uORF_effect->{$_}" } sort keys %$uORF_effect)
+      } sort { $a <=> $b } keys %$uORF_effects);
+    }
 
     %utr_effect = (
-        "5UTR_consequence" => defined($output_five_prime_flag) ? $output_five_prime_flag : "-",
-        "5UTR_annotation" => defined($consequence) && $consequence ne '' ? $consequence : "-",
+        "5UTR_consequence" => @effects ? join("&", map { $five_prime_flag{$_} } @effects) : "-",
+        "5UTR_annotation" => @effects ? join("&", @consequences) : "-",
     );
 
   }
