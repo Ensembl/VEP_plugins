@@ -229,6 +229,27 @@ sub get_header_info {
 sub run {
   my ($self, $tva) = @_;
   my $vf = $tva->variation_feature;
+
+  # the lookup and allele matching depend on the variant and allele, the gene pick below on the transcript
+  my $hash_aux = $self->per_variant_cached($vf, $tva->allele_number, sub { $self->_results_by_gene($tva) });
+
+  return {} unless(%$hash_aux);
+
+  my $result = {};
+
+  # find the SpliceAI gene matching the variant gene symbol, if there is a match
+  my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
+  if(($gene_symbol) && ($hash_aux->{$gene_symbol})) {
+      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux->{$gene_symbol}} : $hash_aux->{$gene_symbol};
+  }
+
+  return $result;
+}
+
+# SpliceAI results for the variant's allele, keyed by gene symbol
+sub _results_by_gene {
+  my ($self, $tva) = @_;
+  my $vf = $tva->variation_feature;
   my $chr = $vf->{chr};
 
   my $end = $vf->{end};
@@ -306,17 +327,7 @@ sub run {
     }
   }
 
-  return {} unless(%hash_aux);
-
-  my $result = {};
-
-  # find the SpliceAI gene matching the variant gene symbol, if there is a match
-  my $gene_symbol = $tva->transcript->{_gene_symbol} || $tva->transcript->{_gene_hgnc};
-  if(($gene_symbol) && ($hash_aux{$gene_symbol})) {
-      $result = ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}) ?  {SpliceAI => $hash_aux{$gene_symbol}} : $hash_aux{$gene_symbol};
-  }
-
-  return $result;
+  return \%hash_aux;
 }
 
 # Parse data from SpliceAI file

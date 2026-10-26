@@ -135,6 +135,15 @@ sub run {
   return {} unless defined($ref) && $ref =~ /^[ACGT]$/;
   return {} unless defined($allele) && $allele =~ /^[ACGT]$/;
 
+  # the lookup and allele matching depend on the variant and allele only
+  return $self->per_variant_cached($vf, $allele, sub { $self->_result($vf, $ref, $allele) });
+}
+
+sub _result {
+  my ($self, $vf, $ref, $allele) = @_;
+  my $start = $vf->{start};
+  my $end = $vf->{end};
+
   foreach my $record (@{$self->get_data($vf->{chr}, $start, $end)}) {
     my $matches = get_matched_variant_alleles(
       {
