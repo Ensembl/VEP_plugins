@@ -273,34 +273,15 @@ sub _is_single_aa_change {
 
 sub run {
   my ($self, $tva) = @_;
-  
+
   my $vf = $tva->variation_feature;
 
-  # Get allele
-  my $allele = $tva->base_variation_feature->alt_alleles;
-
-  # Increment 1 to account for insertions
-  my @data = @{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end} + 1)};
+  # the lookup and allele matching depend on the variant only; the checks below on the transcript
+  my $matched = $self->per_variant_cached($vf, undef, sub { $self->_allele_matched_data($vf, $tva->base_variation_feature->alt_alleles) });
 
   my $all_results = {};
-  foreach (@data) {
-
-    my $matches = get_matched_variant_alleles(
-      {
-        ref    => $vf->ref_allele_string,
-        alts   => $allele,
-        pos    => $vf->{start},
-        strand => $vf->strand
-      },
-      {
-       ref  => $_->{ref},
-       alts => [$_->{alt}],
-       pos  => $_->{start},
-      }
-    );
-
-    if($matches){
-    # Check if scores are associated with single aminoacid changes
+  foreach (@$matched) {
+    # Check if scores are associated with single aminoacid changes
     my $hgvsp = $_->{result}->{MaveDB_hgvs};
     if ($self->{single_aa_changes}) {
       next if defined $hgvsp && $hgvsp =~ /:p\./ && !_is_single_aa_change($hgvsp);
@@ -317,10 +298,34 @@ sub run {
       my $transcript = $_->{result}->{MaveDB_refseq};
       next unless $transcript eq '' or $self->_transcripts_match($tva, $transcript);
     }
-    }
-    $all_results = $self->_join_results($all_results, $_->{result}) if @$matches;
+    $all_results = $self->_join_results($all_results, $_->{result});
   }
   return $all_results;
+}
+
+# MaveDB records in the variant's window whose alleles match one of its alt alleles
+sub _allele_matched_data {
+  my ($self, $vf, $alt_alleles) = @_;
+
+  # Increment 1 to account for insertions
+  my @matched;
+  foreach (@{$self->get_data($vf->{chr}, $vf->{start} - 2, $vf->{end} + 1)}) {
+    my $matches = get_matched_variant_alleles(
+      {
+        ref    => $vf->ref_allele_string,
+        alts   => $alt_alleles,
+        pos    => $vf->{start},
+        strand => $vf->strand
+      },
+      {
+       ref  => $_->{ref},
+       alts => [$_->{alt}],
+       pos  => $_->{start},
+      }
+    );
+    push @matched, $_ if @$matches;
+  }
+  return \@matched;
 }
 
 sub parse_data {

@@ -204,6 +204,74 @@ sub run {
     $self->{syn_cache}->{$chr} = $new_chr;
   }
 
+  # the lookup and allele matching depend on the variant only; the checks by mutation below on the transcript
+  my $matched = $self->per_variant_cached($vf, undef, sub { $self->_allele_matched_data($vf, $new_chr) });
+
+  return {} unless(@$matched);
+
+  my $result_data;
+
+  foreach my $data_value (@$matched) {
+
+    # Only checks the genomic location - appends data for all transcripts
+    if($self->{mutation_off}){
+      $result_data = $data_value->{result};
+      next;
+    }
+
+    # checks by mutation
+    my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
+    my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
+    my $aa_alterations = $data_value->{aa};
+    my $aa_string = $tva->pep_allele_string;
+
+    my $is_intron = $tv->intron_number();
+    my $has_cdna = $tv->cdna_start();
+    my $is_5utr = $tv->_five_prime_utr();
+    my $is_3utr = $tv->_three_prime_utr();
+
+    my $is_splice = grep {$_->SO_term =~ 'splice'} @{$tva->get_all_OverlapConsequences};
+
+    foreach my $aa_alteration (@$aa_alterations) {
+      # checks if citation refers to an UTR variant (5UTR, 3UTR)
+      if($data_value->{is_only_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) {
+        $result_data = $data_value->{result};
+      }
+      # checks if citation refers to an UTR variant (new groupings from new file 2020-07-10)
+      if($data_value->{is_utr} == 1 && (defined($is_intron) || defined($is_splice) || defined($is_5utr) || defined($is_3utr))) {
+        $result_data = $data_value->{result};
+      }
+      # checks if it is a frameshift
+      elsif($data_value->{is_fs} == 1 && defined($aa_string) && $aa_string =~ /X/) {
+        $result_data = $data_value->{result};
+      }
+      # checks if it is nonsense
+      elsif($data_value->{is_nonsense} == 1 && defined($peptide_start) && defined($aa_string) && $aa_string =~ /\*/ && $aa_alteration =~ /^-?\d+$/) {
+        $result_data = $data_value->{result} if ($peptide_start == $aa_alteration);
+      }
+      elsif($data_value->{is_other} == 1 && defined($is_intron)) {
+        $result_data = $data_value->{result};
+      }
+
+      # If mastermind aa change is UTR then skips aa verification
+      next if($aa_alteration =~ /UTR/ || !defined($has_cdna));
+
+      # If there's a protein alteration then it only adds citations for the exact alteration cited
+      if(defined($aa_alteration) && defined($peptide_start) && defined($peptide_end) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
+        $result_data = $data_value->{result};
+      }
+    }
+  }
+
+  my $result = defined($result_data) ? $result_data : {};
+
+  return $result;
+}
+
+# Mastermind records at the variant's position whose ref/alt match one of its alleles on either strand
+sub _allele_matched_data {
+  my ($self, $vf, $new_chr) = @_;
+
   my @alleles = split /\//, $vf->allele_string;
   my $ref_allele = shift @alleles;
   my $alt_allele = join ',', @alleles;
@@ -214,94 +282,39 @@ sub run {
 
   my @data = @{$self->get_data($new_chr, $start, $end)} if(defined $new_chr);
 
-  return {} unless(@data);
+  return [] unless(@data);
 
-  my $result_data;
-
-  foreach my $data_value (@data) {
-
-    if($data_value->{data}) {
-
-      # convert to vcf format to compare the alleles
-      # the method to_VCF_record requires a fasta file in offline mode to be able to lookup the alleles
-      if($vf->allele_string =~ /-/) {
-        my $convert_to_vcf = $vf->to_VCF_record;
-        $ref_allele = ${$convert_to_vcf}[3];
-        $alt_allele = ${$convert_to_vcf}[4];
-      }
-
-      my $ref_allele_comp = $ref_allele;
-      reverse_comp(\$ref_allele_comp);
-
-      # Ref and alt alleles from mastermind file
-      my $mm_ref = $data_value->{ref};
-      my $mm_alt = $data_value->{alt};
-
-      # check each alternative allele
-      foreach my $alt_allele_aux (split /,/, $alt_allele){
-
-        my $alt_allele_comp = $alt_allele_aux;
-        reverse_comp(\$alt_allele_comp);
-
-        if( ($ref_allele eq $mm_ref && $alt_allele_aux eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) {
-
-          # Only checks the genomic location - appends data for all transcripts
-          if($self->{mutation_off}){
-            $result_data = $data_value->{result};
-            next;
-          }
-
-          # checks by mutation
-          my $peptide_start = defined($tv->translation_start) ? $tv->translation_start : undef;
-          my $peptide_end = defined($tv->translation_end) ? $tv->translation_end : undef;
-          my $aa_alterations = $data_value->{aa};
-          my $aa_string = $tva->pep_allele_string;
-
-          my $is_intron = $tv->intron_number();
-          my $has_cdna = $tv->cdna_start();
-          my $is_5utr = $tv->_five_prime_utr();
-          my $is_3utr = $tv->_three_prime_utr();
-
-          my $is_splice = grep {$_->SO_term =~ 'splice'} @{$tva->get_all_OverlapConsequences};
-
-          foreach my $aa_alteration (@$aa_alterations) {
-            # checks if citation refers to an UTR variant (5UTR, 3UTR)
-            if($data_value->{is_only_utr} == 1 && !defined($is_intron) && defined($has_cdna) && (defined($is_5utr) || defined($is_3utr))) {
-              $result_data = $data_value->{result};
-            }
-            # checks if citation refers to an UTR variant (new groupings from new file 2020-07-10)
-            if($data_value->{is_utr} == 1 && (defined($is_intron) || defined($is_splice) || defined($is_5utr) || defined($is_3utr))) {
-              $result_data = $data_value->{result};
-            }
-            # checks if it is a frameshift
-            elsif($data_value->{is_fs} == 1 && defined($aa_string) && $aa_string =~ /X/) {
-              $result_data = $data_value->{result};
-            }
-            # checks if it is nonsense
-            elsif($data_value->{is_nonsense} == 1 && defined($peptide_start) && defined($aa_string) && $aa_string =~ /\*/ && $aa_alteration =~ /^-?\d+$/) {
-              $result_data = $data_value->{result} if ($peptide_start == $aa_alteration);
-            }
-            elsif($data_value->{is_other} == 1 && defined($is_intron)) {
-              $result_data = $data_value->{result};
-            }
-
-            # If mastermind aa change is UTR then skips aa verification
-            next if($aa_alteration =~ /UTR/ || !defined($has_cdna));
-
-            # If there's a protein alteration then it only adds citations for the exact alteration cited
-            if(defined($aa_alteration) && defined($peptide_start) && defined($peptide_end) && ($peptide_start == $aa_alteration || $peptide_end == $aa_alteration)) {
-              $result_data = $data_value->{result};
-            }
-          }
-        }
-      }
-    }
-
+  # convert to vcf format to compare the alleles
+  # the method to_VCF_record requires a fasta file in offline mode to be able to lookup the alleles
+  if($vf->allele_string =~ /-/) {
+    my $convert_to_vcf = $vf->to_VCF_record;
+    $ref_allele = ${$convert_to_vcf}[3];
+    $alt_allele = ${$convert_to_vcf}[4];
   }
 
-  my $result = defined($result_data) ? $result_data : {};
+  my $ref_allele_comp = $ref_allele;
+  reverse_comp(\$ref_allele_comp);
 
-  return $result;
+  my @matched;
+  foreach my $data_value (@data) {
+    next unless $data_value->{data};
+
+    # Ref and alt alleles from mastermind file
+    my $mm_ref = $data_value->{ref};
+    my $mm_alt = $data_value->{alt};
+
+    # check each alternative allele
+    foreach my $alt_allele_aux (split /,/, $alt_allele){
+      my $alt_allele_comp = $alt_allele_aux;
+      reverse_comp(\$alt_allele_comp);
+
+      if( ($ref_allele eq $mm_ref && $alt_allele_aux eq $mm_alt) || ($ref_allele_comp eq $mm_ref && $alt_allele_comp eq $mm_alt) ) {
+        push @matched, $data_value;
+        last;
+      }
+    }
+  }
+  return \@matched;
 }
 
 # Parse data from mastermind file
