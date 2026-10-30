@@ -18,42 +18,54 @@ limitations under the License.
  NMD
 
 =head1 SYNOPSIS
- 
+
   mv NMD.pm  ~/.vep/Plugins
- ./vep -i variations.vcf --plugin NMD
 
-=head1 DESCRIPTION 
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) 
- that predicts if a variant allows the 
- transcript escape nonsense-mediated mRNA decay based on certain rules.
- 
- The rules are : 
+  # Default usage
+  ./vep -i variations.vcf --plugin NMD
+  # Enable NMD category reporting (as NMD_category)
+  ./vep -i variations.vcf --plugin NMD,report_category=1
 
- 1. The variant location  falls in the last exon of the transcript.
+=head1 DESCRIPTION
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP)
+ that predicts if a variant allows the resulting isoform to escape
+ nonsense-mediated mRNA decay, and categorizes those that do
+ based on certain rules.
+
+ Options are passed to the plugin as key=value pairs:
+   report_category : (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
+
+ The NMD escape categorisation rules are :
+
+ 1. The variant location falls in the last exon of the transcript.
                                         vvvv
-      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `E-1`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  2. The variant location falls  50 bases upstream of the penultimate (second to the last ) exon.
                                vvv
-      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+      ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `E-2_end-50`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
-     
+
  3. The variant falls in the first 100 coding bases in the transcript.
          vvv
-      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE 
+      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
-  
- 4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript. 
- 
+
+ 4. If the variant is in an intronless transcript, meaning only one exon exist in the transcript.
+    Category: `intronless`
+
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
-  
+
  REFERENCES :
  - Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
  - The rules and impact of nonsense-mediated mRNA decay in human cancers (Lindeboom, 2016)
 
 
-=cut 
+=cut
 
 package NMD;
 
@@ -72,110 +84,218 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return {
-    NMD => "Nonsense-mediated mRNA decay escaping variants prediction"};
+  my $self = shift;
+
+  my $header_info = {
+    NMD => "Nonsense-mediated mRNA decay escaping variants prediction"
+  };
+
+  if($self->{report_category}) {
+    $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
+      ." 'E-1' (last exon), 'E-2_end-50' (last 50bp in the penultimate exon)"
+      .", 'cds_start+100' (first 100bp of the coding sequence), 'intronless' (intronless transcript).";
+  }
+
+  return $header_info;
+}
+
+sub new {
+  my $class = shift;
+
+  my $self = $class->SUPER::new(@_);
+
+  my $param_hash = $self->params_to_hash();
+
+  my $report_category = $param_hash->{report_category};
+
+  if ($report_category) {
+    $self->{report_category} = 1;
+  }
+  else {
+    $self->{report_category} = 0;
+  }
+
+  return $self;
 }
 
 sub run {
-  my $self = shift; 
+  my $self = shift;
   my $tva = shift;
-  # using stop_gained for now as advised. 
+
+  # Skip NMD annotation if transcript variant consequence is not subject to NMD
   return {} unless grep {$INCLUDE_SO{$_->SO_term}} @{$tva->get_all_OverlapConsequences};
-  
+
   my $tr = $tva->transcript;
   my $tv = $tva->transcript_variation;
-  # position of the variant in respect to the coding sequence. 
-  my $variant_coding_region = $tv->cds_end if (defined $tv->cds_end);
-  # checking for if the transcript is an intronless transcript 
-  my @introns = $tr->get_all_Introns; 
-  my $number = scalar @introns;
+  my $vf = $tva->variation_feature;
 
-  # to check for if the variant location falls in the last exon
-  my $check = $self->variant_exon_check($tva);
-  
-  # to check what position the transcript variation coding sequence end is at 
-  # former method gave room for a bug 
-  my $position_check = 1 if ( defined ($variant_coding_region) && $variant_coding_region <= 101) ;
+  my $exons = $tr->get_all_Exons;
 
-  
- 
-  # to check if the variant is not on the coding sequence.
+
+  # Skip NMD annotation if variant does not fall in the coding sequence
   if (!defined ($tv->cds_end) || !defined ($tv->cds_start)){
     return {};
   }
 
+  # Categorize the variant to NMD-escape classes
+  my $nmd_escape_category;
+  if( intronless_transcript($tr) ){
+    $nmd_escape_category = 'intronless';
+  }
+  elsif( in_last_exon($vf, $exons) ){
+    $nmd_escape_category = 'E-1';
+  }
+  elsif( in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
+    $nmd_escape_category = 'E-2_end-50';
+  }
+  elsif( in_100bp_coding_start($tv) ){
+    $nmd_escape_category = 'cds_start+100';
+  }
 
-  # if statement to check if any of the rules is true
-  if ( ( defined ($position_check) && $position_check == 1) || $check || $number == 0 ) {
-    return {NMD => $TERM{1}};
+
+  # Return NMD annotation if variant matches any of the rules
+  if ( defined($nmd_escape_category) ) {
+    my $annot = {NMD => $TERM{1}};
+    if( $self->{report_category} ) {
+      $annot->{NMD_category} = $nmd_escape_category;
+    }
+    return $annot;
   }
   else {
     return {};
   }
 
-  
+
 }
 
-=head2 variant_exon_check 
-  
-  Args        : $tva (TranscriptionVariationAllele)
-  Description : Checks if the variant location falls :
-                  - in the last exon 
-                  -  50bp towards the end of the second to the last exon(if it exists). 
+=head2 in_last_exon
+
+  Args        : ($vf (VariationFeature), \@exons (array of Exons))
+  Description : Checks if the variant location falls in the last exon
                 If it does, It returns 1 else it returns 0.
   Returntype  : Boolean
   Exceptions  : None
-  Caller      : run 
-  Status      : Stable
+  Caller      : run
+  Status      : Development
 
 =cut
-sub variant_exon_check {
-  my $self = shift;
-  my $tva = shift; 
-  my $vf = $tva->variation_feature;
-  my $tr = $tva->transcript;
+sub in_last_exon {
+  my $vf = shift;
+  my $exons = shift;
+
+  # Get the end of the variant
   my $vf_end = $vf->seq_region_end;
-  my @exons = @{ $tr->get_all_Exons }; 
 
-  # to get the last exon 
-
-  my $last_exon = $exons[-1]; 
-  
-  # to get the second to the last exon (penultimate exon)
-  my $second_last_exon = $exons[-2];
+  # Get the last exon
+  my $last_exon = $exons->[-1];
   my $coding_region_end = $last_exon->end;
   my $coding_region_start = $last_exon->start;
-  if (defined($coding_region_start) && $vf_end >= $coding_region_start && $vf_end <= $coding_region_end){
-    return 1; 
-  }
-  # to check if the second to the last exon exists 
-  if (defined($second_last_exon)){
-    # this method has been changed because of the reverse strand consideration
-    my $coding_region_end;
-    my $diff_end;
-    # need to account for strand as if it is in reverse strand it should be reading from the start 
-    # and adding 51 to find the variant 50 bases upstream in penultimate exon
-    if ($tr->strand == -1){
-      $coding_region_end = $second_last_exon->start;
-      $diff_end = $coding_region_end + 51;
-      if (defined($coding_region_end) && $vf_end >= $coding_region_end && $vf_end <= $diff_end  ) {
-        return 1; 
-      }
-    } else {
-      $coding_region_end = $second_last_exon->end;
-      $diff_end = $coding_region_end - 51;
-      if (defined($coding_region_end) && $vf_end >= $diff_end && $vf_end <= $coding_region_end ) {
-        return 1; 
-      }
-    }
-  
-  }
-  
-  return 0; 
 
+  # Skip if exon start or end could not be found
+  if (!defined($coding_region_start) || !defined($coding_region_end)) {
+    return 0;
+  }
+
+  # Check if the variant is in the last exon
+  return $coding_region_start <= $vf_end && $vf_end <= $coding_region_end;
 }
 
+=head2 in_penultimate_exon_50bp_end
 
+  Args        : ($vf (VariationFeature), \@exons (array of Exons))
+  Description : Checks if the variant location falls in the 50bp towards the 3' end of the penultimate exon (if it exists).
+                If so, returns 1 else it returns 0.
+  Returntype  : Boolean
+  Exceptions  : None
+  Caller      : run
+  Status      : Development
 
+=cut
+sub in_penultimate_exon_50bp_end {
+  my $vf = shift;
+  my $exons = shift;
+  my $strand = shift;
+
+  my $second_last_exon = $exons->[-2];
+
+  if(!defined($second_last_exon)) {
+    return 0;
+  }
+
+  my $last_50bp_start;
+  my $last_50bp_end;
+  # need to account for strand as if it is in reverse strand it should be reading from the start
+  # and adding 51 to find the variant 50 bases upstream in penultimate exon
+  if ($strand == -1){
+    my $coding_region_start = $second_last_exon->start;
+    # skip if coding region start could not be found
+    if (!defined($coding_region_start)) {
+      return 0;
+    }
+
+    $last_50bp_start = $coding_region_start;
+    $last_50bp_end = $last_50bp_start + 51;
+  }
+  else {
+    my $coding_region_end = $second_last_exon->end;
+    # skip if coding region end could not be found
+    if (!defined($coding_region_end)) {
+      return 0;
+    }
+
+    $last_50bp_end = $coding_region_end;
+    $last_50bp_start = $last_50bp_end - 51;
+  }
+
+  my $vf_end = $vf->seq_region_end;
+
+  return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
+}
+
+=head2 in_100bp_coding_start
+
+  Args        : $tv (TranscriptVariation)
+  Description : Checks if the variant location falls in the first 100bp (5' end)
+                of the transcript's coding sequence.
+                If so, returns 1 else it returns 0.
+  Returntype  : Boolean
+  Exceptions  : None
+  Caller      : run
+  Status      : Development
+
+=cut
+sub in_100bp_coding_start {
+  my $tv = shift;
+
+  # position of the variant in respect to the coding sequence.
+  my $variant_coding_region = $tv->cds_end // undef;
+
+  if(!defined($variant_coding_region)) {
+    return 0;
+  }
+
+  return $variant_coding_region <= 101;
+}
+
+=head2 intronless_transcript
+
+  Args        : $tr (Transcript)
+  Description : Checks if the transcript is a intronless (single-exon) transcript.
+                If so, returns 1 else it returns 0.
+  Returntype  : Boolean
+  Exceptions  : None
+  Caller      : run
+  Status      : Development
+
+=cut
+sub intronless_transcript {
+  my $tr = shift;
+
+  # checking for if the transcript is an intronless transcript
+  my $introns = $tr->get_all_Introns;
+  my $intron_count = scalar @{$introns};
+
+  return $intron_count == 0;
+}
 
 1;
