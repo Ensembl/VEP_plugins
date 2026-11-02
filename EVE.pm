@@ -178,7 +178,12 @@ sub run {
 
   return {} unless grep {$_->SO_term eq 'missense_variant'} @{$tva->get_all_OverlapConsequences};
 
-  my $alt_alleles = $tva->base_variation_feature->alt_alleles;
+  # the lookup and allele matching depend on the variant only
+  return $self->per_variant_cached($vf, undef, sub { $self->_results($vf, $tva->base_variation_feature->alt_alleles) });
+}
+
+sub _results {
+  my ($self, $vf, $alt_alleles) = @_;
   my $ref_allele  = $vf->ref_allele_string;
 
   my @data = @{

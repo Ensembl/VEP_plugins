@@ -231,13 +231,36 @@ sub run {
 
   $vf_end = $vf_start if $vf_start > $vf_end;
 
-  my @data = @{ $self->get_data($vf_chr, $vf_start -2, $vf_end) };
+  my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
 
-  return {} unless @data;
+  # the lookup and allele matching depend on the variant and allele only; the feature ID match below on the feature
+  my $matched = $self->per_variant_cached($vf, $vfoa_variation_feature_seq, sub {
+    my @matched;
+    for my $data_candidate (@{ $self->get_data($vf_chr, $vf_start -2, $vf_end) }) {
+      # * Alternative allele sequence
+      my $seq_filtered_matches = get_matched_variant_alleles(
+        {
+          ref    => $vf->ref_allele_string,
+          alts   => [ $vfoa_variation_feature_seq ],
+          pos    => $vf->{start},
+          strand => $vf->strand
+        },
+        {
+          ref  => $data_candidate->{ref},
+          alts => [ $data_candidate->{'alt'} ],
+          pos  => $data_candidate->{start},
+          strand => $data_candidate->{strand}
+        }
+      );
+      push @matched, $data_candidate if @$seq_filtered_matches;
+    }
+    return \@matched;
+  });
+
+  return {} unless @$matched;
 
   # Filter the data to match the VariantFeatureOverlapAllele's...
   my $joined_results = {};
-  my $vfoa_variation_feature_seq = $vfoa->variation_feature_seq;
   my $vfoa_transcript_id;
   my $vfoa_gene_id;
   try {
@@ -254,28 +277,7 @@ sub run {
     $vfoa_gene_id = undef;
   };
 
-  for my $data_candidate (@data) {
-    # * Alternative allele sequence
-    my $candidate_alt_allele = $data_candidate->{'alt'};
-
-    my $seq_filtered_matches = get_matched_variant_alleles(
-      {
-        ref    => $vf->ref_allele_string,
-        alts   => [ $vfoa_variation_feature_seq ],
-        pos    => $vf->{start},
-        strand => $vf->strand
-      },
-      {
-        ref  => $data_candidate->{ref},
-        alts => [ $candidate_alt_allele ],
-        pos  => $data_candidate->{start},
-        strand => $data_candidate->{strand}
-      }
-    );
-    if(!@$seq_filtered_matches){
-      next;
-    }
-
+  for my $data_candidate (@$matched) {
     # * feature ID
     if( $self->{match_to} eq "transcript" ){
       my $candidate_transcript_id = $data_candidate->{'transcript_id'};
