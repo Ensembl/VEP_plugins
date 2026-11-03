@@ -70,6 +70,11 @@ limitations under the License.
 
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
 
+ Note: all rules are currently implemented based on the location of the variant, not the location of the premature stop codon.
+ While these are sufficiently close in most cases, this is not a perfect implementation for large indels (a known shortcoming).
+ This will not be fixed in the current version of the plugin, but will be reimplemented in the upcoming python reimplementation of ensembl-VEP.
+ For more details on the ensembl-vep python reimplementation, see: https://github.com/Ensembl/ensembl-vep-py/.
+
  REFERENCES :
  - Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
  - The rules and impact of nonsense-mediated mRNA decay in human cancers (Lindeboom, 2016)
