@@ -105,7 +105,7 @@ sub get_header_info {
       ." 'E-1' (last exon), 'E-2_end-50' (last 50bp in the penultimate exon)"
       .", 'cds_start+100' (first 100bp of the coding sequence)"
       .", 'cds_start+200' (between bases 101-200 of the coding sequence)"
-      .", 'intronless' (intronless transcript).";
+      .", 'cds_intronless' (intronless coding sequence).";
   }
 
   return $header_info;
