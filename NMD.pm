@@ -58,7 +58,13 @@ limitations under the License.
     Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 4. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
+ 4. The variant falls between coding bases 101-200 in the transcript.
+                     vvv
+      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `cds_start+200`
+ (ES= exon_start,EE = exon_end, I = intron, v = variant location)
+
+ 5. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
     i.e. the coding sequence is completely encapsulated in a single exon of the transcript (introns can exist in the UTRs).
     Category: `cds_intronless`
 
@@ -97,7 +103,9 @@ sub get_header_info {
   if($self->{report_category}) {
     $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
       ." 'E-1' (last exon), 'E-2_end-50' (last 50bp in the penultimate exon)"
-      .", 'cds_start+100' (first 100bp of the coding sequence), 'intronless' (intronless transcript).";
+      .", 'cds_start+100' (first 100bp of the coding sequence)"
+      .", 'cds_start+200' (between bases 101-200 of the coding sequence)"
+      .", 'intronless' (intronless transcript).";
   }
 
   return $header_info;
@@ -156,8 +164,11 @@ sub run {
   elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-2_end-50';
   }
-  elsif( in_100bp_coding_start($tv) ){
+  elsif( in_coding_start($tv, 100) ){
     $nmd_escape_category = 'cds_start+100';
+  }
+  elsif( in_coding_start($tv, 200) ){
+    $nmd_escape_category = 'cds_start+200';
   }
 
 
@@ -262,10 +273,10 @@ sub in_penultimate_exon_50bp_end {
   return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
 }
 
-=head2 in_100bp_coding_start
+=head2 in_coding_start
 
-  Args        : $tv (TranscriptVariation)
-  Description : Checks if the variant location falls in the first 100bp (5' end)
+  Args        : ($tv (TranscriptVariation), $limit (the coding start boundary (aka end)))
+  Description : Checks if the variant location falls in the first $limit bp (5' end)
                 of the transcript's coding sequence.
                 If so, returns 1 else it returns 0.
   Returntype  : Boolean
@@ -274,8 +285,19 @@ sub in_penultimate_exon_50bp_end {
   Status      : Development
 
 =cut
-sub in_100bp_coding_start {
+sub in_coding_start {
   my $tv = shift;
+  my $limit = shift;
+
+  my $limit_int = int($limit);
+
+  # Skip if limit is not defined or 0
+  if (!defined($limit) || $limit == 0 || $limit_int != $limit) {
+    if ($limit_int != $limit) {
+      warn("in_coding_start: limit param must be an integer, evaluating as if limit is not defined.\n");
+    }
+    return 0;
+  }
 
   # 1-based (inclusive) position of the variant relative to the coding sequence.
   my $variant_coding_region = $tv->cds_end // undef;
@@ -284,7 +306,7 @@ sub in_100bp_coding_start {
     return 0;
   }
 
-  return $variant_coding_region <= 100;
+  return $variant_coding_region <= $limit_int;
 }
 
 =head2 intronless_transcript_cds
