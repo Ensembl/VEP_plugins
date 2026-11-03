@@ -33,7 +33,9 @@ limitations under the License.
  based on certain rules.
 
  Options are passed to the plugin as key=value pairs:
-   report_category : (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
+   report_category :    (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
+   cds_start_boundary : (optional) integer defining the boundary to which variants are considered to match start-proximal NMD escape rules (`cds_start+100` and `cds_start_extended`)
+                        Must be between 100 and 200 (inclusive). When set > 100, variant matching to `cds_start_extended` is enabled (default: 100)
 
  The NMD escape categorisation rules are as listed below. Start-proximal rules (rule 3) apply to all variants.
  Rules based on the last coding exon-exon junction (rules 1, 2 and 4) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
@@ -58,10 +60,10 @@ limitations under the License.
     Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 4. The variant falls between coding bases 101-200 in the transcript.
+ 4. The variant falls between coding bases 101 and `cds_start_boundary` (max 200) in the transcript.
                      vvv
       ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
-    Category: `cds_start+200`
+    Category: `cds_start_extended`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
  5. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
@@ -109,7 +111,7 @@ sub get_header_info {
     $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
       ." 'E-1' (last exon), 'E-2_end-50' (last 50bp in the penultimate exon)"
       .", 'cds_start+100' (first 100bp of the coding sequence)"
-      .", 'cds_start+200' (between bases 101-200 of the coding sequence)"
+      .", 'cds_start_extended' (between bases 101 and ".$self->{cds_start_boundary}." of the coding sequence)"
       .", 'cds_intronless' (intronless coding sequence).";
   }
 
@@ -131,6 +133,19 @@ sub new {
   else {
     $self->{report_category} = 0;
   }
+
+  my $cds_start_boundary_str = $param_hash->{cds_start_boundary} // "100";
+  my $cds_start_boundary = int($cds_start_boundary_str);
+
+  if ( !$cds_start_boundary || "".$cds_start_boundary ne "".$cds_start_boundary_str ) {
+    die "ERROR: cds_start_boundary is not an integer. Please provide an integer between 100 and 200 (inclusive).\n";
+  }
+
+  if ( $cds_start_boundary < 100 || 200 < $cds_start_boundary ) {
+    die "ERROR: cds_start_boundary not between 100 and 200 (inclusive). Please provide an integer between 100 and 200 (inclusive).\n";
+  }
+
+  $self->{cds_start_boundary} = $cds_start_boundary;
 
   return $self;
 }
@@ -172,8 +187,8 @@ sub run {
   elsif( in_coding_start($tv, 100) ){
     $nmd_escape_category = 'cds_start+100';
   }
-  elsif( in_coding_start($tv, 200) ){
-    $nmd_escape_category = 'cds_start+200';
+  elsif( $self->{cds_start_boundary} > 100 && in_coding_start($tv, $self->{cds_start_boundary}) ){
+    $nmd_escape_category = 'cds_start_extended';
   }
 
 
