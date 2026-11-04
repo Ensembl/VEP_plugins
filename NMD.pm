@@ -241,8 +241,9 @@ sub in_penultimate_exon_50bp_end {
       return 0;
     }
 
+    # 1-based inclusive positions
     $last_50bp_start = $coding_region_start;
-    $last_50bp_end = $last_50bp_start + 51;
+    $last_50bp_end = $last_50bp_start + 49;
   }
   else {
     my $coding_region_end = $second_last_exon->end;
@@ -251,8 +252,9 @@ sub in_penultimate_exon_50bp_end {
       return 0;
     }
 
+    # 1-based inclusive positions
     $last_50bp_end = $coding_region_end;
-    $last_50bp_start = $last_50bp_end - 51;
+    $last_50bp_start = $last_50bp_end - 49;
   }
 
   my $vf_end = $vf->seq_region_end;
@@ -275,14 +277,14 @@ sub in_penultimate_exon_50bp_end {
 sub in_100bp_coding_start {
   my $tv = shift;
 
-  # position of the variant in respect to the coding sequence.
+  # 1-based (inclusive) position of the variant relative to the coding sequence.
   my $variant_coding_region = $tv->cds_end // undef;
 
   if(!defined($variant_coding_region)) {
     return 0;
   }
 
-  return $variant_coding_region <= 101;
+  return $variant_coding_region <= 100;
 }
 
 =head2 intronless_transcript_cds
