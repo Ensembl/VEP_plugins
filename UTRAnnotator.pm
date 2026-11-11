@@ -31,6 +31,9 @@ limitations under the License.
     # skip annotation for variants with a 80% or higher overlap of the UTR
     vep -i variations.vcf --plugin UTRAnnotator,file=/path/to/uORF_starts_ends_GRCh38_PUBLIC.txt,max_overlap=80
 
+    # report every 5' UTR effect of a variant, not only the first
+    vep -i variations.vcf --plugin UTRAnnotator,file=/path/to/uORF_starts_ends_GRCh38_PUBLIC.txt,all=1
+
 =head1 DESCRIPTION
  
     An Ensembl VEP plugin that annotates the effect of 5' UTR variant especially for variant creating/disrupting 
@@ -44,6 +47,11 @@ limitations under the License.
                   - Download from http://sorfs.org
     max_overlap : (Optional) Maximum percentage of overlap between variant and
                   UTR for UTR annotation (default: 100)
+    all         : (Optional) Set to 1 to report every 5' UTR effect a variant
+                  triggers (default: 0, the first of uAUG gained, uSTOP lost,
+                  uAUG lost, uSTOP gained, uFrameshift). 5UTR_consequence is
+                  the effects joined by '&', and each uORF entry in
+                  5UTR_annotation gains a 'consequence' field naming its effect
 
     Citation
 
@@ -72,6 +80,9 @@ use List::Util qw(min max);
 use Scalar::Util qw(looks_like_number);
 
 use strict;
+
+# the 5' UTR effects, in the order they are reported
+my @EFFECTS = qw(uAUG_gained uSTOP_lost uAUG_lost uSTOP_gained uFrameshift);
 
 sub feature_types {
   return ['Transcript'];
@@ -113,6 +124,9 @@ sub new {
 
   # maximum percentage UTR overlap
   $self->{max_overlap} = defined $param_hash->{max_overlap} ? $param_hash->{max_overlap} : 100;
+
+  # report every triggered effect rather than the first
+  $self->{all} = $param_hash->{all} ? 1 : 0;
 
   # Kozak-Strength Class
   my %kozak_strength;
@@ -207,11 +221,8 @@ sub run {
   $self->{ref_coding} = $self->get_ref_coding($ref);
   $self->{alt_coding} = $self->get_alt_coding($alt,$tr_strand);
   
-  my %uAUG_gained = {};
-  my %uSTOP_lost = {};
-  my %uAUG_lost = {};
-  my %uSTOP_gained = {};
-  my %uFrameshift = {};
+  # effect => {"<effect>_flag" => consequence term if triggered, "<effect>_effect" => {1..n => uORF fields}}
+  my %effect_results;
   my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($tr_strand, $pos, $self->{ref_coding}, \%UTR_info);
 
   if(defined($mut_pos) && defined($end_pos)) {
@@ -231,65 +242,60 @@ sub run {
 
     my @start = @{$self->get_ATG_pos(\@utr_sequence)};
 
-    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_utr_uORF)};
-    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF)};
-    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \@start)};
-    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start)};
-    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start)};
+    %effect_results = (
+        "uAUG_gained" => $self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_utr_uORF),
+        "uSTOP_lost" => $self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF),
+        "uAUG_lost" => $self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \@start),
+        "uSTOP_gained" => $self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start),
+        "uFrameshift" => $self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start),
+    );
 
   }
 
-  my %five_prime_flag = (
-        "uAUG_gained" => $uAUG_gained{'uAUG_gained_flag'},
-        "uSTOP_lost" => $uSTOP_lost{'uSTOP_lost_flag'},
-        "uAUG_lost" => $uAUG_lost{'uAUG_lost_flag'},
-        "uSTOP_gained" => $uSTOP_gained{'uSTOP_gained_flag'},
-        "uFrameshift" =>$uFrameshift{'uFrameShift_flag'},
-  );
+  # a variant can trigger more than one effect, for example a uAUG gain that also frameshifts an existing uORF:
+  # report the first in @EFFECTS order, or every one with 'all'
+  my @effects = grep { $effect_results{$_} && $effect_results{$_}{$_ . "_flag"} } @EFFECTS;
+  splice(@effects, 1) unless $self->{all};
 
-  my %five_prime_annotation = (
-        "uAUG_gained" => $uAUG_gained{"uAUG_gained_effect"},
-        "uSTOP_lost" => $uSTOP_lost{"uSTOP_lost_effect"},
-        "uAUG_lost" => $uAUG_lost{"uAUG_lost_effect"},
-        "uSTOP_gained" => $uSTOP_gained{'uSTOP_gained_effect'},
-        "uFrameshift" =>$uFrameshift{'uFrameShift_effect'},
-  );
+  my @consequences = map { $effect_results{$_}{$_ . "_flag"} } @effects;
 
-
-  my $output_five_prime_flag;
-  my $output_five_prime_annotation;
-
-  foreach my $flag (keys %five_prime_flag){
-    if($five_prime_flag{$flag}){
-      $output_five_prime_flag = $five_prime_flag{$flag};
-      $output_five_prime_annotation = $five_prime_annotation{$flag};
-    }
-  };
+  # each effect's uORF entries in their numbered order; with 'all' each entry also names its consequence
+  my @effect_uORFs;
+  foreach my $effect (@effects){
+    my $consequence = $effect_results{$effect}{$effect . "_flag"};
+    my $uORFs = $effect_results{$effect}{$effect . "_effect"};
+    my @uORFs = map { $uORFs->{$_} } sort { $a <=> $b } keys %$uORFs;
+    @uORFs = map { { %$_, consequence => $consequence } } @uORFs if $self->{all};
+    push @effect_uORFs, \@uORFs;
+  }
 
   my %utr_effect;
 
   if ($self->{config}->{output_format} eq "json" || $self->{config}->{rest}){
 
+    my @uORFs = map { @$_ } @effect_uORFs;
+    my %annotation = map { ($_ + 1) => $uORFs[$_] } 0 .. $#uORFs;
+
     %utr_effect = (
-        "5UTR_consequence" => $output_five_prime_flag,
-        "5UTR_annotation" => $output_five_prime_annotation,
+        "5UTR_consequence" => @effects ? join("&", @consequences) : undef,
+        "5UTR_annotation" => @effects ? \%annotation : undef,
     );
 
   } else {
 
-    my @consequences;
-
-        foreach my $value (keys %{$output_five_prime_annotation}){
-          push @consequences, join(":", map { "$_=$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
-        };
-
-    my $consequence;
-
-    $consequence = join(",", @consequences);
+    my @annotations;
+    foreach my $uORFs (@effect_uORFs){
+      my @uORF_annotations;
+      foreach my $uORF (@$uORFs){
+        push @uORF_annotations, join(":", map { "$_=$uORF->{$_}" } sort keys %$uORF);
+      }
+      push @annotations, join(",", @uORF_annotations);
+    }
+    my $annotation = join("&", @annotations);
 
     %utr_effect = (
-        "5UTR_consequence" => defined($output_five_prime_flag) ? $output_five_prime_flag : "-",
-        "5UTR_annotation" => defined($consequence) && $consequence ne '' ? $consequence : "-",
+        "5UTR_consequence" => @effects ? join("&", @consequences) : "-",
+        "5UTR_annotation" => $annotation ne '' ? $annotation : "-",
     );
 
   }
@@ -1007,8 +1013,8 @@ sub uFrameshift {
     }
   }
 
-  $result{'uFrameShift_flag'} = $output_flag;
-  $result{'uFrameShift_effect'} = \%output_effects;
+  $result{'uFrameshift_flag'} = $output_flag;
+  $result{'uFrameshift_effect'} = \%output_effects;
 
   return \%result;
 }
