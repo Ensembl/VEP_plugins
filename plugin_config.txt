@@ -1069,6 +1069,24 @@ my $VEP_PLUGIN_CONFIG = {
     ## SPLICING PREDICTIONS
     #######################
 
+    # AlphaGenomeSplicing
+    {
+      "key" => "AlphaGenomeSplicing",
+      "label" => "AlphaGenome splicing",
+      "helptip" => "AlphaGenome merged splicing scores for GRCh38 SNVs, developed by Google DeepMind. Used for non-commercial purposes (https://deepmind.google.com/science/alphagenome)",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Splicing predictions",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/116/AlphaGenomeSplicing.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"file=/path/to/combined_alphagenome_splicing_snvs.tsv.gz"
+      ]
+    },
+
     # dbscSNV
     {
       "key" => "dbscSNV",
