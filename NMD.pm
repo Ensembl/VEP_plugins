@@ -37,38 +37,45 @@ limitations under the License.
    cds_start_boundary : (optional) integer defining the boundary to which variants are considered to match start-proximal NMD escape rules (`cds_start+100` and `cds_start_extended`)
                         Must be between 100 and 200 (inclusive). When set > 100, variant matching to `cds_start_extended` is enabled (default: 100)
 
- The NMD escape categorisation rules are as listed below. Start-proximal rules (rule 3) apply to all variants.
- Rules based on the last coding exon-exon junction (rules 1, 2 and 4) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
+ The NMD escape categorisation rules are as listed below. Start-proximal rules (rules 4-5) apply to all variants.
+ Rules based on the last coding exon-exon junction (rules 1-3) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
  as these transcripts are known to already have a PTC >= 50nt before the last coding exon-exon junction, thus missing the window of escape.
+ Rules are evaluated in documented order and only a single category will be reported (i.e. variants that match multiple rules
+ will be annotated with the first matching category).
 
- 1. The variant location falls in the last exon in the coding sequence of the transcript.
+ Rules:
+ 1. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
+    i.e. the coding sequence is completely encapsulated in a single exon of the transcript (introns can exist in the UTRs).
+    Category: `cds_intronless`
+
+ 2. The variant location falls in the last exon in the coding sequence of the transcript.
                                         vvvv
       ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
     Category: `cds_E-1`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 2. The variant location falls within the last 50bp (3' end)
+ 3. The variant location falls within the last 50bp (3' end)
     of the penultimate exon in the coding sequence of the transcript.
                                vvv
       ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
     Category: `cds_E-2_end-50`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 3. The variant falls in the first 100 coding bases in the transcript.
+ 4. The variant falls in the first 100 coding bases in the transcript.
          vvv
       ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
     Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 4. The variant falls between coding bases 101 and `cds_start_boundary` (max 200) in the transcript.
+ 5. The variant falls between coding bases 101 and `cds_start_boundary` (max 200) in the transcript.
                      vvv
       ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    This causes gradual low-efficiency NMD, with NMD efficiency increasing
+    as the distance (in CDS bases) from the CDS start increases.
+    This gives variants in this category a potential for partial NMD escape.
     Category: `cds_start_extended`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 5. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
-    i.e. the coding sequence is completely encapsulated in a single exon of the transcript (introns can exist in the UTRs).
-    Category: `cds_intronless`
 
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
 
