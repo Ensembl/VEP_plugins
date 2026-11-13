@@ -37,9 +37,15 @@ limitations under the License.
    cds_start_boundary : (optional) integer defining the boundary to which variants are considered to match start-proximal NMD escape rules (`cds_start+100` and `cds_start_extended`)
                         Must be between 100 and 200 (inclusive). When set > 100, variant matching to `cds_start_extended` is enabled (default: 100)
 
- The NMD escape categorisation rules are as listed below. Start-proximal rules (rules 4-5) apply to all variants.
- Rules based on the last coding exon-exon junction (rules 1-3) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
- as these transcripts are known to already have a PTC >= 50nt before the last coding exon-exon junction, thus missing the window of escape.
+ The NMD escape categorisation rules are as listed below. However, rules apply differently depending on the transcript biotype.
+ * Start-proximal rules (rules 4-5) apply to all variants.
+ * Rules based on the last coding exon-exon junction (rules 1-3) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
+   as these transcripts are known to already have a PTC >= 50nt before the last coding exon-exon junction, thus missing the window of escape.
+ * Rule 6 (long exon) applies to all variants, regardless of transcript biotype.
+   However, in transcripts with biotype `nonsense_mediated_decay`, the first downstream exon-exon junction past the CDS end
+   can affect the escape potential of the variant, as 3' UTR introns in those transcripts are NMD-sensitive (unlike 3' UTR introns in other transcripts).
+   As a such, the first downstream exon-exon junction past the CDS end
+   is included in the evaluation of the rule for `nonsense_mediated_decay` transcripts.
  Rules are evaluated in documented order and only a single category will be reported (i.e. variants that match multiple rules
  will be annotated with the first matching category).
 
@@ -78,6 +84,8 @@ limitations under the License.
 
  6. The variant falls in a long exon within the CDS, with at least 200 bases
     between the variant and the next downstream in-CDS exon-exon junction.
+    For NMD transcripts, the first downstream exon-exon junction past the CDS end
+    is included in the evaluation of this rule.
     This causes gradual low-efficiency NMD, with NMD efficiency decreasing
     as the distance to the next downstream exon-exon junction increases.
     This gives variants in this category a potential for partial NMD escape.
@@ -93,6 +101,7 @@ limitations under the License.
  REFERENCES :
  - Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
  - The rules and impact of nonsense-mediated mRNA decay in human cancers (Lindeboom, 2016)
+ - Widespread 3′ UTR splicing regulates expression of oncogene transcripts through multiple mechanisms (Riley, 2025)
 
 
 =cut
@@ -175,9 +184,25 @@ sub run {
   my $tv = $tva->transcript_variation;
   my $vf = $tva->variation_feature;
 
-  # Get the exons in the coding sequence region only.
-  # UTR introns are irrelevant to determine NMD escape
-  my $exons = $tr->get_all_translateable_Exons;
+  # Get the exons of the transcript
+  my $cds_exons = $tr->get_all_translateable_Exons;  # in the coding sequence region only
+  my $all_exons = $tr->get_all_Exons;  # in 5' UTR, coding sequence region and 3' UTR
+
+  my $cds_and_downstream_exons = [];  # in the coding sequence region and 3' UTR
+
+  # Filter all exons down to the ones including the CDS start and beyond (CDS + 3' UTR).
+  # This assumes both @$cds_exons and @$all_exons are ordered 5' to 3'.
+  if (@{$cds_exons}) {
+    my $first_cds_exon = $cds_exons->[0];
+    my $found_cds = 0;
+
+    $cds_and_downstream_exons = [grep {
+      $found_cds ||= (
+        $_->start <= $first_cds_exon->end &&
+        $_->end   >= $first_cds_exon->start
+      );
+    } @{$all_exons}];
+  }
 
 
   # Skip NMD annotation if variant does not fall in the coding sequence
@@ -189,13 +214,13 @@ sub run {
 
   # Categorize the variant to NMD-escape classes
   my $nmd_escape_category;
-  if( $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($exons) ){
+  if( $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($cds_exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
-  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $exons) ){
+  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $cds_exons) ){
     $nmd_escape_category = 'cds_E-1';
   }
-  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
+  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $cds_exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-2_end-50';
   }
   elsif( in_coding_start($tv, 100) ){
@@ -204,7 +229,7 @@ sub run {
   elsif( $self->{cds_start_boundary} > 100 && in_coding_start($tv, $self->{cds_start_boundary}) ){
     $nmd_escape_category = 'cds_start_extended';
   }
-  elsif( in_cds_long_exon($vf, $exons, $tr->strand) ){
+  elsif( in_cds_long_exon($vf, $cds_and_downstream_exons, $tr->strand) ){
     $nmd_escape_category = 'cds_long_exon';
   }
 
@@ -238,7 +263,10 @@ sub in_cds_long_exon {
 
   my $position = $vf->seq_region_end;
 
-  # Exons are ordered 5' to 3'; the last is end of CDS (so has no following in-CDS exon-exon junction).
+  # Exons are ordered 5' to 3';
+  # Last exon is considered not to have a following exon-exon junction (end of transcript)
+  # or the following exon-exon junction is considered irrelevant (end of CDS),
+  # so needs excluding in both cases.
   for (my $i = 0; $i < (scalar @{$exons}) - 1; $i++) {
     my $start = $exons->[$i]->start;
     my $end = $exons->[$i]->end;
