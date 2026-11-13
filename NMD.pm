@@ -33,7 +33,9 @@ limitations under the License.
  based on certain rules.
 
  Options are passed to the plugin as key=value pairs:
-   report_category : (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
+   report_category :    (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
+   cds_start_boundary : (optional) integer defining the boundary to which variants are considered to match start-proximal NMD escape rules (`cds_start+100` and `cds_start_extended`)
+                        Must be between 100 and 200 (inclusive). When set > 100, variant matching to `cds_start_extended` is enabled (default: 100)
 
  The NMD escape categorisation rules are as listed below. Start-proximal rules (rule 3) apply to all variants.
  Rules based on the last coding exon-exon junction (rules 1, 2 and 4) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
@@ -58,11 +60,22 @@ limitations under the License.
     Category: `cds_start+100`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
- 4. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
+ 4. The variant falls between coding bases 101 and `cds_start_boundary` (max 200) in the transcript.
+                     vvv
+      ..ES...EE..I.ES...EE.I.ES....EE.I.ES....EE
+    Category: `cds_start_extended`
+ (ES= exon_start,EE = exon_end, I = intron, v = variant location)
+
+ 5. The variant falls anywhere in the coding sequence of a transcript with no introns in its coding sequence,
     i.e. the coding sequence is completely encapsulated in a single exon of the transcript (introns can exist in the UTRs).
     Category: `cds_intronless`
 
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
+
+ Note: all rules are currently implemented based on the location of the variant, not the location of the premature stop codon.
+ While these are sufficiently close in most cases, this is not a perfect implementation for large indels (a known shortcoming).
+ This will not be fixed in the current version of the plugin, but will be reimplemented in the upcoming python reimplementation of ensembl-VEP.
+ For more details on the ensembl-vep python reimplementation, see: https://github.com/Ensembl/ensembl-vep-py/.
 
  REFERENCES :
  - Identifying Genes Whose Mutant Transcripts Cause Dominant Disease Traits by Potential Gain-of-Function Alleles (Coban-Akdemir, 2018)
@@ -98,6 +111,7 @@ sub get_header_info {
     $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
       ." 'cds_E-1' (last exon), 'cds_E-2_end-50' (last 50bp in the penultimate exon)"
       .", 'cds_start+100' (first 100bp of the coding sequence)"
+      .", 'cds_start_extended' (between bases 101 and ".$self->{cds_start_boundary}." of the coding sequence)"
       .", 'cds_intronless' (intronless coding sequence).";
   }
 
@@ -119,6 +133,19 @@ sub new {
   else {
     $self->{report_category} = 0;
   }
+
+  my $cds_start_boundary_str = $param_hash->{cds_start_boundary} // "100";
+  my $cds_start_boundary = int($cds_start_boundary_str);
+
+  if ( !$cds_start_boundary || "".$cds_start_boundary ne "".$cds_start_boundary_str ) {
+    die "ERROR: cds_start_boundary is not an integer. Please provide an integer between 100 and 200 (inclusive).\n";
+  }
+
+  if ( $cds_start_boundary < 100 || 200 < $cds_start_boundary ) {
+    die "ERROR: cds_start_boundary not between 100 and 200 (inclusive). Please provide an integer between 100 and 200 (inclusive).\n";
+  }
+
+  $self->{cds_start_boundary} = $cds_start_boundary;
 
   return $self;
 }
@@ -157,8 +184,11 @@ sub run {
   elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-2_end-50';
   }
-  elsif( in_100bp_coding_start($tv) ){
+  elsif( in_coding_start($tv, 100) ){
     $nmd_escape_category = 'cds_start+100';
+  }
+  elsif( $self->{cds_start_boundary} > 100 && in_coding_start($tv, $self->{cds_start_boundary}) ){
+    $nmd_escape_category = 'cds_start_extended';
   }
 
 
@@ -263,10 +293,10 @@ sub in_penultimate_exon_50bp_end {
   return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
 }
 
-=head2 in_100bp_coding_start
+=head2 in_coding_start
 
-  Args        : $tv (TranscriptVariation)
-  Description : Checks if the variant location falls in the first 100bp (5' end)
+  Args        : ($tv (TranscriptVariation), $limit (the coding start boundary (aka end)))
+  Description : Checks if the variant location falls in the first $limit bp (5' end)
                 of the transcript's coding sequence.
                 If so, returns 1 else it returns 0.
   Returntype  : Boolean
@@ -275,8 +305,19 @@ sub in_penultimate_exon_50bp_end {
   Status      : Development
 
 =cut
-sub in_100bp_coding_start {
+sub in_coding_start {
   my $tv = shift;
+  my $limit = shift;
+
+  my $limit_int = int($limit);
+
+  # Skip if limit is not defined or 0
+  if (!defined($limit) || $limit == 0 || $limit_int != $limit) {
+    if ($limit_int != $limit) {
+      warn("in_coding_start: limit param must be an integer, evaluating as if limit is not defined.\n");
+    }
+    return 0;
+  }
 
   # 1-based (inclusive) position of the variant relative to the coding sequence.
   my $variant_coding_region = $tv->cds_end // undef;
@@ -285,7 +326,7 @@ sub in_100bp_coding_start {
     return 0;
   }
 
-  return $variant_coding_region <= 100;
+  return $variant_coding_region <= $limit_int;
 }
 
 =head2 intronless_transcript_cds
