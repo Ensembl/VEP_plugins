@@ -76,6 +76,12 @@ limitations under the License.
     Category: `cds_start_extended`
  (ES= exon_start,EE = exon_end, I = intron, v = variant location)
 
+ 6. The variant falls in a long exon within the CDS, with at least 200 bases
+    between the variant and the next downstream in-CDS exon-exon junction.
+    This causes gradual low-efficiency NMD, with NMD efficiency decreasing
+    as the distance to the next downstream exon-exon junction increases.
+    This gives variants in this category a potential for partial NMD escape.
+    Category: `cds_long_exon`
 
  The additional term NMD-escaping variant (nonsense-mediated mRNA decay escaping variants) will be added if the variant matches any of the rules.
 
@@ -119,6 +125,7 @@ sub get_header_info {
       ." 'cds_E-1' (last exon), 'cds_E-2_end-50' (last 50bp in the penultimate exon)"
       .", 'cds_start+100' (first 100bp of the coding sequence)"
       .", 'cds_start_extended' (between bases 101 and ".$self->{cds_start_boundary}." of the coding sequence)"
+      .", 'cds_long_exon' (at least 200 bases upstream of an in-CDS exon-exon junction)"
       .", 'cds_intronless' (intronless coding sequence).";
   }
 
@@ -197,6 +204,9 @@ sub run {
   elsif( $self->{cds_start_boundary} > 100 && in_coding_start($tv, $self->{cds_start_boundary}) ){
     $nmd_escape_category = 'cds_start_extended';
   }
+  elsif( in_cds_long_exon($vf, $exons, $tr->strand) ){
+    $nmd_escape_category = 'cds_long_exon';
+  }
 
 
   # Return NMD annotation if variant matches any of the rules
@@ -212,6 +222,42 @@ sub run {
   }
 
 
+}
+
+=head2 in_cds_long_exon
+
+  Args        : ($vf (VariationFeature), \@exons (array of exons), $strand)
+  Description : Checks whether there is at least 200 bases between the variant
+                and the next downstream in-CDS exon-exon junction in the transcript.
+  Returntype  : Boolean
+  Caller      : run
+
+=cut
+sub in_cds_long_exon {
+  my ($vf, $exons, $strand) = @_;
+
+  my $position = $vf->seq_region_end;
+
+  # Exons are ordered 5' to 3'; the last is end of CDS (so has no following in-CDS exon-exon junction).
+  for (my $i = 0; $i < (scalar @{$exons}) - 1; $i++) {
+    my $start = $exons->[$i]->start;
+    my $end = $exons->[$i]->end;
+
+    # skip if start or end could not be found
+    if( !defined($start) || !defined($end) ) {
+      next;
+    }
+
+    # skip if the variant does not fall in this exon
+    if( !($start <= $position && $position <= $end) ){
+      next;
+    }
+
+    return $strand == 1 ? $end - $position >= 200
+                        : $position - $start >= 200;
+  }
+
+  return 0;
 }
 
 =head2 in_last_exon
