@@ -96,8 +96,9 @@ sub get_header_info {
 
   if($self->{report_category}) {
     $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
-      ." 'E-1' (last exon), 'E-2_end-50' (last 50bp in the penultimate exon)"
-      .", 'cds_start+100' (first 100bp of the coding sequence), 'intronless' (intronless transcript).";
+      ." 'cds_E-1' (last exon), 'cds_E-2_end-50' (last 50bp in the penultimate exon)"
+      .", 'cds_start+100' (first 100bp of the coding sequence)"
+      .", 'cds_intronless' (intronless coding sequence).";
   }
 
   return $header_info;
