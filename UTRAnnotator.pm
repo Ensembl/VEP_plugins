@@ -277,7 +277,7 @@ sub run {
     my %annotation = map { ($_ + 1) => $uORFs[$_] } 0 .. $#uORFs;
 
     %utr_effect = (
-        "5UTR_consequence" => @effects ? join("&", @consequences) : undef,
+        "5UTR_consequence" => @effects ? ($self->{all} ? \@consequences : $consequences[0]) : undef,
         "5UTR_annotation" => @effects ? \%annotation : undef,
     );
 
