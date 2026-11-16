@@ -231,36 +231,32 @@ sub in_penultimate_exon_50bp_end {
     return 0;
   }
 
+  my $exon_start = $second_last_exon->start;
+  my $exon_end = $second_last_exon->end;
+  # skip if coding region start or end could not be found
+  if (!defined($exon_start) || !defined($exon_end)) {
+    return 0;
+  }
+
   my $last_50bp_start;
   my $last_50bp_end;
   # need to account for strand as if it is in reverse strand it should be reading from the start
   # and adding 51 to find the variant 50 bases upstream in penultimate exon
   if ($strand == -1){
-    my $coding_region_start = $second_last_exon->start;
-    # skip if coding region start could not be found
-    if (!defined($coding_region_start)) {
-      return 0;
-    }
-
     # 1-based inclusive positions
-    $last_50bp_start = $coding_region_start;
+    $last_50bp_start = $exon_start;
     $last_50bp_end = $last_50bp_start + 49;
   }
   else {
-    my $coding_region_end = $second_last_exon->end;
-    # skip if coding region end could not be found
-    if (!defined($coding_region_end)) {
-      return 0;
-    }
-
     # 1-based inclusive positions
-    $last_50bp_end = $coding_region_end;
+    $last_50bp_end = $exon_end;
     $last_50bp_start = $last_50bp_end - 49;
   }
 
   my $vf_end = $vf->seq_region_end;
 
-  return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
+  return $exon_start <= $vf_end && $vf_end <= $exon_end
+         && $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
 }
 
 =head2 in_100bp_coding_start
