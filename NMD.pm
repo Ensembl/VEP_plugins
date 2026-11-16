@@ -25,6 +25,12 @@ limitations under the License.
   ./vep -i variations.vcf --plugin NMD
   # Enable NMD category reporting (as NMD_category)
   ./vep -i variations.vcf --plugin NMD,report_category=1
+  # Enable NMD reporting in the extended start region (in addition to the defaults)
+  ./vep -i variations.vcf --plugin NMD,cds_start_boundary=200
+  # Enable all optional NMD category rules
+  ./vep -i variations.vcf --plugin NMD,cds_start_boundary=200,apply_categories=all
+  # Select specific categories to report (quote the argument to protect the pipe from the shell)
+  ./vep -i variations.vcf --plugin 'NMD,apply_categories=cds_intronless|cds_long_exon'
 
 =head1 DESCRIPTION
  This is a plugin for the Ensembl Variant Effect Predictor (VEP)
@@ -35,7 +41,12 @@ limitations under the License.
  Options are passed to the plugin as key=value pairs:
    report_category :    (optional) boolean to enable/disable NMD category reporting. 1 (enabled) or 0 (disabled) (default: 0)
    cds_start_boundary : (optional) integer defining the boundary to which variants are considered to match start-proximal NMD escape rules (`cds_start+100` and `cds_start_extended`)
-                        Must be between 100 and 200 (inclusive). When set > 100, variant matching to `cds_start_extended` is enabled (default: 100)
+                        Must be between 100 and 200 (inclusive). When set > 100, apply_categories is implied to include `cds_start_extended`.
+                        This will add cds_start_extended to the default ruleset if apply_categories is not set and error if 'apply_categories' is set but cds_start_extended is not included (default: 100)
+   apply_categories :   (optional) pipe-separated list of categories to apply, or 'all' to apply all categories.
+                        Enabling cds_start_extended requires cds_start_boundary to be set > 100.
+                        (default: cds_intronless|cds_E-1|cds_E-2_end-50|cds_start+100)
+                        See the rules below for the available category names.
 
  The NMD escape categorisation rules are as listed below. However, rules apply differently depending on the transcript biotype.
  * Start-proximal rules (rules 4-5) apply to all variants.
@@ -114,6 +125,10 @@ use warnings;
 use base  qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
 my %INCLUDE_SO = map{$_ => 1} qw(stop_gained);
+# NMD escaping categories, in order of priority (matching rules order as described above)
+my @CATEGORIES = ('cds_intronless', 'cds_E-1', 'cds_E-2_end-50',
+                  'cds_start+100', 'cds_start_extended', 'cds_long_exon');
+my %VALID_CATEGORY = map { $_ => 1 } @CATEGORIES;
 my %TERM = (
   1 => "NMD_escaping_variant"
 );
@@ -130,12 +145,28 @@ sub get_header_info {
   };
 
   if($self->{report_category}) {
-    $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:"
-      ." 'cds_E-1' (last exon), 'cds_E-2_end-50' (last 50bp in the penultimate exon)"
-      .", 'cds_start+100' (first 100bp of the coding sequence)"
-      .", 'cds_start_extended' (between bases 101 and ".$self->{cds_start_boundary}." of the coding sequence)"
-      .", 'cds_long_exon' (at least 200 bases upstream of an in-CDS exon-exon junction)"
-      .", 'cds_intronless' (intronless coding sequence).";
+    $header_info->{NMD_category} = "Nonsense-mediated mRNA decay escape category. One of:";
+
+    if($self->{selected_categories}->{'cds_E-1'}) {
+      $header_info->{NMD_category} .= " 'cds_E-1' (last exon),";
+    }
+    if($self->{selected_categories}->{'cds_E-2_end-50'}) {
+      $header_info->{NMD_category} .= " 'cds_E-2_end-50' (last 50bp in the penultimate exon),";
+    }
+    if($self->{selected_categories}->{'cds_start+100'}) {
+      $header_info->{NMD_category} .= " 'cds_start+100' (first 100bp of the coding sequence),";
+    }
+    if($self->{selected_categories}->{'cds_start_extended'}) {
+      $header_info->{NMD_category} .= " 'cds_start_extended' (between bases 101 and ".$self->{cds_start_boundary}." of the coding sequence),";
+    }
+    if($self->{selected_categories}->{'cds_long_exon'}) {
+      $header_info->{NMD_category} .= " 'cds_long_exon' (at least 200 bases upstream of an NMD-active EJC-bearing exon-exon junction),";
+    }
+    if($self->{selected_categories}->{'cds_intronless'}) {
+      $header_info->{NMD_category} .= " 'cds_intronless' (intronless coding sequence),";
+    }
+
+    chop($header_info->{NMD_category});
   }
 
   return $header_info;
@@ -169,6 +200,43 @@ sub new {
   }
 
   $self->{cds_start_boundary} = $cds_start_boundary;
+
+  my $category_param = $param_hash->{apply_categories} // 'cds_intronless|cds_E-1|cds_E-2_end-50|cds_start+100';
+  chomp($category_param);
+
+  my @raw_categories = $category_param eq 'all' ? @CATEGORIES
+                 : split(/\|/, $category_param, -1);
+  my @invalid_categories = grep { !$VALID_CATEGORY{$_} } @raw_categories;
+  if (!@raw_categories || @invalid_categories) {
+    die "ERROR: Invalid apply_categories value. Use 'all' or a pipe-separated list of: "
+      . join(', ', @CATEGORIES) . ".\n";
+  }
+  $self->{selected_categories} = { map { $_ => 1 } @raw_categories };
+
+  ### Cross-check provided options
+
+  # if cds_start_boundary > 100, cds_start_extended should be enabled
+  if ($self->{cds_start_boundary} > 100) {
+    # Enable cds_start_extended if apply_categories was not defined by user
+    if( !$param_hash->{apply_categories} ) {
+      $self->{selected_categories}{'cds_start_extended'} = 1;
+    }
+    else{
+      # Error if user explicitly disabled cds_start_extended (providing incomaptible input args)
+      if( !$self->{selected_categories}{'cds_start_extended'} ) {
+        die "ERROR: cds_start_boundary > 100 implies cds_start_extended to be enabled."
+          ." Please enable 'cds_start_extended' through the apply_categories option or remove the cds_start_boundary option.\n";
+      }
+    }
+  }
+  # Otherwise, cds_start_extended should be disabled
+  else{
+    if( $self->{selected_categories}{'cds_start_extended'} ) {
+      die "ERROR: cds_start_boundary <= 100 implies cds_start_extended to be disabled."
+        ." Please disable 'cds_start_extended' through the apply_categories option or specify the cds_start_boundary option to be > 100.\n";
+    }
+  }
+
 
   return $self;
 }
@@ -204,6 +272,14 @@ sub run {
     } @{$all_exons}];
   }
 
+  # Select the exons to use for the long-exon rule
+  my $long_exon_exons;
+  if ($tr->biotype eq 'nonsense_mediated_decay') {
+    $long_exon_exons = $cds_and_downstream_exons;
+  } else {
+    $long_exon_exons = $cds_exons;
+  }
+
 
   # Skip NMD annotation if variant does not fall in the coding sequence
   if (!defined ($tv->cds_end) || !defined ($tv->cds_start)){
@@ -214,22 +290,22 @@ sub run {
 
   # Categorize the variant to NMD-escape classes
   my $nmd_escape_category;
-  if( $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($cds_exons) ){
+  if( $self->{selected_categories}->{'cds_intronless'} && $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($cds_exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
-  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $cds_exons) ){
+  elsif( $self->{selected_categories}->{'cds_E-1'} && $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $cds_exons) ){
     $nmd_escape_category = 'cds_E-1';
   }
-  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $cds_exons, $tr->strand) ){
+  elsif( $self->{selected_categories}->{'cds_E-2_end-50'} && $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $cds_exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-2_end-50';
   }
-  elsif( in_coding_start($tv, 100) ){
+  elsif( $self->{selected_categories}->{'cds_start+100'} && in_coding_start($tv, 100) ){
     $nmd_escape_category = 'cds_start+100';
   }
-  elsif( $self->{cds_start_boundary} > 100 && in_coding_start($tv, $self->{cds_start_boundary}) ){
+  elsif( $self->{selected_categories}->{'cds_start_extended'} && !in_coding_start($tv, 100) && in_coding_start($tv, $self->{cds_start_boundary}) ){
     $nmd_escape_category = 'cds_start_extended';
   }
-  elsif( in_cds_long_exon($vf, $cds_and_downstream_exons, $tr->strand) ){
+  elsif( $self->{selected_categories}->{'cds_long_exon'} && in_cds_long_exon($vf, $long_exon_exons, $tr->strand) ){
     $nmd_escape_category = 'cds_long_exon';
   }
 
