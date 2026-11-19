@@ -337,7 +337,7 @@ sub run {
 sub in_cds_long_exon {
   my ($vf, $exons, $strand) = @_;
 
-  my $position = $vf->seq_region_end;
+  my $position = $strand == 1 ? $vf->seq_region_end : $vf->seq_region_start;
 
   # Exons are ordered 5' to 3';
   # Last exon is considered not to have a following exon-exon junction (end of transcript)
