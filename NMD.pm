@@ -151,7 +151,7 @@ sub run {
   if( $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
-  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $exons) ){
+  elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-1';
   }
   elsif( $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $exons, $tr->strand) ){
@@ -191,9 +191,10 @@ sub run {
 sub in_last_exon {
   my $vf = shift;
   my $exons = shift;
+  my $strand = shift;
 
-  # Get the end of the variant
-  my $vf_end = $vf->seq_region_end;
+  # Get the variant position
+  my $vf_pos = $strand == 1 ? $vf->seq_region_end : $vf->seq_region_start;
 
   # Get the last exon
   my $last_exon = $exons->[-1];
@@ -206,7 +207,7 @@ sub in_last_exon {
   }
 
   # Check if the variant is in the last exon
-  return $coding_region_start <= $vf_end && $vf_end <= $coding_region_end;
+  return $coding_region_start <= $vf_pos && $vf_pos <= $coding_region_end;
 }
 
 =head2 in_penultimate_exon_50bp_end
@@ -231,34 +232,32 @@ sub in_penultimate_exon_50bp_end {
     return 0;
   }
 
+  my $exon_start = $second_last_exon->start;
+  my $exon_end = $second_last_exon->end;
+  # skip if coding region start or end could not be found
+  if (!defined($exon_start) || !defined($exon_end)) {
+    return 0;
+  }
+
   my $last_50bp_start;
   my $last_50bp_end;
   # need to account for strand as if it is in reverse strand it should be reading from the start
   # and adding 51 to find the variant 50 bases upstream in penultimate exon
   if ($strand == -1){
-    my $coding_region_start = $second_last_exon->start;
-    # skip if coding region start could not be found
-    if (!defined($coding_region_start)) {
-      return 0;
-    }
-
-    $last_50bp_start = $coding_region_start;
-    $last_50bp_end = $last_50bp_start + 51;
+    # 1-based inclusive positions
+    $last_50bp_start = $exon_start;
+    $last_50bp_end = $last_50bp_start + 49;
   }
   else {
-    my $coding_region_end = $second_last_exon->end;
-    # skip if coding region end could not be found
-    if (!defined($coding_region_end)) {
-      return 0;
-    }
-
-    $last_50bp_end = $coding_region_end;
-    $last_50bp_start = $last_50bp_end - 51;
+    # 1-based inclusive positions
+    $last_50bp_end = $exon_end;
+    $last_50bp_start = $last_50bp_end - 49;
   }
 
-  my $vf_end = $vf->seq_region_end;
+  my $vf_pos = $strand == 1 ? $vf->seq_region_end : $vf->seq_region_start;
 
-  return $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
+  return $exon_start <= $vf_pos && $vf_pos <= $exon_end
+         && $last_50bp_start <= $vf_pos && $vf_pos <= $last_50bp_end;
 }
 
 =head2 in_100bp_coding_start
@@ -276,14 +275,14 @@ sub in_penultimate_exon_50bp_end {
 sub in_100bp_coding_start {
   my $tv = shift;
 
-  # position of the variant in respect to the coding sequence.
+  # 1-based (inclusive) position of the variant relative to the coding sequence.
   my $variant_coding_region = $tv->cds_end // undef;
 
   if(!defined($variant_coding_region)) {
     return 0;
   }
 
-  return $variant_coding_region <= 101;
+  return $variant_coding_region <= 100;
 }
 
 =head2 intronless_transcript_cds
