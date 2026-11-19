@@ -293,7 +293,7 @@ sub run {
   if( $self->{selected_categories}->{'cds_intronless'} && $tr_biotype ne 'nonsense_mediated_decay' && intronless_transcript_cds($cds_exons) ){
     $nmd_escape_category = 'cds_intronless';
   }
-  elsif( $self->{selected_categories}->{'cds_E-1'} && $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $cds_exons) ){
+  elsif( $self->{selected_categories}->{'cds_E-1'} && $tr_biotype ne 'nonsense_mediated_decay' && in_last_exon($vf, $cds_exons, $tr->strand) ){
     $nmd_escape_category = 'cds_E-1';
   }
   elsif( $self->{selected_categories}->{'cds_E-2_end-50'} && $tr_biotype ne 'nonsense_mediated_decay' && in_penultimate_exon_50bp_end($vf, $cds_exons, $tr->strand) ){
@@ -378,9 +378,10 @@ sub in_cds_long_exon {
 sub in_last_exon {
   my $vf = shift;
   my $exons = shift;
+  my $strand = shift;
 
-  # Get the end of the variant
-  my $vf_end = $vf->seq_region_end;
+  # Get the variant position
+  my $vf_pos = $strand == 1 ? $vf->seq_region_end : $vf->seq_region_start;
 
   # Get the last exon
   my $last_exon = $exons->[-1];
@@ -393,7 +394,7 @@ sub in_last_exon {
   }
 
   # Check if the variant is in the last exon
-  return $coding_region_start <= $vf_end && $vf_end <= $coding_region_end;
+  return $coding_region_start <= $vf_pos && $vf_pos <= $coding_region_end;
 }
 
 =head2 in_penultimate_exon_50bp_end
@@ -440,10 +441,10 @@ sub in_penultimate_exon_50bp_end {
     $last_50bp_start = $last_50bp_end - 49;
   }
 
-  my $vf_end = $vf->seq_region_end;
+  my $vf_pos = $strand == 1 ? $vf->seq_region_end : $vf->seq_region_start;
 
-  return $exon_start <= $vf_end && $vf_end <= $exon_end
-         && $last_50bp_start <= $vf_end && $vf_end <= $last_50bp_end;
+  return $exon_start <= $vf_pos && $vf_pos <= $exon_end
+         && $last_50bp_start <= $vf_pos && $vf_pos <= $last_50bp_end;
 }
 
 =head2 in_coding_start
