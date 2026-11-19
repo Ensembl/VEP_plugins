@@ -37,8 +37,8 @@ limitations under the License.
    cds_start_boundary : (optional) integer defining the boundary to which variants are considered to match start-proximal NMD escape rules (`cds_start+100` and `cds_start_extended`)
                         Must be between 100 and 200 (inclusive). When set > 100, variant matching to `cds_start_extended` is enabled (default: 100)
 
- The NMD escape categorisation rules are as listed below. Start-proximal rules (rule 3) apply to all variants.
- Rules based on the last coding exon-exon junction (rules 1, 2 and 4) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
+ The NMD escape categorisation rules are as listed below. Start-proximal rules (rules 3 and 4) apply to all variants.
+ Rules based on the last coding exon-exon junction (rules 1, 2 and 5) do not apply to variants in transcripts with biotype `nonsense_mediated_decay`,
  as these transcripts are known to already have a PTC >= 50nt before the last coding exon-exon junction, thus missing the window of escape.
 
  1. The variant location falls in the last exon in the coding sequence of the transcript.
