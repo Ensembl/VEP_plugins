@@ -167,18 +167,16 @@ sub run {
 
   #retrieve the strand of the transcript
   my $tr_strand = $t->strand + 0;
-  my $cds = $t->translateable_seq();
+  my $reference = $t->{_utrannotator_reference} ||= $self->reference_context($t);
+  my $five_prime_seq = $reference->{seq};
 
-  #retrieve the five prime utr sequence
-  my $five_prime_seq = (defined $t->five_prime_utr? $t->five_prime_utr->seq(): undef);
-
-  #Type: five_prime_feature - Bio::EnsEMBL::Feature
-  my $UTRs = $t->get_all_five_prime_UTRs();
+  # Keep overlap filtering local to this variant, not in the reference cache.
+  my $UTRs = $reference->{utr_intervals};
   my @five_utr_starts;
   my @five_utr_ends;
   foreach  my $utr (@$UTRs){
-    my $UTR_start = $utr->start(); # this will return the absolute starting positions in chromosome of the UTR exons
-    my $UTR_end = $utr->end(); # this will return the absolute ending positions in chromosome of the UTR exons
+    my $UTR_start = $utr->[0]; # this will return the absolute starting positions in chromosome of the UTR exons
+    my $UTR_end = $utr->[1]; # this will return the absolute ending positions in chromosome of the UTR exons
 
     #avoid storing UTRs if variant goes over the maximum allowed UTR overlap percentage
     my $UTR_length = $UTR_end - $UTR_start + 1;
@@ -201,7 +199,8 @@ sub run {
         "end" => \@sorted_ends,
         "seq" => $five_prime_seq,   #the exon sequences in 5'UTR
         "strand" => $tr_strand,
-        "cds_seq" => $cds,
+        "transcript" => $t,
+        "reference" => $reference,
   );
 
   $self->{ref_coding} = $self->get_ref_coding($ref);
@@ -215,27 +214,25 @@ sub run {
   my ($mut_pos, $end_pos) = $self->get_allele_exon_pos($tr_strand, $pos, $self->{ref_coding}, \%UTR_info);
 
   if(defined($mut_pos) && defined($end_pos)) {
-    my @sequence = split //, $five_prime_seq;
     my $mut_utr_seq = $self->mut_utr_sequence(
-        \@sequence,$mut_pos,
+        $five_prime_seq,$mut_pos,
         $self->{ref_coding},
         $self->{alt_coding},
         $tr_strand
     );
 
-    my @utr_sequence = split //, $UTR_info{seq};
-    my %existing_uORF = %{$self->existing_uORF(\@utr_sequence)};
+    my $existing_uORF = $self->reference_uORFs($reference);
 
-    my @mut_utr_seq = split //,$mut_utr_seq;
-    my %existing_utr_uORF = %{$self->existing_uORF(\@mut_utr_seq)};
+    $UTR_info{mut_sequence} = [split //, $mut_utr_seq];
+    my $existing_utr_uORF = $self->existing_uORF($mut_utr_seq);
 
-    my @start = @{$self->get_ATG_pos(\@utr_sequence)};
+    my $start = $reference->{starts};
 
-    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_utr_uORF)};
-    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF)};
-    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, \%existing_uORF, \@start)};
-    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start)};
-    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, \%existing_uORF, \%existing_utr_uORF, \@start)};
+    %uAUG_gained = %{$self->uAUG_gained(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, $existing_utr_uORF)};
+    %uSTOP_lost = %{$self->uSTOP_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, $existing_uORF, $existing_utr_uORF)};
+    %uAUG_lost = %{$self->uAUG_lost(\%variant,\%UTR_info, $mut_pos, $mut_utr_seq, $existing_uORF, $start)};
+    %uSTOP_gained = %{$self->uSTOP_gained(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, $existing_uORF, $existing_utr_uORF, $start)};
+    %uFrameshift = %{$self->uFrameshift(\%variant,\%UTR_info, $mut_pos, $end_pos, $mut_utr_seq, $existing_uORF, $existing_utr_uORF, $start)};
 
   }
 
@@ -294,7 +291,8 @@ sub run {
 
   }
 
-  my $existing_uORF_num = $self->count_number_ATG($five_prime_seq);
+  $self->reference_uORFs($reference);
+  my $existing_uORF_num = $reference->{counts};
   my $output ={%utr_effect, %$existing_uORF_num};
   return $output? $output: {};
 }
@@ -313,7 +311,6 @@ sub uAUG_gained {
   my $ref = $variant_info->{ref};
   my $alt = $variant_info->{alt};
 
-  my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
 
   #return annotators
@@ -338,11 +335,11 @@ sub uAUG_gained {
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{ref_coding};
 
-  my @mut_utr_seq = split //,$mut_utr_seq;
-  my $mut_utr_length = @mut_utr_seq;
+  my $mut_sequence = $UTR_info->{mut_sequence};
+  my $mut_utr_length = length($mut_utr_seq);
 
   #get the nt sequence that might have the pos_A for a new ATG codon
-  my @mut_seq = @mut_utr_seq[$mut_pos-2..$mut_pos+length($alt_coding)+1];
+  my @mut_seq = @{$mut_sequence}[$mut_pos-2..$mut_pos+length($alt_coding)+1];
   my @mut_atg_pos = @{$self->get_ATG_pos(\@mut_seq)};
 
   # check whether there is a ATG codon is to check the length of the array
@@ -365,23 +362,9 @@ sub uAUG_gained {
     ################################################################################
     #annotator 2: determine kozak context;
     ################################################################################
-    if ((($pos_A-3)>=0)&&($mut_utr_seq[($pos_A+3)])){
-      $current_kozak = $mut_utr_seq[($pos_A-3)].$mut_utr_seq[($pos_A-2)].$mut_utr_seq[$pos_A-1]."ATG".$mut_utr_seq[$pos_A+3];
-    }
-    else{
-      $current_kozak = '-';
-    }
-    #get the strength of kozak context
-    if ($current_kozak !~ /-/){
-      my @split_kozak = split //, $current_kozak;
-      $current_kozak_strength = 1;
-      if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-        $current_kozak_strength = 3;
-      }
-      elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-        $current_kozak_strength = 2;
-      }
-    }
+    my $strength;
+    ($current_kozak, $strength) = $self->kozak_context($mut_sequence, $pos_A);
+    $current_kozak_strength = $strength if defined $strength;
 
     $uAUG_gained_KozakContext=$current_kozak;
     $uAUG_gained_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
@@ -403,10 +386,9 @@ sub uAUG_gained {
       }
     }
 
-    my @overlapping_seq = split //, $mut_utr_seq.$UTR_info->{cds_seq};
-    my %existing_uORF = %{$self->existing_uORF(\@overlapping_seq)};
-    if(exists($existing_uORF{$pos_A})){
-      my @stop_pos_array = sort{$a<=>$b}@{$existing_uORF{$pos_A}};
+    my $existing_uORF = $self->overlapping_uORFs($UTR_info, $mut_utr_seq, "alternate");
+    if(exists($existing_uORF->{$pos_A})){
+      my @stop_pos_array = @{$existing_uORF->{$pos_A}};
       my $stop_pos = $stop_pos_array[0];
       $uAUG_gained_DistanceToStop = $stop_pos-$pos_A;
     } else {
@@ -439,14 +421,15 @@ sub uSTOP_gained {
 
   my ($self, $variant_info,$UTR_info, $mut_pos, $end_pos, $mut_utr_seq, $existing_ref_uORF, $mut_uORF, $start) = @_;
 
+  return {} unless length($self->{ref_coding}) == length($self->{alt_coding});
+
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
   my $ref = $variant_info->{ref};
   my $alt = $variant_info->{alt};
 
-  my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
-  my $utr_length = @sequence;
+  my $utr_length = length($UTR_info->{seq});
 
   #return annotators
   my $uSTOP_gained_ref_StartDistanceToCDS = "";  # the distance between the uAUG of the disrupting uORF to CDS
@@ -471,11 +454,9 @@ sub uSTOP_gained {
   my $alt_coding = $self->{alt_coding};
 
   #only evaluate SNVs and MNVs, for deletion and insertion it would be evaluated in the uframeshift
-  return{} unless(length($ref_coding) eq length($alt_coding));
   # the length of the 5'UTR won't change so as the coordinates of the nts
 
-  my @mut_utr_seq = split //,$mut_utr_seq;
-  my $mut_utr_length = @mut_utr_seq;
+  my $mut_utr_length = length($mut_utr_seq);
 
   my @start = @{$start};
 
@@ -492,7 +473,7 @@ sub uSTOP_gained {
       #For overlapping ORF: start_pos .. 3' end of 5'UTR sequence
       #if the variant is entirely in the uORF (within 5'UTR
       if(exists($existing_ref_uORF->{$start_pos})) {
-        my @stops = sort {$a <=> $b} @{$existing_ref_uORF->{$start_pos}};
+        my @stops = @{$existing_ref_uORF->{$start_pos}};
         $check_point = $stops[0]-1;
       } else{
         #if the existing uORF is an oORF
@@ -505,7 +486,7 @@ sub uSTOP_gained {
       #check whether there are new stop codon induced by this mutation
       my @mut_stops;
       next unless(exists($mut_uORF->{$start_pos}));
-      @mut_stops = sort {$a <=> $b} @{$mut_uORF->{$start_pos}};
+      @mut_stops = @{$mut_uORF->{$start_pos}};
 
       my $mut_stop = $mut_stops[0];
       if($mut_stop<$check_point){
@@ -514,23 +495,9 @@ sub uSTOP_gained {
 
       if($flag){
         #getting the Kozak context and Kozak strength of the start codon
-        if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-          $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-        }
-        else{
-          $current_kozak = '-';
-        }
-
-        if ($current_kozak !~ /-/){
-          my @split_kozak = split //, $current_kozak;
-          $current_kozak_strength = 1;
-          if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-            $current_kozak_strength = 3;
-          }
-          elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-            $current_kozak_strength = 2;
-          }
-        }
+        my $strength;
+        ($current_kozak, $strength) = $self->reference_kozak($UTR_info->{reference}, $start_pos);
+        $current_kozak_strength = $strength if defined $strength;
 
         $uSTOP_gained_KozakContext=$current_kozak;
         $uSTOP_gained_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
@@ -584,7 +551,6 @@ sub uSTOP_lost {
   my $ref = $variant_info->{ref};
   my $alt = $variant_info->{alt};
 
-  my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
 
   #return annotators
@@ -613,8 +579,8 @@ sub uSTOP_lost {
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
 
-  my @mut_utr_seq = split //,$mut_utr_seq;
-  my $length = @mut_utr_seq;
+  my $mut_sequence = $UTR_info->{mut_sequence};
+  my $length = length($mut_utr_seq);
 
   my @start = sort {$a <=> $b} (keys %{$existing_uORF});
 
@@ -622,7 +588,7 @@ sub uSTOP_lost {
     for (my $i=0;$i<@start;$i++){
       $flag_uORF=0;
       my $start_pos = $start[$i];
-      my @stops = sort {$a <=> $b} @{$existing_uORF->{$start_pos}};
+      my @stops = @{$existing_uORF->{$start_pos}};
       my $stop_pos=$stops[0];
 
       next if ($mut_pos-$stop_pos>2);
@@ -636,7 +602,7 @@ sub uSTOP_lost {
       if (length($alt_coding) eq 0) {
         $flag_uORF=1;
       } else {
-        my $mut_codon = $mut_utr_seq[$stop_pos].$mut_utr_seq[$stop_pos+1].$mut_utr_seq[$stop_pos+2];
+        my $mut_codon = $mut_sequence->[$stop_pos].$mut_sequence->[$stop_pos+1].$mut_sequence->[$stop_pos+2];
 
         next if (grep( /^$mut_codon$/, @stop_codons));
         $flag_uORF=1;
@@ -645,23 +611,9 @@ sub uSTOP_lost {
       if($flag_uORF){
         #getting the Kozak context and Kozak strength of the start codon
 
-        if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-          $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-        }
-        else{
-          $current_kozak = '-';
-        }
-
-        if ($current_kozak !~ /-/){
-          my @split_kozak = split //, $current_kozak;
-          $current_kozak_strength = 1;
-          if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-            $current_kozak_strength = 3;
-          }
-          elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-            $current_kozak_strength = 2;
-          }
-        }
+        my $strength;
+        ($current_kozak, $strength) = $self->reference_kozak($UTR_info->{reference}, $start_pos);
+        $current_kozak_strength = $strength if defined $strength;
 
         $uSTOP_lost_KozakContext=$current_kozak;
         $uSTOP_lost_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
@@ -671,7 +623,7 @@ sub uSTOP_lost {
 
         my @mut_stops;
         if(exists($mut_uORF->{$start_pos})){
-          @mut_stops = sort {$a <=> $b} @{$mut_uORF->{$start_pos}}
+          @mut_stops = @{$mut_uORF->{$start_pos}}
         }
 
         if (@mut_stops>0){
@@ -725,8 +677,7 @@ sub uAUG_lost {
   my $alt = $variant_info->{alt};
 
   my @sorted_starts = @{$UTR_info->{start}};
-  my @sequence = split //, $UTR_info->{seq};
-  my $utr_length = @sequence;
+  my $utr_length = length($UTR_info->{seq});
   my $strand = $UTR_info->{strand};
 
   #return annotators
@@ -753,7 +704,7 @@ sub uAUG_lost {
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
 
-  my @mut_utr_seq = split //,$mut_utr_seq;
+  my $mut_sequence = $UTR_info->{mut_sequence};
 
   my @start = @{$start};
 
@@ -773,7 +724,7 @@ sub uAUG_lost {
     if (length($alt_coding) eq 0) {
       $flag_uORF=1;
     } else {
-      my $mut_codon = $mut_utr_seq[$start_pos].$mut_utr_seq[$start_pos+1].$mut_utr_seq[$start_pos+2];
+      my $mut_codon = $mut_sequence->[$start_pos].$mut_sequence->[$start_pos+1].$mut_sequence->[$start_pos+2];
       next if ($mut_codon eq "ATG");
       $flag_uORF=1;
     }
@@ -781,21 +732,10 @@ sub uAUG_lost {
     if($flag_uORF){
 
       #getting the Kozak context and Kozak strength of the lost start codon
-      if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-        $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-      } else {
-        $current_kozak = '-';
-      }
+      my $strength;
+      ($current_kozak, $strength) = $self->reference_kozak($UTR_info->{reference}, $start_pos);
+      $current_kozak_strength = $strength if defined $strength;
 
-      if ($current_kozak !~ /-/){
-        my @split_kozak = split //, $current_kozak;
-        $current_kozak_strength = 1;
-        if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-          $current_kozak_strength = 3;
-        } elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-          $current_kozak_strength = 2;
-        }
-      }
       $uAUG_lost_KozakContext=$current_kozak;
       $uAUG_lost_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
@@ -812,11 +752,10 @@ sub uAUG_lost {
 
       $uAUG_lost_DistanceToCDS = $utr_length - $start_pos;
 
-      my @overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
-      my %existing_overlapping_uORF = %{$self->existing_uORF(\@overlapping_seq)};
+      my $existing_overlapping_uORF = $self->overlapping_uORFs($UTR_info, $UTR_info->{seq}, "reference");
 
-      if(exists($existing_overlapping_uORF{$start_pos})){
-        my @stop_pos_array = sort{$a<=>$b}@{$existing_overlapping_uORF{$start_pos}};
+      if(exists($existing_overlapping_uORF->{$start_pos})){
+        my @stop_pos_array = @{$existing_overlapping_uORF->{$start_pos}};
         my $stop_pos = $stop_pos_array[0];
         $uAUG_lost_DistanceToSTOP = $stop_pos-$start_pos;
       } else {
@@ -853,14 +792,15 @@ sub uFrameshift {
 
   my ($self, $variant_info, $UTR_info, $mut_pos, $end_pos, $mut_utr_seq, $existing_uORF, $mut_uORF, $start) = @_;
 
+  return {} unless abs(length($self->{ref_coding}) - length($self->{alt_coding})) % 3;
+
   my $chr = $variant_info->{chr};
   my $pos = $variant_info->{pos};
   my $ref = $variant_info->{ref};
   my $alt = $variant_info->{alt};
 
-  my @sequence = split //, $UTR_info->{seq};
   my $strand = $UTR_info->{strand};
-  my $utr_length = @sequence;
+  my $utr_length = length($UTR_info->{seq});
 
   #return annotators
   my $uFrameshift_ref_type = ""; # the type of uORF with the reference allele
@@ -885,13 +825,9 @@ sub uFrameshift {
   my $ref_coding = $self->{ref_coding};
   my $alt_coding = $self->{alt_coding};
 
-  #skip alleles with same length
-  return {} unless(length($ref_coding) ne length($alt_coding));
-
   #if it's a deletion at the boundary of exon and intron, we would skip the annotation
 
-  my @mut_utr_seq = split //,$mut_utr_seq;
-  my $length = @mut_utr_seq;
+  my $length = length($mut_utr_seq);
 
   my @start = @{$start};
 
@@ -909,7 +845,7 @@ sub uFrameshift {
       #if the variant is entirely in the uORF (within 5'UTR)
 
       if(exists($existing_uORF->{$start_pos})) {
-        my @stops = sort {$a <=> $b} @{$existing_uORF->{$start_pos}};
+        my @stops = @{$existing_uORF->{$start_pos}};
         $check_point = $stops[0]-1;
       } else {
         #if the existing uORF is an oORF
@@ -925,30 +861,15 @@ sub uFrameshift {
 
       if($flag_uORF){
         #getting the Kozak context and Kozak strength of the start codon
-        if ((($start_pos-3)>=0)&&($sequence[($start_pos+3)])){
-          $current_kozak = $sequence[($start_pos-3)].$sequence[($start_pos-2)].$sequence[$start_pos-1]."ATG".$sequence[$start_pos+3];
-        }
-        else{
-          $current_kozak = '-';
-        }
-
-        if ($current_kozak !~ /-/){
-          my @split_kozak = split //, $current_kozak;
-          $current_kozak_strength = 1;
-          if ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))&&($split_kozak[6] eq 'G')){
-            $current_kozak_strength = 3;
-          }
-          elsif ((($split_kozak[0] eq 'A')||($split_kozak[0] eq 'G'))||($split_kozak[6] eq 'G')){
-            $current_kozak_strength = 2;
-          }
-        }
+        my $strength;
+        ($current_kozak, $strength) = $self->reference_kozak($UTR_info->{reference}, $start_pos);
+        $current_kozak_strength = $strength if defined $strength;
 
         $uFrameshift_KozakContext=$current_kozak;
         $uFrameshift_KozakStrength=$self->{kozak_strength}{$current_kozak_strength}? $self->{kozak_strength}{$current_kozak_strength}:$current_kozak_strength;
 
         #the annotation of the original uORF
-        my @ref_overlapping_seq = split //, $UTR_info->{seq}.$UTR_info->{cds_seq};
-        my %ref_existing_oORF = %{$self->existing_uORF(\@ref_overlapping_seq)};
+        my $ref_existing_oORF = $self->overlapping_uORFs($UTR_info, $UTR_info->{seq}, "reference");
 
         if (exists($existing_uORF->{$start_pos})){ #if there is stop codon within 5'UTR
           $uFrameshift_ref_type = "uORF";
@@ -958,8 +879,8 @@ sub uFrameshift {
           $uFrameshift_ref_type = "InFrame_oORF";
         }
 
-        if (exists($ref_existing_oORF{$start_pos})){
-          my @stops = sort {$a <=> $b} @{$ref_existing_oORF{$start_pos}};
+        if (exists($ref_existing_oORF->{$start_pos})){
+          my @stops = @{$ref_existing_oORF->{$start_pos}};
           $uFrameshift_ref_type_length = $stops[0]-$start_pos+3;
         } else {
           $uFrameshift_ref_type_length = "NA";
@@ -967,8 +888,7 @@ sub uFrameshift {
 
         $uFrameshift_StartDistanceToCDS = $utr_length - $start_pos;
 
-        my @alt_overlapping_seq = split //, $mut_utr_seq.$UTR_info->{cds_seq};
-        my %alt_existing_oORF = %{$self->existing_uORF(\@alt_overlapping_seq)};
+        my $alt_existing_oORF = $self->overlapping_uORFs($UTR_info, $mut_utr_seq, "alternate");
 
         if (exists($mut_uORF->{$start_pos})){
           $uFrameshift_alt_type = "uORF";
@@ -979,8 +899,8 @@ sub uFrameshift {
         }
 
         #get the length
-        if (exists($alt_existing_oORF{$start_pos})){
-          my @stops = sort {$a <=> $b} @{$alt_existing_oORF{$start_pos}};
+        if (exists($alt_existing_oORF->{$start_pos})){
+          my @stops = @{$alt_existing_oORF->{$start_pos}};
           $uFrameshift_alt_type_length = $stops[0]-$start_pos+3;
         } else {
           $uFrameshift_alt_type_length = "NA";
@@ -1017,56 +937,93 @@ sub uFrameshift {
 # Utils #
 #########
 
+# Missing context leaves the caller's strength unchanged, preserving the
+# existing annotation behaviour at UTR boundaries.
+sub kozak_context {
+  my ($self, $sequence, $start) = @_;
+  return ('-', undef) unless $start >= 3 && $sequence->[$start + 3];
+  my $context = join('', @{$sequence}[$start-3 .. $start-1]).'ATG'.$sequence->[$start+3];
+  return ($context, undef) if $context =~ /-/;
+  my $purine = $sequence->[$start-3] eq 'A' || $sequence->[$start-3] eq 'G';
+  my $guanine = $sequence->[$start+3] eq 'G';
+  return ($context, 1 + ($purine ? 1 : 0) + ($guanine ? 1 : 0));
+}
+
+sub reference_kozak {
+  my ($self, $reference, $start) = @_;
+  $reference->{kozak}{$start} ||= [$self->kozak_context($reference->{sequence}, $start)];
+  return @{$reference->{kozak}{$start}};
+}
+
+# Cache only reference-derived data on the transcript itself. Do not retain
+# transcript/UTR objects here: UTR features reference their transcript and would
+# create a cycle. This cache is released with the transcript, including in forks.
+sub reference_context {
+  my ($self, $transcript) = @_;
+  my $utr = $transcript->five_prime_utr;
+  return {
+    seq => defined $utr ? $utr->seq : undef,
+    utr_intervals => [map { [$_->start, $_->end] } @{$transcript->get_all_five_prime_UTRs}],
+  };
+}
+
+sub reference_uORFs {
+  my ($self, $reference) = @_;
+  unless (exists $reference->{uORFs}) {
+    $reference->{sequence} = [split //, $reference->{seq}];
+    $reference->{starts} = $self->get_ATG_pos($reference->{seq});
+    $reference->{uORFs} = $self->existing_uORF($reference->{seq}, $reference->{starts});
+    $reference->{counts} = $self->count_number_ATG(
+      $reference->{seq}, $reference->{starts}, $reference->{uORFs}
+    );
+  }
+  return $reference->{uORFs};
+}
+
+# Alternate tables live only for the current allele; reference tables are
+# shared across variants on the same transcript. Both are built lazily.
+sub overlapping_uORFs {
+  my ($self, $UTR_info, $sequence, $allele) = @_;
+  my $key = "_${allele}_overlapping_uORFs";
+  my $cache = $allele eq "reference" ? $UTR_info->{reference} : $UTR_info;
+  unless (exists $cache->{$key}) {
+    my $reference = $UTR_info->{reference};
+    $reference->{cds_seq} = $UTR_info->{transcript}->translateable_seq
+      unless exists $reference->{cds_seq};
+    $cache->{$key} = $self->existing_uORF($sequence.$reference->{cds_seq});
+  }
+  return $cache->{$key};
+}
+
 =head2 count_number_ATG
 
-  Arg [1]    : $seq
-  Description: Count the number of existing ATGs in the five prime UTR sequence.
-  Return: returns the number of uORFs and the number of oORFs
+  Arg [1]    : reference sequence string
+  Arg [2]    : optional precomputed ascending ATG positions
+  Arg [3]    : optional precomputed ORF map
+  Description: Count uORFs and overlapping ORFs using shared reference analysis.
   Returntype : hashref
 
 =cut
 
 sub count_number_ATG {
-  my ($self,$seq) = @_;
-
-  my @sequence = split //, $seq;
-  my $length = @sequence;
-
-  my @atg_pos = @{$self->get_ATG_pos(\@sequence)};
-  my @mes_pos = @{$self->get_stopcodon_pos(\@sequence)};
-
-  my $inframe_stop_num=0;
-  my $outofframe_atg_num=0;
-  my $inframeORF_num=0;
-
-  foreach my $atg (@atg_pos){
-
-    my $flag=0;
-
-    #indicate whether there is a stop codon with respect to this ATG
-    foreach my $mes (@mes_pos){
-      unless (($mes-$atg) % 3 || ($mes-$atg) < 0 ){
-        $flag=1;
-        last;
-      };
-    }
-    #if there is no stop codon, then look at whether it's Out_of_frame or Inframe
-    if($flag==1){
-      $inframe_stop_num++;
-    } else {
-      (($length-$atg) % 3)? $outofframe_atg_num++ : $inframeORF_num++;
-    }
-
+  my ($self, $seq, $starts, $uORFs) = @_;
+  unless (defined $starts && defined $uORFs) {
+    $starts = $self->get_ATG_pos($seq);
+    $uORFs = $self->existing_uORF($seq, $starts);
   }
-
-  my %existing_uORF_num = (
-    "Existing_uORFs" => $inframe_stop_num,
-    "Existing_OutOfFrame_oORFs" => $outofframe_atg_num,
-    "Existing_InFrame_oORFs" => $inframeORF_num,
-  );
-
-  return \%existing_uORF_num;
-
+  my ($uorf_count, $out_of_frame, $in_frame) = (0, 0, 0);
+  foreach my $atg (@$starts) {
+    if (exists $uORFs->{$atg}) {
+      $uorf_count++;
+    } else {
+      ((length($seq) - $atg) % 3) ? $out_of_frame++ : $in_frame++;
+    }
+  }
+  return {
+    Existing_uORFs => $uorf_count,
+    Existing_OutOfFrame_oORFs => $out_of_frame,
+    Existing_InFrame_oORFs => $in_frame,
+  };
 }
 
 
@@ -1074,28 +1031,30 @@ sub count_number_ATG {
 
   Arg [1]    : $seq
   Description: obtaining the relative coordinates of start and end pos of existing uORF in the five prime UTR sequence.
-  Return: returns as the key the position of the first nucleotide of start codon and the value is all the positions of the first nucleotide of the stop codon.
+  Return: returns as the key the position of the first nucleotide of start codon and the value is a one-element array containing the first downstream in-frame stop position.
   Returntype : hashref
 
 =cut
 
 
 sub existing_uORF {
-  my ($self,$seq) = @_;
+  my ($self, $seq, $starts) = @_;
 
-  my @atg_pos = @{$self->get_ATG_pos($seq)};
-  my @mes_pos = @{$self->get_stopcodon_pos($seq)};
-  my %uORF;
+  my $atg_pos = defined $starts ? $starts : $self->get_ATG_pos($seq);
+  my $stop_pos = $self->get_stopcodon_pos($seq);
+  my (%uORF, @next_stop);
+  my $stop_index = $#$stop_pos;
 
-  foreach my $atg (@atg_pos){
-    my @stop_pos;
-    foreach my $mes (@mes_pos){
-      push @stop_pos, $mes unless ((($mes-$atg) % 3) || ($mes-$atg)<0);
+  # Both position lists are ascending. Moving upstream visits each position
+  # once, retaining the nearest downstream stop in each of the three frames.
+  foreach my $atg (reverse @$atg_pos) {
+    while ($stop_index >= 0 && $stop_pos->[$stop_index] >= $atg) {
+      my $stop = $stop_pos->[$stop_index--];
+      $next_stop[$stop % 3] = $stop;
     }
-
-    $uORF{$atg} = [@stop_pos] if (@stop_pos);
+    my $stop = $next_stop[$atg % 3];
+    $uORF{$atg} = [$stop] if defined $stop;
   }
-
   return \%uORF;
 }
 
@@ -1111,14 +1070,13 @@ sub existing_uORF {
 
 
 sub get_ATG_pos {
-  my ($self,$seq) = @_;
-
-  my @sequence = @{$seq};
-  my $length = @sequence;
-  my $seq_str=join '', @sequence;
-  my @atg_pos = grep {(substr ($seq_str, $_,3) eq 'ATG')} 0..($length);
-
-  return \@atg_pos;
+  my ($self, $seq) = @_;
+  my $sequence = ref($seq) eq 'ARRAY' ? join('', @$seq) : $seq;
+  my @positions;
+  while ($sequence =~ /ATG/g) {
+    push @positions, pos($sequence) - 3;
+  }
+  return \@positions;
 }
 
 
@@ -1133,23 +1091,15 @@ sub get_ATG_pos {
 
 
 sub get_stopcodon_pos {
-  my ($self,$seq) = @_;
-
-  my @sequence = @{$seq};
-  my $length = @sequence;
-
-  my @met_pos;
-  if($length){
-    for (my $seq_n=0; $seq_n<$length; $seq_n++){
-      if ((($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'A')&&($sequence[$seq_n+2] eq 'A'))
-          ||(($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'A')&&($sequence[$seq_n+2] eq 'G'))
-          ||(($sequence[$seq_n] eq 'T')&&($sequence[$seq_n+1] eq 'G')&&($sequence[$seq_n+2] eq 'A'))){
-           push @met_pos,$seq_n;
-      }
-    }
+  my ($self, $seq) = @_;
+  my $sequence = ref($seq) eq 'ARRAY' ? join('', @$seq) : $seq;
+  my @positions;
+  # None of these motifs overlap each other: their internal bases are not T.
+  # This still finds stops in all three frames, including overlaps with ATG.
+  while ($sequence =~ /T(?:AA|AG|GA)/g) {
+    push @positions, pos($sequence) - 3;
   }
-
-  return \@met_pos;
+  return \@positions;
 }
 
 sub get_ref_coding {
@@ -1187,16 +1137,10 @@ sub get_alt_coding {
 
 
 sub mut_utr_sequence {
-  my ($self,$seq,$mut_pos,$ref_coding,$alt_coding,$strand) = @_;
-
-  my @sequence = @{$seq};
-  my $length = @sequence;
-
-  #order from 5' to 3'
-  my $mut_sequence;
-  $mut_sequence = (join "", @sequence[0..$mut_pos-1]).$alt_coding.(join "", @sequence[$mut_pos+length($ref_coding)..$length-1]);
-
-  return $mut_sequence;
+  my ($self, $seq, $mut_pos, $ref_coding, $alt_coding, $strand) = @_;
+  my $sequence = ref($seq) eq 'ARRAY' ? join('', @$seq) : $seq;
+  substr($sequence, $mut_pos, length($ref_coding), $alt_coding);
+  return $sequence;
 }
 
 sub transform_hash_to_string {
@@ -1214,96 +1158,64 @@ sub transform_hash_to_string {
   return $output_str;
 }
 
-sub utr_exon_position {
-  my ($self,$UTR_info) = @_;
-
-  my @sorted_starts = @{$UTR_info->{start}};
-  my @sorted_ends = @{$UTR_info->{end}};
-  my $num_exons = @sorted_starts;
-  my $strand = $UTR_info->{strand};
-  my %chr_position;
-  my $utr_position = 0;
-
-  if ($strand == 1){
-    #create a map from chromosome position to UTR position
-    for (my $m=0; $m<$num_exons; $m++){
-      for (my $p=$sorted_starts[$m]; $p<=$sorted_ends[$m]; $p++){
-        $chr_position{$p}=$utr_position;
-        $utr_position++;
-      }
-    }
+# Offsets follow transcript order and use the variant-filtered UTR intervals.
+# Store one entry per exon instead of two hashes with an entry for every base.
+sub utr_intervals {
+  my ($self, $UTR_info) = @_;
+  return $UTR_info->{_intervals} if exists $UTR_info->{_intervals};
+  my @indices = (0 .. $#{$UTR_info->{start}});
+  @indices = reverse @indices if $UTR_info->{strand} == -1;
+  my (@intervals, $offset);
+  $offset = 0;
+  foreach my $i (@indices) {
+    my ($start, $end) = ($UTR_info->{start}[$i], $UTR_info->{end}[$i]);
+    push @intervals, [$start, $end, $offset];
+    $offset += $end - $start + 1;
   }
-
-  if ($strand == -1){
-    #create a map from chromosome position to UTR position
-    #the exons were arranged in increasing order above
-    for (my $m=$num_exons-1; $m>=0; $m--){
-      for (my $p=$sorted_ends[$m]; $p>=$sorted_starts[$m]; $p--){
-        $chr_position{$p}=$utr_position;
-        $utr_position++;
-      }
-    }
-  }
-
-  return \%chr_position;
+  return $UTR_info->{_intervals} = \@intervals;
 }
 
-sub chr_position {
-  my ($self,$UTR_info) = @_;
-
-  my @sorted_starts = @{$UTR_info->{start}};
-  my @sorted_ends = @{$UTR_info->{end}};
-  my $num_exons = @sorted_starts;
-  my $strand = $UTR_info->{strand};
-  my %utr_position;
-  my $utr_position = 0;
-
-  if ($strand == 1){
-  #create a map from chromosome position to UTR position
-    for (my $m=0; $m<$num_exons; $m++){
-      for (my $p=$sorted_starts[$m]; $p<=$sorted_ends[$m]; $p++){
-        $utr_position{$utr_position}=$p;
-        $utr_position++;
-      }
-    } 
+sub genomic_to_utr_position {
+  my ($self, $UTR_info, $position) = @_;
+  foreach my $interval (@{$self->utr_intervals($UTR_info)}) {
+    my ($start, $end, $offset) = @$interval;
+    next if $position < $start || $position > $end;
+    return $offset + ($UTR_info->{strand} == 1 ? $position - $start : $end - $position);
   }
+  return undef;
+}
 
-  if ($strand == -1){
-    #create a map from chromosome position to UTR position
-    #the exons were arranged in increasing order above
-    for (my $m=$num_exons-1; $m>=0; $m--){
-      for (my $p=$sorted_ends[$m]; $p>=$sorted_starts[$m]; $p--){
-        $utr_position{$utr_position}=$p;
-        $utr_position++;
-      }
-    }
+sub utr_to_genomic_position {
+  my ($self, $UTR_info, $position) = @_;
+  foreach my $interval (@{$self->utr_intervals($UTR_info)}) {
+    my ($start, $end, $offset) = @$interval;
+    next if $position < $offset || $position > $offset + $end - $start;
+    return $UTR_info->{strand} == 1 ? $start + $position - $offset : $end - $position + $offset;
   }
-
-  return \%utr_position;
+  return undef;
 }
 
 sub get_allele_exon_pos {
   # return the 5' start and end position at the exon of the ref allele
   my ($self, $strand, $pos, $ref_coding, $UTR_info) = @_;
-  my %utr_exon_pos = %{$self->utr_exon_position($UTR_info)};
 
   my $ref_start;
   my $ref_end;
 
   if ($strand == 1) {
-    $ref_start = $utr_exon_pos{$pos};
+    $ref_start = $self->genomic_to_utr_position($UTR_info, $pos);
 
     if(length($ref_coding)){
-      $ref_end = $utr_exon_pos{$pos + length($ref_coding) - 1};
+      $ref_end = $self->genomic_to_utr_position($UTR_info, $pos + length($ref_coding) - 1);
     } else {
       $ref_end = $ref_start;
     }
   }
   else {
-    $ref_start = $utr_exon_pos{$pos+length($ref_coding)-1};
+    $ref_start = $self->genomic_to_utr_position($UTR_info, $pos + length($ref_coding) - 1);
 
     if(length($ref_coding)){
-      $ref_end = $utr_exon_pos{$pos};
+      $ref_end = $self->genomic_to_utr_position($UTR_info, $pos);
     } else {
       $ref_end = $ref_start;
     }
@@ -1315,8 +1227,7 @@ sub get_allele_exon_pos {
 sub find_uorf_evidence {
   my ($self,$UTR_info,$chr,$start_pos)=@_;
 
-  my %utr_pos = %{$self->chr_position($UTR_info)};
-  my $start_chr_pos = $utr_pos{$start_pos};
+  my $start_chr_pos = $self->utr_to_genomic_position($UTR_info, $start_pos);
 
   my $query = ($chr=~/chr/i)? $chr . ":" . $start_chr_pos : "chr" . $chr . ":" . $start_chr_pos;
   my $evidence = $self->{uORF_evidence}->{$query}? "True" : "False";
