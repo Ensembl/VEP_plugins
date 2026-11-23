@@ -45,6 +45,14 @@ limitations under the License.
     max_overlap : (Optional) Maximum percentage of overlap between variant and
                   UTR for UTR annotation (default: 100)
 
+    All applicable terms are reported in 5UTR_consequence, joined by '&' in
+    deterministic order. When more than one term applies, each ORF entry in
+    5UTR_annotation includes a Consequence field identifying its term. JSON/REST
+    output retains the numbered annotation object; tab output separates ORF
+    entries with commas and their key=value fields with colons. VEP replaces
+    the commas with '&' in VCF output. Single-term annotation entries retain
+    their existing fields.
+
     Citation
 
     About the role of 5'UTR variants in human genetic disease:
@@ -128,8 +136,8 @@ sub new {
 sub get_header_info {
 
   my $self->{_header_info} = {
-        '5UTR_consequence' => 'Variant consequence from UTRAnnotator',
-        '5UTR_annotation' => 'Variant annotation from UTRAnnotator',
+        '5UTR_consequence' => 'All applicable UTRAnnotator consequences, separated by &',
+        '5UTR_annotation' => 'UTRAnnotator ORF annotations; Consequence identifies the term when multiple terms apply',
         Existing_uORFs => 'The number of existing uORFs with a stop codon within the 5 prime UTR',
         Existing_OutOfFrame_oORFs => 'The number of existing out-of-frame overlapping ORFs (OutOfFrame oORF) at the 5 prime UTR',
         Existing_InFrame_oORFs => 'The number of existing inFrame overlapping ORFs (inFrame oORF) at the 5 prime UTR',
@@ -253,15 +261,24 @@ sub run {
   );
 
 
-  my $output_five_prime_flag;
-  my $output_five_prime_annotation;
+  # A variant can affect different ORFs in different ways. Keep every term and
+  # its annotations, rather than letting hash iteration choose the last term.
+  my @flags = grep { $five_prime_flag{$_} } sort keys %five_prime_flag;
+  my $output_five_prime_flag = @flags
+    ? join('&', map { $five_prime_flag{$_} } @flags) : undef;
+  my $output_five_prime_annotation = @flags ? {} : undef;
+  my $annotation_index = 0;
 
-  foreach my $flag (keys %five_prime_flag){
-    if($five_prime_flag{$flag}){
-      $output_five_prime_flag = $five_prime_flag{$flag};
-      $output_five_prime_annotation = $five_prime_annotation{$flag};
+  foreach my $flag (@flags){
+    my $annotations = $five_prime_annotation{$flag};
+    foreach my $index (sort { $a <=> $b } keys %$annotations){
+      # Each routine numbers its ORFs from one; renumber to avoid collisions.
+      # Copy before adding the term so the original annotation is not modified.
+      $output_five_prime_annotation->{++$annotation_index} = @flags > 1
+        ? { %{$annotations->{$index}}, Consequence => $five_prime_flag{$flag} }
+        : $annotations->{$index};
     }
-  };
+  }
 
   my %utr_effect;
 
@@ -276,8 +293,8 @@ sub run {
 
     my @consequences;
 
-        foreach my $value (keys %{$output_five_prime_annotation}){
-          push @consequences, join(":", map { "$_=$output_five_prime_annotation->{$value}{$_}" } keys %{$output_five_prime_annotation->{$value}});
+        foreach my $value (sort { $a <=> $b } keys %{$output_five_prime_annotation || {}}){
+          push @consequences, join(":", map { "$_=$output_five_prime_annotation->{$value}{$_}" } sort keys %{$output_five_prime_annotation->{$value}});
         };
 
     my $consequence;
