@@ -50,6 +50,8 @@ Evo2VED - annotate variants with Evo2 Variant Effect Database scores
  curl -fL -O https://huggingface.co/datasets/huthvincent/Evo2VED-scores/resolve/main/v1.0.0/evo2ved.GRCh38.v1.0.0.scores.tsv.gz
  curl -fL -O https://huggingface.co/datasets/huthvincent/Evo2VED-scores/resolve/main/v1.0.0/evo2ved.GRCh38.v1.0.0.scores.tsv.gz.tbi
 
+ [PLACEHOLDER - LOOK TO SWITCH DOWNLOAD LOCATION TO ENSEMBL FTP BEFORE MERGE]
+
  No reformatting is needed. The tabix utility from HTSlib must be in your PATH
  (installation: https://www.htslib.org/download/). To recreate a missing index:
 
