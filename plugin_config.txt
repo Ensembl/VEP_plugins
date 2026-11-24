@@ -651,6 +651,26 @@ my $VEP_PLUGIN_CONFIG = {
           ]
         },
 
+    # Evo2VED
+    {
+      "key" => "Evo2VED",
+      "label" => "Evo2VED",
+      "available" => 0,
+      "enabled" => 0,
+      "section" => "Pathogenicity predictions",
+      "helptip" => "Precomputed Evo2 Variant Effect Database scores for GRCh38 variants",
+      "plugin_url" => "https://raw.githubusercontent.com/Ensembl/VEP_plugins/release/116/Evo2VED.pm",
+      "requires_data" => 1,
+      "species" => [
+        "homo_sapiens"
+      ],
+      "params" => [
+        #"file=/path/to/evo2ved.GRCh38.v1.0.0.scores.tsv.gz",
+        #"Evo2_7B_AvgRC_Delta=1",
+        #"all=1",
+      ]
+    },
+
     # CADD
     # https://github.com/ensembl-variation/VEP_plugins/blob/main/CADD.pm
     {
