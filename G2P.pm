@@ -503,23 +503,29 @@ sub new {
         }
       }
 
-      my $species =  $self->{config}->{species};
-      my $reg = $self->{config}->{reg};
-      my $vca;
-      if (defined $self->{config}->{offline}) {
-        $vca = Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor->new();
-      } else {
-        my $vdba = $reg->get_DBAdaptor($species, 'variation');
+      my $species = $self->{config}->{species};
+      my $offline = $self->{config}->{offline};
+      my $vdba;
+      unless ($offline) {
+        my $reg = $self->{config}->{reg};
+        $vdba = $reg->get_DBAdaptor($species, 'variation');
         $vdba->dbc->reconnect_when_lost(1);
-        $vca = $vdba->get_VCFCollectionAdaptor;
-        $vca->db->use_vcf(2);
+        $species = $vdba->species;
       }
+      my $vca = Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor->new(
+        $vdba,
+        -species => $species,
+        -assembly => $assembly,
+        -collection_ids => \@vcf_collection_ids,
+      );
+      $vdba->use_vcf(2) if $vdba;
       my $vcf_collections = $vca->fetch_all;
+      my %selected_ids = map { lc($_) => 1 } @vcf_collection_ids;
       my @collections = ();
       foreach my $vcf_collection (@$vcf_collections) {
-        $vcf_collection->use_db(0) if (defined $self->{config}->{offline});
+        $vcf_collection->use_db(0) if $offline;
         my $vcf_collection_id = $vcf_collection->id;
-        if ($vcf_collection->assembly eq $assembly && grep {$_ =~ /$vcf_collection_id/i} @vcf_collection_ids) {
+        if (lc($vcf_collection->assembly // '') eq lc($assembly) && $selected_ids{lc($vcf_collection_id)}) {
           delete $vcf_collection->adaptor->{collections};
           delete $vcf_collection->adaptor->{config};
           my $description = $vcf_collection->description || $vcf_collection_id;
